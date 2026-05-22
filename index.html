@@ -427,12 +427,13 @@ function pickStation(name, lat, lon) {
 
 const PRIX_API = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
 
-/* Par coordonnées (depuis liste géo) — rayon 600 m */
+/* Par coordonnées (depuis liste géo) — rayon 600 m
+   API v2 : 1 ligne = 1 station, champ sp98_prix (plus de prix_nom="SP98") */
 async function fetchPrixS98ByCoords(lat, lon) {
   setS98Status('spin','Recherche du prix SP98…');
   try {
-    const where = `prix_nom="SP98" AND distance(geom, geom'POINT(${lon} ${lat})', 600m)`;
-    const url = `${PRIX_API}?where=${encodeURIComponent(where)}&select=prix_valeur,nom,ville&order_by=prix_valeur&limit=1`;
+    const where = `sp98_prix is not null AND distance(geom, geom'POINT(${lon} ${lat})', 600m)`;
+    const url = `${PRIX_API}?where=${encodeURIComponent(where)}&select=sp98_prix,nom,ville&order_by=distance(geom%2Cgeom%27POINT(${lon}%20${lat})%27)&limit=1`;
     const data = await fetch(url).then(r=>r.json());
     applyS98Result(data);
   } catch(e) {
@@ -444,10 +445,9 @@ async function fetchPrixS98ByCoords(lat, lon) {
 async function fetchPrixS98ByName(stationName) {
   setS98Status('spin','Recherche du prix SP98…');
   try {
-    // Extraire marque principale (ex. "Leclerc" de "Leclerc Douai")
     const brand = stationName.split(' ')[0];
-    const where = `prix_nom="SP98" AND search(nom, "${brand}")`;
-    const url = `${PRIX_API}?where=${encodeURIComponent(where)}&select=prix_valeur,nom,ville&order_by=prix_valeur&limit=1`;
+    const where = `sp98_prix is not null AND search(nom, "${brand}")`;
+    const url = `${PRIX_API}?where=${encodeURIComponent(where)}&select=sp98_prix,nom,ville&order_by=sp98_prix&limit=1`;
     const data = await fetch(url).then(r=>r.json());
     applyS98Result(data);
   } catch(e) {
@@ -458,7 +458,7 @@ async function fetchPrixS98ByName(stationName) {
 function applyS98Result(data) {
   if (data.results?.length) {
     const r     = data.results[0];
-    const prix  = parseFloat(r.prix_valeur).toFixed(3);
+    const prix  = parseFloat(r.sp98_prix).toFixed(3);   // champ v2
     const label = [r.nom, r.ville].filter(Boolean).join(' · ');
     const input = document.getElementById('fPrixS98');
     input.value = prix;
