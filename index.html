@@ -427,39 +427,63 @@ function pickStation(name, lat, lon) {
 
 const PRIX_API = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
 
-/* Par coordonnées (depuis liste géo) — rayon 600 m
-   API v2 : 1 ligne = 1 station, champ sp98_prix (plus de prix_nom="SP98") */
+/* ── Helpers URL ── */
+// URLSearchParams encode correctement les apostrophes et espaces
+// nécessaires pour la syntaxe ODS : geom'POINT(lon lat)'
+function odsUrl(params) {
+  return PRIX_API + '?' + new URLSearchParams(params).toString();
+}
+
+/* Par coordonnées (depuis liste géo) — rayon 800 m
+   Champs v2 réels : sp98_prix, adresse, ville (pas de champ "nom") */
 async function fetchPrixS98ByCoords(lat, lon) {
   setS98Status('spin','Recherche du prix SP98…');
   try {
-    const where = `sp98_prix is not null AND distance(geom, geom'POINT(${lon} ${lat})', 600m)`;
-    const url = `${PRIX_API}?where=${encodeURIComponent(where)}&select=sp98_prix,nom,ville&order_by=distance(geom%2Cgeom%27POINT(${lon}%20${lat})%27)&limit=1`;
-    const data = await fetch(url).then(r=>r.json());
+    const url = odsUrl({
+      where:    `sp98_prix is not null AND distance(geom, geom'POINT(${lon} ${lat})', 800m)`,
+      select:   'sp98_prix,adresse,ville',
+      order_by: 'sp98_prix',
+      limit:    1
+    });
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
     applyS98Result(data);
   } catch(e) {
-    setS98Status('err','Impossible de récupérer le prix SP98.');
+    console.error('[SP98] fetchByCoords error:', e);
+    setS98Status('err', `SP98 indisponible (${e.message}) — saisie manuelle.`);
   }
 }
 
-/* Par nom de station (depuis dropdown) — recherche textuelle */
+/* Par ville extraite du nom de station (depuis dropdown)
+   Ex. "Leclerc Douai" → cherche sp98_prix dans ville="Douai" */
 async function fetchPrixS98ByName(stationName) {
+  const parts = stationName.trim().split(/\s+/);
+  if (parts.length < 2) { setS98Status('info','Saisie manuelle du prix SP98.'); return; }
+  const ville = parts.slice(1).join(' ');   // tout après la marque
   setS98Status('spin','Recherche du prix SP98…');
   try {
-    const brand = stationName.split(' ')[0];
-    const where = `sp98_prix is not null AND search(nom, "${brand}")`;
-    const url = `${PRIX_API}?where=${encodeURIComponent(where)}&select=sp98_prix,nom,ville&order_by=sp98_prix&limit=1`;
-    const data = await fetch(url).then(r=>r.json());
+    const url = odsUrl({
+      where:    `sp98_prix is not null AND ville like "${ville}%"`,
+      select:   'sp98_prix,adresse,ville',
+      order_by: 'sp98_prix',
+      limit:    1
+    });
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
     applyS98Result(data);
   } catch(e) {
-    setS98Status('err','Impossible de récupérer le prix SP98.');
+    console.error('[SP98] fetchByName error:', e);
+    setS98Status('err', `SP98 indisponible (${e.message}) — saisie manuelle.`);
   }
 }
 
 function applyS98Result(data) {
   if (data.results?.length) {
     const r     = data.results[0];
-    const prix  = parseFloat(r.sp98_prix).toFixed(3);   // champ v2
-    const label = [r.nom, r.ville].filter(Boolean).join(' · ');
+    const prix  = parseFloat(r.sp98_prix).toFixed(3);
+    const label = [r.adresse, r.ville].filter(Boolean).join(' · ');
     const input = document.getElementById('fPrixS98');
     input.value = prix;
     input.classList.add('autofilled');
