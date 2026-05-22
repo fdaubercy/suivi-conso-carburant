@@ -158,7 +158,25 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; }
 }
 .cout-label { font-size: 14px; color: var(--blue-dark); }
 .cout-val { font-size: 24px; font-weight: 700; color: var(--blue-dark); }
-/* ─── S98 price status ─── */
+/* ─── Recherche par CP ─── */
+.cp-row {
+  display: flex; gap: 8px; margin-top: 8px;
+}
+.cp-input {
+  flex: 1; height: 40px; padding: 0 12px;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 16px; font-family: inherit; background: var(--white);
+  -webkit-appearance: none;
+}
+.cp-input:focus { outline: none; border-color: var(--blue-mid); box-shadow: 0 0 0 3px rgba(46,117,182,.15); }
+.cp-btn {
+  height: 40px; padding: 0 14px; border: none;
+  border-radius: 10px; background: var(--blue-mid);
+  color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  -webkit-tap-highlight-color: transparent; white-space: nowrap;
+}
+.cp-btn:active { background: var(--blue-dark); }
 .s98-status {
   font-size: 12px; margin-top: 5px; min-height: 16px;
   display: flex; align-items: center; gap: 5px;
@@ -255,6 +273,12 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
     <input type="number" id="fPrixS98" step="0.001" placeholder="2.091"
            inputmode="decimal" oninput="onS98ManualEdit()">
     <div class="s98-status" id="s98Status"></div>
+    <div class="cp-row hidden" id="cpSearch">
+      <input type="text" id="fCp" class="cp-input" placeholder="Code postal (ex. 59500)"
+             inputmode="numeric" maxlength="5"
+             onkeydown="if(event.key==='Enter')fetchPrixS98ByCP()">
+      <button class="cp-btn" onclick="fetchPrixS98ByCP()">Chercher</button>
+    </div>
   </div>
 
   <div class="cout-box" id="coutBox">
@@ -287,7 +311,8 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
   <div class="field hidden" id="autreField">
     <label for="fAutre">Nom de la station</label>
     <input type="text" id="fAutre" placeholder="ex. Intermarché Lens"
-           autocomplete="off" autocorrect="off" spellcheck="false">
+           autocomplete="off" autocorrect="off" spellcheck="false"
+           onblur="onAutreBlur()">
   </div>
 </div>
 
@@ -309,7 +334,8 @@ document.getElementById('fDate').value =
   `${_t.getFullYear()}-${String(_t.getMonth()+1).padStart(2,'0')}-${String(_t.getDate()).padStart(2,'0')}`;
 
 let currentType   = 'E85';
-let s98Autofilled = false;   // true quand rempli automatiquement
+let s98Autofilled = false;
+let userLat = null, userLon = null;   // GPS de l'utilisateur (stocké dès géoloc)
 
 /* ─── Type de carburant ─── */
 function setType(type) {
@@ -337,10 +363,8 @@ function updateCout() {
 function onStationChange() {
   const sel = document.getElementById('stationSel');
   document.getElementById('autreField').classList.toggle('hidden', sel.value !== '__autre');
-
-  // Si station connue choisie dans le dropdown → tenter fetch par nom
   if (sel.value && sel.value !== '__autre') {
-    fetchPrixS98ByName(sel.value);
+    fetchPrixS98NearUser();   // utilise le GPS de l'utilisateur
   }
 }
 
@@ -360,7 +384,11 @@ function geolocate() {
   setGeoStatus('info','Localisation en cours…');
   document.getElementById('nearbyList').style.display='none';
   navigator.geolocation.getCurrentPosition(
-    pos => searchNearby(pos.coords.latitude, pos.coords.longitude, btn),
+    pos => {
+      userLat = pos.coords.latitude;
+      userLon = pos.coords.longitude;
+      searchNearby(userLat, userLon, btn);
+    },
     err => {
       btn.classList.remove('loading'); btn.textContent='📍';
       const msgs={1:'Accès refusé — autorisez dans Réglages > Safari.',2:'Position introuvable.',3:'Délai dépassé.'};
@@ -416,84 +444,112 @@ function pickStation(name, lat, lon) {
   document.getElementById('nearbyList').style.display='none';
   document.getElementById('autreField').classList.add('hidden');
   setGeoStatus('','');
-  // Fetch prix SP98 via coordonnées (plus précis)
-  if (lat != null && lon != null) fetchPrixS98ByCoords(lat, lon);
+  // Essai 1 : coordonnées OSM de la station (peut différer de l'API govt)
+  // Essai 2 (fallback) : GPS utilisateur via fetchPrixS98NearUser
+  fetchPrixS98ByCoords(lat, lon, /*fallbackToUser=*/true);
+}
+
+/* ─── Saisie manuelle finalisée ─── */
+function onAutreBlur() {
+  fetchPrixS98NearUser();
 }
 
 /* ══════════════════════════════════════════════════════
-   PRIX SP98 — API gouvernementale
-   https://data.economie.gouv.fr/
+   PRIX SP98 — API gouvernementale (data.economie.gouv.fr)
+   Schéma v2 : 1 ligne = 1 station, champ sp98_prix
 ══════════════════════════════════════════════════════ */
 
 const PRIX_API = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
 
-/* ── Helpers URL ── */
-// URLSearchParams encode correctement les apostrophes et espaces
-// nécessaires pour la syntaxe ODS : geom'POINT(lon lat)'
 function odsUrl(params) {
   return PRIX_API + '?' + new URLSearchParams(params).toString();
 }
 
-/* Par coordonnées (depuis liste géo) — rayon 800 m
-   Champs v2 réels : sp98_prix, adresse, ville (pas de champ "nom") */
-async function fetchPrixS98ByCoords(lat, lon) {
-  setS98Status('spin','Recherche du prix SP98…');
-  try {
-    const url = odsUrl({
-      where:    `sp98_prix is not null AND distance(geom, geom'POINT(${lon} ${lat})', 800m)`,
-      select:   'sp98_prix,adresse,ville',
-      order_by: 'sp98_prix',
-      limit:    1
-    });
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-    applyS98Result(data);
-  } catch(e) {
-    console.error('[SP98] fetchByCoords error:', e);
-    setS98Status('err', `SP98 indisponible (${e.message}) — saisie manuelle.`);
+/* Recherche par coordonnées avec rayon progressif : 500m → 2km → 5km
+   fallbackToUser : si aucun résultat, retenter avec le GPS de l'utilisateur */
+async function fetchPrixS98ByCoords(lat, lon, fallbackToUser = false) {
+  setS98Status('spin', 'Recherche du prix SP98…');
+  hideCpSearch();
+
+  for (const radius of [500, 2000, 5000]) {
+    try {
+      const resp = await fetch(odsUrl({
+        where:    `sp98_prix is not null AND distance(geom, geom'POINT(${lon} ${lat})', ${radius}m)`,
+        select:   'sp98_prix,adresse,ville',
+        order_by: 'sp98_prix',
+        limit:    1
+      }));
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      if (data.results?.length) { applyS98Result(data); return; }
+    } catch(e) {
+      console.error('[SP98] fetchByCoords error r=' + radius, e);
+      setS98Status('err', `SP98 indisponible (${e.message}) — saisie manuelle.`);
+      return;
+    }
+  }
+
+  // Aucun résultat dans 5km autour des coords de la station OSM
+  if (fallbackToUser && userLat && userLon &&
+      haversine(lat, lon, userLat, userLon) > 100) {
+    // Retenter avec la vraie position GPS de l'utilisateur
+    await fetchPrixS98ByCoords(userLat, userLon, false);
+  } else {
+    showCpSearch();
   }
 }
 
-/* Par ville extraite du nom de station (depuis dropdown)
-   Ex. "Leclerc Douai" → cherche sp98_prix dans ville="Douai" */
-async function fetchPrixS98ByName(stationName) {
-  const parts = stationName.trim().split(/\s+/);
-  if (parts.length < 2) { setS98Status('info','Saisie manuelle du prix SP98.'); return; }
-  const ville = parts.slice(1).join(' ');   // tout après la marque
-  setS98Status('spin','Recherche du prix SP98…');
+/* Recherche près du GPS de l'utilisateur (dropdown, saisie manuelle) */
+async function fetchPrixS98NearUser() {
+  if (userLat && userLon) {
+    await fetchPrixS98ByCoords(userLat, userLon, false);
+  } else {
+    // Pas de GPS connu → proposer le code postal
+    setS98Status('info', 'Position inconnue — entrez le code postal :');
+    showCpSearch();
+  }
+}
+
+/* Recherche par code postal (dernier recours) */
+async function fetchPrixS98ByCP() {
+  const cp = document.getElementById('fCp').value.trim();
+  if (cp.length !== 5) { setS98Status('err', 'Code postal invalide (5 chiffres).'); return; }
+  setS98Status('spin', `Recherche SP98 dans ${cp}…`);
   try {
-    const url = odsUrl({
-      where:    `sp98_prix is not null AND ville like "${ville}%"`,
+    const resp = await fetch(odsUrl({
+      where:    `sp98_prix is not null AND cp="${cp}"`,
       select:   'sp98_prix,adresse,ville',
       order_by: 'sp98_prix',
       limit:    1
-    });
-    const resp = await fetch(url);
+    }));
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-    applyS98Result(data);
+    if (data.results?.length) { hideCpSearch(); applyS98Result(data); }
+    else setS98Status('info', `Aucune station SP98 trouvée pour ${cp} — saisie manuelle.`);
   } catch(e) {
-    console.error('[SP98] fetchByName error:', e);
-    setS98Status('err', `SP98 indisponible (${e.message}) — saisie manuelle.`);
+    setS98Status('err', `Erreur (${e.message}) — saisie manuelle.`);
   }
+}
+
+function showCpSearch() {
+  document.getElementById('cpSearch').classList.remove('hidden');
+  document.getElementById('fCp').focus();
+}
+function hideCpSearch() {
+  document.getElementById('cpSearch').classList.add('hidden');
+  document.getElementById('fCp').value = '';
 }
 
 function applyS98Result(data) {
-  if (data.results?.length) {
-    const r     = data.results[0];
-    const prix  = parseFloat(r.sp98_prix).toFixed(3);
-    const label = [r.adresse, r.ville].filter(Boolean).join(' · ');
-    const input = document.getElementById('fPrixS98');
-    input.value = prix;
-    input.classList.add('autofilled');
-    s98Autofilled = true;
-    setS98Status('ok', `SP98 : ${prix} €/L${label ? ' — '+label : ''}`);
-    // Retirer la mise en forme après 6 s
-    setTimeout(() => { input.classList.remove('autofilled'); }, 6000);
-  } else {
-    setS98Status('info','Prix SP98 non trouvé — saisie manuelle.');
-  }
+  const r     = data.results[0];
+  const prix  = parseFloat(r.sp98_prix).toFixed(3);
+  const label = [r.adresse, r.ville].filter(Boolean).join(' · ');
+  const input = document.getElementById('fPrixS98');
+  input.value = prix;
+  input.classList.add('autofilled');
+  s98Autofilled = true;
+  setS98Status('ok', `SP98 : ${prix} €/L${label ? ' — ' + label : ''}`);
+  setTimeout(() => input.classList.remove('autofilled'), 6000);
 }
 
 function setS98Status(cls, msg) {
@@ -571,6 +627,7 @@ function resetForm() {
   document.getElementById('fPrixS98').classList.remove('autofilled');
   document.getElementById('s98Status').className='s98-status';
   document.getElementById('s98Status').textContent='';
+  hideCpSearch();
   s98Autofilled=false;
 }
 </script>
