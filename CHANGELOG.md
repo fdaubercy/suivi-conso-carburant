@@ -6,6 +6,31 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.4.0] — 2026-05-22
+
+### Ajouté
+- **Suggestions de station en saisie manuelle** : dès 3 caractères tapés dans
+  le champ « Autre », une recherche est lancée (avec debounce 500 ms) dans l'API
+  gouvernementale par adresse et ville. Une liste de suggestions s'affiche sous
+  le champ avec adresse complète, ville, CP et prix E85 si disponible.
+- **Sélection d'une suggestion** :
+  - Remplace le texte du champ par le nom canonique de la station
+  - Met à jour dans le dropdown **toutes les options portant l'ancienne saisie**
+    par le nouveau nom normalisé
+  - Ajoute l'option dans le groupe « Stations habituelles » si elle n'y figure pas
+  - Déclenche immédiatement la récupération des prix via les coordonnées exactes
+    (`geom.lat` / `geom.lon`) retournées par l'API
+- Indicateur visuel spinner pendant la recherche de suggestions.
+- Message informatif si aucun résultat trouvé ou en cas d'erreur réseau.
+
+### Modifié
+- `onAutreBlur()` : attend 200 ms avant de lancer la recherche de prix, pour
+  laisser le temps au `onmousedown` de `pickSuggestion` de s'exécuter avant
+  que le `blur` ne masque la liste.
+- `resetForm()` : ferme et vide la liste de suggestions, remet le statut à zéro.
+
+---
+
 ## [1.3.0] — 2026-05-22
 
 ### Ajouté
@@ -112,6 +137,7 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+[1.4.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.0.0...v1.1.0
