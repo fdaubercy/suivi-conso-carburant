@@ -11,8 +11,11 @@ Ajouter à l'écran d'accueil iPhone : Safari → Partager → "Sur l'écran d'a
 ## ✨ Fonctionnalités
 
 - Saisie rapide : date, km compteur, litres, prix, station
+- **Récupération automatique des prix** E85 et SP98 dès la sélection d'une station, via l'API gouvernementale `data.economie.gouv.fr`
+  - Prix trouvé → champ pré-rempli en vert, avec nom et adresse de la station source
+  - Prix non trouvé → champ affiche `--` en grisé, saisie manuelle possible
+- **Géolocalisation** : détecte les stations E85 proches via OpenStreetMap (rayon 8 km)
 - Calcul automatique du coût du plein en temps réel
-- **Géolocalisation** : détecte les stations E85 proches via OpenStreetMap
 - Enregistrement direct dans Google Sheets via Google Apps Script
 - Interface optimisée iPhone (safe areas, bouton sticky, font-size 16px)
 
@@ -21,7 +24,8 @@ Ajouter à l'écran d'accueil iPhone : Safari → Partager → "Sur l'écran d'a
 ```
 suivi-e85/
 ├── index.html      # Formulaire web (frontend)
-└── README.md
+├── README.md
+└── CHANGELOG.md
 ```
 
 Le backend (réception des données) est hébergé dans Google Apps Script — voir `Code.gs` ci-dessous.
@@ -66,7 +70,7 @@ Déployer en **Application Web** → accès : Tout le monde.
 
 ### 2. Connecter le formulaire au backend
 
-Dans `index.html`, ligne 6, remplacer :
+Dans `index.html`, remplacer :
 ```javascript
 const GAS_URL = 'https://script.google.com/macros/s/VOTRE_ID_ICI/exec';
 ```
@@ -79,6 +83,27 @@ Le script écrit dans l'onglet `_ImportGS` du Google Sheet avec les colonnes :
 | Horodatage | Date | Type | Km compteur | Nb. Litres | Prix €/L | Prix S98 jour | Station |
 |---|---|---|---|---|---|---|---|
 
+## 🔍 Récupération automatique des prix
+
+Dès qu'une station est sélectionnée (liste géo ou dropdown), le formulaire interroge l'API officielle des prix carburants :
+
+```
+https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/
+prix-des-carburants-en-france-flux-instantane-v2/records
+```
+
+**Stratégie de recherche par priorité :**
+
+1. **Coordonnées OSM** (station choisie via géoloc) — rayon progressif 500 m → 2 km → 5 km
+2. **GPS utilisateur** (fallback si coords OSM ne donnent rien)
+3. **Code postal** (saisi manuellement en dernier recours)
+
+**Comportement des champs prix :**
+- Prix trouvé → valeur pré-remplie, fond vert clair pendant 6 secondes
+- Prix non trouvé → placeholder `--` en grisé, saisie manuelle disponible
+
+La saisie manuelle désactive immédiatement le style auto-rempli.
+
 ## 🛠️ Modifier le formulaire
 
 1. Éditer `index.html` directement sur GitHub (icône ✏️)
@@ -88,5 +113,6 @@ Le script écrit dans l'onglet `_ImportGS` du Google Sheet avec les colonnes :
 
 - HTML / CSS / JavaScript vanilla
 - [Overpass API](https://overpass-api.de/) (OpenStreetMap) pour la géolocalisation des stations E85
+- [API Prix des Carburants](https://data.economie.gouv.fr/explore/dataset/prix-des-carburants-en-france-flux-instantane-v2/) (data.economie.gouv.fr) pour les prix temps réel
 - Google Apps Script pour le backend
 - GitHub Pages pour l'hébergement
