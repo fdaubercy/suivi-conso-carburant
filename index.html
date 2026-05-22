@@ -150,8 +150,30 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; }
   font-size: 10px; background: var(--green-light); color: #085041;
   padding: 2px 7px; border-radius: 4px; font-weight: 600;
 }
+/* ─── Suggestions station manuelle ─── */
+.suggestion-status { font-size: 12px; margin-top: 5px; min-height: 16px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+.suggestion-status.spin::before {
+  content: ''; display: inline-block; width: 12px; height: 12px;
+  border: 2px solid var(--text-muted); border-top-color: transparent;
+  border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0;
+}
+.suggestion-list {
+  display: none; border: 1.5px solid var(--border);
+  border-radius: 10px; overflow: hidden; margin-top: 8px;
+  max-height: 220px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+.suggestion-item {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 11px 14px; cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  background: var(--white); color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item:active { background: var(--blue-light); }
+.suggestion-item-name { font-size: 15px; font-weight: 500; }
+.suggestion-item-addr { font-size: 12px; color: var(--text-muted); }
 /* ─── Coût ─── */
-.cout-box {
   display: none; background: var(--blue-light);
   border-radius: 10px; padding: 11px 14px; margin-top: 10px;
   align-items: baseline; gap: 8px;
@@ -312,7 +334,9 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
     <label for="fAutre">Nom de la station</label>
     <input type="text" id="fAutre" placeholder="ex. Intermarché Lens"
            autocomplete="off" autocorrect="off" spellcheck="false"
-           onblur="onAutreBlur()">
+           oninput="onAutreInput()" onblur="onAutreBlur()">
+    <div class="suggestion-status" id="suggStatus"></div>
+    <div class="suggestion-list" id="suggList"></div>
   </div>
 </div>
 
@@ -456,9 +480,114 @@ function pickStation(name, lat, lon) {
   fetchPricesAtCoords(lat, lon, /*fallbackToUser=*/true);
 }
 
-/* ─── Saisie manuelle finalisée ─── */
+/* ─── Saisie manuelle : recherche de suggestions ─── */
+let _autreDebounce = null;
+let _autreBlurPending = false;   // évite de fetch les prix avant sélection
+
+function onAutreInput() {
+  const q = document.getElementById('fAutre').value.trim();
+  clearTimeout(_autreDebounce);
+  hideSuggestions();
+  if (q.length < 3) { setSuggStatus('',''); return; }
+  setSuggStatus('spin', 'Recherche…');
+  _autreDebounce = setTimeout(() => searchStationSuggestions(q), 500);
+}
+
+async function searchStationSuggestions(q) {
+  try {
+    const resp = await fetch(odsUrl({
+      where:    `search(adresse, "${q}") OR search(ville, "${q}")`,
+      select:   'id,adresse,ville,cp,e85_prix,sp98_prix,geom',
+      order_by: 'ville',
+      limit:    8
+    }));
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    if (!data.results?.length) {
+      setSuggStatus('', 'Aucun résultat — vérifiez l\'orthographe ou utilisez la géolocalisation.');
+      return;
+    }
+    renderSuggestions(data.results);
+    setSuggStatus('', '');
+  } catch(e) {
+    setSuggStatus('', 'Erreur de recherche — saisie libre conservée.');
+  }
+}
+
+function renderSuggestions(results) {
+  const list = document.getElementById('suggList');
+  list.innerHTML = results.map((r, i) => {
+    const label = [r.adresse, r.cp, r.ville].filter(Boolean).join(' · ');
+    const prix  = r.e85_prix ? `E85 ${parseFloat(r.e85_prix).toFixed(3)} €/L` : '';
+    return `<div class="suggestion-item" onmousedown="pickSuggestion(${i})" data-idx="${i}">
+      <span class="suggestion-item-name">⛽ ${r.ville || r.adresse}</span>
+      <span class="suggestion-item-addr">${label}${prix ? '  ·  ' + prix : ''}</span>
+    </div>`;
+  }).join('');
+  list._results = results;   // stocke les résultats pour pickSuggestion
+  list.style.display = 'block';
+}
+
+/* Sélection d'une suggestion */
+function pickSuggestion(idx) {
+  const list    = document.getElementById('suggList');
+  const r       = list._results[idx];
+  const oldName = document.getElementById('fAutre').value.trim();
+  const newName = [r.adresse, r.ville].filter(Boolean).join(' — ');
+
+  // Met à jour le champ texte
+  document.getElementById('fAutre').value = newName;
+  hideSuggestions();
+  setSuggStatus('', '');
+
+  // Remplace dans le dropdown toutes les options portant l'ancienne saisie
+  const sel = document.getElementById('stationSel');
+  let replaced = false;
+  Array.from(sel.options).forEach(opt => {
+    if (opt.value === oldName || opt.value === '__autre') return;
+    if (opt.value.toLowerCase() === oldName.toLowerCase()) {
+      opt.value = newName; opt.text = newName;
+      replaced = true;
+    }
+  });
+  // Si l'option n'existe pas encore, l'ajouter au groupe connu
+  if (!Array.from(sel.options).some(o => o.value === newName)) {
+    document.getElementById('knownGroup').insertBefore(
+      new Option(newName, newName),
+      document.querySelector('#knownGroup option[value="__autre"]')
+    );
+  }
+  sel.value = '__autre';   // garde le champ libre visible pour confirmation visuelle
+
+  // Récupère les prix via les coordonnées de la station sélectionnée
+  if (r.geom?.lon != null && r.geom?.lat != null) {
+    fetchPricesAtCoords(r.geom.lat, r.geom.lon, false);
+  } else {
+    fetchPricesNearUser();
+  }
+}
+
+function hideSuggestions() {
+  const list = document.getElementById('suggList');
+  list.style.display = 'none';
+  list.innerHTML = '';
+  list._results = [];
+}
+
+function setSuggStatus(cls, msg) {
+  const el = document.getElementById('suggStatus');
+  el.className = 'suggestion-status ' + cls;
+  el.textContent = msg;
+}
+
+/* onBlur : si pas de suggestion sélectionnée, tente les prix via GPS */
 function onAutreBlur() {
-  fetchPricesNearUser();
+  // Laisse le temps à onmousedown de pickSuggestion de s'exécuter avant blur
+  setTimeout(() => {
+    if (document.getElementById('suggList').style.display !== 'none') return;
+    const q = document.getElementById('fAutre').value.trim();
+    if (q) fetchPricesNearUser();
+  }, 200);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -661,6 +790,8 @@ function resetForm() {
   document.getElementById('autreField').classList.add('hidden');
   document.getElementById('s98Status').className='s98-status';
   document.getElementById('s98Status').textContent='';
+  hideSuggestions();
+  setSuggStatus('', '');
   hideCpSearch();
   s98Autofilled=false;
 }
