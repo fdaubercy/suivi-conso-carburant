@@ -447,3 +447,41 @@ function resetForm() {
   hideCpSearch();
   s98Autofilled = false;
 }
+
+const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
+
+/* ─── Chargement des stations depuis Google Sheets ─── */
+async function chargerStations() {
+  const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}`
+            + `/gviz/tq?tqx=out:csv&sheet=Stations`;
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const csv  = await resp.text();
+
+    const lignes = csv.split('\n').map(l => l.trim().replace(/^"|"$/g, ''));
+    // lignes[0] = en-tête "Station", on saute
+    const stations = lignes.slice(1).filter(s => s && s !== '__autre');
+
+    const group = document.getElementById('knownGroup');
+    // Supprime les options existantes sauf "Autre"
+    Array.from(group.querySelectorAll('option:not([value="__autre"])')).forEach(o => o.remove());
+
+    // Insère les stations avant l'option "Autre"
+    const autreOpt = group.querySelector('[value="__autre"]');
+    stations.forEach(nom => {
+      const opt = new Option(nom, nom);
+      group.insertBefore(opt, autreOpt);
+    });
+  } catch(e) {
+    // Fallback silencieux : on garde les stations codées en dur si besoin
+    console.warn('Chargement stations échoué :', e.message);
+  }
+}
+
+// Appel au démarrage (remplace le bloc Date du jour existant)
+const _t = new Date();
+document.getElementById('fDate').value =
+  `${_t.getFullYear()}-${String(_t.getMonth()+1).padStart(2,'0')}-${String(_t.getDate()).padStart(2,'0')}`;
+
+chargerStations();   // ← ajouter cette ligne
