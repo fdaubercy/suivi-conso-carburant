@@ -43,7 +43,7 @@ let _nearbyStations = [];
  */
 async function fetchOsmBrandAndName(lat, lon) {
   // On cherche maintenant les points (node) ET les surfaces (way)
-  const query = `[out:json][timeout:8];(node(around:DISTANCE_THRESHOLD,${lat},${lon})[amenity=fuel];way(around:DISTANCE_THRESHOLD,${lat},${lon})[amenity=fuel];);out tags;`;
+  const query = `[out:json][timeout:8];(node(around:${DISTANCE_THRESHOLD},${lat},${lon})[amenity=fuel];way(around:${DISTANCE_THRESHOLD},${lat},${lon})[amenity=fuel];);out tags;`;
   
   try {
     const response = await fetch(OVERPASS_API, {

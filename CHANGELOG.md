@@ -4,11 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
-# Changelog
+## [1.9.4.1] — 2026-05-23
 
-Toutes les modifications notables de ce projet sont documentées ici.
+### Changed
+- **Refactoring `fetchOsmBrandAndName`** : remplacement de `enrichStationsWithOSM(results)` par une fonction unitaire `fetchOsmBrandAndName(lat, lon)` appelée individuellement par station, permettant un parallélisme via `Promise.all` dans `searchNearby` et `searchStationSuggestions`.
+- **Support des surfaces OSM (`way`)** : la requête Overpass cible désormais à la fois les `node` et les `way` avec `amenity=fuel`, améliorant la détection des stations dont l'emprise est cartographiée en polygone.
+- **Tri par distance** dans `fetchOsmBrandAndName` : les éléments OSM retournés sont triés par distance haversine pour prioriser l'élément le plus proche du centroïde de la station.
+- **En-tête fichier** mis à jour : commentaire de version aligné sur `APP_VERSION`.
 
-Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
+### Fixed
+- **Bug interpolation `DISTANCE_THRESHOLD`** : dans la query Overpass de `fetchOsmBrandAndName`, la constante était insérée comme texte littéral (`around:DISTANCE_THRESHOLD`) au lieu d'être interpolée (`around:${DISTANCE_THRESHOLD}`). Le rayon effectif était donc `NaN` mètres. ⚠️ **À corriger dans `app.js`.**
+
+---
 
 ## [1.9.3.1] — 2026-05-23
 
@@ -222,6 +229,20 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+[1.9.4.1]: https://github.com/fdaubercy/suivi-e85/compare/v1.9.3.1...v1.9.4.1
+[1.9.3.1]: https://github.com/fdaubercy/suivi-e85/compare/v1.9.2.2...v1.9.3.1
+[1.9.2.2]: https://github.com/fdaubercy/suivi-e85/compare/v1.9.2.1...v1.9.2.2
+[1.9.2.1]: https://github.com/fdaubercy/suivi-e85/compare/v1.9.2.0...v1.9.2.1
+[1.9.2.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.9.1.1...v1.9.2.0
+[1.9.1.1]: https://github.com/fdaubercy/suivi-e85/compare/v1.9.1...v1.9.1.1
+[1.9.1]: https://github.com/fdaubercy/suivi-e85/compare/v1.9.0...v1.9.1
+[1.9.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.8.1...v1.9.0
+[1.8.1]: https://github.com/fdaubercy/suivi-e85/compare/v1.8.0...v1.8.1
+[1.8.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.7.9.0...v1.8.0
+[1.7.9.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.7.8.2...v1.7.9.0
+[1.7.8.2]: https://github.com/fdaubercy/suivi-e85/compare/v1.7.8...v1.7.8.2
+[1.7.8]: https://github.com/fdaubercy/suivi-e85/compare/v1.7.2...v1.7.8
+[1.7.2]: https://github.com/fdaubercy/suivi-e85/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/fdaubercy/suivi-e85/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.5.0...v1.6.0
