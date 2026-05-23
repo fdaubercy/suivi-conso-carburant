@@ -69,6 +69,12 @@ function getUserIcon() {
 /** Initialise la carte au chargement (centre France par défaut) */
 function initMapOnLoad() {
   if (_map) return;  // déjà initialisée
+  if (typeof L === 'undefined') {
+    console.error('[Carte] Leaflet non chargé — vérifier la connexion réseau.');
+    document.getElementById('stationMapWrap').innerHTML =
+      '<div style="padding:16px;text-align:center;color:#E24B4A;font-size:13px;">⚠️ Carte indisponible (Leaflet non chargé)</div>';
+    return;
+  }
 
   const container = document.getElementById('stationMap');
   // Nettoie un éventuel état Leaflet résiduel (hot-reload / back-navigation)
