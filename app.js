@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.7.9.0 — Fix Géolocalisation & Distance Max Fixée à 8km
+   v1.8.0 — Correction stricte de la syntaxe géospatiale API
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.7.9.0';
+const APP_VERSION = '1.8.0';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -156,8 +156,8 @@ function showPinLabel(idx) {
 
 function escHtml(str) {
   return String(str)
-    .replace(/&/g,'&').replace(/</g,'<')
-    .replace(/>/g,'>').replace(/"/g,'"');
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function selectStationFromMap(idx) {
@@ -246,7 +246,10 @@ function setType(type) {
   fp.placeholder = type === 'E85' ? '0.798' : '2.091';
   updateCout();
   const sel = document.getElementById('stationSel').value;
-  if (sel && sel !== '__autre') fetchPricesNearUser();
+  if (sel && sel !== '__autre') {
+    // Si une station connue est sélectionnée, on utilise par défaut la position utilisateur si disponible
+    fetchPricesNearUser();
+  }
 }
 
 /* ─── Coût du plein ─── */
@@ -307,7 +310,7 @@ function geolocate() {
 async function searchNearby(lat, lon, btn) {
   setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
   try {
-    // Utilisation de la clause standard SQL spatial `distance` requise par les points d'accès v2.1 d'OpenDataSoft
+    // Correction stricte : pas de virgule entre lon et lat dans la chaine WKT POINT, et pas d'espace dans l'unité du rayon (8000m)
     const resp = await fetch(odsUrl({
       where:  `e85_prix is not null and distance(geom, geom'POINT(${lon} ${lat})', 8000m)`,
       select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
@@ -342,7 +345,7 @@ async function searchNearby(lat, lon, btn) {
         return { name, sub, dist: Math.round(d), lat: sLat, lon: sLon,
                  e85: r.e85_prix, s98: r.sp98_prix, known };
       })
-      .filter(s => s.dist <= 8000) // Verrouillage strict de la distance maximale demandée à 8 km
+      .filter(s => s.dist <= 8000)
       .sort((a, b) => a.dist - b.dist)
       .slice(0, 7);
 
@@ -412,6 +415,7 @@ function onAutreInput() {
 
 async function searchStationSuggestions(q) {
   try {
+    // Recherche insensitive partielle par ville, adresse ou services
     const resp = await fetch(odsUrl({
       where:    `ville like "${q}*" OR adresse like "${q}*" OR services like "${q}*"`,
       select:   'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
@@ -510,7 +514,7 @@ function onAutreBlur() {
 }
 
 /* ═══════════════════════════════════════
-   PRIX — Requetes API Officielle Gouv
+   PRIX — Requêtes API Officielle Gouv
 ═══════════════════════════════════════ */
 
 function odsUrl(params) {
@@ -559,8 +563,9 @@ async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
 
   for (const r of [500, 2000, 5000]) {
     try {
+      // Correction stricte ici aussi : pas de virgule interne au POINT, unité "m" attachée
       const resp = await fetch(odsUrl({
-        where:    `e85_prix is not null or sp98_prix is not null and distance(geom, geom'POINT(${lon} ${lat})', ${r}m)`,
+        where:    `(e85_prix is not null or sp98_prix is not null) and distance(geom, geom'POINT(${lon} ${lat})', ${r}m)`,
         select:   'e85_prix,sp98_prix,adresse,ville,services',
         limit:    1
       }));

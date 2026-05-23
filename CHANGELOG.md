@@ -10,6 +10,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+# Changelog
+
+Toutes les modifications notables de ce projet sont documentées ici.
+
+Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
+
+## [1.8.0] — 2026-05-23
+
+### Corrigé
+- **Syntaxe WKT de l'API d'État rectifiée** : Suppression de la virgule erronée séparent la longitude et la latitude dans l'expression SQL `geom'POINT(lon lat)'` qui générait une erreur 400 silencieuse dans `searchNearby()` et `fetchPricesAtCoords()`.
+- **Lien Google Maps sécurisé** : Passage du protocole d'extraction cartographique de l'aperçu à l'URL de recherche d'API standard universelle HTTPS.
+
+---
+
 ## [1.7.9.0] — 2026-05-23
 
 ### Corrigé
