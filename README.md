@@ -7,21 +7,52 @@ et les enregistrer automatiquement dans Google Sheets.
 
 **https://fdaubercy.github.io/suivi-e85/**
 
-Ajouter à l'écran d'accueil iPhone : Safari → Partager → "Sur l'écran d'accueil"
+Ajouter à l'écran d'accueil iPhone : Safari → Partager → « Sur l'écran d'accueil »
+
+---
 
 ## ✨ Fonctionnalités
 
-- Saisie rapide : date, km compteur, litres, prix, station
-- **Récupération automatique des prix** E85 et SP98 dès la sélection d'une station
-  (API gouvernementale `data.economie.gouv.fr`)
-  - Prix trouvé → champ pré-rempli en vert pendant 6 secondes
-  - Prix non trouvé → placeholder `--` en grisé, saisie manuelle disponible
-- **Géolocalisation** : détecte les stations E85 proches via OpenStreetMap (rayon 8 km)
-- **Suggestions de station** : en saisie manuelle (≥ 3 caractères), propose des
-  stations correspondantes ; la sélection met à jour le dropdown et récupère les prix
-- Calcul automatique du coût du plein en temps réel
-- Enregistrement direct dans Google Sheets via Google Apps Script
-- Interface optimisée iPhone (safe areas, bouton sticky, font-size 16px)
+### Saisie du plein
+- Formulaire rapide : date (pré-remplie à aujourd'hui), km compteur, litres, prix, station
+- Toggle **E85 / Super 98** — adapte les libellés, les placeholders et la recherche de prix
+- **Calcul en temps réel** du coût du plein (litres × prix)
+
+### Récupération automatique des prix
+Dès la sélection d'une station, l'API gouvernementale `data.economie.gouv.fr` est interrogée
+pour récupérer simultanément le prix **E85** et le prix **SP98** :
+- Prix trouvé → champ pré-rempli en vert pendant 6 secondes
+- Prix non trouvé → placeholder `--` en grisé, saisie manuelle disponible
+- Stratégie progressive : rayon 500 m → 2 km → 5 km → fallback GPS → code postal
+
+### Géolocalisation (Overpass / OpenStreetMap)
+- Bouton 📍 : détecte les stations E85 dans un rayon de 8 km
+- Liste des 7 stations les plus proches, triées par distance
+- Badge « connue » pour les stations déjà présentes dans le dropdown
+- Tap sur une station → sélection + récupération des prix via ses coordonnées exactes
+
+### Suggestions en saisie manuelle
+- Dès 3 caractères tapés dans le champ « Autre station »,
+  une recherche avec debounce 500 ms est lancée dans l'API gouvernementale
+- Liste de suggestions : adresse, CP, ville, prix E85 si disponible
+- Sélection d'une suggestion :
+  - Remplace la saisie par le nom canonique de la station
+  - Met à jour le dropdown et l'ajoute dans « Stations habituelles » si absente
+  - Déclenche la récupération des prix via les coordonnées exactes de la station
+
+### Gestion des stations
+- **Chargement dynamique** depuis l'onglet `Stations` du Google Sheet au démarrage
+- **Synchronisation automatique** : après chaque plein validé, si la station est nouvelle,
+  elle est ajoutée dans Google Sheets et dans le dropdown pour la session en cours
+- Fallback sur une liste statique si l'onglet `Stations` est inaccessible
+
+### Enregistrement
+- Envoi vers Google Sheets via Google Apps Script
+- Validation des champs obligatoires avant envoi (date, km, litres, prix, station)
+- Confirmation si le prix SP98 n'a pas été saisi en mode E85
+- Feedback visuel succès / erreur ; remise à zéro automatique du formulaire après succès
+
+---
 
 ## 🗂️ Structure
 
@@ -34,6 +65,8 @@ suivi-e85/
 └── CHANGELOG.md
 ```
 
+---
+
 ## ⚙️ Configuration
 
 ### 1. Google Apps Script (backend)
@@ -43,10 +76,23 @@ Créer un projet sur [script.google.com](https://script.google.com) :
 ```javascript
 const SPREADSHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
 const SHEET_NAME     = '_ImportGS';
+const STATIONS_SHEET = 'Stations';
 
 function doPost(e) {
   const payload = JSON.parse(e.postData.contents);
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Ajout d'une nouvelle station
+  if (payload.action === 'addStation') {
+    const sheet = ss.getSheetByName(STATIONS_SHEET);
+    sheet.appendRow([payload.station]);
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Enregistrement d'un plein
+  const sheet = ss.getSheetByName(SHEET_NAME);
   sheet.appendRow([
     new Date(), new Date(payload.date), payload.type,
     Number(payload.km), Number(payload.litres), Number(payload.prix),
@@ -62,35 +108,54 @@ Déployer en **Application Web** → accès : Tout le monde.
 
 ### 2. Connecter le formulaire
 
-Dans `app.js`, ligne 1, remplacer :
+Dans `app.js`, remplacer les deux constantes en tête de fichier :
+
 ```javascript
-const GAS_URL = 'https://script.google.com/macros/s/VOTRE_ID_ICI/exec';
+const GAS_URL     = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
+const GS_SHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
 ```
 
-### 3. Google Sheet cible — onglet `_ImportGS`
+### 3. Google Sheet cible
+
+**Onglet `_ImportGS`** — données de saisie :
 
 | Horodatage | Date | Type | Km compteur | Nb. Litres | Prix €/L | Prix S98 jour | Station |
 |---|---|---|---|---|---|---|---|
 
+**Onglet `Stations`** — liste des stations habituelles :
+
+| Station |
+|---|
+| Carrefour Flers |
+| Intermarché |
+| … |
+
+---
+
 ## 🔍 Récupération automatique des prix
 
-Stratégie de recherche :
+| Étape | Méthode |
+|---|---|
+| 1 | Coordonnées de la station (OSM ou suggestion API) — rayon 500 m → 2 km → 5 km |
+| 2 | Fallback GPS utilisateur (si position connue et distance > 100 m) |
+| 3 | Code postal saisi manuellement en dernier recours |
 
-1. **Coordonnées OSM** (station via géoloc ou suggestion) — rayon 500 m → 2 km → 5 km
-2. **GPS utilisateur** (fallback)
-3. **Code postal** (saisie manuelle en dernier recours)
+---
 
 ## 🏪 Suggestions de station (saisie manuelle)
 
-Dès 3 caractères tapés dans « Autre station » :
-1. Recherche debounce 500 ms dans l'API par adresse/ville
-2. Liste de suggestions avec adresse, CP, ville et prix E85
-3. Sélection → nom canonique, mise à jour du dropdown, récupération des prix
+1. Saisie ≥ 3 caractères dans « Autre station »
+2. Debounce 500 ms → recherche dans l'API par adresse et ville
+3. Liste avec adresse complète, CP, ville et prix E85
+4. Sélection → nom canonique, mise à jour du dropdown, récupération des prix
+
+---
 
 ## 📦 Technologies
 
 - HTML / CSS / JavaScript vanilla
 - [Overpass API](https://overpass-api.de/) — géolocalisation des stations E85
-- [API Prix des Carburants](https://data.economie.gouv.fr/explore/dataset/prix-des-carburants-en-france-flux-instantane-v2/) — prix temps réel
-- Google Apps Script — backend
+- [API Prix des Carburants v2](https://data.economie.gouv.fr/explore/dataset/prix-des-carburants-en-france-flux-instantane-v2/) — prix temps réel E85 et SP98
+- Google Apps Script — backend (enregistrement pleins + gestion des stations)
+- Google Sheets — stockage des données (`_ImportGS`) et liste des stations (`Stations`)
 - GitHub Pages — hébergement
