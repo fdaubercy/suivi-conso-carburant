@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.0.0.0] — 2026-05-23
+
+### Changed
+- **Overpass `around` en série** remplace Nominatim reverse geocoding. Les coordonnées de l'API gouvernementale pouvant être décalées jusqu'à ~2 000 m de la vraie station, une recherche `around:2000` est effectuée autour du point fourni plutôt qu'un reverse geocoding exact.
+- **`fetchOsmNameAround(lat, lon)`** : requête Overpass `node+way [amenity=fuel] around:OSM_RADIUS`. Résultats triés par distance haversine — retourne `brand > name > operator` du nœud OSM le plus proche.
+- **`enrichWithOsmSerial(stations)`** : exécution séquentielle avec `OSM_SERIAL_DELAY = 600 ms` entre requêtes. Évite les 429 sans sacrifier la rapidité (4 s pour 7 stations).
+- **`OSM_RADIUS = 2000`** : rayon de recherche autour du point gouvernemental.
+- **Log console** : affiche le nom trouvé et l'écart en mètres entre le point gov et le nœud OSM — permet de mesurer l'imprécision.
+
+### Removed
+- `fetchNominatimName` / `enrichWithNominatim` / `NOMINATIM_UA` / `NOMINATIM_DELAY` — Nominatim retiré.
+
+---
+
 ## [1.9.9.0] — 2026-05-23
 
 ### Added

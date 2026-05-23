@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.9.9.0 — Nominatim reverse geocoding pour nom des stations
+   v2.0.0.0 — Overpass around série, rayon 2000m coordonnées imprécises
 ═══════════════════════════════════════ */
 
 /* ─── Configuration ─── */
-const APP_VERSION  = '1.9.9.0';
+const APP_VERSION  = '2.0.0.0';
 const GAS_URL      = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID  = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API     = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -24,53 +24,75 @@ let _nearbyStations = [];
 })();
 
 /* ═══════════════════════════════════════
-   ENRICHISSEMENT — NOMINATIM REVERSE GEOCODING
-   Requêtes séquentielles (1/s, CGU Nominatim).
-   Retourne brand > name si type=fuel, sinon null.
+   ENRICHISSEMENT — OVERPASS around EN SÉRIE
+   Les coordonnées de l'API gouvernementale peuvent être
+   décalées jusqu'à ~2000 m de la vraie station.
+   → Overpass around:OSM_RADIUS autour du point gov,
+     résultats triés par distance haversine.
+   → Requêtes séquentielles + délai pour éviter les 429.
 ═══════════════════════════════════════ */
 
-const NOMINATIM_UA = 'suivi-e85/1.9.9 (https://fdaubercy.github.io/suivi-e85/)';
-const NOMINATIM_DELAY = 1100; // ms entre requêtes (max 1 req/s)
+const OVERPASS_API   = 'https://overpass-api.de/api/interpreter';
+const OSM_RADIUS     = 2000; // rayon autour du point gov (coordonnées imprécises)
+const OSM_SERIAL_DELAY = 600; // ms entre requêtes (évite 429)
 
 /**
- * Interroge Nominatim pour UNE station.
- * Accepte le résultat uniquement si type/category = fuel.
- * @returns {Promise<string|null>} nom de la marque ou null
+ * Interroge Overpass pour UNE station : cherche le node/way
+ * amenity=fuel le plus proche dans un rayon OSM_RADIUS.
+ * Retourne brand > name > operator, ou null.
+ * @returns {Promise<string|null>}
  */
-async function fetchNominatimName(lat, lon) {
-  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&extratags=1&zoom=18`;
+async function fetchOsmNameAround(lat, lon) {
+  const query =
+    `[out:json][timeout:8];` +
+    `(node(around:${OSM_RADIUS},${lat},${lon})[amenity=fuel];` +
+    `way(around:${OSM_RADIUS},${lat},${lon})[amenity=fuel];);` +
+    `out tags center;`;
   try {
-    const resp = await fetch(url, {
-      headers: { 'User-Agent': NOMINATIM_UA },
-      signal: AbortSignal.timeout(5000)
+    const resp = await fetch(OVERPASS_API, {
+      method: 'POST',
+      body: 'data=' + encodeURIComponent(query),
+      signal: AbortSignal.timeout(8000)
     });
     if (!resp.ok) return null;
-    const d = await resp.json();
-    // N'accepter que si c'est bien une station essence OSM
-    const isFuel = d.type === 'fuel'
-      || d.category === 'amenity' && d.type === 'fuel'
-      || d.extratags?.amenity === 'fuel';
-    if (!isFuel) return null;
-    return d.extratags?.brand || d.extratags?.operator || d.name || null;
+    const data = await resp.json();
+    const elements = data.elements || [];
+    if (!elements.length) return null;
+
+    // Trier par distance haversine pour prendre la station OSM la plus proche
+    const sorted = elements
+      .map(el => {
+        const eLat = el.lat ?? el.center?.lat;
+        const eLon = el.lon ?? el.center?.lon;
+        if (eLat == null) return null;
+        return { tags: el.tags || {}, dist: haversine(lat, lon, eLat, eLon) };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.dist - b.dist);
+
+    const tags = sorted[0].tags;
+    const name = tags.brand || tags.name || tags.operator || null;
+    console.log(`[OSM] around(${lat.toFixed(4)},${lon.toFixed(4)}) → "${name || '—'}" (Δ${Math.round(sorted[0].dist)} m)`);
+    return name;
   } catch (e) {
-    console.warn('[Nominatim] Erreur :', e.message);
+    console.warn('[OSM] Erreur around :', e.message);
     return null;
   }
 }
 
 /**
- * Enrichit un tableau de stations via Nominatim en série.
+ * Enrichit un tableau de stations via Overpass en série.
  * Affiche la progression dans le statut géolocalisation.
  * @param {Array<{lat,lon}>} stations
  * @returns {Promise<Array<string|null>>}
  */
-async function enrichWithNominatim(stations) {
+async function enrichWithOsmSerial(stations) {
   const names = [];
   for (let i = 0; i < stations.length; i++) {
     setGeoStatus('info', `Identification station ${i + 1}/${stations.length}…`);
-    names.push(await fetchNominatimName(stations[i].lat, stations[i].lon));
+    names.push(await fetchOsmNameAround(stations[i].lat, stations[i].lon));
     if (i < stations.length - 1) {
-      await new Promise(r => setTimeout(r, NOMINATIM_DELAY));
+      await new Promise(r => setTimeout(r, OSM_SERIAL_DELAY));
     }
   }
   return names;
@@ -374,8 +396,8 @@ async function searchNearby(lat, lon, btn) {
       return;
     }
 
-    // ③ Enrichissement Nominatim en série (brand/operator OSM)
-    const nominatimNames = await enrichWithNominatim(candidates);
+    // ③ Enrichissement Overpass en série — rayon 2000 m (coordonnées gov imprécises)
+    const nominatimNames = await enrichWithOsmSerial(candidates);
 
     // ④ Tableau final enrichi
     const knownNames = Array.from(
