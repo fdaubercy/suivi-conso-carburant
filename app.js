@@ -552,6 +552,7 @@ async function syncStationSiNouvelle(nom) {
    CHARGEMENT DES STATIONS
 ═══════════════════════════════════════ */
 
+const APP_VERSION = '1.7.0';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 
 async function chargerStations() {
@@ -578,17 +579,4 @@ async function chargerStations() {
 
 /* ─── Démarrage ─── */
 chargerStations();
-loadVersion();
-
-async function loadVersion() {
-  try {
-    const resp = await fetch(
-      'https://raw.githubusercontent.com/fdaubercy/suivi-e85/main/CHANGELOG.md',
-      { cache: 'no-store' }
-    );
-    if (!resp.ok) return;
-    const text = await resp.text();
-    const m = text.match(/^## \[(\d+\.\d+\.\d+)\]/m);
-    if (m) document.getElementById('appVersion').textContent = 'v' + m[1];
-  } catch(e) { /* silencieux */ }
-}
+document.getElementById('appVersion').textContent = 'v' + APP_VERSION;
