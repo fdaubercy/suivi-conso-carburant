@@ -237,34 +237,51 @@ function geolocate() {
 
 async function searchNearby(lat, lon, btn) {
   setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
-  const q = '[out:json][timeout:15];(node["fuel:e85"="yes"](around:8000,'+lat+','+lon+');way["fuel:e85"="yes"](around:8000,'+lat+','+lon+'););out center;';
   try {
-    const data = await fetch('https://overpass-api.de/api/interpreter',
-      { method: 'POST', body: 'data=' + encodeURIComponent(q) }).then(r => r.json());
+    const resp = await fetch(odsUrl({
+      where:  "e85_prix is not null AND distance(geom, geom'POINT(" + lon + " " + lat + ")', 8000m)",
+      select: 'adresse,ville,cp,e85_prix,sp98_prix,geom',
+      limit:  10
+    }));
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+
     btn.classList.remove('loading'); btn.textContent = '📍';
-    if (!data.elements?.length) { setGeoStatus('info', 'Aucune station E85 trouvée dans 8 km.'); return; }
-    const known = ['Carrefour Flers', 'Leclerc Douai', 'Leclerc Drive Beuvry', 'Total Waziers'];
-    const stations = data.elements.map(el => {
-      const eLat = el.lat ?? el.center?.lat, eLon = el.lon ?? el.center?.lon;
-      const d = haversine(lat, lon, eLat, eLon);
-      const brand = el.tags?.brand || el.tags?.name || el.tags?.operator || 'Station';
-      const city  = el.tags?.['addr:city'] || el.tags?.['addr:suburb'] || '';
-      const name  = city ? brand+' '+city : brand;
-      return { name, dist: Math.round(d), lat: eLat, lon: eLon,
-               known: known.some(k => k.toLowerCase().startsWith(brand.toLowerCase().slice(0, 5))) };
-    }).sort((a, b) => a.dist - b.dist).slice(0, 7);
+
+    if (!data.results?.length) {
+      setGeoStatus('info', 'Aucune station E85 trouvée dans 8 km.');
+      return;
+    }
+
+    const knownNames = Array.from(
+      document.querySelectorAll('#knownGroup option:not([value="__autre"])')
+    ).map(o => o.value.toLowerCase());
+
+    const stations = data.results
+      .filter(r => r.geom?.lat != null && r.geom?.lon != null)
+      .map(r => {
+        const sLat = r.geom.lat, sLon = r.geom.lon;
+        const d    = haversine(lat, lon, sLat, sLon);
+        const name = r.ville
+          ? (r.adresse ? r.adresse + ' — ' + r.ville : r.ville)
+          : (r.adresse || 'Station inconnue');
+        const known = knownNames.some(k => k.includes((r.ville || '').toLowerCase()));
+        return { name, dist: Math.round(d), lat: sLat, lon: sLon,
+                 e85: r.e85_prix, s98: r.sp98_prix, known };
+      })
+      .sort((a, b) => a.dist - b.dist)
+      .slice(0, 7);
 
     _nearbyStations = stations;
     renderNearby(stations);
     initMap(lat, lon);
     updateMapMarkers(stations, lat, lon);
-    setGeoStatus('ok', stations.length + ' station(s) trouvée(s)');
+    setGeoStatus('ok', stations.length + ' station(s) E85 trouvée(s)');
   } catch (e) {
     btn.classList.remove('loading'); btn.textContent = '📍';
-    setGeoStatus('err', 'Impossible de joindre OpenStreetMap.');
+    setGeoStatus('err', 'Erreur de recherche (' + e.message + ').');
   }
 }
-
 function renderNearby(stations) {
   const list = document.getElementById('nearbyList');
   list.innerHTML = stations.map((s, i) =>
