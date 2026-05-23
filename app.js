@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.9.2.8 — Couplage API Gouvernementale & API Overpass OpenStreetMap
+   v1.9.3.0 — Couplage API Gouvernementale & API Overpass OpenStreetMap
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.9.2.8';
+const APP_VERSION = '1.9.3.0';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -32,8 +32,18 @@ let _nearbyStations = [];
  * Interroge l'API Overpass pour trouver un nœud 'fuel' à proximité immédiate des coordonnées
  * et en extraire les champs 'brand' ou 'name' officiels d'OpenStreetMap.
  */
+/* ═══════════════════════════════════════
+   FONCTION RECHERCHE ENSEIGNE (ROBUSTE)
+═══════════════════════════════════════ */
+
+/**
+ * Interroge l'API Overpass pour trouver un 'fuel' (node ou way)
+ * Rayon 600m
+ */
 async function fetchOsmBrandAndName(lat, lon) {
-  const query = `[out:json][timeout:8];node(around:600,${lat},${lon})[amenity=fuel];out tags;`;
+  // On cherche maintenant les points (node) ET les surfaces (way)
+  const query = `[out:json][timeout:8];(node(around:600,${lat},${lon})[amenity=fuel];way(around:600,${lat},${lon})[amenity=fuel];);out tags;`;
+  
   try {
     const response = await fetch(OVERPASS_API, {
       method: 'POST',
@@ -43,15 +53,12 @@ async function fetchOsmBrandAndName(lat, lon) {
     const data = await response.json();
     
     if (data.elements && data.elements.length > 0) {
-      // On prend le point le plus proche
-      const el = data.elements.sort((a,b) => haversine(lat, lon, a.lat, a.lon) - haversine(lat, lon, b.lat, b.lon))[0];
-      const tags = el.tags;
-
-      // Logique robuste : Priorité Brand > Name > Operator
-      const found = tags.brand || tags.name || tags.operator || null;
+      // Priorité à l'élément le plus proche du centre (haversine)
+      const el = data.elements.sort((a,b) => haversine(lat, lon, a.lat || 0, a.lon || 0) - haversine(lat, lon, b.lat || 0, b.lon || 0))[0];
       
-      // Si on trouve quelque chose, on retourne la valeur
-      return found;
+      const tags = el.tags || {};
+      // Extraction hiérarchique plus large
+      return tags.brand || tags.name || tags.operator || null;
     }
   } catch (e) {
     console.warn(`[DEBUG] Erreur Overpass :`, e.message);
