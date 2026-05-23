@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.9.3.1 — Couplage API Gouvernementale & API Overpass OpenStreetMap
+   v1.9.4.0 — Couplage API Gouvernementale & API Overpass OpenStreetMap
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.9.3.1';
+const APP_VERSION = '1.9.4.0';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -23,6 +23,9 @@ let _nearbyStations = [];
   document.getElementById('fDate').value =
     `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
   document.getElementById('s98Field').classList.remove('hidden');
+
+  // Affiche la liste des véhicules
+  initVehicles();
 })();
 
 /* ═══════════════════════════════════════
@@ -828,3 +831,60 @@ async function chargerStations() {
 
 chargerStations();
 document.getElementById('appVersion').textContent = 'v' + APP_VERSION;
+
+/* ═══════════════════════════════════════
+   GESTION DES VÉHICULES (LOCAL STORAGE)
+═══════════════════════════════════════ */
+
+function initVehicles() {
+  const v = getVehicles();
+  if (v.length === 0) {
+    saveVehicles(['Véhicule principal']);
+  }
+  renderVehicles();
+}
+
+function getVehicles() {
+  const data = localStorage.getItem('my_vehicles');
+  return data ? JSON.parse(data) : [];
+}
+
+function saveVehicles(list) {
+  localStorage.setItem('my_vehicles', JSON.stringify(list));
+  renderVehicles();
+}
+
+function renderVehicles() {
+  const select = document.getElementById('vehicleSel');
+  const vehicles = getVehicles();
+  select.innerHTML = vehicles.map(v => `<option value="${v}">${v}</option>`).join('');
+}
+
+function addVehicle() {
+  const name = prompt("Nom du nouveau véhicule :");
+  if (name && name.trim() !== "") {
+    const v = getVehicles();
+    if (!v.includes(name)) {
+      v.push(name);
+      saveVehicles(v);
+      document.getElementById('vehicleSel').value = name;
+    }
+  }
+}
+
+function deleteVehicle() {
+  const select = document.getElementById('vehicleSel');
+  const name = select.value;
+  if (confirm(`Supprimer le véhicule "${name}" ?`)) {
+    let v = getVehicles();
+    v = v.filter(item => item !== name);
+    if (v.length === 0) v = ['Véhicule principal'];
+    saveVehicles(v);
+  }
+}
+
+function onVehicleChange() {
+  // Optionnel : ajouter ici une logique si vous voulez 
+  // changer le comportement de l'app selon le véhicule sélectionné
+  console.log("Véhicule actuel :", document.getElementById('vehicleSel').value);
+}
