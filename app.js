@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.9.2.4 — Couplage API Gouvernementale & API Overpass OpenStreetMap
+   v1.9.2.5 — Couplage API Gouvernementale & API Overpass OpenStreetMap
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.9.2.4';
+const APP_VERSION = '1.9.2.5';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -33,8 +33,8 @@ let _nearbyStations = [];
  * et en extraire les champs 'brand' ou 'name' officiels d'OpenStreetMap.
  */
 async function fetchOsmBrandAndName(lat, lon) {
-  // Rayon de recherche serré (150m) pour cibler la bonne station-service sur la carte
-  const query = `[out:json][timeout:5];node(around:150,${lat},${lon})[amenity=fuel];out tags;`;
+  // Rayon de recherche serré (300m) pour cibler la bonne station-service sur la carte
+  const query = `[out:json][timeout:5];node(around:300,${lat},${lon})[amenity=fuel];out tags;`;
   try {
     const response = await fetch(OVERPASS_API, {
       method: 'POST',
