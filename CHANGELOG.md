@@ -4,14 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [1.9.0] — 2026-05-23
+
+### Ajouté
+- **Interopérabilité avec OpenStreetMap (Overpass)** : Intégration d'un module de croisement automatique basé sur les coordonnées GPS extraites de l'API gouvernementale.
+- **Requête Spatiale Groupée** : Optimisation des performances réseau via l'agrégation des positions dans une clause Overpass unique `around:300` ciblant `amenity=fuel`.
+- **Enrichissement des Enseignes** : Remplacement transparent des labels génériques par les noms de marque exacts enregistrés dans la base collaborative OSM (ex: identification de filiales ou de stations indépendantes complexes), puis insertion directe dans le tableau final des résultats.
+- **Logs d'audit** : Sortie console du payload brut issu d'Overpass à des fins de débogage structurel.
+
 ## [1.8.1] — 2026-05-23
 
 ### Ajouté
 - **Extraction sémantique des enseignes** : Analyse des métadonnées `services` et `adresse` pour en déduire de manière fiable l'enseigne commerciale (ex: *TotalEnergies, E.Leclerc, Carrefour, Système U, Esso*).
 - **Mise en valeur typographique** : Affichage systématique de la marque de l'enseigne en **gras** au lieu de la commune dans les listes de résultats (recherche manuelle et géolocalisation). La commune en majuscules sert de valeur de secours en gras uniquement si aucune enseigne de marque n'est détectée.
 - **Traçabilité sémantique** : Ajout de `console.log` d'audit sur les réponses brutes des requêtes pour permettre l'analyse structurelle des payloads dans la console du navigateur.
-- **Extraction sémantique des enseignes** : Analyse des métadonnées `services` et `adresse` pour en déduire de manière fiable l'enseigne commerciale (ex: *TotalEnergies, E.Leclerc, Carrefour, Système U, Esso*).
-- **Mise en valeur typographique** : Affichage systématique de la marque de l'enseigne en **gras** au lieu de la commune dans les listes de résultats (recherche manuelle et géolocalisation). La commune en majuscules sert de valeur de secours en gras uniquement si aucune enseigne de marque n'est détectée.
 
 ## [1.8.0] — 2026-05-23
 
@@ -176,7 +182,7 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 [1.7.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.4.0...v1.5.0
-[1.4.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.3.0...v1.4.0
+[1.4.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.4.0...v1.4.0
 [1.3.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.0.0...v1.1.0
