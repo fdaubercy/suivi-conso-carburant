@@ -1,5 +1,6 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
+   v1.7 — carte OSM iframe, sans Leaflet
 ═══════════════════════════════════════ */
 
 const GAS_URL  = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
@@ -9,16 +10,10 @@ const PRIX_API = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/dataset
 let currentType   = 'E85';
 let s98Autofilled = false;
 let userLat = null, userLon = null;
+let _nearbyStations = [];
 
-/* ─── État carte ─── */
-let _map            = null;   // instance Leaflet
-let _userMarker     = null;   // marqueur position utilisateur
-let _stationMarkers = [];     // marqueurs stations
-let _nearbyStations = [];     // données stations courantes
-let _mapPlaceholder = null;   // contrôle hint initial
-
-/* ─── Init ─── */
-(function init() {
+/* ─── Init date ─── */
+(function () {
   const t = new Date();
   document.getElementById('fDate').value =
     `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
@@ -26,157 +21,51 @@ let _mapPlaceholder = null;   // contrôle hint initial
 })();
 
 /* ═══════════════════════════════════════
-   CARTE LEAFLET
+   CARTE — iframe OpenStreetMap (sans lib)
 ═══════════════════════════════════════ */
 
-/** Icône personnalisée pour les stations */
-function stationIcon(selected) {
-  return L.divIcon({
-    className: '',
-    html: `<div style="
-      background:${selected ? '#1B3A5C' : '#2E75B6'};
-      color:#fff;
-      border-radius:50% 50% 50% 0;
-      transform:rotate(-45deg);
-      width:32px; height:32px;
-      display:flex; align-items:center; justify-content:center;
-      box-shadow:0 2px 8px rgba(0,0,0,.3);
-      border:2px solid #fff;
-      font-size:14px;
-    "><span style="transform:rotate(45deg)">⛽</span></div>`,
-    iconSize:   [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor:[0, -34]
-  });
+/** Affiche la carte OSM centrée sur la position utilisateur */
+function showMap(uLat, uLon, stations) {
+  if (!uLat || !uLon) return;
+
+  // Calcule le bounding box englobant user + toutes les stations
+  const lats = [uLat, ...stations.map(s => s.lat)];
+  const lons = [uLon, ...stations.map(s => s.lon)];
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLon = Math.min(...lons), maxLon = Math.max(...lons);
+  // Ajoute une marge de 10 %
+  const dLat = (maxLat - minLat) * 0.15 || 0.02;
+  const dLon = (maxLon - minLon) * 0.15 || 0.02;
+
+  const bbox = `${(minLon-dLon).toFixed(5)},${(minLat-dLat).toFixed(5)},${(maxLon+dLon).toFixed(5)},${(maxLat+dLat).toFixed(5)}`;
+  const src  = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${uLat},${uLon}`;
+
+  document.getElementById('stationMap').src = src;
+  document.getElementById('stationMapWrap').classList.remove('hidden');
 }
 
-/** Icône position utilisateur (créée à la demande pour éviter L non défini) */
-function getUserIcon() {
-  return L.divIcon({
-    className: '',
-    html: `<div style="
-      background:#1D9E75;
-      border-radius:50%;
-      width:16px; height:16px;
-      border:3px solid #fff;
-      box-shadow:0 0 0 3px rgba(29,158,117,.35), 0 2px 8px rgba(0,0,0,.3);
-    "></div>`,
-    iconSize:   [16, 16],
-    iconAnchor: [8, 8]
-  });
-}
-
-/** Initialise la carte au chargement (centre France par défaut) */
-function initMapOnLoad() {
-  if (_map) return;  // déjà initialisée
-  if (typeof L === 'undefined') {
-    console.error('[Carte] Leaflet non chargé — vérifier la connexion réseau.');
-    document.getElementById('stationMapWrap').innerHTML =
-      '<div style="padding:16px;text-align:center;color:#E24B4A;font-size:13px;">⚠️ Carte indisponible (Leaflet non chargé)</div>';
-    return;
-  }
-
-  const container = document.getElementById('stationMap');
-  // Nettoie un éventuel état Leaflet résiduel (hot-reload / back-navigation)
-  if (container._leaflet_id) {
-    container._leaflet_id = null;
-  }
-
-  _map = L.map('stationMap', {
-    zoomControl: true,
-    attributionControl: true
-  }).setView([46.8, 2.3], 6);
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-    maxZoom: 18
-  }).addTo(_map);
-
-  // Hint utilisateur
-  _mapPlaceholder = L.control({ position: 'topright' });
-  _mapPlaceholder.onAdd = () => {
-    const d = L.DomUtil.create('div');
-    d.id = 'mapHint';
-    d.style.cssText = 'background:rgba(255,255,255,.88);padding:5px 10px;border-radius:7px;font-size:11px;color:#6B7280;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.15);';
-    d.textContent = '📍 Cliquez sur le bouton ci-dessus pour localiser les stations E85';
-    return d;
-  };
-  _mapPlaceholder.addTo(_map);
-
-  // Double invalidateSize : 150 ms puis 600 ms pour couvrir les cas de layout tardif
-  setTimeout(() => { if (_map) _map.invalidateSize(); }, 150);
-  setTimeout(() => { if (_map) _map.invalidateSize(); }, 600);
-}
-
-/** Recentre la carte sur de nouvelles coordonnées */
-function initMap(lat, lon) {
-  if (!_map) { initMapOnLoad(); }
-
-  // Supprime le placeholder d'aide si présent
-  const hint = document.getElementById('mapHint');
-  if (hint) hint.remove();
-
-  _map.setView([lat, lon], 13);
-  setTimeout(() => _map.invalidateSize(), 150);
-}
-
-/** Met à jour les marqueurs stations sur la carte */
-function updateMapMarkers(stations, uLat, uLon) {
-  if (!_map) return;
-
-  // Supprime les anciens marqueurs
-  _stationMarkers.forEach(m => _map.removeLayer(m));
-  _stationMarkers = [];
-  if (_userMarker) _map.removeLayer(_userMarker);
-
-  // Marqueur utilisateur
-  _userMarker = L.marker([uLat, uLon], { icon: getUserIcon(), zIndexOffset: 1000 })
-    .addTo(_map)
-    .bindTooltip('Vous êtes ici', { permanent: false, direction: 'top' });
-
-  // Marqueurs stations
-  stations.forEach((s, i) => {
-    const m = L.marker([s.lat, s.lon], { icon: stationIcon(false) })
-      .addTo(_map)
-      .bindPopup(_buildPopupHtml(s, i), { maxWidth: 240, minWidth: 180 });
-    _stationMarkers.push(m);
-  });
-
-  // Ajuste le zoom pour afficher tout
-  const allPoints = [[uLat, uLon], ...stations.map(s => [s.lat, s.lon])];
-  _map.fitBounds(L.latLngBounds(allPoints), { padding: [28, 28] });
-}
-
-/** Contenu HTML du popup d'une station */
-function _buildPopupHtml(station, idx) {
-  const dist = station.dist < 1000
-    ? station.dist + ' m'
-    : (station.dist / 1000).toFixed(1) + ' km';
-  return `<div class="map-popup">
-    <div class="map-popup-name">⛽ ${station.name}</div>
-    <div class="map-popup-dist">${dist}</div>
-    <button class="map-popup-btn"
-      onclick="pickStationFromMap(${idx})">Sélectionner</button>
-  </div>`;
-}
-
-/** Sélection d'une station depuis le popup de la carte */
-function pickStationFromMap(idx) {
-  const s = _nearbyStations[idx];
-  if (!s) return;
-  _map.closePopup();
-  // Met l'icône en surbrillance
-  _stationMarkers.forEach((m, i) => m.setIcon(stationIcon(i === idx)));
-  pickStation(s.name, s.lat, s.lon);
-  // Scroll vers la liste pour voir la sélection
-  document.getElementById('stationSel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-/** Masque la carte */
 function hideMap() {
   document.getElementById('stationMapWrap').classList.add('hidden');
 }
 
+/* ─── Nom lisible d'une station depuis l'API ─── */
+function stationLabel(r) {
+  // L'API retourne adresse en MAJUSCULES et ville — on capitalise proprement
+  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+  const ville = cap(r.ville || '');
+  const cp    = r.cp || '';
+
+  // Si on a le champ enseignes (enseigne/marque), on l'utilise en priorité
+  if (r.enseignes) {
+    const enseigne = cap(r.enseignes);
+    return ville ? `${enseigne} — ${ville}` : enseigne;
+  }
+  // Sinon : ville + CP
+  if (ville && cp) return `${ville} (${cp})`;
+  if (ville)       return ville;
+  // Dernier recours : adresse capitalisée
+  return cap(r.adresse || 'Station inconnue');
+}
 
 /* ─── Type de carburant ─── */
 function setType(type) {
@@ -224,7 +113,7 @@ function onS98ManualEdit() {
 }
 
 /* ═══════════════════════════════════════
-   GÉOLOCALISATION (Overpass / OSM)
+   GÉOLOCALISATION
 ═══════════════════════════════════════ */
 
 function geolocate() {
@@ -253,7 +142,7 @@ async function searchNearby(lat, lon, btn) {
   try {
     const resp = await fetch(odsUrl({
       where:  "e85_prix is not null AND distance(geom, geom'POINT(" + lon + " " + lat + ")', 8000m)",
-      select: 'adresse,ville,cp,e85_prix,sp98_prix,geom',
+      select: 'adresse,ville,cp,enseignes,e85_prix,sp98_prix,geom',
       limit:  10
     }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -275,9 +164,7 @@ async function searchNearby(lat, lon, btn) {
       .map(r => {
         const sLat = r.geom.lat, sLon = r.geom.lon;
         const d    = haversine(lat, lon, sLat, sLon);
-        const name = r.ville
-          ? (r.adresse ? r.adresse + ' — ' + r.ville : r.ville)
-          : (r.adresse || 'Station inconnue');
+        const name = stationLabel(r);
         const known = knownNames.some(k => k.includes((r.ville || '').toLowerCase()));
         return { name, dist: Math.round(d), lat: sLat, lon: sLon,
                  e85: r.e85_prix, s98: r.sp98_prix, known };
@@ -287,22 +174,28 @@ async function searchNearby(lat, lon, btn) {
 
     _nearbyStations = stations;
     renderNearby(stations);
-    initMap(lat, lon);
-    updateMapMarkers(stations, lat, lon);
+    showMap(lat, lon, stations);
     setGeoStatus('ok', stations.length + ' station(s) E85 trouvée(s)');
   } catch (e) {
     btn.classList.remove('loading'); btn.textContent = '📍';
     setGeoStatus('err', 'Erreur de recherche (' + e.message + ').');
   }
 }
+
 function renderNearby(stations) {
   const list = document.getElementById('nearbyList');
-  list.innerHTML = stations.map((s, i) =>
-    '<div class="nearby-item" id="nearbyItem'+i+'" onclick="pickStation(\''+s.name.replace(/'/g,"\\'")+'\',' +s.lat+','+s.lon+'); highlightNearbyItem('+i+')">'
-    +'<span>📍</span><span>'+s.name+'</span>'
-    +(s.known ? '<span class="nearby-badge">connue</span>' : '')
-    +'<span class="nearby-dist">'+(s.dist < 1000 ? s.dist+' m' : (s.dist/1000).toFixed(1)+' km')+'</span>'
-    +'</div>').join('');
+  list.innerHTML = stations.map((s, i) => {
+    const dist  = s.dist < 1000 ? s.dist + ' m' : (s.dist / 1000).toFixed(1) + ' km';
+    const mapsUrl = 'https://maps.google.com/?q=' + s.lat + ',' + s.lon;
+    const prix  = s.e85 ? ' · E85 ' + parseFloat(s.e85).toFixed(3) + ' €' : '';
+    return '<div class="nearby-item" id="nearbyItem' + i + '">'
+      + '<div class="nearby-main" onclick="pickStation(\'' + s.name.replace(/'/g, "\\'") + '\',' + s.lat + ',' + s.lon + '); highlightNearbyItem(' + i + ')">'
+      + '<span class="nearby-name">⛽ ' + s.name + '</span>'
+      + '<span class="nearby-meta">' + dist + prix + (s.known ? ' <span class="nearby-badge">connue</span>' : '') + '</span>'
+      + '</div>'
+      + '<a class="nearby-map-btn" href="' + mapsUrl + '" target="_blank" rel="noopener" title="Voir sur la carte">🗺️</a>'
+      + '</div>';
+  }).join('');
   list.style.display = 'block';
 }
 
@@ -322,7 +215,6 @@ function pickStation(name, lat, lon) {
   fetchPricesAtCoords(lat, lon, true);
 }
 
-
 /* ═══════════════════════════════════════
    SUGGESTIONS STATION MANUELLE
 ═══════════════════════════════════════ */
@@ -341,12 +233,12 @@ function onAutreInput() {
 async function searchStationSuggestions(q) {
   try {
     const resp = await fetch(odsUrl({
-      where:    'search(adresse, "'+q+'") OR search(ville, "'+q+'")',
-      select:   'id,adresse,ville,cp,e85_prix,sp98_prix,geom',
+      where:    'search(adresse, "' + q + '") OR search(ville, "' + q + '")',
+      select:   'id,adresse,ville,cp,enseignes,e85_prix,sp98_prix,geom',
       order_by: 'ville',
       limit:    8
     }));
-    if (!resp.ok) throw new Error('HTTP '+resp.status);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     if (!data.results?.length) {
       setSuggStatus('', "Aucun résultat — vérifiez l'orthographe ou utilisez la géolocalisation.");
@@ -362,12 +254,13 @@ async function searchStationSuggestions(q) {
 function renderSuggestions(results) {
   const list = document.getElementById('suggList');
   list.innerHTML = results.map((r, i) => {
-    const label = [r.adresse, r.cp, r.ville].filter(Boolean).join(' · ');
-    const prix  = r.e85_prix ? 'E85 '+parseFloat(r.e85_prix).toFixed(3)+' €/L' : '';
-    return '<div class="suggestion-item" onmousedown="pickSuggestion('+i+')">'
-      +'<span class="suggestion-item-name">⛽ '+(r.ville || r.adresse)+'</span>'
-      +'<span class="suggestion-item-addr">'+label+(prix ? '  ·  '+prix : '')+'</span>'
-      +'</div>';
+    const label = stationLabel(r);
+    const addr  = [r.adresse, r.cp, r.ville].filter(Boolean).join(' · ');
+    const prix  = r.e85_prix ? 'E85 ' + parseFloat(r.e85_prix).toFixed(3) + ' €/L' : '';
+    return '<div class="suggestion-item" onmousedown="pickSuggestion(' + i + ')">'
+      + '<span class="suggestion-item-name">⛽ ' + label + '</span>'
+      + '<span class="suggestion-item-addr">' + addr + (prix ? '  ·  ' + prix : '') + '</span>'
+      + '</div>';
   }).join('');
   list._results = results;
   list.style.display = 'block';
@@ -377,7 +270,7 @@ function pickSuggestion(idx) {
   const list    = document.getElementById('suggList');
   const r       = list._results[idx];
   const oldName = document.getElementById('fAutre').value.trim();
-  const newName = [r.adresse, r.ville].filter(Boolean).join(' — ');
+  const newName = stationLabel(r);
 
   document.getElementById('fAutre').value = newName;
   hideSuggestions();
@@ -398,10 +291,7 @@ function pickSuggestion(idx) {
   sel.value = '__autre';
 
   if (r.geom?.lon != null && r.geom?.lat != null) {
-    // Affiche la station sélectionnée sur la carte
-    _nearbyStations = [{ name: newName, dist: 0, lat: r.geom.lat, lon: r.geom.lon }];
-    initMap(r.geom.lat, r.geom.lon);
-    updateMapMarkers(_nearbyStations, r.geom.lat, r.geom.lon);
+    showMap(r.geom.lat, r.geom.lon, [{ lat: r.geom.lat, lon: r.geom.lon }]);
     fetchPricesAtCoords(r.geom.lat, r.geom.lon, false);
   } else {
     fetchPricesNearUser();
@@ -463,8 +353,8 @@ function applyPricesResult(data) {
   updateCout();
 
   const found = [];
-  if (currentType === 'E85' && r.e85_prix) found.push('E85 : '+parseFloat(r.e85_prix).toFixed(3)+' €/L');
-  if (r.sp98_prix) found.push('SP98 : '+parseFloat(r.sp98_prix).toFixed(3)+' €/L');
+  if (currentType === 'E85' && r.e85_prix) found.push('E85 : ' + parseFloat(r.e85_prix).toFixed(3) + ' €/L');
+  if (r.sp98_prix) found.push('SP98 : ' + parseFloat(r.sp98_prix).toFixed(3) + ' €/L');
   if (found.length) {
     setS98Status('ok', found.join(' · ') + (label ? ' — ' + label : ''));
   } else {
@@ -480,17 +370,17 @@ async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
   for (const r of [500, 2000, 5000]) {
     try {
       const resp = await fetch(odsUrl({
-        where:    '(e85_prix is not null OR sp98_prix is not null) AND distance(geom, geom\'POINT('+lon+' '+lat+')\', '+r+'m)',
+        where:    "(e85_prix is not null OR sp98_prix is not null) AND distance(geom, geom'POINT(" + lon + " " + lat + ")', " + r + "m)",
         select:   'e85_prix,sp98_prix,adresse,ville',
         order_by: 'sp98_prix',
         limit:    1
       }));
-      if (!resp.ok) throw new Error('HTTP '+resp.status);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const data = await resp.json();
       if (data.results?.length) { applyPricesResult(data); return; }
     } catch (e) {
-      console.error('[PRIX] fetchAtCoords r='+r, e);
-      setS98Status('err', 'Erreur API ('+e.message+') — saisie manuelle.');
+      console.error('[PRIX] fetchAtCoords r=' + r, e);
+      setS98Status('err', 'Erreur API (' + e.message + ') — saisie manuelle.');
       return;
     }
   }
@@ -518,20 +408,20 @@ async function fetchPricesNearUser() {
 async function fetchPricesByCP() {
   const cp = document.getElementById('fCp').value.trim();
   if (cp.length !== 5) { setS98Status('err', 'Code postal invalide (5 chiffres requis).'); return; }
-  setS98Status('spin', 'Recherche dans '+cp+'…');
+  setS98Status('spin', 'Recherche dans ' + cp + '…');
   try {
     const resp = await fetch(odsUrl({
-      where:    '(e85_prix is not null OR sp98_prix is not null) AND cp="'+cp+'"',
+      where:    '(e85_prix is not null OR sp98_prix is not null) AND cp="' + cp + '"',
       select:   'e85_prix,sp98_prix,adresse,ville',
       order_by: 'sp98_prix',
       limit:    1
     }));
-    if (!resp.ok) throw new Error('HTTP '+resp.status);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     if (data.results?.length) { hideCpSearch(); applyPricesResult(data); }
-    else setS98Status('info', 'Aucune station trouvée pour '+cp+' — saisie manuelle.');
+    else setS98Status('info', 'Aucune station trouvée pour ' + cp + ' — saisie manuelle.');
   } catch (e) {
-    setS98Status('err', 'Erreur ('+e.message+') — saisie manuelle.');
+    setS98Status('err', 'Erreur (' + e.message + ') — saisie manuelle.');
   }
 }
 
@@ -544,7 +434,6 @@ function setS98Status(cls, msg) {
   el.textContent = msg;
 }
 
-/* ─── Utilitaires ─── */
 function setGeoStatus(cls, msg) {
   const el = document.getElementById('geoStatus');
   el.className = 'geo-status ' + cls;
@@ -584,7 +473,7 @@ async function submitForm() {
     const body = JSON.stringify({ date, type: currentType === 'E85' ? 'SuperEthanol E85' : 'Super 98', km, litres, prix, prixS98, station });
     const json = await fetch(GAS_URL, { method: 'POST', body, redirect: 'follow' }).then(r => r.json());
     if (json.success) {
-      showFeedback('success', 'Plein enregistré ✓', json.message || litres+' L à '+prix+' €/L — '+station);
+      showFeedback('success', 'Plein enregistré ✓', json.message || litres + ' L à ' + prix + ' €/L — ' + station);
       await syncStationSiNouvelle(station);
       resetForm();
     } else {
@@ -606,7 +495,7 @@ function setSubmitState(loading) {
 function showFeedback(type, title, msg) {
   const el = document.getElementById('feedback');
   el.className = 'feedback ' + type;
-  el.innerHTML = '<strong>'+title+'</strong>'+msg;
+  el.innerHTML = '<strong>' + title + '</strong>' + msg;
   el.style.display = 'block';
   el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   if (type === 'success') setTimeout(() => el.style.display = 'none', 5000);
@@ -614,8 +503,8 @@ function showFeedback(type, title, msg) {
 
 function resetForm() {
   const n = new Date();
-  document.getElementById('fDate').value = n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
-  ['fKm', 'fLitres', 'fAutre'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fDate').value = n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
+  ['fKm','fLitres','fAutre'].forEach(id => document.getElementById(id).value = '');
   const fp = document.getElementById('fPrix');
   fp.value = ''; fp.placeholder = currentType === 'E85' ? '0.798' : '2.091';
   fp.classList.remove('autofilled');
@@ -632,7 +521,6 @@ function resetForm() {
   setSuggStatus('', '');
   hideCpSearch();
   s98Autofilled = false;
-  // Ne masque pas la carte — elle reste affichée pour la prochaine saisie
 }
 
 /* ═══════════════════════════════════════
@@ -648,15 +536,13 @@ async function syncStationSiNouvelle(nom) {
   if (options.includes(nom.toLowerCase())) return;
   try {
     await fetch(GAS_URL, {
-      method:   'POST',
-      redirect: 'follow',
-      body:     JSON.stringify({ action: 'addStation', station: nom })
+      method: 'POST', redirect: 'follow',
+      body:   JSON.stringify({ action: 'addStation', station: nom })
     });
     const autreOpt = group.querySelector('[value="__autre"]');
     group.insertBefore(new Option(nom, nom), autreOpt);
-    console.log('[Stations] Nouvelle station synchronisée :', nom);
   } catch (e) {
-    console.warn('[Stations] Sync échouée (silencieux) :', e.message);
+    console.warn('[Stations] Sync échouée :', e.message);
   }
 }
 
@@ -667,8 +553,7 @@ async function syncStationSiNouvelle(nom) {
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 
 async function chargerStations() {
-  const url = 'https://docs.google.com/spreadsheets/d/'+GS_SHEET_ID
-            + '/gviz/tq?tqx=out:csv&sheet=Stations';
+  const url = 'https://docs.google.com/spreadsheets/d/' + GS_SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=Stations';
   try {
     const resp = await fetch(url);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -681,25 +566,13 @@ async function chargerStations() {
     stations.forEach(nom => group.insertBefore(new Option(nom, nom), autreOpt));
   } catch(e) {
     console.warn('Chargement stations échoué :', e.message);
-    const fallback = ['Carrefour Flers', 'Intermarché', 'Leclerc Douai', 'Total Access', 'Total Waziers', 'ZONE DU MOULIN RUE ARTHUR LAMENDIN — Beuvry'];
-    const group    = document.getElementById('knownGroup');
-    const autreOpt = group.querySelector('[value="__autre"]');
-    fallback.forEach(nom => group.insertBefore(new Option(nom, nom), autreOpt));
+    ['Carrefour Flers','Intermarché','Leclerc Douai','Total Access','Total Waziers',
+     'ZONE DU MOULIN RUE ARTHUR LAMENDIN — Beuvry'].forEach(nom => {
+      const group = document.getElementById('knownGroup');
+      group.insertBefore(new Option(nom, nom), group.querySelector('[value="__autre"]'));
+    });
   }
 }
 
 /* ─── Démarrage ─── */
-const _t = new Date();
-document.getElementById('fDate').value =
-  _t.getFullYear()+'-'+String(_t.getMonth()+1).padStart(2,'0')+'-'+String(_t.getDate()).padStart(2,'0');
-
 chargerStations();
-
-// Attendre que le layout soit calculé avant d'initialiser Leaflet
-window.addEventListener('load', () => {
-  try {
-    initMapOnLoad();
-  } catch(e) {
-    console.error('[Carte] Erreur init Leaflet :', e);
-  }
-});
