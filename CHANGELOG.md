@@ -4,17 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
-# Changelog
+## [1.8.1] — 2026-05-23
 
-Toutes les modifications notables de ce projet sont documentées ici.
-
-Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
-
-# Changelog
-
-Toutes les modifications notables de ce projet sont documentées ici.
-
-Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
+### Ajouté
+- **Extraction sémantique des enseignes** : Analyse des métadonnées `services` et `adresse` pour en déduire de manière fiable l'enseigne commerciale (ex: *TotalEnergies, E.Leclerc, Carrefour, Système U, Esso*).
+- **Mise en valeur typographique** : Affichage systématique de la marque de l'enseigne en **gras** au lieu de la commune dans les listes de résultats (recherche manuelle et géolocalisation). La commune en majuscules sert de valeur de secours en gras uniquement si aucune enseigne de marque n'est détectée.
 
 ## [1.8.0] — 2026-05-23
 

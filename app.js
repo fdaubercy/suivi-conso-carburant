@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.8.0 — Correction stricte de la syntaxe géospatiale API
+   v1.8.1 — Priorité Enseigne en Gras & Extraction Sémantique
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.8.1';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -25,13 +25,11 @@ let _nearbyStations = [];
 
 /* ═══════════════════════════════════════
    CARTE — Tuiles OSM, marqueurs cliquables
-   (moteur maison, zéro dépendance externe)
 ═══════════════════════════════════════ */
 
 const TILE_SZ = 256;
-let _mapStations = [];   // stations actuellement sur la carte
+let _mapStations = [];   
 
-/** Convertit lat/lon → numéro de tuile OSM */
 function tileXY(lat, lon, z) {
   const n  = 1 << z;
   const lr = lat * Math.PI / 180;
@@ -41,7 +39,6 @@ function tileXY(lat, lon, z) {
   };
 }
 
-/** Convertit lat/lon → position pixel dans la grille de tuiles */
 function latLonToPx(lat, lon, z, ox, oy) {
   const n  = 1 << z;
   const lr = lat * Math.PI / 180;
@@ -51,7 +48,6 @@ function latLonToPx(lat, lon, z, ox, oy) {
   };
 }
 
-/** Choisit le zoom pour que les stations tiennent dans le container */
 function bestZoom(allLats, allLons, maxW, maxH) {
   for (let z = 15; z >= 10; z--) {
     const nw = tileXY(Math.max(...allLats), Math.min(...allLons), z);
@@ -62,7 +58,6 @@ function bestZoom(allLats, allLons, maxW, maxH) {
   return 10;
 }
 
-/** Affiche la carte avec marqueurs cliquables. */
 function showMap(uLat, uLon, stations) {
   _mapStations = stations.filter(s => s.lat && s.lon);
   if (!_mapStations.length) return;
@@ -102,7 +97,6 @@ function _renderMap(uLat, uLon) {
 
   let html = `<div style="position:absolute;left:${offX}px;top:${offY}px;width:${gridW}px;height:${gridH}px">`;
 
-  // ── Tuiles ──
   for (let ty = nw.y; ty <= se.y; ty++) {
     for (let tx = nw.x; tx <= se.x; tx++) {
       const px = (tx - nw.x) * TILE_SZ, py = (ty - nw.y) * TILE_SZ;
@@ -112,7 +106,6 @@ function _renderMap(uLat, uLon) {
     }
   }
 
-  // ── Marqueurs stations ──
   _mapStations.forEach((s, i) => {
     const p     = latLonToPx(s.lat, s.lon, z, nw.x, nw.y);
     const label = escHtml(s.name);
@@ -129,7 +122,6 @@ function _renderMap(uLat, uLon) {
     </div>`;
   });
 
-  // ── Position utilisateur ──
   if (uLat && uLon) {
     const p = latLonToPx(uLat, uLon, z, nw.x, nw.y);
     html += `<div style="position:absolute;left:${p.x-8}px;top:${p.y-8}px;z-index:11;pointer-events:none">
@@ -196,41 +188,44 @@ function getCoords(r) {
   return null;
 }
 
-/* ─── Nom de la marque extrait des métadonnées gouv ─── */
+/* ─── Extraction sémantique de l'enseigne ─── */
 function stationLabel(r) {
-  if (r.services) {
-    const srv = r.services.toLowerCase();
-    if (srv.includes('total')) return 'TotalEnergies';
-    if (srv.includes('carrefour')) return 'Carrefour';
-    if (srv.includes('leclerc')) return 'E.Leclerc';
-    if (srv.includes('intermarche')) return 'Intermarché';
-    if (srv.includes('super u') || srv.includes('systeme u')) return 'Système U';
-    if (srv.includes('esso')) return 'Esso';
-    if (srv.includes('auchan')) return 'Auchan';
-    if (srv.includes('avanti')) return 'Avanti';
-    if (srv.includes('bp')) return 'BP';
-  }
-  
-  if (r.adresse) {
-    const adr = r.adresse.toLowerCase();
-    if (adr.includes('total')) return 'TotalEnergies';
-    if (adr.includes('carrefour')) return 'Carrefour';
-    if (adr.includes('leclerc')) return 'E.Leclerc';
-    if (adr.includes('intermarche')) return 'Intermarché';
+  const targets = [
+    { key: 'total', display: 'TotalEnergies' },
+    { key: 'carrefour', display: 'Carrefour' },
+    { key: 'leclerc', display: 'E.Leclerc' },
+    { key: 'intermarche', display: 'Intermarché' },
+    { key: 'systeme u', display: 'Système U' },
+    { key: 'super u', display: 'Système U' },
+    { key: 'hyper u', display: 'Système U' },
+    { key: 'u express', display: 'Système U' },
+    { key: 'esso', display: 'Esso' },
+    { key: 'auchan', display: 'Auchan' },
+    { key: 'avanti', display: 'Avanti' },
+    { key: 'bp', display: 'BP' },
+    { key: 'casino', display: 'Casino' },
+    { key: 'cora', display: 'Cora' },
+    { key: 'shell', display: 'Shell' },
+    { key: 'elan', display: 'Elan' },
+    { key: 'agip', display: 'Agip' }
+  ];
+
+  const searchStr = `${r.services || ''} ${r.adresse || ''}`.toLowerCase();
+  for (const target of targets) {
+    if (searchStr.includes(target.key)) return target.display;
   }
 
   if (r.ville) return r.ville.trim().toUpperCase();
   return 'STATION SERVICE';
 }
 
-/* ─── Sous-titre lisible (adresse + code postal + ville) ─── */
+/* ─── Génération de la ligne d'adresse secondaire ─── */
 function stationSubLabel(r) {
-  const cap  = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
   const addr = cap(r.adresse || '');
-  const cp   = r.cp   || '';
-  const ville = cap(r.ville || '');
-  const parts = [addr, cp, ville].filter(Boolean);
-  return parts.join(' · ');
+  const cp   = r.cp || '';
+  const ville = r.ville ? r.ville.trim().toUpperCase() : '';
+  return [addr, cp, ville].filter(Boolean).join(' · ');
 }
 
 /* ─── Type de carburant ─── */
@@ -247,7 +242,6 @@ function setType(type) {
   updateCout();
   const sel = document.getElementById('stationSel').value;
   if (sel && sel !== '__autre') {
-    // Si une station connue est sélectionnée, on utilise par défaut la position utilisateur si disponible
     fetchPricesNearUser();
   }
 }
@@ -310,7 +304,6 @@ function geolocate() {
 async function searchNearby(lat, lon, btn) {
   setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
   try {
-    // Correction stricte : pas de virgule entre lon et lat dans la chaine WKT POINT, et pas d'espace dans l'unité du rayon (8000m)
     const resp = await fetch(odsUrl({
       where:  `e85_prix is not null and distance(geom, geom'POINT(${lon} ${lat})', 8000m)`,
       select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
@@ -372,7 +365,7 @@ function renderNearby(stations) {
     const prix    = s.e85 ? ' · E85 ' + parseFloat(s.e85).toFixed(3) + ' €/L' : '';
     return '<div class="nearby-item" id="nearbyItem' + i + '">'
       + '<div class="nearby-main" onclick="pickStation(\'' + s.name.replace(/'/g, "\\'") + '\',' + s.lat + ',' + s.lon + '); highlightNearbyItem(' + i + ')">'
-      + '<span class="nearby-name">' + escHtml(s.name) + '</span>'
+      + '<span class="nearby-name"><strong>' + escHtml(s.name) + '</strong></span>'
       + '<span class="nearby-sub">'  + escHtml(s.sub)  + '</span>'
       + '<span class="nearby-meta">' + dist + prix + (s.known ? ' <span class="nearby-badge">connue</span>' : '') + '</span>'
       + '</div>'
@@ -415,7 +408,6 @@ function onAutreInput() {
 
 async function searchStationSuggestions(q) {
   try {
-    // Recherche insensitive partielle par ville, adresse ou services
     const resp = await fetch(odsUrl({
       where:    `ville like "${q}*" OR adresse like "${q}*" OR services like "${q}*"`,
       select:   'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
@@ -441,7 +433,7 @@ function renderSuggestions(results) {
     const sub   = stationSubLabel(r);
     const prix  = r.e85_prix ? 'E85 ' + parseFloat(r.e85_prix).toFixed(3) + ' €/L' : '';
     return '<div class="suggestion-item" onmousedown="pickSuggestion(' + i + ')">'
-      + '<span class="suggestion-item-name">⛽ ' + escHtml(label) + '</span>'
+      + '<span class="suggestion-item-name">⛽ <strong>' + escHtml(label) + '</strong></span>'
       + '<span class="suggestion-item-addr">' + escHtml(sub) + (prix ? '  ·  ' + prix : '') + '</span>'
       + '</div>';
   }).join('');
@@ -499,6 +491,7 @@ function hideSuggestions() {
   list._results = [];
 }
 
+/* ─── Reste du code inchangé ─── */
 function setSuggStatus(cls, msg) {
   const el = document.getElementById('suggStatus');
   el.className = 'suggestion-status ' + cls;
@@ -512,10 +505,6 @@ function onAutreBlur() {
     if (q) fetchPricesNearUser();
   }, 200);
 }
-
-/* ═══════════════════════════════════════
-   PRIX — Requêtes API Officielle Gouv
-═══════════════════════════════════════ */
 
 function odsUrl(params) {
   return PRIX_API + '?' + new URLSearchParams(params).toString();
@@ -563,7 +552,6 @@ async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
 
   for (const r of [500, 2000, 5000]) {
     try {
-      // Correction stricte ici aussi : pas de virgule interne au POINT, unité "m" attachée
       const resp = await fetch(odsUrl({
         where:    `(e85_prix is not null or sp98_prix is not null) and distance(geom, geom'POINT(${lon} ${lat})', ${r}m)`,
         select:   'e85_prix,sp98_prix,adresse,ville,services',
@@ -639,10 +627,6 @@ function haversine(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-/* ═══════════════════════════════════════
-   SOUMISSION
-═══════════════════════════════════════ */
-
 async function submitForm() {
   const date    = document.getElementById('fDate').value;
   const km      = document.getElementById('fKm').value.trim();
@@ -716,10 +700,6 @@ function resetForm() {
   s98Autofilled = false;
 }
 
-/* ═══════════════════════════════════════
-   SYNC STATION VERS GOOGLE SHEETS
-═══════════════════════════════════════ */
-
 async function syncStationSiNouvelle(nom) {
   if (!nom) return;
   const group   = document.getElementById('knownGroup');
@@ -738,10 +718,6 @@ async function syncStationSiNouvelle(nom) {
     console.warn('[Stations] Sync échouée :', e.message);
   }
 }
-
-/* ═══════════════════════════════════════
-   CHARGEMENT DES STATIONS
-═══════════════════════════════════════ */
 
 async function chargerStations() {
   const url = 'https://docs.google.com/spreadsheets/d/' + GS_SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=Stations';
@@ -765,6 +741,5 @@ async function chargerStations() {
   }
 }
 
-/* ─── Démarrage ─── */
 chargerStations();
 document.getElementById('appVersion').textContent = 'v' + APP_VERSION;
