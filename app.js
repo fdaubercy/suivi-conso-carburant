@@ -69,7 +69,7 @@ function setType(type) {
   currentType = type;
   document.getElementById('btnE85').classList.toggle('active', type === 'E85');
   document.getElementById('btnS98').classList.toggle('active', type === 'S98');
-  document.getElementById('headerBadge').textContent = type;
+  document.getElementById('headerBadge').textContent = type === 'E85' ? '🌿 E85' : '💧 S98';
   document.getElementById('s98Field').classList.toggle('hidden', type !== 'E85');
   document.getElementById('prixLabel').textContent = type === 'E85' ? 'Prix E85 (€/L)' : 'Prix S98 (€/L)';
   const fp = document.getElementById('fPrix');
@@ -578,3 +578,17 @@ async function chargerStations() {
 
 /* ─── Démarrage ─── */
 chargerStations();
+loadVersion();
+
+async function loadVersion() {
+  try {
+    const resp = await fetch(
+      'https://raw.githubusercontent.com/fdaubercy/suivi-e85/main/CHANGELOG.md',
+      { cache: 'no-store' }
+    );
+    if (!resp.ok) return;
+    const text = await resp.text();
+    const m = text.match(/^## \[(\d+\.\d+\.\d+)\]/m);
+    if (m) document.getElementById('appVersion').textContent = 'v' + m[1];
+  } catch(e) { /* silencieux */ }
+}
