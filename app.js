@@ -15,6 +15,7 @@ let _map            = null;   // instance Leaflet
 let _userMarker     = null;   // marqueur position utilisateur
 let _stationMarkers = [];     // marqueurs stations
 let _nearbyStations = [];     // données stations courantes
+let _mapPlaceholder = null;   // contrôle hint initial
 
 /* ─── Init ─── */
 (function init() {
@@ -49,41 +50,61 @@ function stationIcon(selected) {
   });
 }
 
-/** Icône position utilisateur */
-const userIcon = L.divIcon({
-  className: '',
-  html: `<div style="
-    background:#1D9E75;
-    border-radius:50%;
-    width:16px; height:16px;
-    border:3px solid #fff;
-    box-shadow:0 0 0 3px rgba(29,158,117,.35), 0 2px 8px rgba(0,0,0,.3);
-  "></div>`,
-  iconSize:   [16, 16],
-  iconAnchor: [8, 8]
-});
+/** Icône position utilisateur (créée à la demande pour éviter L non défini) */
+function getUserIcon() {
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      background:#1D9E75;
+      border-radius:50%;
+      width:16px; height:16px;
+      border:3px solid #fff;
+      box-shadow:0 0 0 3px rgba(29,158,117,.35), 0 2px 8px rgba(0,0,0,.3);
+    "></div>`,
+    iconSize:   [16, 16],
+    iconAnchor: [8, 8]
+  });
+}
 
-/** Initialise ou réinitialise la carte */
-function initMap(lat, lon) {
+/** Initialise la carte au chargement (centre France par défaut) */
+function initMapOnLoad() {
   const wrap = document.getElementById('stationMapWrap');
   wrap.classList.remove('hidden');
 
-  if (!_map) {
-    _map = L.map('stationMap', {
-      zoomControl: true,
-      attributionControl: true
-    }).setView([lat, lon], 13);
+  _map = L.map('stationMap', {
+    zoomControl: true,
+    attributionControl: true
+  }).setView([46.8, 2.3], 6);   // France entière par défaut
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-      maxZoom: 18
-    }).addTo(_map);
-  } else {
-    _map.setView([lat, lon], 13);
-  }
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+    maxZoom: 18
+  }).addTo(_map);
 
-  // Forcer le recalcul de la taille (utile quand le div était caché)
-  setTimeout(() => _map.invalidateSize(), 50);
+  // Placeholder texte centre carte
+  _mapPlaceholder = L.control({ position: 'topright' });
+  _mapPlaceholder.onAdd = () => {
+    const d = L.DomUtil.create('div');
+    d.id = 'mapHint';
+    d.style.cssText = 'background:rgba(255,255,255,.85);padding:5px 9px;border-radius:7px;font-size:11px;color:#6B7280;pointer-events:none;';
+    d.textContent = '📍 Cliquez sur le bouton pour localiser les stations';
+    return d;
+  };
+  _mapPlaceholder.addTo(_map);
+
+  setTimeout(() => _map.invalidateSize(), 150);
+}
+
+/** Recentre la carte sur de nouvelles coordonnées */
+function initMap(lat, lon) {
+  if (!_map) { initMapOnLoad(); }
+
+  // Supprime le placeholder d'aide si présent
+  const hint = document.getElementById('mapHint');
+  if (hint) hint.remove();
+
+  _map.setView([lat, lon], 13);
+  setTimeout(() => _map.invalidateSize(), 150);
 }
 
 /** Met à jour les marqueurs stations sur la carte */
@@ -96,7 +117,7 @@ function updateMapMarkers(stations, uLat, uLon) {
   if (_userMarker) _map.removeLayer(_userMarker);
 
   // Marqueur utilisateur
-  _userMarker = L.marker([uLat, uLon], { icon: userIcon, zIndexOffset: 1000 })
+  _userMarker = L.marker([uLat, uLon], { icon: getUserIcon(), zIndexOffset: 1000 })
     .addTo(_map)
     .bindTooltip('Vous êtes ici', { permanent: false, direction: 'top' });
 
@@ -643,3 +664,4 @@ document.getElementById('fDate').value =
   _t.getFullYear()+'-'+String(_t.getMonth()+1).padStart(2,'0')+'-'+String(_t.getDate()).padStart(2,'0');
 
 chargerStations();
+initMapOnLoad();
