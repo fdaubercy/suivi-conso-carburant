@@ -2,8 +2,6 @@
    Suivi Conso E85 — Logique applicative
 ═══════════════════════════════════════ */
 
-const APP_VERSION = '1.6.0';
-
 const GAS_URL  = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const PRIX_API = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
 
@@ -11,6 +9,12 @@ const PRIX_API = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/dataset
 let currentType   = 'E85';
 let s98Autofilled = false;
 let userLat = null, userLon = null;
+
+/* ─── État carte ─── */
+let _map            = null;   // instance Leaflet
+let _userMarker     = null;   // marqueur position utilisateur
+let _stationMarkers = [];     // marqueurs stations
+let _nearbyStations = [];     // données stations courantes
 
 /* ─── Init ─── */
 (function init() {
@@ -20,11 +24,125 @@ let userLat = null, userLon = null;
   document.getElementById('s98Field').classList.remove('hidden');
 })();
 
-/* ─── Version ─── */
-document.addEventListener('DOMContentLoaded', () => {
-  const el = document.getElementById('appVersion');
-  if (el) el.textContent = 'v' + APP_VERSION;
+/* ═══════════════════════════════════════
+   CARTE LEAFLET
+═══════════════════════════════════════ */
+
+/** Icône personnalisée pour les stations */
+function stationIcon(selected) {
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      background:${selected ? '#1B3A5C' : '#2E75B6'};
+      color:#fff;
+      border-radius:50% 50% 50% 0;
+      transform:rotate(-45deg);
+      width:32px; height:32px;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 2px 8px rgba(0,0,0,.3);
+      border:2px solid #fff;
+      font-size:14px;
+    "><span style="transform:rotate(45deg)">⛽</span></div>`,
+    iconSize:   [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor:[0, -34]
+  });
+}
+
+/** Icône position utilisateur */
+const userIcon = L.divIcon({
+  className: '',
+  html: `<div style="
+    background:#1D9E75;
+    border-radius:50%;
+    width:16px; height:16px;
+    border:3px solid #fff;
+    box-shadow:0 0 0 3px rgba(29,158,117,.35), 0 2px 8px rgba(0,0,0,.3);
+  "></div>`,
+  iconSize:   [16, 16],
+  iconAnchor: [8, 8]
 });
+
+/** Initialise ou réinitialise la carte */
+function initMap(lat, lon) {
+  const wrap = document.getElementById('stationMapWrap');
+  wrap.classList.remove('hidden');
+
+  if (!_map) {
+    _map = L.map('stationMap', {
+      zoomControl: true,
+      attributionControl: true
+    }).setView([lat, lon], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+      maxZoom: 18
+    }).addTo(_map);
+  } else {
+    _map.setView([lat, lon], 13);
+  }
+
+  // Forcer le recalcul de la taille (utile quand le div était caché)
+  setTimeout(() => _map.invalidateSize(), 50);
+}
+
+/** Met à jour les marqueurs stations sur la carte */
+function updateMapMarkers(stations, uLat, uLon) {
+  if (!_map) return;
+
+  // Supprime les anciens marqueurs
+  _stationMarkers.forEach(m => _map.removeLayer(m));
+  _stationMarkers = [];
+  if (_userMarker) _map.removeLayer(_userMarker);
+
+  // Marqueur utilisateur
+  _userMarker = L.marker([uLat, uLon], { icon: userIcon, zIndexOffset: 1000 })
+    .addTo(_map)
+    .bindTooltip('Vous êtes ici', { permanent: false, direction: 'top' });
+
+  // Marqueurs stations
+  stations.forEach((s, i) => {
+    const m = L.marker([s.lat, s.lon], { icon: stationIcon(false) })
+      .addTo(_map)
+      .bindPopup(_buildPopupHtml(s, i), { maxWidth: 240, minWidth: 180 });
+    _stationMarkers.push(m);
+  });
+
+  // Ajuste le zoom pour afficher tout
+  const allPoints = [[uLat, uLon], ...stations.map(s => [s.lat, s.lon])];
+  _map.fitBounds(L.latLngBounds(allPoints), { padding: [28, 28] });
+}
+
+/** Contenu HTML du popup d'une station */
+function _buildPopupHtml(station, idx) {
+  const dist = station.dist < 1000
+    ? station.dist + ' m'
+    : (station.dist / 1000).toFixed(1) + ' km';
+  return `<div class="map-popup">
+    <div class="map-popup-name">⛽ ${station.name}</div>
+    <div class="map-popup-dist">${dist}</div>
+    <button class="map-popup-btn"
+      onclick="pickStationFromMap(${idx})">Sélectionner</button>
+  </div>`;
+}
+
+/** Sélection d'une station depuis le popup de la carte */
+function pickStationFromMap(idx) {
+  const s = _nearbyStations[idx];
+  if (!s) return;
+  _map.closePopup();
+  // Met l'icône en surbrillance
+  _stationMarkers.forEach((m, i) => m.setIcon(stationIcon(i === idx)));
+  pickStation(s.name, s.lat, s.lon);
+  // Scroll vers la liste pour voir la sélection
+  document.getElementById('stationSel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/** Masque la carte */
+function hideMap() {
+  document.getElementById('stationMapWrap').classList.add('hidden');
+}
+
 
 /* ─── Type de carburant ─── */
 function setType(type) {
@@ -98,7 +216,7 @@ function geolocate() {
 
 async function searchNearby(lat, lon, btn) {
   setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
-  const q = `[out:json][timeout:15];(node["fuel:e85"="yes"](around:8000,${lat},${lon});way["fuel:e85"="yes"](around:8000,${lat},${lon}););out center;`;
+  const q = '[out:json][timeout:15];(node["fuel:e85"="yes"](around:8000,'+lat+','+lon+');way["fuel:e85"="yes"](around:8000,'+lat+','+lon+'););out center;';
   try {
     const data = await fetch('https://overpass-api.de/api/interpreter',
       { method: 'POST', body: 'data=' + encodeURIComponent(q) }).then(r => r.json());
@@ -110,12 +228,16 @@ async function searchNearby(lat, lon, btn) {
       const d = haversine(lat, lon, eLat, eLon);
       const brand = el.tags?.brand || el.tags?.name || el.tags?.operator || 'Station';
       const city  = el.tags?.['addr:city'] || el.tags?.['addr:suburb'] || '';
-      const name  = city ? `${brand} ${city}` : brand;
+      const name  = city ? brand+' '+city : brand;
       return { name, dist: Math.round(d), lat: eLat, lon: eLon,
                known: known.some(k => k.toLowerCase().startsWith(brand.toLowerCase().slice(0, 5))) };
     }).sort((a, b) => a.dist - b.dist).slice(0, 7);
+
+    _nearbyStations = stations;
     renderNearby(stations);
-    setGeoStatus('ok', `${stations.length} station(s) trouvée(s)`);
+    initMap(lat, lon);
+    updateMapMarkers(stations, lat, lon);
+    setGeoStatus('ok', stations.length + ' station(s) trouvée(s)');
   } catch (e) {
     btn.classList.remove('loading'); btn.textContent = '📍';
     setGeoStatus('err', 'Impossible de joindre OpenStreetMap.');
@@ -124,13 +246,18 @@ async function searchNearby(lat, lon, btn) {
 
 function renderNearby(stations) {
   const list = document.getElementById('nearbyList');
-  list.innerHTML = stations.map(s =>
-    `<div class="nearby-item" onclick="pickStation('${s.name.replace(/'/g, "\\'")}',${s.lat},${s.lon})">
-      <span>📍</span><span>${s.name}</span>
-      ${s.known ? '<span class="nearby-badge">connue</span>' : ''}
-      <span class="nearby-dist">${s.dist < 1000 ? s.dist + ' m' : (s.dist / 1000).toFixed(1) + ' km'}</span>
-    </div>`).join('');
+  list.innerHTML = stations.map((s, i) =>
+    '<div class="nearby-item" id="nearbyItem'+i+'" onclick="pickStation(\''+s.name.replace(/'/g,"\\'")+'\',' +s.lat+','+s.lon+'); highlightNearbyItem('+i+')">'
+    +'<span>📍</span><span>'+s.name+'</span>'
+    +(s.known ? '<span class="nearby-badge">connue</span>' : '')
+    +'<span class="nearby-dist">'+(s.dist < 1000 ? s.dist+' m' : (s.dist/1000).toFixed(1)+' km')+'</span>'
+    +'</div>').join('');
   list.style.display = 'block';
+}
+
+function highlightNearbyItem(idx) {
+  document.querySelectorAll('.nearby-item').forEach((el, i) =>
+    el.classList.toggle('selected', i === idx));
 }
 
 function pickStation(name, lat, lon) {
@@ -141,8 +268,9 @@ function pickStation(name, lat, lon) {
   document.getElementById('nearbyList').style.display = 'none';
   document.getElementById('autreField').classList.add('hidden');
   setGeoStatus('', '');
-  fetchPricesAtCoords(lat, lon, /*fallbackToUser=*/true);
+  fetchPricesAtCoords(lat, lon, true);
 }
+
 
 /* ═══════════════════════════════════════
    SUGGESTIONS STATION MANUELLE
@@ -162,12 +290,12 @@ function onAutreInput() {
 async function searchStationSuggestions(q) {
   try {
     const resp = await fetch(odsUrl({
-      where:    `search(adresse, "${q}") OR search(ville, "${q}")`,
+      where:    'search(adresse, "'+q+'") OR search(ville, "'+q+'")',
       select:   'id,adresse,ville,cp,e85_prix,sp98_prix,geom',
       order_by: 'ville',
       limit:    8
     }));
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    if (!resp.ok) throw new Error('HTTP '+resp.status);
     const data = await resp.json();
     if (!data.results?.length) {
       setSuggStatus('', "Aucun résultat — vérifiez l'orthographe ou utilisez la géolocalisation.");
@@ -184,11 +312,11 @@ function renderSuggestions(results) {
   const list = document.getElementById('suggList');
   list.innerHTML = results.map((r, i) => {
     const label = [r.adresse, r.cp, r.ville].filter(Boolean).join(' · ');
-    const prix  = r.e85_prix ? `E85 ${parseFloat(r.e85_prix).toFixed(3)} €/L` : '';
-    return `<div class="suggestion-item" onmousedown="pickSuggestion(${i})">
-      <span class="suggestion-item-name">⛽ ${r.ville || r.adresse}</span>
-      <span class="suggestion-item-addr">${label}${prix ? '  ·  ' + prix : ''}</span>
-    </div>`;
+    const prix  = r.e85_prix ? 'E85 '+parseFloat(r.e85_prix).toFixed(3)+' €/L' : '';
+    return '<div class="suggestion-item" onmousedown="pickSuggestion('+i+')">'
+      +'<span class="suggestion-item-name">⛽ '+(r.ville || r.adresse)+'</span>'
+      +'<span class="suggestion-item-addr">'+label+(prix ? '  ·  '+prix : '')+'</span>'
+      +'</div>';
   }).join('');
   list._results = results;
   list.style.display = 'block';
@@ -218,10 +346,15 @@ function pickSuggestion(idx) {
   }
   sel.value = '__autre';
 
-  if (r.geom?.lon != null && r.geom?.lat != null)
+  if (r.geom?.lon != null && r.geom?.lat != null) {
+    // Affiche la station sélectionnée sur la carte
+    _nearbyStations = [{ name: newName, dist: 0, lat: r.geom.lat, lon: r.geom.lon }];
+    initMap(r.geom.lat, r.geom.lon);
+    updateMapMarkers(_nearbyStations, r.geom.lat, r.geom.lon);
     fetchPricesAtCoords(r.geom.lat, r.geom.lon, false);
-  else
+  } else {
     fetchPricesNearUser();
+  }
 }
 
 function hideSuggestions() {
@@ -279,8 +412,8 @@ function applyPricesResult(data) {
   updateCout();
 
   const found = [];
-  if (currentType === 'E85' && r.e85_prix) found.push(`E85 : ${parseFloat(r.e85_prix).toFixed(3)} €/L`);
-  if (r.sp98_prix) found.push(`SP98 : ${parseFloat(r.sp98_prix).toFixed(3)} €/L`);
+  if (currentType === 'E85' && r.e85_prix) found.push('E85 : '+parseFloat(r.e85_prix).toFixed(3)+' €/L');
+  if (r.sp98_prix) found.push('SP98 : '+parseFloat(r.sp98_prix).toFixed(3)+' €/L');
   if (found.length) {
     setS98Status('ok', found.join(' · ') + (label ? ' — ' + label : ''));
   } else {
@@ -296,17 +429,17 @@ async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
   for (const r of [500, 2000, 5000]) {
     try {
       const resp = await fetch(odsUrl({
-        where:    `(e85_prix is not null OR sp98_prix is not null) AND distance(geom, geom'POINT(${lon} ${lat})', ${r}m)`,
+        where:    '(e85_prix is not null OR sp98_prix is not null) AND distance(geom, geom\'POINT('+lon+' '+lat+')\', '+r+'m)',
         select:   'e85_prix,sp98_prix,adresse,ville',
         order_by: 'sp98_prix',
         limit:    1
       }));
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      if (!resp.ok) throw new Error('HTTP '+resp.status);
       const data = await resp.json();
       if (data.results?.length) { applyPricesResult(data); return; }
     } catch (e) {
-      console.error('[PRIX] fetchAtCoords r=' + r, e);
-      setS98Status('err', `Erreur API (${e.message}) — saisie manuelle.`);
+      console.error('[PRIX] fetchAtCoords r='+r, e);
+      setS98Status('err', 'Erreur API ('+e.message+') — saisie manuelle.');
       return;
     }
   }
@@ -334,20 +467,20 @@ async function fetchPricesNearUser() {
 async function fetchPricesByCP() {
   const cp = document.getElementById('fCp').value.trim();
   if (cp.length !== 5) { setS98Status('err', 'Code postal invalide (5 chiffres requis).'); return; }
-  setS98Status('spin', `Recherche dans ${cp}…`);
+  setS98Status('spin', 'Recherche dans '+cp+'…');
   try {
     const resp = await fetch(odsUrl({
-      where:    `(e85_prix is not null OR sp98_prix is not null) AND cp="${cp}"`,
+      where:    '(e85_prix is not null OR sp98_prix is not null) AND cp="'+cp+'"',
       select:   'e85_prix,sp98_prix,adresse,ville',
       order_by: 'sp98_prix',
       limit:    1
     }));
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    if (!resp.ok) throw new Error('HTTP '+resp.status);
     const data = await resp.json();
     if (data.results?.length) { hideCpSearch(); applyPricesResult(data); }
-    else setS98Status('info', `Aucune station trouvée pour ${cp} — saisie manuelle.`);
+    else setS98Status('info', 'Aucune station trouvée pour '+cp+' — saisie manuelle.');
   } catch (e) {
-    setS98Status('err', `Erreur (${e.message}) — saisie manuelle.`);
+    setS98Status('err', 'Erreur ('+e.message+') — saisie manuelle.');
   }
 }
 
@@ -400,7 +533,7 @@ async function submitForm() {
     const body = JSON.stringify({ date, type: currentType === 'E85' ? 'SuperEthanol E85' : 'Super 98', km, litres, prix, prixS98, station });
     const json = await fetch(GAS_URL, { method: 'POST', body, redirect: 'follow' }).then(r => r.json());
     if (json.success) {
-      showFeedback('success', 'Plein enregistré ✓', json.message || `${litres} L à ${prix} €/L — ${station}`);
+      showFeedback('success', 'Plein enregistré ✓', json.message || litres+' L à '+prix+' €/L — '+station);
       await syncStationSiNouvelle(station);
       resetForm();
     } else {
@@ -422,7 +555,7 @@ function setSubmitState(loading) {
 function showFeedback(type, title, msg) {
   const el = document.getElementById('feedback');
   el.className = 'feedback ' + type;
-  el.innerHTML = `<strong>${title}</strong>${msg}`;
+  el.innerHTML = '<strong>'+title+'</strong>'+msg;
   el.style.display = 'block';
   el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   if (type === 'success') setTimeout(() => el.style.display = 'none', 5000);
@@ -430,7 +563,7 @@ function showFeedback(type, title, msg) {
 
 function resetForm() {
   const n = new Date();
-  document.getElementById('fDate').value = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+  document.getElementById('fDate').value = n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
   ['fKm', 'fLitres', 'fAutre'].forEach(id => document.getElementById(id).value = '');
   const fp = document.getElementById('fPrix');
   fp.value = ''; fp.placeholder = currentType === 'E85' ? '0.798' : '2.091';
@@ -448,6 +581,7 @@ function resetForm() {
   setSuggStatus('', '');
   hideCpSearch();
   s98Autofilled = false;
+  // Ne masque pas la carte — elle reste affichée pour la prochaine saisie
 }
 
 /* ═══════════════════════════════════════
@@ -482,8 +616,8 @@ async function syncStationSiNouvelle(nom) {
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 
 async function chargerStations() {
-  const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}`
-            + `/gviz/tq?tqx=out:csv&sheet=Stations`;
+  const url = 'https://docs.google.com/spreadsheets/d/'+GS_SHEET_ID
+            + '/gviz/tq?tqx=out:csv&sheet=Stations';
   try {
     const resp = await fetch(url);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -506,6 +640,6 @@ async function chargerStations() {
 /* ─── Démarrage ─── */
 const _t = new Date();
 document.getElementById('fDate').value =
-  `${_t.getFullYear()}-${String(_t.getMonth()+1).padStart(2,'0')}-${String(_t.getDate()).padStart(2,'0')}`;
+  _t.getFullYear()+'-'+String(_t.getMonth()+1).padStart(2,'0')+'-'+String(_t.getDate()).padStart(2,'0');
 
 chargerStations();
