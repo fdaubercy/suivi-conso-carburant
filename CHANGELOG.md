@@ -5,6 +5,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
+## [1.7.8] — 2026-05-23
+
+### Ajouté
+- **Enseignes de stations réelles** : bascule de l'API brute gouvernementale vers l'API enrichie OpenStreetMap. Le champ `name` (contenant la marque/enseigne comme Total, Leclerc, Carrefour) est désormais capturé et affiché dynamiquement sur la carte, les listes de suggestions et la géolocalisation locale sans générer d'erreurs HTTP 400.
 
 ## [1.7.2] — 2026-05-23
 
