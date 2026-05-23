@@ -21,32 +21,143 @@ let _nearbyStations = [];
 })();
 
 /* ═══════════════════════════════════════
-   CARTE — iframe OpenStreetMap (sans lib)
+   CARTE — Tuiles OSM, marqueurs cliquables
+   (moteur maison, zéro dépendance externe)
 ═══════════════════════════════════════ */
 
-/** Affiche la carte OSM centrée sur la position utilisateur */
-function showMap(uLat, uLon, stations) {
-  const validStations = stations.filter(s => s.lat && s.lon);
-  if (!validStations.length) return;
+const TILE_SZ = 256;
+let _mapStations = [];   // stations actuellement sur la carte
 
-  // Bounding box englobant position utilisateur (si connue) + toutes les stations
-  const allLats = validStations.map(s => s.lat);
-  const allLons = validStations.map(s => s.lon);
+/** Convertit lat/lon → numéro de tuile OSM */
+function tileXY(lat, lon, z) {
+  const n  = 1 << z;
+  const lr = lat * Math.PI / 180;
+  return {
+    x: Math.floor((lon + 180) / 360 * n),
+    y: Math.floor((1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n)
+  };
+}
+
+/** Convertit lat/lon → position pixel dans la grille de tuiles */
+function latLonToPx(lat, lon, z, ox, oy) {
+  const n  = 1 << z;
+  const lr = lat * Math.PI / 180;
+  return {
+    x: Math.round((lon + 180) / 360 * n * TILE_SZ - ox * TILE_SZ),
+    y: Math.round((1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n * TILE_SZ - oy * TILE_SZ)
+  };
+}
+
+/** Choisit le zoom pour que les stations tiennent dans le container */
+function bestZoom(allLats, allLons, maxW, maxH) {
+  for (let z = 15; z >= 10; z--) {
+    const nw = tileXY(Math.max(...allLats), Math.min(...allLons), z);
+    const se = tileXY(Math.min(...allLats), Math.max(...allLons), z);
+    if ((se.x - nw.x + 1) * TILE_SZ <= maxW + TILE_SZ &&
+        (se.y - nw.y + 1) * TILE_SZ <= maxH + TILE_SZ) return z;
+  }
+  return 10;
+}
+
+/** Affiche la carte avec marqueurs cliquables.
+ *  stations[] : { name, lat, lon, src:'nearby'|'suggestion', srcIdx:number } */
+function showMap(uLat, uLon, stations) {
+  _mapStations = stations.filter(s => s.lat && s.lon);
+  if (!_mapStations.length) return;
+  document.getElementById('stationMapWrap').classList.remove('hidden');
+  // Attendre un frame pour que le container soit rendu
+  requestAnimationFrame(() => _renderMap(uLat, uLon));
+}
+
+function _renderMap(uLat, uLon) {
+  const container = document.getElementById('stationMap');
+  const W = container.offsetWidth  || 320;
+  const H = container.offsetHeight || 220;
+  const mg = 0.008;
+
+  const allLats = _mapStations.map(s => s.lat);
+  const allLons = _mapStations.map(s => s.lon);
   if (uLat) { allLats.push(uLat); allLons.push(uLon); }
 
-  const minLat = Math.min(...allLats), maxLat = Math.max(...allLats);
-  const minLon = Math.min(...allLons), maxLon = Math.max(...allLons);
-  const dLat = (maxLat - minLat) * 0.15 || 0.02;
-  const dLon = (maxLon - minLon) * 0.15 || 0.02;
+  const z  = bestZoom(
+    [Math.min(...allLats) - mg, Math.max(...allLats) + mg],
+    [Math.min(...allLons) - mg, Math.max(...allLons) + mg],
+    W, H
+  );
+  const nw = tileXY(Math.max(...allLats) + mg, Math.min(...allLons) - mg, z);
+  const se = tileXY(Math.min(...allLats) - mg, Math.max(...allLons) + mg, z);
 
-  const bbox    = `${(minLon-dLon).toFixed(5)},${(minLat-dLat).toFixed(5)},${(maxLon+dLon).toFixed(5)},${(maxLat+dLat).toFixed(5)}`;
-  // Marqueur sur la position utilisateur si connue, sinon sur la 1ère station
-  const mLat    = uLat || validStations[0].lat;
-  const mLon    = uLon || validStations[0].lon;
-  const src     = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${mLat},${mLon}`;
+  const gridW = (se.x - nw.x + 1) * TILE_SZ;
+  const gridH = (se.y - nw.y + 1) * TILE_SZ;
+  // Centre la grille dans le container
+  const offX  = Math.round((W - gridW) / 2);
+  const offY  = Math.round((H - gridH) / 2);
 
-  document.getElementById('stationMap').src = src;
-  document.getElementById('stationMapWrap').classList.remove('hidden');
+  let html = `<div style="position:absolute;left:${offX}px;top:${offY}px;width:${gridW}px;height:${gridH}px">`;
+
+  // ── Tuiles ──
+  for (let ty = nw.y; ty <= se.y; ty++) {
+    for (let tx = nw.x; tx <= se.x; tx++) {
+      const px = (tx - nw.x) * TILE_SZ, py = (ty - nw.y) * TILE_SZ;
+      html += `<img src="https://tile.openstreetmap.org/${z}/${tx}/${ty}.png" `
+            + `style="position:absolute;left:${px}px;top:${py}px;width:${TILE_SZ}px;height:${TILE_SZ}px" `
+            + `loading="lazy" onerror="this.style.background='#ddd'">`;
+    }
+  }
+
+  // ── Marqueurs stations ──
+  _mapStations.forEach((s, i) => {
+    const p = latLonToPx(s.lat, s.lon, z, nw.x, nw.y);
+    html += `<div id="mapPin${i}" onclick="selectStationFromMap(${i})"
+      style="position:absolute;left:${p.x-12}px;top:${p.y-30}px;z-index:10;cursor:pointer;-webkit-tap-highlight-color:transparent">
+      <div class="map-pin" style="background:#2E75B6">
+        <span style="transform:rotate(45deg)">⛽</span>
+      </div>
+      <div class="map-pin-label">${s.name}</div>
+    </div>`;
+  });
+
+  // ── Position utilisateur ──
+  if (uLat && uLon) {
+    const p = latLonToPx(uLat, uLon, z, nw.x, nw.y);
+    html += `<div style="position:absolute;left:${p.x-8}px;top:${p.y-8}px;z-index:11;pointer-events:none">
+      <div style="width:16px;height:16px;background:#1D9E75;border-radius:50%;
+        border:3px solid #fff;box-shadow:0 0 0 3px rgba(29,158,117,.35),0 2px 6px rgba(0,0,0,.3)"></div>
+    </div>`;
+  }
+
+  html += '</div>';
+  html += `<a href="https://www.openstreetmap.org" target="_blank" rel="noopener"
+    style="position:absolute;bottom:3px;right:5px;background:rgba(255,255,255,.8);
+    font-size:9px;padding:1px 5px;border-radius:3px;color:#555;text-decoration:none;z-index:20">© OSM</a>`;
+
+  container.innerHTML = html;
+}
+
+/** Sélection d'une station depuis la carte */
+function selectStationFromMap(idx) {
+  const s = _mapStations[idx];
+  if (!s) return;
+
+  // Surligne le marqueur sélectionné
+  _mapStations.forEach((_, i) => {
+    const pin = document.querySelector(`#mapPin${i} .map-pin`);
+    if (pin) pin.style.background = i === idx ? '#1B3A5C' : '#2E75B6';
+  });
+
+  pickStation(s.name, s.lat, s.lon);
+
+  // Surligne la ligne correspondante dans la liste
+  if (s.src === 'nearby') {
+    highlightNearbyItem(s.srcIdx);
+    document.getElementById('nearbyItem' + s.srcIdx)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } else if (s.src === 'suggestion') {
+    document.querySelectorAll('.suggestion-item').forEach((el, i) =>
+      el.classList.toggle('selected', i === s.srcIdx));
+    document.querySelectorAll('.suggestion-item')[s.srcIdx]
+      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 }
 
 function hideMap() {
@@ -181,7 +292,7 @@ async function searchNearby(lat, lon, btn) {
 
     _nearbyStations = stations;
     renderNearby(stations);
-    showMap(lat, lon, stations);
+    showMap(lat, lon, stations.map((s, i) => ({ ...s, src: 'nearby', srcIdx: i })));
     setGeoStatus('ok', stations.length + ' station(s) E85 trouvée(s)');
   } catch (e) {
     btn.classList.remove('loading'); btn.textContent = '📍';
@@ -273,10 +384,13 @@ function renderSuggestions(results) {
   list._results = results;
   list.style.display = 'block';
 
-  // Affiche toutes les stations ayant des coordonnées sur la carte
-  const stationsGeo = results
-    .filter(r => r.geom?.lat != null && r.geom?.lon != null)
-    .map(r => ({ lat: r.geom.lat, lon: r.geom.lon }));
+  // Affiche les stations géolocalisées sur la carte avec marqueurs cliquables
+  const stationsGeo = results.reduce((acc, r, origIdx) => {
+    if (r.geom?.lat != null && r.geom?.lon != null)
+      acc.push({ name: stationLabel(r), lat: r.geom.lat, lon: r.geom.lon,
+                 src: 'suggestion', srcIdx: origIdx });
+    return acc;
+  }, []);
   if (stationsGeo.length) showMap(userLat, userLon, stationsGeo);
 }
 
@@ -305,7 +419,8 @@ function pickSuggestion(idx) {
   sel.value = '__autre';
 
   if (r.geom?.lon != null && r.geom?.lat != null) {
-    showMap(userLat, userLon, [{ lat: r.geom.lat, lon: r.geom.lon }]);
+    showMap(userLat, userLon,
+      [{ name: stationLabel(r), lat: r.geom.lat, lon: r.geom.lon, src: 'suggestion', srcIdx: idx }]);
     fetchPricesAtCoords(r.geom.lat, r.geom.lon, false);
   } else {
     fetchPricesNearUser();
