@@ -1,6 +1,5 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.6.0 — Prix tous carburants en station
 ═══════════════════════════════════════ */
 
 const GAS_URL  = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
@@ -11,13 +10,6 @@ let currentType   = 'E85';
 let s98Autofilled = false;
 let userLat = null, userLon = null;
 
-/**
- * Prix de TOUS les carburants relevés à la station sélectionnée.
- * Alimenté par applyPricesResult(), envoyé avec chaque soumission.
- * Clés : e85, sp98, sp95, e10, gazole, gplc (null si absent de l'API)
- */
-let allStationPrices = { e85: null, sp98: null, sp95: null, e10: null, gazole: null, gplc: null };
-
 /* ─── Init ─── */
 (function init() {
   const t = new Date();
@@ -25,6 +17,28 @@ let allStationPrices = { e85: null, sp98: null, sp95: null, e10: null, gazole: n
     `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
   document.getElementById('s98Field').classList.remove('hidden');
 })();
+
+/* ═══════════════════════════════════════
+   VERSION — lue depuis CHANGELOG.md
+   Affichée sous le titre dans le header
+═══════════════════════════════════════ */
+
+async function fetchAppVersion() {
+  const el = document.getElementById('appVersion');
+  if (!el) return;
+  try {
+    const resp = await fetch(
+      'https://raw.githubusercontent.com/fdaubercy/suivi-e85/main/CHANGELOG.md',
+      { cache: 'no-cache' }
+    );
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const text  = await resp.text();
+    const match = text.match(/^## \[(\d+\.\d+\.\d+)\]/m);
+    if (match) el.textContent = 'v' + match[1];
+  } catch {
+    /* silencieux — la version reste vide si inaccessible */
+  }
+}
 
 /* ─── Type de carburant ─── */
 function setType(type) {
@@ -247,19 +261,12 @@ function onAutreBlur() {
 
 /* ═══════════════════════════════════════
    PRIX — API gouvernementale
-   Récupère TOUS les carburants en station
 ═══════════════════════════════════════ */
 
 function odsUrl(params) {
   return PRIX_API + '?' + new URLSearchParams(params).toString();
 }
 
-/**
- * Remplit ou grise un champ prix.
- * @param {string} id         - id du champ
- * @param {*}      value      - valeur brute (null/undefined/"" → placeholder grisé)
- * @param {string} defaultPh  - placeholder quand absent
- */
 function setFieldPrice(id, value, defaultPh) {
   const el = document.getElementById(id);
   const v  = value ? parseFloat(value) : 0;
@@ -274,47 +281,22 @@ function setFieldPrice(id, value, defaultPh) {
   }
 }
 
-/**
- * Applique les prix d'un résultat API :
- *  - remplit les champs E85 et SP98 du formulaire (usage utilisateur)
- *  - stocke TOUS les prix dans allStationPrices (envoyé au Google Sheet)
- */
 function applyPricesResult(data) {
   const r     = data.results[0];
   const label = [r.adresse, r.ville].filter(Boolean).join(' · ');
 
-  // ── Champ principal (carburant acheté) ──
   const mainVal = currentType === 'E85' ? r.e85_prix : r.sp98_prix;
   const mainPh  = currentType === 'E85' ? '0.798'    : '2.091';
   setFieldPrice('fPrix', mainVal, mainPh);
-
-  // ── Champ prix S98 du jour (en mode E85) ──
   setFieldPrice('fPrixS98', r.sp98_prix, '2.091');
   s98Autofilled = !!(r.sp98_prix);
   updateCout();
 
-  // ── Stockage de TOUS les prix station ──
-  allStationPrices = {
-    e85:    r.e85_prix    ? parseFloat(r.e85_prix)    : null,
-    sp98:   r.sp98_prix   ? parseFloat(r.sp98_prix)   : null,
-    sp95:   r.sp95_prix   ? parseFloat(r.sp95_prix)   : null,
-    e10:    r.e10_prix    ? parseFloat(r.e10_prix)    : null,
-    gazole: r.gazole_prix ? parseFloat(r.gazole_prix) : null,
-    gplc:   r.gplc_prix   ? parseFloat(r.gplc_prix)   : null,
-  };
-
-  // ── Statut affiché ──
   const found = [];
-  if (r.e85_prix)    found.push(`E85 ${parseFloat(r.e85_prix).toFixed(3)}`);
-  if (r.sp98_prix)   found.push(`SP98 ${parseFloat(r.sp98_prix).toFixed(3)}`);
-  if (r.sp95_prix)   found.push(`SP95 ${parseFloat(r.sp95_prix).toFixed(3)}`);
-  if (r.e10_prix)    found.push(`E10 ${parseFloat(r.e10_prix).toFixed(3)}`);
-  if (r.gazole_prix) found.push(`Gazole ${parseFloat(r.gazole_prix).toFixed(3)}`);
-  if (r.gplc_prix)   found.push(`GPLc ${parseFloat(r.gplc_prix).toFixed(3)}`);
-
+  if (currentType === 'E85' && r.e85_prix) found.push(`E85 : ${parseFloat(r.e85_prix).toFixed(3)} €/L`);
+  if (r.sp98_prix) found.push(`SP98 : ${parseFloat(r.sp98_prix).toFixed(3)} €/L`);
   if (found.length) {
-    const suffix = label ? ` — ${label}` : '';
-    setS98Status('ok', found.join(' · ') + ' €/L' + suffix);
+    setS98Status('ok', found.join(' · ') + (label ? ' — ' + label : ''));
   } else {
     setS98Status('info', 'Aucun prix trouvé — code postal :');
     showCpSearch();
@@ -325,14 +307,11 @@ async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
   setS98Status('spin', 'Recherche des prix…');
   hideCpSearch();
 
-  // Sélectionne les 6 carburants + localisation
-  const SELECT_FIELDS = 'e85_prix,sp98_prix,sp95_prix,e10_prix,gazole_prix,gplc_prix,adresse,ville';
-
   for (const r of [500, 2000, 5000]) {
     try {
       const resp = await fetch(odsUrl({
-        where:    `distance(geom, geom'POINT(${lon} ${lat})', ${r}m)`,
-        select:   SELECT_FIELDS,
+        where:    `(e85_prix is not null OR sp98_prix is not null) AND distance(geom, geom'POINT(${lon} ${lat})', ${r}m)`,
+        select:   'e85_prix,sp98_prix,adresse,ville',
         order_by: 'sp98_prix',
         limit:    1
       }));
@@ -351,7 +330,6 @@ async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
   } else {
     setFieldPrice('fPrix',    null, currentType === 'E85' ? '0.798' : '2.091');
     setFieldPrice('fPrixS98', null, '2.091');
-    allStationPrices = { e85: null, sp98: null, sp95: null, e10: null, gazole: null, gplc: null };
     updateCout();
     setS98Status('info', 'Prix non trouvés — entrez le code postal :');
     showCpSearch();
@@ -371,11 +349,10 @@ async function fetchPricesByCP() {
   const cp = document.getElementById('fCp').value.trim();
   if (cp.length !== 5) { setS98Status('err', 'Code postal invalide (5 chiffres requis).'); return; }
   setS98Status('spin', `Recherche dans ${cp}…`);
-  const SELECT_FIELDS = 'e85_prix,sp98_prix,sp95_prix,e10_prix,gazole_prix,gplc_prix,adresse,ville';
   try {
     const resp = await fetch(odsUrl({
-      where:    `cp="${cp}"`,
-      select:   SELECT_FIELDS,
+      where:    `(e85_prix is not null OR sp98_prix is not null) AND cp="${cp}"`,
+      select:   'e85_prix,sp98_prix,adresse,ville',
       order_by: 'sp98_prix',
       limit:    1
     }));
@@ -412,7 +389,6 @@ function haversine(lat1, lon1, lat2, lon2) {
 
 /* ═══════════════════════════════════════
    SOUMISSION
-   Envoie le plein + prix station complets
 ═══════════════════════════════════════ */
 
 async function submitForm() {
@@ -435,25 +411,7 @@ async function submitForm() {
 
   setSubmitState(true);
   try {
-    const body = JSON.stringify({
-      date,
-      type:    currentType === 'E85' ? 'SuperEthanol E85' : 'Super 98',
-      km,
-      litres,
-      prix,
-      prixS98,
-      station,
-      // Prix de tous les carburants relevés à la station ce jour-là
-      prixStation: {
-        e85:    allStationPrices.e85,
-        sp98:   allStationPrices.sp98,
-        sp95:   allStationPrices.sp95,
-        e10:    allStationPrices.e10,
-        gazole: allStationPrices.gazole,
-        gplc:   allStationPrices.gplc,
-      }
-    });
-
+    const body = JSON.stringify({ date, type: currentType === 'E85' ? 'SuperEthanol E85' : 'Super 98', km, litres, prix, prixS98, station });
     const json = await fetch(GAS_URL, { method: 'POST', body, redirect: 'follow' }).then(r => r.json());
     if (json.success) {
       showFeedback('success', 'Plein enregistré ✓', json.message || `${litres} L à ${prix} €/L — ${station}`);
@@ -504,7 +462,6 @@ function resetForm() {
   setSuggStatus('', '');
   hideCpSearch();
   s98Autofilled = false;
-  allStationPrices = { e85: null, sp98: null, sp95: null, e10: null, gazole: null, gplc: null };
 }
 
 /* ═══════════════════════════════════════
@@ -566,3 +523,4 @@ document.getElementById('fDate').value =
   `${_t.getFullYear()}-${String(_t.getMonth()+1).padStart(2,'0')}-${String(_t.getDate()).padStart(2,'0')}`;
 
 chargerStations();
+fetchAppVersion();

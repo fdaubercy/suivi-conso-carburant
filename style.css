@@ -53,6 +53,22 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; }
   padding: 3px 8px; border-radius: 4px;
 }
 
+/* ─── Version dans le header ─── */
+.header-title {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 1px;
+}
+.version-tag {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 400;
+  letter-spacing: .03em;
+  line-height: 1;
+  min-height: 12px;          /* réserve l'espace pendant le chargement */
+}
+
 /* ─── Cards ─── */
 .card {
   background: var(--white);
@@ -181,8 +197,8 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; }
 
 /* ─── Coût du plein ─── */
 .cout-box {
-  display: none;                    /* affiché via JS → display:flex */
-  align-items: center;              /* alignement vertical centré label + valeur */
+  display: none;
+  align-items: center;
   gap: 10px;
   background: var(--blue-light);
   border-radius: 10px;
@@ -190,13 +206,13 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; }
   margin-top: 10px;
 }
 .cout-label {
-  font-size: 16px;                  /* identique aux champs du formulaire */
+  font-size: 16px;
   font-weight: 400;
   color: var(--blue-dark);
   white-space: nowrap;
 }
 .cout-val {
-  font-size: 16px;                  /* identique aux champs du formulaire */
+  font-size: 16px;
   font-weight: 600;
   color: var(--blue-dark);
   font-family: inherit;
