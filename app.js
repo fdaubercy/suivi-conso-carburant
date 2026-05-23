@@ -50,21 +50,20 @@ function hideMap() {
 
 /* ─── Nom lisible d'une station depuis l'API ─── */
 function stationLabel(r) {
-  // L'API retourne adresse en MAJUSCULES et ville — on capitalise proprement
   const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
-  const ville = cap(r.ville || '');
-  const cp    = r.cp || '';
-
-  // Si on a le champ enseignes (enseigne/marque), on l'utilise en priorité
-  if (r.enseignes) {
-    const enseigne = cap(r.enseignes);
-    return ville ? `${enseigne} — ${ville}` : enseigne;
-  }
-  // Sinon : ville + CP
-  if (ville && cp) return `${ville} (${cp})`;
-  if (ville)       return ville;
-  // Dernier recours : adresse capitalisée
+  // Priorité : enseigne > ville > adresse
+  if (r.enseignes) return cap(r.enseignes) + (r.ville ? ' ' + cap(r.ville) : '');
+  if (r.ville)     return cap(r.ville);
   return cap(r.adresse || 'Station inconnue');
+}
+
+/* ─── Sous-titre lisible (adresse courte) ─── */
+function stationSubLabel(r) {
+  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+  const addr = cap(r.adresse || '');
+  const cp   = r.cp || '';
+  if (addr && cp) return addr + ' · ' + cp;
+  return addr || cp;
 }
 
 /* ─── Type de carburant ─── */
@@ -165,8 +164,9 @@ async function searchNearby(lat, lon, btn) {
         const sLat = r.geom.lat, sLon = r.geom.lon;
         const d    = haversine(lat, lon, sLat, sLon);
         const name = stationLabel(r);
+        const sub  = stationSubLabel(r);
         const known = knownNames.some(k => k.includes((r.ville || '').toLowerCase()));
-        return { name, dist: Math.round(d), lat: sLat, lon: sLon,
+        return { name, sub, dist: Math.round(d), lat: sLat, lon: sLon,
                  e85: r.e85_prix, s98: r.sp98_prix, known };
       })
       .sort((a, b) => a.dist - b.dist)
@@ -185,12 +185,13 @@ async function searchNearby(lat, lon, btn) {
 function renderNearby(stations) {
   const list = document.getElementById('nearbyList');
   list.innerHTML = stations.map((s, i) => {
-    const dist  = s.dist < 1000 ? s.dist + ' m' : (s.dist / 1000).toFixed(1) + ' km';
+    const dist    = s.dist < 1000 ? s.dist + ' m' : (s.dist / 1000).toFixed(1) + ' km';
     const mapsUrl = 'https://maps.google.com/?q=' + s.lat + ',' + s.lon;
-    const prix  = s.e85 ? ' · E85 ' + parseFloat(s.e85).toFixed(3) + ' €' : '';
+    const prix    = s.e85 ? ' · E85 ' + parseFloat(s.e85).toFixed(3) + ' €/L' : '';
     return '<div class="nearby-item" id="nearbyItem' + i + '">'
       + '<div class="nearby-main" onclick="pickStation(\'' + s.name.replace(/'/g, "\\'") + '\',' + s.lat + ',' + s.lon + '); highlightNearbyItem(' + i + ')">'
-      + '<span class="nearby-name">⛽ ' + s.name + '</span>'
+      + '<span class="nearby-name">' + s.name + '</span>'
+      + '<span class="nearby-sub">' + s.sub + '</span>'
       + '<span class="nearby-meta">' + dist + prix + (s.known ? ' <span class="nearby-badge">connue</span>' : '') + '</span>'
       + '</div>'
       + '<a class="nearby-map-btn" href="' + mapsUrl + '" target="_blank" rel="noopener" title="Voir sur la carte">🗺️</a>'
