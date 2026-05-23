@@ -189,7 +189,6 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; }
 #stationMap {
   height: 240px;
   width: 100%;
-  z-index: 1;
 }
 /* Surcharge Leaflet pour mobile */
 .leaflet-container {

@@ -68,31 +68,38 @@ function getUserIcon() {
 
 /** Initialise la carte au chargement (centre France par défaut) */
 function initMapOnLoad() {
-  const wrap = document.getElementById('stationMapWrap');
-  wrap.classList.remove('hidden');
+  if (_map) return;  // déjà initialisée
+
+  const container = document.getElementById('stationMap');
+  // Nettoie un éventuel état Leaflet résiduel (hot-reload / back-navigation)
+  if (container._leaflet_id) {
+    container._leaflet_id = null;
+  }
 
   _map = L.map('stationMap', {
     zoomControl: true,
     attributionControl: true
-  }).setView([46.8, 2.3], 6);   // France entière par défaut
+  }).setView([46.8, 2.3], 6);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a>',
     maxZoom: 18
   }).addTo(_map);
 
-  // Placeholder texte centre carte
+  // Hint utilisateur
   _mapPlaceholder = L.control({ position: 'topright' });
   _mapPlaceholder.onAdd = () => {
     const d = L.DomUtil.create('div');
     d.id = 'mapHint';
-    d.style.cssText = 'background:rgba(255,255,255,.85);padding:5px 9px;border-radius:7px;font-size:11px;color:#6B7280;pointer-events:none;';
-    d.textContent = '📍 Cliquez sur le bouton pour localiser les stations';
+    d.style.cssText = 'background:rgba(255,255,255,.88);padding:5px 10px;border-radius:7px;font-size:11px;color:#6B7280;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.15);';
+    d.textContent = '📍 Cliquez sur le bouton ci-dessus pour localiser les stations E85';
     return d;
   };
   _mapPlaceholder.addTo(_map);
 
-  setTimeout(() => _map.invalidateSize(), 150);
+  // Double invalidateSize : 150 ms puis 600 ms pour couvrir les cas de layout tardif
+  setTimeout(() => { if (_map) _map.invalidateSize(); }, 150);
+  setTimeout(() => { if (_map) _map.invalidateSize(); }, 600);
 }
 
 /** Recentre la carte sur de nouvelles coordonnées */
@@ -681,4 +688,12 @@ document.getElementById('fDate').value =
   _t.getFullYear()+'-'+String(_t.getMonth()+1).padStart(2,'0')+'-'+String(_t.getDate()).padStart(2,'0');
 
 chargerStations();
-initMapOnLoad();
+
+// Attendre que le layout soit calculé avant d'initialiser Leaflet
+window.addEventListener('load', () => {
+  try {
+    initMapOnLoad();
+  } catch(e) {
+    console.error('[Carte] Erreur init Leaflet :', e);
+  }
+});
