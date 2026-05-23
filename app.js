@@ -1,10 +1,13 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.7 — carte OSM iframe, sans Leaflet
+   v1.7.1 — noms stations, infobulles tactiles
 ═══════════════════════════════════════ */
 
-const GAS_URL  = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
-const PRIX_API = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
+/* ─── Configuration — à mettre à jour à chaque déploiement ─── */
+const APP_VERSION = '1.7.1';
+const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
+const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
+const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
 
 /* ─── État global ─── */
 let currentType   = 'E85';
@@ -89,7 +92,6 @@ function _renderMap(uLat, uLon) {
 
   const gridW = (se.x - nw.x + 1) * TILE_SZ;
   const gridH = (se.y - nw.y + 1) * TILE_SZ;
-  // Centre la grille dans le container
   const offX  = Math.round((W - gridW) / 2);
   const offY  = Math.round((H - gridH) / 2);
 
@@ -107,13 +109,18 @@ function _renderMap(uLat, uLon) {
 
   // ── Marqueurs stations ──
   _mapStations.forEach((s, i) => {
-    const p = latLonToPx(s.lat, s.lon, z, nw.x, nw.y);
-    html += `<div id="mapPin${i}" onclick="selectStationFromMap(${i})"
-      style="position:absolute;left:${p.x-12}px;top:${p.y-30}px;z-index:10;cursor:pointer;-webkit-tap-highlight-color:transparent">
-      <div class="map-pin" style="background:#2E75B6">
+    const p     = latLonToPx(s.lat, s.lon, z, nw.x, nw.y);
+    const label = escHtml(s.name);
+    html += `<div id="mapPin${i}"
+      onclick="selectStationFromMap(${i})"
+      onmouseenter="showPinLabel(${i})"
+      ontouchstart="showPinLabel(${i})"
+      style="position:absolute;left:${p.x-12}px;top:${p.y-30}px;z-index:10;
+             cursor:pointer;-webkit-tap-highlight-color:transparent">
+      <div class="map-pin" id="mapPinDot${i}" style="background:#2E75B6">
         <span style="transform:rotate(45deg)">⛽</span>
       </div>
-      <div class="map-pin-label">${s.name}</div>
+      <div class="map-pin-label" id="mapPinLbl${i}">${label}</div>
     </div>`;
   });
 
@@ -134,6 +141,22 @@ function _renderMap(uLat, uLon) {
   container.innerHTML = html;
 }
 
+/** Affiche l'infobulle d'un marqueur pendant 2 s (hover bureau + touch mobile) */
+function showPinLabel(idx) {
+  const lbl = document.getElementById('mapPinLbl' + idx);
+  if (!lbl) return;
+  lbl.style.opacity = '1';
+  clearTimeout(lbl._hideTimer);
+  lbl._hideTimer = setTimeout(() => { lbl.style.opacity = ''; }, 2000);
+}
+
+/** Échappe les caractères HTML dans les labels de marqueurs */
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 /** Sélection d'une station depuis la carte */
 function selectStationFromMap(idx) {
   const s = _mapStations[idx];
@@ -141,9 +164,11 @@ function selectStationFromMap(idx) {
 
   // Surligne le marqueur sélectionné
   _mapStations.forEach((_, i) => {
-    const pin = document.querySelector(`#mapPin${i} .map-pin`);
+    const pin = document.getElementById('mapPinDot' + i);
     if (pin) pin.style.background = i === idx ? '#1B3A5C' : '#2E75B6';
   });
+  // Affiche l'infobulle du marqueur sélectionné
+  showPinLabel(idx);
 
   pickStation(s.name, s.lat, s.lon);
 
@@ -167,17 +192,20 @@ function hideMap() {
 /* ─── Nom lisible d'une station depuis l'API ─── */
 function stationLabel(r) {
   const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+  // Priorité : nom officiel → ville → adresse
+  if (r.nom)   return r.nom;
   if (r.ville) return cap(r.ville);
   return cap(r.adresse || 'Station inconnue');
 }
 
-/* ─── Sous-titre lisible (adresse courte) ─── */
+/* ─── Sous-titre lisible (adresse + localisation) ─── */
 function stationSubLabel(r) {
-  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+  const cap  = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
   const addr = cap(r.adresse || '');
-  const cp   = r.cp || '';
-  if (addr && cp) return addr + ' · ' + cp;
-  return addr || cp;
+  const cp   = r.cp   || '';
+  const ville = r.nom ? cap(r.ville || '') : '';   // ville affichée seulement si on a un nom
+  const parts = [addr, [cp, ville].filter(Boolean).join(' ')].filter(Boolean);
+  return parts.join(' · ');
 }
 
 /* ─── Type de carburant ─── */
@@ -257,7 +285,7 @@ async function searchNearby(lat, lon, btn) {
     const params = new URLSearchParams({
       'geofilter.distance': lat + ',' + lon + ',6000',
       where:  'e85_prix is not null',
-      select: 'adresse,ville,cp,e85_prix,sp98_prix,geom',
+      select: 'nom,adresse,ville,cp,e85_prix,sp98_prix,geom',
       limit:  10
     });
     const resp = await fetch(PRIX_API + '?' + params.toString());
@@ -286,7 +314,7 @@ async function searchNearby(lat, lon, btn) {
         return { name, sub, dist: Math.round(d), lat: sLat, lon: sLon,
                  e85: r.e85_prix, s98: r.sp98_prix, known };
       })
-      .filter(s => s.dist <= 8000)      // filtre strict 6 km côté client
+      .filter(s => s.dist <= 8000)
       .sort((a, b) => a.dist - b.dist)
       .slice(0, 7);
 
@@ -308,8 +336,8 @@ function renderNearby(stations) {
     const prix    = s.e85 ? ' · E85 ' + parseFloat(s.e85).toFixed(3) + ' €/L' : '';
     return '<div class="nearby-item" id="nearbyItem' + i + '">'
       + '<div class="nearby-main" onclick="pickStation(\'' + s.name.replace(/'/g, "\\'") + '\',' + s.lat + ',' + s.lon + '); highlightNearbyItem(' + i + ')">'
-      + '<span class="nearby-name">' + s.name + '</span>'
-      + '<span class="nearby-sub">' + s.sub + '</span>'
+      + '<span class="nearby-name">' + escHtml(s.name) + '</span>'
+      + '<span class="nearby-sub">'  + escHtml(s.sub)  + '</span>'
       + '<span class="nearby-meta">' + dist + prix + (s.known ? ' <span class="nearby-badge">connue</span>' : '') + '</span>'
       + '</div>'
       + '<a class="nearby-map-btn" href="' + mapsUrl + '" target="_blank" rel="noopener" title="Voir sur la carte">🗺️</a>'
@@ -352,10 +380,10 @@ function onAutreInput() {
 async function searchStationSuggestions(q) {
   try {
     const resp = await fetch(odsUrl({
-      where:    'search(adresse, "' + q + '") OR search(ville, "' + q + '")',
-      select:   'id,adresse,ville,cp,e85_prix,sp98_prix,geom',
+      where:    'search(adresse, "' + q + '") OR search(ville, "' + q + '") OR search(nom, "' + q + '")',
+      select:   'id,nom,adresse,ville,cp,e85_prix,sp98_prix,geom',
       order_by: 'ville',
-      limit:    8
+      limit:    12
     }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
@@ -374,17 +402,17 @@ function renderSuggestions(results) {
   const list = document.getElementById('suggList');
   list.innerHTML = results.map((r, i) => {
     const label = stationLabel(r);
-    const addr  = [r.adresse, r.cp, r.ville].filter(Boolean).join(' · ');
+    const sub   = stationSubLabel(r);
     const prix  = r.e85_prix ? 'E85 ' + parseFloat(r.e85_prix).toFixed(3) + ' €/L' : '';
     return '<div class="suggestion-item" onmousedown="pickSuggestion(' + i + ')">'
-      + '<span class="suggestion-item-name">⛽ ' + label + '</span>'
-      + '<span class="suggestion-item-addr">' + addr + (prix ? '  ·  ' + prix : '') + '</span>'
+      + '<span class="suggestion-item-name">⛽ ' + escHtml(label) + '</span>'
+      + '<span class="suggestion-item-addr">' + escHtml(sub) + (prix ? '  ·  ' + prix : '') + '</span>'
       + '</div>';
   }).join('');
   list._results = results;
   list.style.display = 'block';
 
-  // Affiche les stations géolocalisées sur la carte avec marqueurs cliquables
+  // Toutes les stations géolocalisées s'affichent sur la carte
   const stationsGeo = results.reduce((acc, r, origIdx) => {
     if (r.geom?.lat != null && r.geom?.lon != null)
       acc.push({ name: stationLabel(r), lat: r.geom.lat, lon: r.geom.lon,
@@ -678,9 +706,6 @@ async function syncStationSiNouvelle(nom) {
 /* ═══════════════════════════════════════
    CHARGEMENT DES STATIONS
 ═══════════════════════════════════════ */
-
-const APP_VERSION = '1.7.0';
-const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 
 async function chargerStations() {
   const url = 'https://docs.google.com/spreadsheets/d/' + GS_SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=Stations';

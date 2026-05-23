@@ -6,6 +6,35 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.7.1] — 2026-05-23
+
+### Ajouté
+- **Noms officiels des stations** : le champ `nom` de l'API gouvernementale est récupéré
+  dans tous les appels (`searchNearby`, `searchStationSuggestions`). `stationLabel()` l'utilise
+  en priorité — la ville n'est affichée que si aucun nom n'est disponible.
+- **Infobulles tactiles** : `onmouseenter` + `ontouchstart` sur chaque marqueur de carte
+  affichent le nom (ou l'adresse) de la station pendant 2 secondes. Un timer par marqueur
+  évite les conflits entre plusieurs touches.
+- **Fonction `escHtml()`** : échappe les caractères spéciaux dans les labels de marqueurs
+  et les lignes de liste pour éviter toute injection HTML.
+
+### Modifié
+- `APP_VERSION`, `GAS_URL` et `GS_SHEET_ID` regroupés en tête de fichier dans un bloc
+  « Configuration » clairement commenté — plus de constante perdue en bas du fichier.
+- `searchStationSuggestions` : recherche étendue au champ `nom` (`OR search(nom, "…")`),
+  limite portée à 12 résultats.
+- `stationSubLabel()` : affiche la ville en complément de l'adresse quand un nom officiel
+  est disponible, pour identifier sans ambiguïté deux stations dans la même ville.
+- `renderNearby` et `renderSuggestions` : noms et sous-titres passent par `escHtml()`.
+- Sélection depuis la carte (`selectStationFromMap`) : utilise les ID `mapPinDot${i}` et
+  `mapPinLbl${i}` générés proprement, et appelle `showPinLabel()` après sélection.
+
+### Corrigé
+- `APP_VERSION` définie en bas du fichier (variable en dur difficile à retrouver lors des
+  déploiements) — remontée en tête de fichier avec les autres constantes de configuration.
+
+---
+
 ## [1.7.0] — 2026-05-23
 
 ### Ajouté
@@ -94,6 +123,7 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+[1.7.1]: https://github.com/fdaubercy/suivi-e85/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.4.0...v1.5.0
