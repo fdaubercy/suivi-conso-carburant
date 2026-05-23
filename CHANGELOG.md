@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [1.9.2.1] — 2026-05-23
+
+### Ajouté
+- **Extraction intelligente multi-clés OSM** : Ajustement de la fonction de croisement spatial pour rechercher prioritairement la balise `brand` (la marque réseau de l'enseigne) et utiliser la balise `name` en cas d'absence.
+- **Trace d'audit normalisée (Console)** : Affichage systématique dans la console web pour chaque requête réseau de l'URL exécutée, du tableau brut d'objets reçus (depuis `data.economie.gouv.fr` et `overpass-api.de`), ainsi que de la collection finale enrichie destinée au rendu graphique.
+
 ## [1.9.2.0] — 2026-05-23
 
 ### Ajouté

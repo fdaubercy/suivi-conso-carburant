@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.9.2 — Extraction Multi-Clés OSM (Brand/Name) & Audit Console Global
+   v1.9.2 — Extraction Multi-Clés OSM (Brand/Name) & Traçabilité Console
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.9.2.0';
+const APP_VERSION = '1.9.2.1';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -189,7 +189,7 @@ function getCoords(r) {
   return null;
 }
 
-/* ─── Extraction sémantique / Fallback Enseigne de secours ─── */
+/* ─── Extraction sémantique de l'enseigne de secours ─── */
 function stationLabel(r) {
   const targets = [
     { key: 'total', display: 'TotalEnergies' },
@@ -278,7 +278,7 @@ function onS98ManualEdit() {
 }
 
 /* ═══════════════════════════════════════
-   GÉOLOCALISATION & CROSS-MATCHING OSM
+   GÉOLOCALISATION & REQUÊTES ENRICHIES
 ═══════════════════════════════════════ */
 
 function geolocate() {
@@ -302,6 +302,7 @@ function geolocate() {
   );
 }
 
+/* Fonction mutualisée pour interroger Overpass OpenStreetMap */
 async function fetchOsmNamesForStations(stations) {
   if (!stations.length) return [];
   
@@ -312,6 +313,8 @@ async function fetchOsmNamesForStations(stations) {
   });
 
   const query = `[out:json][timeout:5];(${aroundClauses});out tags;`;
+  
+  // 1. Trace de l'URL utilisée requise par l'utilisateur
   console.log('[API OSM] URL utilisée :', OVERPASS_API);
   
   try {
@@ -322,6 +325,7 @@ async function fetchOsmNamesForStations(stations) {
     if (!resp.ok) return [];
     const data = await resp.json();
     
+    // 2. Trace du tableau brut des résultats requise par l'utilisateur
     console.log('[API OSM] Tableau des résultats bruts (elements) :', data.elements || []);
     return data.elements || [];
   } catch (e) {
@@ -338,12 +342,15 @@ async function searchNearby(lat, lon, btn) {
       select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
       limit:  40
     });
+    
+    // Trace de l'URL État utilisée
     console.log('[API ÉTAT] URL utilisée (Géolocalisation) :', targetUrl);
 
     const resp = await fetch(targetUrl);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
-
+    
+    // Trace du tableau brut État
     console.log('[API ÉTAT] Tableau des résultats bruts (results) :', data.results || []);
 
     btn.classList.remove('loading'); btn.textContent = '📍';
@@ -381,13 +388,14 @@ async function searchNearby(lat, lon, btn) {
       return;
     }
 
+    // Enrichissement croisé via OpenStreetMap
     setGeoStatus('info', 'Enrichissement des enseignes via OpenStreetMap…');
     const osmElements = await fetchOsmNamesForStations(stations);
     
     if (osmElements.length) {
       stations = stations.map(s => {
         let bestMatch = null;
-        let minD = 300; 
+        let minD = 300; // Rayon de tolérance maximal de 300 mètres
         
         osmElements.forEach(el => {
           const elLat = el.lat || el.center?.lat;
@@ -395,6 +403,7 @@ async function searchNearby(lat, lon, btn) {
           if (elLat && elLon) {
             const d = haversine(s.lat, s.lon, elLat, elLon);
             if (d < minD) {
+              // Récupération dynamique de la propriété "brand" ou "name"
               const brandOrName = el.tags?.brand || el.tags?.name;
               if (brandOrName) {
                 minD = d;
@@ -412,6 +421,7 @@ async function searchNearby(lat, lon, btn) {
       });
     }
 
+    // 3. Trace du tableau de données enrichi requis par l'utilisateur
     console.log('[TABLEAU ENRICHI] Données consolidées pour l\'affichage (Géo) :', stations);
 
     _nearbyStations = stations;
@@ -446,12 +456,15 @@ async function searchStationSuggestions(q) {
       select:   'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
       limit:    15
     });
+    
+    // Trace de l'URL État utilisée
     console.log('[API ÉTAT] URL utilisée (Suggestions manuelles) :', targetUrl);
 
     const resp = await fetch(targetUrl);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
+    // Trace du tableau brut État
     console.log('[API ÉTAT] Tableau des résultats bruts (results) :', data.results || []);
 
     if (!data.results?.length) {
@@ -480,6 +493,7 @@ async function searchStationSuggestions(q) {
             if (elLat && elLon) {
               const d = haversine(c.lat, c.lon, elLat, elLon);
               if (d < minD) {
+                // Récupération dynamique de la propriété "brand" ou "name"
                 const brandOrName = el.tags?.brand || el.tags?.name;
                 if (brandOrName) { minD = d; bestMatch = brandOrName; }
               }
@@ -491,6 +505,7 @@ async function searchStationSuggestions(q) {
       }
     }
 
+    // Trace du tableau de données enrichi
     console.log('[TABLEAU ENRICHI] Données consolidées pour l\'affichage (Suggestions) :', results);
 
     renderSuggestions(results);
