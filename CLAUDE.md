@@ -1,4 +1,4 @@
-# CLAUDE.md — SUVI E85 (MODE AUTONOME COMPLET)
+# CLAUDE.md — SUIVI E85 (MODE AUTONOME COMPLET)
 
 ## 🎯 Rôle
 Tu es le développeur principal du projet `suivi-e85`.
@@ -64,7 +64,7 @@ Priorités :
 2. Liste des fichiers modifiés
 3. FICHIERS COMPLETS modifiés
 4. Version mise à jour
-5. Commandes à exécuter (si nécessaire)
+5. Commande de commit prête à copier-coller
 
 ---
 
@@ -89,9 +89,7 @@ Obligatoire à chaque modification.
 
 Format :
 
-# Changelog
-
-## [X.Y.Z] - YYYY-MM-DD
+## [X.Y.Z.W] — YYYY-MM-DD
 
 ### Added
 - ...
@@ -107,72 +105,103 @@ Format :
 
 ---
 
-# 🔢 VERSIONING OBLIGATOIRE (SEMVER)
+# 🔢 VERSIONING OBLIGATOIRE — FORMAT X.Y.Z.W
 
-Toujours incrémenter la version :
+Le projet utilise un versioning à **4 composantes** : `MAJOR.MINOR.PATCH.BUILD`
 
-- PATCH → bugfix, correction API, petite amélioration
-- MINOR → nouvelle fonctionnalité compatible
-- MAJOR → breaking change / refonte
+## Règles d'incrémentation
 
-Mettre à jour la version dans :
-- package.json
-- pyproject.toml
-- setup.py
-- version.py
-- ou équivalent
+| Composante | Position | Quand incrémenter |
+|---|---|---|
+| **MAJOR** | X | Refonte complète, breaking change architectural |
+| **MINOR** | Y | Nouvelle fonctionnalité utilisateur visible |
+| **PATCH** | Z | Correction de bug, amélioration technique |
+| **BUILD** | W | Itération dans la même session de travail (sous-patch) |
+
+## Exemples
+
+| Situation | Exemple |
+|---|---|
+| Refonte du pipeline API | `1.9.x.x → 2.0.0.0` |
+| Ajout géolocalisation | `1.8.x.x → 1.9.0.0` |
+| Correction HTTP 400 | `1.9.5.0 → 1.9.5.1` |
+| 2ème fix dans la même session | `1.9.5.1 → 1.9.5.2` |
+
+## Règles strictes
+
+- Ne jamais réutiliser un numéro de version existant
+- Incrémenter BUILD (W) pour chaque itération corrective dans la même session
+- Remettre BUILD à 0 lors de l'incrémentation de PATCH, MINOR ou MAJOR
+- Mettre à jour `APP_VERSION` dans `app.js` ET l'entrée CHANGELOG en cohérence
 
 ---
 
-# ⚙️ GIT AUTOMATIQUE OBLIGATOIRE
+# ⚙️ GIT — COMMIT PRÉPARÉ EN FIN DE RÉPONSE
 
-Après chaque modification :
+## Règle
+À la fin de **chaque réponse** ayant modifié du code, fournir systématiquement
+un bloc de commit prêt à copier-coller, formaté ainsi :
 
-## 1. Stage
-git add .
+```
+─── COMMIT ──────────────────────────────────
+./commit.sh "<type>(<scope>): <description> [vX.Y.Z.W]"
+─────────────────────────────────────────────
+```
 
-## 2. Commit (CONVENTIONAL COMMITS)
+## Format du message (Conventional Commits)
 
-Format :
-<type>(scope): description
+```
+<type>(<scope>): <description courte> [vX.Y.Z.W]
+```
 
-Types :
-- feat → nouvelle fonctionnalité
-- fix → correction bug
-- docs → documentation
-- refactor → refonte
-- perf → optimisation
-- chore → maintenance
+### Types
 
-Exemples :
-feat(api): ajout source prix E85
-fix(scraper): correction parsing stations
-docs(readme): mise à jour installation
-refactor(core): simplification pipeline
+| Type | Usage |
+|---|---|
+| `feat` | nouvelle fonctionnalité |
+| `fix` | correction de bug |
+| `docs` | documentation uniquement |
+| `refactor` | refonte sans changement de comportement |
+| `perf` | optimisation de performance |
+| `chore` | maintenance, nettoyage |
 
-## 3. Commit
-git commit -m "message"
+### Scope (portée)
 
-## 4. Push (si applicable)
-git push
+Utiliser le nom du fichier ou du module principal modifié :
+`app`, `style`, `readme`, `changelog`, `config`, `api`, `osm`, `carte`, `stations`
+
+### Exemples
+
+```
+feat(app): suppression enrichissement OSM, adresse comme nom station [v1.9.8.0]
+fix(app): correction HTTP 400 champ nom inexistant dans dataset [v1.9.5.1]
+refactor(app): requête OSM groupée bbox anti-timeout [v1.9.7.0]
+docs(readme): mise à jour architecture identification stations [v1.9.8.0]
+perf(app): requête OSM unique remplace Promise.all anti-429 [v1.9.6.0]
+```
+
+## Règles
+
+- Toujours inclure la version entre crochets à la fin du message
+- Description en français ou anglais, cohérente avec le CHANGELOG
+- Un seul commit par réponse (grouper tous les fichiers modifiés)
+- Ne pas pusher automatiquement — laisser l'utilisateur valider
 
 ---
 
 # ⚡ OPTIMISATION DES RÉPONSES (TOKENS)
 
-Tu dois optimiser tes réponses :
-
 ## Règles
 - éviter les répétitions
 - supprimer le superflu
-- aller directement à l’essentiel
+- aller directement à l'essentiel
 - éviter les longues introductions
-- privilégier la densité d’information
+- privilégier la densité d'information
 
 ## Code
 - fournir uniquement le code nécessaire
 - éviter commentaires inutiles
-- ne pas expliquer l’évident
+- ne pas expliquer l'évident
 
 ## Structure de réponse
 
@@ -181,7 +210,7 @@ Toujours dans cet ordre :
 1. Résumé court (max 5 lignes)
 2. Fichiers modifiés
 3. Code complet
-4. Actions / commandes
+4. Bloc commit prêt à copier-coller
 
 ---
 
@@ -191,10 +220,10 @@ Avant de terminer :
 
 - vérifier cohérence globale
 - vérifier imports
-- vérifier version
-- vérifier README.md
+- vérifier version X.Y.Z.W cohérente entre app.js et CHANGELOG
+- vérifier README.md si l'architecture a changé
 - vérifier CHANGELOG.md
-- vérifier commit logique
+- préparer le bloc commit
 
 ---
 
@@ -204,8 +233,9 @@ Chaque tâche doit produire :
 
 ✔ code fonctionnel
 ✔ documentation à jour
-✔ version incrémentée
-✔ commit git propre
+✔ version X.Y.Z.W incrémentée
+✔ CHANGELOG à jour
+✔ bloc commit prêt à copier-coller
 ✔ traçabilité complète
 
 ---

@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [1.9.8.0] — 2026-05-23
+
+### Changed
+- **Suppression de l'enrichissement OSM** : l'API Overpass est entièrement retirée. Le dataset gouvernemental ne contient aucun nom d'enseigne — OSM était la seule source possible mais trop instable (429, timeouts).
+- **`stationLabel(r)`** remplacée par une version simple : `adresse` capitalisée comme nom de station. Chaque station est désormais identifiée par son adresse (ex. "345 Boulevard Louis Breguet") plutôt que par la ville ou une enseigne supposée.
+- **`stationSubLabel(r)`** inchangée : affiche `cp · VILLE` en sous-titre.
+- **Constantes supprimées** : `OVERPASS_API` et `DISTANCE_THRESHOLD` retirées de la configuration.
+- **`searchNearby`** et **`searchStationSuggestions`** simplifiés : plus d'appel async OSM, résultat immédiat.
+
+### Removed
+- `enrichAllStationsWithOsm()` — supprimée
+- `resolveStationName()` — supprimée
+- Dépendance à `overpass-api.de`
+
+---
+
 ## [1.9.7.0] — 2026-05-23
 
 ### Changed

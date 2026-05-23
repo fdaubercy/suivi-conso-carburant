@@ -26,12 +26,14 @@ pour récupérer simultanément le prix **E85** et le prix **SP98** :
 - Prix non trouvé → placeholder `--`, saisie manuelle disponible
 - Stratégie progressive : rayon 500 m → 2 km → 5 km → fallback GPS → code postal
 
-### Identification des enseignes (OSM)
-L'application enrichit les données gouvernementales avec OpenStreetMap (Overpass API) :
-- **Une seule requête bbox** pour toutes les stations — évite les 429 et les timeouts
-- Rayon de matching : `DISTANCE_THRESHOLD` = **2 000 mètres**
-- Priorité des champs OSM : `brand` > `name` > `operator`
-- Fallback : extraction sémantique depuis `services`/`adresse` (TotalEnergies, E.Leclerc, Carrefour…)
+### Identification des stations
+Le dataset gouvernemental ne contient pas de nom d'enseigne. Chaque station est identifiée par son **adresse** (capitalisée), unique et toujours présente — sans appel à une API externe.
+Exemple d'affichage :
+```
+345 Boulevard Louis Breguet    ← adresse (nom principal)
+59500 · DOUAI                  ← cp · ville (sous-titre)
+3,3 km · E85 0,781 €/L
+```
 
 ### Carte interactive (moteur maison, sans librairie externe)
 - Tuiles **OpenStreetMap** rendues en JS pur (zéro dépendance externe)
@@ -116,10 +118,9 @@ function doPost(e) {
 Dans `app.js`, constantes en tête de fichier :
 
 ```javascript
-const APP_VERSION        = '1.9.7.0';   // ← mettre à jour à chaque déploiement
-const GAS_URL            = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
-const GS_SHEET_ID        = 'VOTRE_ID_GOOGLE_SHEET';
-const DISTANCE_THRESHOLD = 2000;         // rayon OSM en mètres
+const APP_VERSION = '1.9.8.0';   // ← mettre à jour à chaque déploiement
+const GAS_URL     = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
+const GS_SHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
 ```
 
 ### 3. Google Sheet cible
@@ -149,23 +150,22 @@ Moteur de rendu sans librairie externe :
 
 ---
 
-## 🏷️ Identification des enseignes — Architecture
+## 🏷️ Identification des stations — Architecture
 
 ```
 API gouvernementale (data.economie.gouv.fr)
         ↓  adresse, ville, cp, e85_prix, sp98_prix, geom, services
         ↓
-enrichAllStationsWithOsm(stations)
-  → 1 requête Overpass bbox englobant toutes les stations
-  → matching haversine par station (élément OSM le plus proche ≤ 2 000 m)
-  → brand > name > operator
-        ↓ si null
-resolveStationName → stationLabel(r)
-  → extraction sémantique services/adresse
-  → (TotalEnergies, E.Leclerc, Carrefour, Système U…)
-        ↓ si null
-  → ville en MAJUSCULES
+stationLabel(r)
+  → adresse capitalisée  (ex. "345 Boulevard Louis Breguet")
+  → fallback : ville en MAJUSCULES si adresse absente
+
+stationSubLabel(r)
+  → cp · VILLE           (ex. "59500 · DOUAI")
 ```
+
+> Le dataset gouvernemental ne contient aucun champ de nom d'enseigne.
+> L'adresse est l'identifiant unique le plus fiable, sans dépendance externe.
 
 ---
 
@@ -173,7 +173,6 @@ resolveStationName → stationLabel(r)
 
 - HTML / CSS / JavaScript vanilla
 - [API Prix des Carburants v2](https://data.economie.gouv.fr/explore/dataset/prix-des-carburants-en-france-flux-instantane-v2/) — stations et prix (géoloc + recherche)
-- [OpenStreetMap Overpass API](https://overpass-api.de/) — identification des enseignes (requête bbox unique)
 - [OpenStreetMap](https://www.openstreetmap.org/) — tuiles cartographiques
 - Google Apps Script — backend (enregistrement pleins + gestion des stations)
 - Google Sheets — stockage des données et liste des stations
