@@ -170,7 +170,7 @@ async function searchNearby(lat, lon, btn) {
         return { name, sub, dist: Math.round(d), lat: sLat, lon: sLon,
                  e85: r.e85_prix, s98: r.sp98_prix, known };
       })
-      .filter(s => s.dist <= 6000)      // filtre strict 6 km côté client
+      .filter(s => s.dist <= 8000)      // filtre strict 6 km côté client
       .sort((a, b) => a.dist - b.dist)
       .slice(0, 7);
 
