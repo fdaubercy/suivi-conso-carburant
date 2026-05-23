@@ -1,13 +1,14 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.9.2.3 — Priorité Enseigne en Gras & Extraction Sémantique
+   v1.9.2.4 — Couplage API Gouvernementale & API Overpass OpenStreetMap
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.9.2.3';
+const APP_VERSION = '1.9.2.4';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
+const OVERPASS_API = 'https://overpass-api.de/api/interpreter';
 
 /* ─── État global ─── */
 let currentType   = 'E85';
@@ -22,6 +23,38 @@ let _nearbyStations = [];
     `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
   document.getElementById('s98Field').classList.remove('hidden');
 })();
+
+/* ═══════════════════════════════════════
+   FONCTIONS RECHERCHE ENSEIGNE OPENSTREETMAP (OVERPASS)
+═══════════════════════════════════════ */
+
+/**
+ * Interroge l'API Overpass pour trouver un nœud 'fuel' à proximité immédiate des coordonnées
+ * et en extraire les champs 'brand' ou 'name' officiels d'OpenStreetMap.
+ */
+async function fetchOsmBrandAndName(lat, lon) {
+  // Rayon de recherche serré (150m) pour cibler la bonne station-service sur la carte
+  const query = `[out:json][timeout:5];node(around:150,${lat},${lon})[amenity=fuel];out tags;`;
+  try {
+    const response = await fetch(OVERPASS_API, {
+      method: 'POST',
+      body: 'data=' + encodeURIComponent(query)
+    });
+    if (!response.ok) throw new Error('Status ' + response.status);
+    const data = await response.json();
+    
+    console.log(`[DEBUG] Résultat brut API OpenStreetMap Overpass (${lat}, ${lon}) :`, data.elements);
+    
+    if (data.elements && data.elements.length > 0) {
+      const tags = data.elements[0].tags;
+      // Priorité au champ 'brand' s'il existe, sinon 'name', sinon null
+      return tags.brand || tags.name || null;
+    }
+  } catch (e) {
+    console.warn(`[DEBUG] Échec de l'interrogation Overpass pour (${lat}, ${lon}) :`, e.message);
+  }
+  return null;
+}
 
 /* ═══════════════════════════════════════
    CARTE — Tuiles OSM, marqueurs cliquables
@@ -100,7 +133,7 @@ function _renderMap(uLat, uLon) {
   for (let ty = nw.y; ty <= se.y; ty++) {
     for (let tx = nw.x; tx <= se.x; tx++) {
       const tileUrl = `https://tile.openstreetmap.org/${z}/${tx}/${ty}.png`;
-      console.log('[DEBUG] Requête tuile OpenStreetMap :', tileUrl);
+      console.log('[DEBUG] Requête tuile OpenStreetMap (Rendu visuel) :', tileUrl);
       const px = (tx - nw.x) * TILE_SZ, py = (ty - nw.y) * TILE_SZ;
       html += `<img src="${tileUrl}" `
             + `style="position:absolute;left:${px}px;top:${py}px;width:${TILE_SZ}px;height:${TILE_SZ}px" `
@@ -190,7 +223,7 @@ function getCoords(r) {
   return null;
 }
 
-/* ─── Extraction sémantique de l'enseigne ─── */
+/* ─── Extraction sémantique de secours de l'enseigne (si OSM indisponible) ─── */
 function stationLabel(r) {
   const targets = [
     { key: 'total', display: 'TotalEnergies' },
@@ -314,7 +347,6 @@ async function searchNearby(lat, lon, btn) {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     
-    // Affichage console requis par l'utilisateur pour audit et débogage
     console.log('[DEBUG] Résultats bruts géolocalisation (Site Gouvernemental) :', data.results);
 
     btn.classList.remove('loading'); btn.textContent = '📍';
@@ -328,21 +360,32 @@ async function searchNearby(lat, lon, btn) {
       document.querySelectorAll('#knownGroup option:not([value="__autre"])')
     ).map(o => o.value.toLowerCase());
 
-    const stations = data.results
+    // Enrichissement asynchrone des données gouvernementales via l'API Overpass d'OpenStreetMap
+    const stationsPromises = data.results
       .filter(r => {
         const c = getCoords(r);
         return c && r.e85_prix != null;
       })
-      .map(r => {
+      .map(async r => {
         const c    = getCoords(r);
         const sLat = c.lat, sLon = c.lon;
         const d    = haversine(lat, lon, sLat, sLon);
-        const name = stationLabel(r);
+        
+        // Option A sélectionnée : Extraction directe depuis l'API Overpass OSM (brand ou name)
+        let name = await fetchOsmBrandAndName(sLat, sLon);
+        if (!name) {
+          name = stationLabel(r); // Valeur de secours si la station n'existe pas ou n'est pas tagguée sur OSM
+        }
+
         const sub  = stationSubLabel(r);
         const known = knownNames.some(k => k.includes((r.ville || '').toLowerCase()) || k.includes(name.toLowerCase()));
         return { name, sub, dist: Math.round(d), lat: sLat, lon: sLon,
                  e85: r.e85_prix, s98: r.sp98_prix, known };
-      })
+      });
+
+    const resolvedStations = await Promise.all(stationsPromises);
+
+    const stations = resolvedStations
       .filter(s => s.dist <= 8000)
       .sort((a, b) => a.dist - b.dist)
       .slice(0, 7);
@@ -354,8 +397,7 @@ async function searchNearby(lat, lon, btn) {
 
     _nearbyStations = stations;
     
-    // Affichage structuré du tableau des données enrichies requis par l'utilisateur
-    console.log('[DEBUG] Tableau des données enrichies (_nearbyStations) :');
+    console.log('[DEBUG] Tableau des données enrichies avec noms/marques OpenStreetMap (_nearbyStations) :');
     console.table(_nearbyStations);
 
     renderNearby(stations);
@@ -401,9 +443,7 @@ function pickStation(name, lat, lon) {
   fetchPricesAtCoords(lat, lon, true);
 }
 
-/* ═══════════════════════════════════════
-   SUGGESTIONS STATION MANUELLE
-═══════════════════════════════════════ */
+/* ─── SUGGESTIONS STATION MANUELLE ─── */
 
 let _autreDebounce = null;
 
@@ -426,14 +466,29 @@ async function searchStationSuggestions(q) {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
-    // Affichage console requis par l'utilisateur pour audit et débogage
     console.log('[DEBUG] Résultats bruts suggestions manuelles (Site Gouvernemental) :', data.results);
 
     if (!data.results?.length) {
       setSuggStatus('', "Aucun résultat — vérifiez l'orthographe ou utilisez la géolocalisation.");
       return;
     }
-    renderSuggestions(data.results);
+
+    // Parallélisation des appels complémentaires vers Overpass OpenStreetMap pour l'auto-complétion manuelle
+    const enrichedResultsPromises = data.results.map(async r => {
+      const gc = getCoords(r);
+      let nameOsm = null;
+      if (gc) {
+        nameOsm = await fetchOsmBrandAndName(gc.lat, gc.lon);
+      }
+      return {
+        ...r,
+        _calculatedLabel: nameOsm || stationLabel(r)
+      };
+    });
+
+    const enrichedResults = await Promise.all(enrichedResultsPromises);
+
+    renderSuggestions(enrichedResults);
     setSuggStatus('', '');
   } catch (e) {
     setSuggStatus('', 'Erreur de recherche — saisie libre conservée.');
@@ -443,7 +498,7 @@ async function searchStationSuggestions(q) {
 function renderSuggestions(results) {
   const list = document.getElementById('suggList');
   list.innerHTML = results.map((r, i) => {
-    const label = stationLabel(r);
+    const label = r._calculatedLabel;
     const sub   = stationSubLabel(r);
     const prix  = r.e85_prix ? 'E85 ' + parseFloat(r.e85_prix).toFixed(3) + ' €/L' : '';
     return '<div class="suggestion-item" onmousedown="pickSuggestion(' + i + ')">'
@@ -457,7 +512,7 @@ function renderSuggestions(results) {
   const stationsGeo = results.reduce((acc, r, origIdx) => {
     const c = getCoords(r);
     if (c)
-      acc.push({ name: stationLabel(r), lat: c.lat, lon: c.lon,
+      acc.push({ name: r._calculatedLabel, lat: c.lat, lon: c.lon,
                  src: 'suggestion', srcIdx: origIdx });
     return acc;
   }, []);
@@ -468,7 +523,7 @@ function pickSuggestion(idx) {
   const list = document.getElementById('suggList');
   const r       = list._results[idx];
   const oldName = document.getElementById('fAutre').value.trim();
-  const newName = stationLabel(r);
+  const newName = r._calculatedLabel;
 
   document.getElementById('fAutre').value = newName;
   hideSuggestions();
@@ -491,7 +546,7 @@ function pickSuggestion(idx) {
   const gc = getCoords(r);
   if (gc) {
     showMap(userLat, userLon,
-      [{ name: stationLabel(r), lat: gc.lat, lon: gc.lon, src: 'suggestion', srcIdx: idx }]);
+      [{ name: r._calculatedLabel, lat: gc.lat, lon: gc.lon, src: 'suggestion', srcIdx: idx }]);
     fetchPricesAtCoords(gc.lat, gc.lon, false);
   } else {
     fetchPricesNearUser();
@@ -505,7 +560,6 @@ function hideSuggestions() {
   list._results = [];
 }
 
-/* ─── Reste du code inchangé ─── */
 function setSuggStatus(cls, msg) {
   const el = document.getElementById('suggStatus');
   el.className = 'suggestion-status ' + cls;
