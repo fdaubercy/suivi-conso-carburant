@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.8.2 — Enrichissement OpenStreetMap (Nom/Marque en Gras)
+   v1.8.1 — Priorité Enseigne en Gras & Extraction Sémantique
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.9.2.2';
+const APP_VERSION = '1.9.2.3';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -99,8 +99,10 @@ function _renderMap(uLat, uLon) {
 
   for (let ty = nw.y; ty <= se.y; ty++) {
     for (let tx = nw.x; tx <= se.x; tx++) {
+      const tileUrl = `https://tile.openstreetmap.org/${z}/${tx}/${ty}.png`;
+      console.log('[DEBUG] Requête tuile OpenStreetMap :', tileUrl);
       const px = (tx - nw.x) * TILE_SZ, py = (ty - nw.y) * TILE_SZ;
-      html += `<img src="https://tile.openstreetmap.org/${z}/${tx}/${ty}.png" `
+      html += `<img src="${tileUrl}" `
             + `style="position:absolute;left:${px}px;top:${py}px;width:${TILE_SZ}px;height:${TILE_SZ}px" `
             + `loading="lazy" onerror="this.style.background='#ddd'">`;
     }
@@ -148,8 +150,8 @@ function showPinLabel(idx) {
 
 function escHtml(str) {
   return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    .replace(/&/g,'&').replace(/</g,'<')
+    .replace(/>/g,'>').replace(/"/g,'"');
 }
 
 function selectStationFromMap(idx) {
@@ -188,32 +190,8 @@ function getCoords(r) {
   return null;
 }
 
-/* ─── REQUÊTE ET ENRICHISSEMENT SÉMANTIQUE OPENSTREETMAP ─── */
-async function enrichStationsWithOSM(results) {
-  if (!results || !results.length) return [];
-  const coordsList = results.map(r => getCoords(r)).filter(Boolean);
-  if (!coordsList.length) return [];
-  
-  // Construction d'une requête Overpass groupée (optimisation des performances)
-  const subQueries = coordsList.map(c => `node(around:200,${c.lat},${c.lon})[amenity=fuel];`).join('\n');
-  const query = `[out:json][timeout:10];(\n${subQueries}\n);out tags geom;`;
-  
-  try {
-    const resp = await fetch('https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query));
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const data = await resp.json();
-    return data.elements || [];
-  } catch (e) {
-    console.warn('[OSM API] Échec de la récupération des enseignes réelles :', e.message);
-    return [];
-  }
-}
-
 /* ─── Extraction sémantique de l'enseigne ─── */
 function stationLabel(r) {
-  // Priorité absolue à la donnée récupérée en temps réel depuis OpenStreetMap
-  if (r._osmName) return r._osmName;
-
   const targets = [
     { key: 'total', display: 'TotalEnergies' },
     { key: 'carrefour', display: 'Carrefour' },
@@ -336,29 +314,15 @@ async function searchNearby(lat, lon, btn) {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     
-    console.log('[DEBUG] Résultats bruts géolocalisation :', data.results);
+    // Affichage console requis par l'utilisateur pour audit et débogage
+    console.log('[DEBUG] Résultats bruts géolocalisation (Site Gouvernemental) :', data.results);
+
     btn.classList.remove('loading'); btn.textContent = '📍';
 
     if (!data.results?.length) {
       setGeoStatus('info', 'Aucune station E85 trouvée dans 8 km.');
       return;
     }
-
-    // Enrichissement croisé avec OpenStreetMap (recherche des correspondances spatiales)
-    const osmElements = await enrichStationsWithOSM(data.results);
-    data.results.forEach(r => {
-      const c = getCoords(r);
-      if (c) {
-        let minOsmDist = 200; // Rayon maximal de 200m pour associer le nœud OSM
-        osmElements.forEach(el => {
-          const dOsm = haversine(c.lat, c.lon, el.lat, el.lon);
-          if (dOsm < minOsmDist) {
-            minOsmDist = dOsm;
-            r._osmName = el.tags.brand || el.tags.name;
-          }
-        });
-      }
-    });
 
     const knownNames = Array.from(
       document.querySelectorAll('#knownGroup option:not([value="__autre"])')
@@ -389,6 +353,11 @@ async function searchNearby(lat, lon, btn) {
     }
 
     _nearbyStations = stations;
+    
+    // Affichage structuré du tableau des données enrichies requis par l'utilisateur
+    console.log('[DEBUG] Tableau des données enrichies (_nearbyStations) :');
+    console.table(_nearbyStations);
+
     renderNearby(stations);
     showMap(lat, lon, stations.map((s, i) => ({ ...s, src: 'nearby', srcIdx: i })));
     setGeoStatus('ok', stations.length + ' station(s) E85 trouvée(s)');
@@ -457,29 +426,13 @@ async function searchStationSuggestions(q) {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
-    console.log('[DEBUG] Résultats bruts suggestions manuelles :', data.results);
+    // Affichage console requis par l'utilisateur pour audit et débogage
+    console.log('[DEBUG] Résultats bruts suggestions manuelles (Site Gouvernemental) :', data.results);
 
     if (!data.results?.length) {
       setSuggStatus('', "Aucun résultat — vérifiez l'orthographe ou utilisez la géolocalisation.");
       return;
     }
-
-    // Enrichissement croisé avec OpenStreetMap pour les suggestions de saisie manuelle
-    const osmElements = await enrichStationsWithOSM(data.results);
-    data.results.forEach(r => {
-      const c = getCoords(r);
-      if (c) {
-        let minOsmDist = 200;
-        osmElements.forEach(el => {
-          const dOsm = haversine(c.lat, c.lon, el.lat, el.lon);
-          if (dOsm < minOsmDist) {
-            minOsmDist = dOsm;
-            r._osmName = el.tags.brand || el.tags.name;
-          }
-        });
-      }
-    });
-
     renderSuggestions(data.results);
     setSuggStatus('', '');
   } catch (e) {
@@ -512,7 +465,7 @@ function renderSuggestions(results) {
 }
 
 function pickSuggestion(idx) {
-  const list    = document.getElementById('suggList');
+  const list = document.getElementById('suggList');
   const r       = list._results[idx];
   const oldName = document.getElementById('fAutre').value.trim();
   const newName = stationLabel(r);
@@ -552,6 +505,7 @@ function hideSuggestions() {
   list._results = [];
 }
 
+/* ─── Reste du code inchangé ─── */
 function setSuggStatus(cls, msg) {
   const el = document.getElementById('suggStatus');
   el.className = 'suggestion-status ' + cls;
@@ -619,6 +573,9 @@ async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
       }));
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const data = await resp.json();
+      
+      console.log(`[DEBUG] Résultats bruts prix coordonnées r=${r}m (Site Gouvernemental) :`, data.results);
+      
       if (data.results?.length) { applyPricesResult(data); return; }
     } catch (e) {
       console.error('[PRIX] fetchAtCoords r=' + r, e);
@@ -659,6 +616,9 @@ async function fetchPricesByCP() {
     }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
+    
+    console.log('[DEBUG] Résultats bruts prix par CP (Site Gouvernemental) :', data.results);
+
     if (data.results?.length) { hideCpSearch(); applyPricesResult(data); }
     else setS98Status('info', 'Aucune station trouvée pour ' + cp + ' — saisie manuelle.');
   } catch (e) {
