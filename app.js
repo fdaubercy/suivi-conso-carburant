@@ -51,9 +51,7 @@ function hideMap() {
 /* ─── Nom lisible d'une station depuis l'API ─── */
 function stationLabel(r) {
   const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
-  // Priorité : enseigne > ville > adresse
-  if (r.enseignes) return cap(r.enseignes) + (r.ville ? ' ' + cap(r.ville) : '');
-  if (r.ville)     return cap(r.ville);
+  if (r.ville) return cap(r.ville);
   return cap(r.adresse || 'Station inconnue');
 }
 
@@ -141,7 +139,7 @@ async function searchNearby(lat, lon, btn) {
   try {
     const resp = await fetch(odsUrl({
       where:  "e85_prix is not null AND distance(geom, geom'POINT(" + lon + " " + lat + ")', 8000m)",
-      select: 'adresse,ville,cp,enseignes,e85_prix,sp98_prix,geom',
+      select: 'adresse,ville,cp,e85_prix,sp98_prix,geom',
       limit:  10
     }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -235,7 +233,7 @@ async function searchStationSuggestions(q) {
   try {
     const resp = await fetch(odsUrl({
       where:    'search(adresse, "' + q + '") OR search(ville, "' + q + '")',
-      select:   'id,adresse,ville,cp,enseignes,e85_prix,sp98_prix,geom',
+      select:   'id,adresse,ville,cp,e85_prix,sp98_prix,geom',
       order_by: 'ville',
       limit:    8
     }));
