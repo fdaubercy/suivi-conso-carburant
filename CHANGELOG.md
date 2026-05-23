@@ -6,6 +6,30 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.6.0] — 2026-05-23
+
+### Ajouté
+- **Chargement dynamique des stations** : au démarrage, la liste du dropdown est
+  alimentée depuis l'onglet `Stations` du Google Sheet (via l'API `gviz/tq`).
+  Les options précédemment codées en dur sont supprimées et remplacées par les
+  données du Sheet.
+- **Synchronisation automatique des nouvelles stations** : après chaque plein
+  validé avec succès, si la station saisie est absente du groupe « Stations
+  habituelles », elle est envoyée au Google Apps Script (`action: addStation`)
+  pour être ajoutée dans l'onglet `Stations`, puis insérée immédiatement dans
+  le dropdown pour la session en cours.
+- **Fallback statique** : si le chargement de l'onglet `Stations` échoue
+  (réseau, onglet absent), une liste de stations par défaut est injectée pour
+  garantir le fonctionnement hors ligne.
+
+### Modifié
+- `GS_SHEET_ID` ajouté comme constante de configuration en tête de `app.js`
+  (séparé de `GAS_URL`).
+- Le Google Apps Script doit désormais gérer le cas `payload.action === 'addStation'`
+  pour écrire dans l'onglet `Stations` (voir README).
+
+---
+
 ## [1.5.0] — 2026-05-22
 
 ### Ajouté
@@ -14,10 +38,12 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
   maintenabilité.
 
 ### Corrigé
-- **Alignement de la bannière "Coût du plein"** : label et montant sont maintenant
-  sur la même ligne (`align-items: center`), au lieu d'être décalés verticalement.
-- **Police du coût** : `.cout-val` passe de 24 px bold à 16 px semi-bold, identique
-  aux champs de saisie du formulaire. La couleur bleue (`--blue-dark`) est conservée.
+- **Alignement de la bannière « Coût du plein »** : label et montant sont
+  maintenant sur la même ligne (`align-items: center`), au lieu d'être décalés
+  verticalement.
+- **Police du coût** : `.cout-val` passe de 24 px bold à 16 px semi-bold,
+  identique aux champs de saisie du formulaire. La couleur bleue (`--blue-dark`)
+  est conservée.
 
 ---
 
@@ -25,9 +51,9 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ### Ajouté
 - **Suggestions de station en saisie manuelle** : dès 3 caractères tapés dans
-  le champ « Autre », une recherche est lancée (avec debounce 500 ms) dans l'API
-  gouvernementale par adresse et ville. Une liste de suggestions s'affiche sous
-  le champ avec adresse complète, ville, CP et prix E85 si disponible.
+  le champ « Autre », une recherche est lancée (avec debounce 500 ms) dans
+  l'API gouvernementale par adresse et ville. Une liste de suggestions s'affiche
+  sous le champ avec adresse complète, ville, CP et prix E85 si disponible.
 - **Sélection d'une suggestion** :
   - Remplace le texte du champ par le nom canonique de la station
   - Met à jour dans le dropdown **toutes les options portant l'ancienne saisie**
@@ -52,12 +78,12 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 - **Récupération simultanée des prix E85 et SP98** en un seul appel API dès la
   sélection d'une station (liste géo, dropdown, ou saisie manuelle).
 - **Affichage `--` en grisé** dans les champs prix quand le prix correspondant
-  n'est pas disponible dans l'API, pour indiquer clairement qu'une saisie manuelle
-  est attendue.
+  n'est pas disponible dans l'API, pour indiquer clairement qu'une saisie
+  manuelle est attendue.
 - **Recherche par code postal** : si aucun résultat n'est trouvé par coordonnées,
   un champ code postal apparaît pour lancer une recherche de secours.
-- Support des **stations saisies manuellement** : le prix est recherché via le GPS
-  de l'utilisateur dès que le champ est quitté.
+- Support des **stations saisies manuellement** : le prix est recherché via le
+  GPS de l'utilisateur dès que le champ est quitté.
 - Fonction `setFieldPrice()` : logique centralisée pour remplir un champ ou
   afficher `--` en placeholder grisé.
 
@@ -67,8 +93,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 - `fetchPrixS98NearUser` → `fetchPricesNearUser`.
 - `applyS98Result` → `applyPricesResult`.
 - `fetchPrixS98ByCP` → `fetchPricesByCP`.
-- `setType()` efface `fPrix` et re-déclenche la recherche si une station est déjà
-  sélectionnée.
+- `setType()` efface `fPrix` et re-déclenche la recherche si une station est
+  déjà sélectionnée.
 - `resetForm()` restaure les placeholders par défaut sur les deux champs prix.
 
 ---
@@ -116,6 +142,7 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+[1.6.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/fdaubercy/suivi-e85/compare/v1.2.0...v1.3.0
