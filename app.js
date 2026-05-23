@@ -2,6 +2,8 @@
    Suivi Conso E85 — Logique applicative
 ═══════════════════════════════════════ */
 
+const APP_VERSION = '1.6.0';
+
 const GAS_URL  = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const PRIX_API = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
 
@@ -18,27 +20,11 @@ let userLat = null, userLon = null;
   document.getElementById('s98Field').classList.remove('hidden');
 })();
 
-/* ═══════════════════════════════════════
-   VERSION — lue depuis CHANGELOG.md
-   Affichée sous le titre dans le header
-═══════════════════════════════════════ */
-
-async function fetchAppVersion() {
+/* ─── Version ─── */
+document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('appVersion');
-  if (!el) return;
-  try {
-    const resp = await fetch(
-      'https://raw.githubusercontent.com/fdaubercy/suivi-e85/main/CHANGELOG.md',
-      { cache: 'no-cache' }
-    );
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const text  = await resp.text();
-    const match = text.match(/^## \[(\d+\.\d+\.\d+)\]/m);
-    if (match) el.textContent = 'v' + match[1];
-  } catch {
-    /* silencieux — la version reste vide si inaccessible */
-  }
-}
+  if (el) el.textContent = 'v' + APP_VERSION;
+});
 
 /* ─── Type de carburant ─── */
 function setType(type) {
@@ -523,4 +509,3 @@ document.getElementById('fDate').value =
   `${_t.getFullYear()}-${String(_t.getMonth()+1).padStart(2,'0')}-${String(_t.getDate()).padStart(2,'0')}`;
 
 chargerStations();
-fetchAppVersion();
