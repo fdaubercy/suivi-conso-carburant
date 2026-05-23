@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.8.1 — Priorité Enseigne en Gras & Extraction Sémantique
+   v1.9.2.3 — Priorité Enseigne en Gras & Extraction Sémantique
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
