@@ -26,19 +26,24 @@ let _nearbyStations = [];
 
 /** Affiche la carte OSM centrée sur la position utilisateur */
 function showMap(uLat, uLon, stations) {
-  if (!uLat || !uLon) return;
+  const validStations = stations.filter(s => s.lat && s.lon);
+  if (!validStations.length) return;
 
-  // Calcule le bounding box englobant user + toutes les stations
-  const lats = [uLat, ...stations.map(s => s.lat)];
-  const lons = [uLon, ...stations.map(s => s.lon)];
-  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-  const minLon = Math.min(...lons), maxLon = Math.max(...lons);
-  // Ajoute une marge de 10 %
+  // Bounding box englobant position utilisateur (si connue) + toutes les stations
+  const allLats = validStations.map(s => s.lat);
+  const allLons = validStations.map(s => s.lon);
+  if (uLat) { allLats.push(uLat); allLons.push(uLon); }
+
+  const minLat = Math.min(...allLats), maxLat = Math.max(...allLats);
+  const minLon = Math.min(...allLons), maxLon = Math.max(...allLons);
   const dLat = (maxLat - minLat) * 0.15 || 0.02;
   const dLon = (maxLon - minLon) * 0.15 || 0.02;
 
-  const bbox = `${(minLon-dLon).toFixed(5)},${(minLat-dLat).toFixed(5)},${(maxLon+dLon).toFixed(5)},${(maxLat+dLat).toFixed(5)}`;
-  const src  = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${uLat},${uLon}`;
+  const bbox    = `${(minLon-dLon).toFixed(5)},${(minLat-dLat).toFixed(5)},${(maxLon+dLon).toFixed(5)},${(maxLat+dLat).toFixed(5)}`;
+  // Marqueur sur la position utilisateur si connue, sinon sur la 1ère station
+  const mLat    = uLat || validStations[0].lat;
+  const mLon    = uLon || validStations[0].lon;
+  const src     = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${mLat},${mLon}`;
 
   document.getElementById('stationMap').src = src;
   document.getElementById('stationMapWrap').classList.remove('hidden');
@@ -170,7 +175,7 @@ async function searchNearby(lat, lon, btn) {
         return { name, sub, dist: Math.round(d), lat: sLat, lon: sLon,
                  e85: r.e85_prix, s98: r.sp98_prix, known };
       })
-      .filter(s => s.dist <= 8000)      // filtre strict 6 km côté client
+      .filter(s => s.dist <= 6000)      // filtre strict 6 km côté client
       .sort((a, b) => a.dist - b.dist)
       .slice(0, 7);
 
@@ -267,6 +272,12 @@ function renderSuggestions(results) {
   }).join('');
   list._results = results;
   list.style.display = 'block';
+
+  // Affiche toutes les stations ayant des coordonnées sur la carte
+  const stationsGeo = results
+    .filter(r => r.geom?.lat != null && r.geom?.lon != null)
+    .map(r => ({ lat: r.geom.lat, lon: r.geom.lon }));
+  if (stationsGeo.length) showMap(userLat, userLon, stationsGeo);
 }
 
 function pickSuggestion(idx) {
@@ -294,7 +305,7 @@ function pickSuggestion(idx) {
   sel.value = '__autre';
 
   if (r.geom?.lon != null && r.geom?.lat != null) {
-    showMap(r.geom.lat, r.geom.lon, [{ lat: r.geom.lat, lon: r.geom.lon }]);
+    showMap(userLat, userLon, [{ lat: r.geom.lat, lon: r.geom.lon }]);
     fetchPricesAtCoords(r.geom.lat, r.geom.lon, false);
   } else {
     fetchPricesNearUser();
