@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+# Changelog
+
+Toutes les modifications notables de ce projet sont documentées ici.
+
+Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
+
+---
+
+## [1.7.8.2] — 2026-05-23
+
+### Corrigé
+- **Erreur CORS résolue** : Retour complet à l'API gouvernementale officielle (`data.economie.gouv.fr`) pour éviter le blocage d'origine croisée constaté sur l'API OSM communautaire.
+- **Extraction intelligente des enseignes** : Utilisation d'un algorithme de détection sémantique basé sur les champs `services` et `adresse` de la base d'origine afin d'isoler la marque de l'établissement (Total, Leclerc, Carrefour...) directement depuis les flux autorisés.
+
 ---
 ## [1.7.8] — 2026-05-23
 

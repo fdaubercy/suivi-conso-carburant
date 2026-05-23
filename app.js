@@ -1,14 +1,14 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.7.8 — Intégration de l'API enrichie avec le nom des enseignes
+   v1.7.8.2 — Fix CORS & Récupération Enseignes via API Gouv Officielle
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.7.8';
+const APP_VERSION = '1.7.8.2';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
-// Utilisation de l'API enrichie (Données gouv + Noms des enseignes via OSM)
-const PRIX_API    = 'https://prix-carburants.openstreetmap.fr/api/v1/records';
+// Retour à l'API gouvernementale officielle (gère parfaitement le CORS)
+const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
 
 /* ─── État global ─── */
 let currentType   = 'E85';
@@ -157,8 +157,8 @@ function showPinLabel(idx) {
 
 function escHtml(str) {
   return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    .replace(/&/g,'&').replace(/</g,'<')
+    .replace(/>/g,'>').replace(/"/g,'"');
 }
 
 function selectStationFromMap(idx) {
@@ -191,20 +191,40 @@ function hideMap() {
 
 /* ─── Extraction coordonnées ─── */
 function getCoords(r) {
-  // L'API enrichie renvoie la géométrie directement sous forme d'objet geom: {lon, lat}
   if (r.geom?.lat != null && r.geom?.lon != null) {
     return { lat: +r.geom.lat, lon: +r.geom.lon };
   }
   return null;
 }
 
-/* ─── Nom lisible d'une station (Enseigne complétée ou ville) ─── */
+/* ─── Nom de la marque extrait intelligemment des métadonnées gouv ─── */
 function stationLabel(r) {
-  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
-  // r.name est fourni par l'API enrichie (ex: "Total Access", "Leclerc")
-  if (r.name) return r.name; 
-  if (r.ville) return cap(r.ville);
-  return cap(r.adresse || 'Station inconnue');
+  const cap = s => s ? s.trim().toUpperCase() : '';
+  
+  // L'API officielle renvoie souvent l'enseigne dans les champs de services ou adresse
+  if (r.services) {
+    const srv = r.services.toLowerCase();
+    if (srv.includes('total')) return 'TotalEnergies';
+    if (srv.includes('carrefour')) return 'Carrefour';
+    if (srv.includes('leclerc')) return 'E.Leclerc';
+    if (srv.includes('intermarche')) return 'Intermarché';
+    if (srv.includes('super u') || srv.includes('systeme u')) return 'Système U';
+    if (srv.includes('esso')) return 'Esso';
+    if (srv.includes('auchan')) return 'Auchan';
+    if (srv.includes('avanti')) return 'Avanti';
+    if (srv.includes('bp')) return 'BP';
+  }
+  
+  if (r.adresse) {
+    const adr = r.adresse.toLowerCase();
+    if (adr.includes('total')) return 'TotalEnergies';
+    if (adr.includes('carrefour')) return 'Carrefour';
+    if (adr.includes('leclerc')) return 'E.Leclerc';
+    if (adr.includes('intermarche')) return 'Intermarché';
+  }
+
+  if (r.ville) return r.ville.trim().toUpperCase();
+  return 'STATION SERVICE';
 }
 
 /* ─── Sous-titre lisible (adresse + code postal + ville) ─── */
@@ -212,7 +232,7 @@ function stationSubLabel(r) {
   const cap  = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
   const addr = cap(r.adresse || '');
   const cp   = r.cp   || '';
-  const ville = r.name ? cap(r.ville || '') : ''; // N'affiche la ville ici que si le titre principal est déjà l'enseigne
+  const ville = cap(r.ville || '');
   const parts = [addr, cp, ville].filter(Boolean);
   return parts.join(' · ');
 }
@@ -291,11 +311,11 @@ function geolocate() {
 async function searchNearby(lat, lon, btn) {
   setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
   try {
-    // Requête sur l'API enrichie
     const resp = await fetch(odsUrl({
-      where:  "e85_prix is not null AND distance(geom, geom'POINT(" + lon + ' ' + lat + ")', 8000m)",
-      select: 'name,adresse,ville,cp,e85_prix,sp98_prix,geom',
-      limit:  20
+      where:  'e85_prix is not null',
+      select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
+      limit:  40,
+      geofilter: `${lat},${lon},8000`
     }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
@@ -322,7 +342,7 @@ async function searchNearby(lat, lon, btn) {
         const d    = haversine(lat, lon, sLat, sLon);
         const name = stationLabel(r);
         const sub  = stationSubLabel(r);
-        const known = knownNames.some(k => k.includes((r.ville || '').toLowerCase()) || k.includes((r.name || '').toLowerCase()));
+        const known = knownNames.some(k => k.includes((r.ville || '').toLowerCase()) || k.includes(name.toLowerCase()));
         return { name, sub, dist: Math.round(d), lat: sLat, lon: sLon,
                  e85: r.e85_prix, s98: r.sp98_prix, known };
       })
@@ -391,11 +411,9 @@ function onAutreInput() {
 
 async function searchStationSuggestions(q) {
   try {
-    // Permet de chercher par enseigne (name) OU par ville
     const resp = await fetch(odsUrl({
-      where:    'name like "' + q + '*" OR ville like "' + q + '*" OR adresse like "' + q + '*"',
-      select:   'name,adresse,ville,cp,e85_prix,sp98_prix,geom',
-      order_by: 'name',
+      where:    `ville like "${q}*" OR adresse like "${q}*" OR services like "${q}*"`,
+      select:   'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
       limit:    15
     }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -491,7 +509,7 @@ function onAutreBlur() {
 }
 
 /* ═══════════════════════════════════════
-   PRIX — API OpenStreetMap enrichie
+   PRIX — Requetes API Officielle Gouv
 ═══════════════════════════════════════ */
 
 function odsUrl(params) {
@@ -514,7 +532,7 @@ function setFieldPrice(id, value, defaultPh) {
 
 function applyPricesResult(data) {
   const r     = data.results[0];
-  const label = [r.name, r.adresse, r.ville].filter(Boolean).join(' · ');
+  const label = [r.adresse, r.ville].filter(Boolean).join(' · ');
 
   const mainVal = currentType === 'E85' ? r.e85_prix : r.sp98_prix;
   const mainPh  = currentType === 'E85' ? '0.798'    : '2.091';
@@ -541,10 +559,10 @@ async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
   for (const r of [500, 2000, 5000]) {
     try {
       const resp = await fetch(odsUrl({
-        where:    "(e85_prix is not null OR sp98_prix is not null) AND distance(geom, geom'POINT(" + lon + " " + lat + ")', " + r + "m)",
-        select:   'name,e85_prix,sp98_prix,adresse,ville',
-        order_by: 'sp98_prix',
-        limit:    1
+        where:    `(e85_prix is not null OR sp98_prix is not null)`,
+        select:   'e85_prix,sp98_prix,adresse,ville,services',
+        limit:    1,
+        geofilter: `${lat},${lon},${r}`
       }));
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const data = await resp.json();
@@ -582,9 +600,8 @@ async function fetchPricesByCP() {
   setS98Status('spin', 'Recherche dans ' + cp + '…');
   try {
     const resp = await fetch(odsUrl({
-      where:    '(e85_prix is not null OR sp98_prix is not null) AND cp="' + cp + '"',
-      select:   'name,e85_prix,sp98_prix,adresse,ville',
-      order_by: 'sp98_prix',
+      where:    `(e85_prix is not null OR sp98_prix is not null) AND cp="${cp}"`,
+      select:   'e85_prix,sp98_prix,adresse,ville,services',
       limit:    1
     }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
