@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v2.0.1.0 — Recherche manuelle : q param accents, nearbyList, autreField avant carte
+   v2.0.2.0 — Fix getCoords GeoJSON, filtre proximité recherche manuelle
 ═══════════════════════════════════════ */
 
 /* ─── Configuration ─── */
-const APP_VERSION  = '2.0.1.0';
+const APP_VERSION  = '2.0.2.0';
 const GAS_URL      = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID  = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API     = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -25,23 +25,12 @@ let _nearbyStations = [];
 
 /* ═══════════════════════════════════════
    ENRICHISSEMENT — OVERPASS around EN SÉRIE
-   Les coordonnées de l'API gouvernementale peuvent être
-   décalées jusqu'à ~2000 m de la vraie station.
-   → Overpass around:OSM_RADIUS autour du point gov,
-     résultats triés par distance haversine.
-   → Requêtes séquentielles + délai pour éviter les 429.
 ═══════════════════════════════════════ */
 
 const OVERPASS_API   = 'https://overpass-api.de/api/interpreter';
-const OSM_RADIUS     = 2000; // rayon autour du point gov (coordonnées imprécises)
-const OSM_SERIAL_DELAY = 600; // ms entre requêtes (évite 429)
+const OSM_RADIUS     = 2000;
+const OSM_SERIAL_DELAY = 600;
 
-/**
- * Interroge Overpass pour UNE station : cherche le node/way
- * amenity=fuel le plus proche dans un rayon OSM_RADIUS.
- * Retourne brand > name > operator, ou null.
- * @returns {Promise<string|null>}
- */
 async function fetchOsmNameAround(lat, lon) {
   const query =
     `[out:json][timeout:8];` +
@@ -59,7 +48,6 @@ async function fetchOsmNameAround(lat, lon) {
     const elements = data.elements || [];
     if (!elements.length) return null;
 
-    // Trier par distance haversine pour prendre la station OSM la plus proche
     const sorted = elements
       .map(el => {
         const eLat = el.lat ?? el.center?.lat;
@@ -80,12 +68,6 @@ async function fetchOsmNameAround(lat, lon) {
   }
 }
 
-/**
- * Enrichit un tableau de stations via Overpass en série.
- * Affiche la progression dans le statut géolocalisation.
- * @param {Array<{lat,lon}>} stations
- * @returns {Promise<Array<string|null>>}
- */
 async function enrichWithOsmSerial(stations) {
   const names = [];
   for (let i = 0; i < stations.length; i++) {
@@ -98,10 +80,6 @@ async function enrichWithOsmSerial(stations) {
   return names;
 }
 
-/**
- * Nom de fallback depuis les données gouvernementales :
- * adresse capitalisée > ville > 'Station service'
- */
 function stationLabel(r) {
   if (r.adresse) {
     return r.adresse.trim()
@@ -268,15 +246,24 @@ function hideMap() {
   document.getElementById('stationMapWrap').classList.add('hidden');
 }
 
-/* ─── Extraction coordonnées ─── */
+/* ─── Extraction coordonnées ───────────────────────────────
+   L'API ODS v2.1 retourne geom dans deux formats selon la requête :
+   • Avec filtre distance() dans where → {lat: N, lon: N}  (format plat)
+   • Sans filtre distance()            → {type:"Point", coordinates:[lon,lat]}  (GeoJSON)
+   Les deux formats sont gérés ici.
+─────────────────────────────────────────────────────────── */
 function getCoords(r) {
-  if (r.geom?.lat != null && r.geom?.lon != null) {
+  if (!r.geom) return null;
+  // Format plat {lat, lon}
+  if (r.geom.lat != null && r.geom.lon != null) {
     return { lat: +r.geom.lat, lon: +r.geom.lon };
+  }
+  // Format GeoJSON Point {type:"Point", coordinates:[lon, lat]}
+  if (r.geom.type === 'Point' && Array.isArray(r.geom.coordinates) && r.geom.coordinates.length >= 2) {
+    return { lat: +r.geom.coordinates[1], lon: +r.geom.coordinates[0] };
   }
   return null;
 }
-
-
 
 /* ─── Ligne d'adresse secondaire ─── */
 function stationSubLabel(r) {
@@ -322,7 +309,6 @@ function onStationChange() {
   const isManual = sel.value === '__autre';
   document.getElementById('autreField').classList.toggle('hidden', !isManual);
   if (!isManual) {
-    // Masquer les résultats de recherche manuelle précédents
     document.getElementById('nearbyList').style.display = 'none';
     document.getElementById('fAutre').value = '';
     setAutreStatus('', '');
@@ -368,7 +354,6 @@ function geolocate() {
 async function searchNearby(lat, lon, btn) {
   setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
   try {
-    // ① Requête API gouvernementale
     const resp = await fetch(odsUrl({
       where:  `e85_prix is not null and distance(geom, geom'POINT(${lon} ${lat})', 8000m)`,
       select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
@@ -386,7 +371,6 @@ async function searchNearby(lat, lon, btn) {
       return;
     }
 
-    // ② Construire les candidats (coordonnées + données brutes)
     const candidates = data.results
       .filter(r => getCoords(r) && r.e85_prix != null)
       .map(r => {
@@ -403,10 +387,8 @@ async function searchNearby(lat, lon, btn) {
       return;
     }
 
-    // ③ Enrichissement Overpass en série — rayon 2000 m (coordonnées gov imprécises)
     const nominatimNames = await enrichWithOsmSerial(candidates);
 
-    // ④ Tableau final enrichi
     const knownNames = Array.from(
       document.querySelectorAll('#knownGroup option:not([value="__autre"])')
     ).map(o => o.value.toLowerCase());
@@ -437,19 +419,22 @@ async function searchNearby(lat, lon, btn) {
 function renderNearby(stations) {
   const list = document.getElementById('nearbyList');
   list.innerHTML = stations.map((s, i) => {
-    const dist    = s.dist < 1000 ? s.dist + ' m' : (s.dist / 1000).toFixed(1) + ' km';
+    const distNum = s.dist != null ? s.dist : null;
+    const dist    = distNum == null ? '' :
+                    distNum < 1000 ? distNum + ' m' :
+                    (distNum / 1000).toFixed(1) + ' km';
     const mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + s.lat + ',' + s.lon;
     const prix    = s.e85 ? ' · E85 ' + parseFloat(s.e85).toFixed(3) + ' €/L' : '';
     return '<div class="nearby-item" id="nearbyItem' + i + '">'
       + '<div class="nearby-main" onclick="pickStation(\'' + s.name.replace(/'/g, "\\'") + '\',' + s.lat + ',' + s.lon + '); highlightNearbyItem(' + i + ')">'
       + '<span class="nearby-name"><strong>' + escHtml(s.name) + '</strong></span>'
       + '<span class="nearby-sub">'  + escHtml(s.sub)  + '</span>'
-      + '<span class="nearby-meta">' + dist + prix + (s.known ? ' <span class="nearby-badge">connue</span>' : '') + '</span>'
+      + '<span class="nearby-meta">' + (dist ? dist + prix : prix.slice(3)) + (s.known ? ' <span class="nearby-badge">connue</span>' : '') + '</span>'
       + '</div>'
       + '<a class="nearby-map-btn" href="' + mapsUrl + '" target="_blank" rel="noopener" title="Voir sur la carte">🗺️</a>'
       + '</div>';
   }).join('');
-  list.style.display = 'block';
+  list.style.display = stations.length ? 'block' : 'none';
 }
 
 function highlightNearbyItem(idx) {
@@ -489,11 +474,15 @@ function setAutreStatus(cls, msg) {
 
 async function searchStationSuggestions(q) {
   try {
-    // Utiliser le paramètre `q` (full-text, insensible aux accents et à la casse)
-    // Ex. "raches" trouve "Râches", "leclerc" trouve "E.LECLERC"
+    // Filtre de proximité si la position est connue (rayon 100 km)
+    // Évite d'afficher des stations de toute la France qui matchent le terme
+    const whereProximity = (userLat && userLon)
+      ? ` and distance(geom, geom'POINT(${userLon} ${userLat})', 100000m)`
+      : '';
+
     const url = PRIX_API + '?' + new URLSearchParams({
       q:      q,
-      where:  'e85_prix is not null',
+      where:  'e85_prix is not null' + whereProximity,
       select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
       limit:  15
     });
@@ -503,12 +492,16 @@ async function searchStationSuggestions(q) {
 
     console.log('[DEBUG] Résultats recherche manuelle :', data.results);
 
+    // Si aucun résultat avec filtre de proximité, on retente sans filtre
+    if (!data.results?.length && whereProximity) {
+      return searchStationSuggestionsGlobal(q);
+    }
+
     if (!data.results?.length) {
       setAutreStatus('err', 'Aucune station E85 trouvée — essayez un autre terme.');
       return;
     }
 
-    // Construire les stations avec distance (depuis position user si connue)
     const knownNames = Array.from(
       document.querySelectorAll('#knownGroup option:not([value="__autre"])')
     ).map(o => o.value.toLowerCase());
@@ -528,12 +521,69 @@ async function searchStationSuggestions(q) {
       })
       .sort((a, b) => (a.dist ?? 99999) - (b.dist ?? 99999));
 
-    setAutreStatus('ok', stations.length + ' station(s) E85 trouvée(s)');
+    if (!stations.length) {
+      setAutreStatus('err', 'Aucune station E85 trouvée — essayez un autre terme.');
+      return;
+    }
+
+    const proximiteMsg = whereProximity ? ' (dans 100 km)' : '';
+    setAutreStatus('ok', stations.length + ' station(s) E85 trouvée(s)' + proximiteMsg);
     renderNearby(stations);
     showMap(userLat, userLon, stations.map((s, i) => ({ ...s, src: 'nearby', srcIdx: i })));
   } catch (e) {
     setAutreStatus('err', 'Erreur de recherche (' + e.message + ').');
     console.error('[Suggestions]', e);
+  }
+}
+
+/* ─── Fallback sans filtre de proximité ─── */
+async function searchStationSuggestionsGlobal(q) {
+  try {
+    const url = PRIX_API + '?' + new URLSearchParams({
+      q:      q,
+      where:  'e85_prix is not null',
+      select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
+      limit:  15
+    });
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+
+    if (!data.results?.length) {
+      setAutreStatus('err', 'Aucune station E85 trouvée — essayez un autre terme.');
+      return;
+    }
+
+    const knownNames = Array.from(
+      document.querySelectorAll('#knownGroup option:not([value="__autre"])')
+    ).map(o => o.value.toLowerCase());
+
+    const stations = data.results
+      .filter(r => getCoords(r))
+      .map(r => {
+        const c    = getCoords(r);
+        const dist = (userLat && userLon)
+          ? Math.round(haversine(userLat, userLon, c.lat, c.lon))
+          : null;
+        const name  = stationLabel(r);
+        const sub   = stationSubLabel(r);
+        const known = knownNames.some(k => k.includes(name.toLowerCase()) || k.includes((r.ville || '').toLowerCase()));
+        return { name, sub, dist, lat: c.lat, lon: c.lon,
+                 e85: r.e85_prix, s98: r.sp98_prix, known };
+      })
+      .sort((a, b) => (a.dist ?? 99999) - (b.dist ?? 99999));
+
+    if (!stations.length) {
+      setAutreStatus('err', 'Aucune station E85 trouvée — essayez un autre terme.');
+      return;
+    }
+
+    setAutreStatus('ok', stations.length + ' station(s) E85 trouvée(s) (France entière)');
+    renderNearby(stations);
+    showMap(userLat, userLon, stations.map((s, i) => ({ ...s, src: 'nearby', srcIdx: i })));
+  } catch (e) {
+    setAutreStatus('err', 'Erreur de recherche (' + e.message + ').');
+    console.error('[SuggestionsGlobal]', e);
   }
 }
 
