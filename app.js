@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.7.2 — rayon géoloc 8 km, marqueurs carte corrigés
+   v1.7.3 — correction HTTP 400 géolocalisation
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.7.2';
+const APP_VERSION = '1.7.3';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -292,8 +292,7 @@ async function searchNearby(lat, lon, btn) {
   setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
   try {
     const params = new URLSearchParams({
-      'geofilter.distance': lat + ',' + lon + ',8000',
-      where:  'e85_prix is not null',
+      where:  "e85_prix is not null AND distance(geom, geom'POINT(" + lon + ' ' + lat + ")', 8000m)",
       select: 'nom,adresse,ville,cp,e85_prix,sp98_prix,geom',
       limit:  10
     });
