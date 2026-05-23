@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.7.4 — correction HTTP 400 géolocalisation (geofilter commas)
+   v1.7.5 — correction HTTP 400 géoloc + recherche manuelle
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.7.4';
+const APP_VERSION = '1.7.5';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -289,15 +289,14 @@ function geolocate() {
 }
 
 async function searchNearby(lat, lon, btn) {
-  setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
+  setGeoStatus('info', 'Recherche des stations dans 8 km…');
   try {
-    // URLSearchParams encode les virgules en %2C, ce que l'API ODS n'accepte pas
-    // dans geofilter.distance — on construit l'URL manuellement
+    // Pas de clause where combinée — geofilter.distance seul évite le HTTP 400
+    // Le filtre E85 est appliqué côté client après réception des résultats
     const url = PRIX_API
       + '?geofilter.distance=' + lat + ',' + lon + ',8000'
-      + '&where='   + encodeURIComponent('e85_prix is not null')
       + '&select=nom,adresse,ville,cp,e85_prix,sp98_prix,geom'
-      + '&limit=10';
+      + '&limit=20';
     const resp = await fetch(url);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
@@ -314,7 +313,7 @@ async function searchNearby(lat, lon, btn) {
     ).map(o => o.value.toLowerCase());
 
     const stations = data.results
-      .filter(r => r.geom?.lat != null && r.geom?.lon != null)
+      .filter(r => r.geom?.lat != null && r.geom?.lon != null && r.e85_prix != null)
       .map(r => {
         const sLat = r.geom.lat, sLon = r.geom.lon;
         const d    = haversine(lat, lon, sLat, sLon);
@@ -389,11 +388,13 @@ function onAutreInput() {
 
 async function searchStationSuggestions(q) {
   try {
+    // Le paramètre q= fait une recherche plein-texte sans encodage problématique
+    // where=search(..., "q") encode les guillemets en %22 que l'API ODSQL rejette (HTTP 400)
     const resp = await fetch(odsUrl({
-      where:    'search(adresse, "' + q + '") OR search(ville, "' + q + '") OR search(nom, "' + q + '")',
+      q:        q,
       select:   'id,nom,adresse,ville,cp,e85_prix,sp98_prix,geom',
       order_by: 'ville',
-      limit:    12
+      limit:    15
     }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
