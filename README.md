@@ -25,6 +25,9 @@ pour récupérer simultanément le prix **E85** et le prix **SP98** :
 - Prix trouvé → champ pré-rempli en vert pendant 6 secondes
 - Prix non trouvé → placeholder `--` en grisé, saisie manuelle disponible
 - Stratégie progressive : rayon 500 m → 2 km → 5 km → fallback GPS → code postal
+L'application interroge l'API `data.economie.gouv.fr` et enrichit les données avec OpenStreetMap (Overpass API).
+- Rayon de recherche : **2000 mètres**.
+- Priorité : `brand` > `name` > `operator`.
 
 ### Carte interactive (moteur maison, sans librairie externe)
 La carte utilise un rendu de **tuiles OpenStreetMap en JS pur** :

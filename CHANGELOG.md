@@ -4,14 +4,24 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+# Changelog
+
+Toutes les modifications notables de ce projet sont documentées ici.
+
+Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
+
+## [1.9.3.1] — 2026-05-23
+
+### Modifié
+- **Rayon de recherche** : Augmentation du seuil de détection (`DISTANCE_THRESHOLD`) à **2000 mètres** pour améliorer la couverture des stations-service sur l'API Overpass.
+- **Robustesse** : Amélioration de la fiabilité de détection des enseignes.
+
 ## [1.9.2.2] — 2026-05-23
 
 ### Ajouté
-- **Création de enrichStationsWithOSM(results) : Une nouvelle méthode asynchrone qui prend la liste des résultats de l'API d'État, génère une sous-requête groupée node(around:200, lat, lon)[amenity=fuel] pour chaque station présente, et interroge l'API Overpass d'OpenStreetMap (qui gère parfaitement le protocole CORS natif).
-
-- **Injection dans searchNearby et searchStationSuggestions : Juste après la réception des payloads d'État, les stations sont enrichies avec une propriété temporaire r._osmName qui récupère el.tags.brand ou el.tags.name de la station OSM la plus proche.
-
-- **Mise à jour de stationLabel(r) : La fonction prend désormais en priorité absolue la donnée r._osmName (issue d'OSM) si elle est disponible. Les fonctions d'affichage (renderNearby et renderSuggestions) injectant automatiquement ce libellé à l'intérieur des balises <strong>, l'enseigne exacte de la station apparaît maintenant en gras au lieu de la commune.
+- **enrichStationsWithOSM(results)** : Nouvelle méthode asynchrone pour enrichir les données des stations avec les tags OpenStreetMap (brand/name).
+- **Injection dans searchNearby/searchStationSuggestions** : Utilisation de `_osmName` pour un affichage précis des enseignes.
+- **Mise à jour de stationLabel(r)** : Priorité absolue à la donnée `_osmName`.
 
 ## [1.9.2.1] — 2026-05-23
 
