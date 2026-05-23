@@ -9,6 +9,7 @@ const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yU
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
 const OVERPASS_API = 'https://overpass-api.de/api/interpreter';
+const DISTANCE_THRESHOLD = 2000; // en mètres
 
 /* ─── État global ─── */
 let currentType   = 'E85';
@@ -38,11 +39,11 @@ let _nearbyStations = [];
 
 /**
  * Interroge l'API Overpass pour trouver un 'fuel' (node ou way)
- * Rayon 600m
+ * Rayon ${DISTANCE_THRESHOLD}
  */
 async function fetchOsmBrandAndName(lat, lon) {
   // On cherche maintenant les points (node) ET les surfaces (way)
-  const query = `[out:json][timeout:8];(node(around:2000,${lat},${lon})[amenity=fuel];way(around:2000,${lat},${lon})[amenity=fuel];);out tags;`;
+  const query = `[out:json][timeout:8];(node(around:DISTANCE_THRESHOLD,${lat},${lon})[amenity=fuel];way(around:DISTANCE_THRESHOLD,${lat},${lon})[amenity=fuel];);out tags;`;
   
   try {
     const response = await fetch(OVERPASS_API, {
