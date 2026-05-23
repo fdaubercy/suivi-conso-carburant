@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.9.2.7 — Couplage API Gouvernementale & API Overpass OpenStreetMap
+   v1.9.2.8 — Couplage API Gouvernementale & API Overpass OpenStreetMap
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.9.2.7';
+const APP_VERSION = '1.9.2.8';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -33,25 +33,28 @@ let _nearbyStations = [];
  * et en extraire les champs 'brand' ou 'name' officiels d'OpenStreetMap.
  */
 async function fetchOsmBrandAndName(lat, lon) {
-  // Rayon de recherche serré (600m) pour cibler la bonne station-service sur la carte
-  const query = `[out:json][timeout:5];node(around:600,${lat},${lon})[amenity=fuel];out tags;`;
+  const query = `[out:json][timeout:8];node(around:600,${lat},${lon})[amenity=fuel];out tags;`;
   try {
     const response = await fetch(OVERPASS_API, {
       method: 'POST',
       body: 'data=' + encodeURIComponent(query)
     });
-    if (!response.ok) throw new Error('Status ' + response.status);
+    if (!response.ok) return null;
     const data = await response.json();
     
-    console.log(`[DEBUG] Résultat brut API OpenStreetMap Overpass (${lat}, ${lon}) :`, data.elements);
-    
     if (data.elements && data.elements.length > 0) {
-      const tags = data.elements[0].tags;
-      // Priorité au champ 'brand' s'il existe, sinon 'name', sinon null
-      return tags.brand || tags.name || null;
+      // On prend le point le plus proche
+      const el = data.elements.sort((a,b) => haversine(lat, lon, a.lat, a.lon) - haversine(lat, lon, b.lat, b.lon))[0];
+      const tags = el.tags;
+
+      // Logique robuste : Priorité Brand > Name > Operator
+      const found = tags.brand || tags.name || tags.operator || null;
+      
+      // Si on trouve quelque chose, on retourne la valeur
+      return found;
     }
   } catch (e) {
-    console.warn(`[DEBUG] Échec de l'interrogation Overpass pour (${lat}, ${lon}) :`, e.message);
+    console.warn(`[DEBUG] Erreur Overpass :`, e.message);
   }
   return null;
 }
