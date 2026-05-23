@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.7.5 — correction HTTP 400 géoloc + recherche manuelle
+   v1.7.6 — correction HTTP 400 : geom→geo_point_2d dans select
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.7.5';
+const APP_VERSION = '1.7.6';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -289,15 +289,15 @@ function geolocate() {
 }
 
 async function searchNearby(lat, lon, btn) {
-  setGeoStatus('info', 'Recherche des stations dans 8 km…');
+  setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
   try {
-    // Pas de clause where combinée — geofilter.distance seul évite le HTTP 400
-    // Le filtre E85 est appliqué côté client après réception des résultats
-    const url = PRIX_API
-      + '?geofilter.distance=' + lat + ',' + lon + ',8000'
-      + '&select=nom,adresse,ville,cp,e85_prix,sp98_prix,geom'
-      + '&limit=20';
-    const resp = await fetch(url);
+    // Utiliser distance() dans le WHERE exactement comme fetchPricesAtCoords (200 confirmé)
+    // geom et geofilter.distance dans select causent HTTP 400 — utiliser geo_point_2d
+    const resp = await fetch(odsUrl({
+      where:  "e85_prix is not null AND distance(geom, geom'POINT(" + lon + ' ' + lat + ")', 8000m)",
+      select: 'nom,adresse,ville,cp,e85_prix,sp98_prix,geo_point_2d',
+      limit:  20
+    }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
@@ -313,9 +313,13 @@ async function searchNearby(lat, lon, btn) {
     ).map(o => o.value.toLowerCase());
 
     const stations = data.results
-      .filter(r => r.geom?.lat != null && r.geom?.lon != null && r.e85_prix != null)
+      .filter(r => {
+        const c = r.geo_point_2d || r.geom;
+        return c?.lat != null && c?.lon != null && r.e85_prix != null;
+      })
       .map(r => {
-        const sLat = r.geom.lat, sLon = r.geom.lon;
+        const c    = r.geo_point_2d || r.geom;
+        const sLat = c.lat, sLon = c.lon;
         const d    = haversine(lat, lon, sLat, sLon);
         const name = stationLabel(r);
         const sub  = stationSubLabel(r);
@@ -388,11 +392,11 @@ function onAutreInput() {
 
 async function searchStationSuggestions(q) {
   try {
-    // Le paramètre q= fait une recherche plein-texte sans encodage problématique
-    // where=search(..., "q") encode les guillemets en %22 que l'API ODSQL rejette (HTTP 400)
+    // id et geom ne sont pas des champs valides pour le select → HTTP 400
+    // geo_point_2d est le nom ODS v2.1 pour les coordonnées géographiques
     const resp = await fetch(odsUrl({
       q:        q,
-      select:   'id,nom,adresse,ville,cp,e85_prix,sp98_prix,geom',
+      select:   'nom,adresse,ville,cp,e85_prix,sp98_prix,geo_point_2d',
       order_by: 'ville',
       limit:    15
     }));
@@ -425,8 +429,9 @@ function renderSuggestions(results) {
 
   // Toutes les stations géolocalisées s'affichent sur la carte
   const stationsGeo = results.reduce((acc, r, origIdx) => {
-    if (r.geom?.lat != null && r.geom?.lon != null)
-      acc.push({ name: stationLabel(r), lat: r.geom.lat, lon: r.geom.lon,
+    const c = r.geo_point_2d || r.geom;
+    if (c?.lat != null && c?.lon != null)
+      acc.push({ name: stationLabel(r), lat: c.lat, lon: c.lon,
                  src: 'suggestion', srcIdx: origIdx });
     return acc;
   }, []);
@@ -457,10 +462,11 @@ function pickSuggestion(idx) {
   }
   sel.value = '__autre';
 
-  if (r.geom?.lon != null && r.geom?.lat != null) {
+  const gc = r.geo_point_2d || r.geom;
+  if (gc?.lon != null && gc?.lat != null) {
     showMap(userLat, userLon,
-      [{ name: stationLabel(r), lat: r.geom.lat, lon: r.geom.lon, src: 'suggestion', srcIdx: idx }]);
-    fetchPricesAtCoords(r.geom.lat, r.geom.lon, false);
+      [{ name: stationLabel(r), lat: gc.lat, lon: gc.lon, src: 'suggestion', srcIdx: idx }]);
+    fetchPricesAtCoords(gc.lat, gc.lon, false);
   } else {
     fetchPricesNearUser();
   }
