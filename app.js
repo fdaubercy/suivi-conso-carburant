@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.7.3 — correction HTTP 400 géolocalisation
+   v1.7.4 — correction HTTP 400 géolocalisation (geofilter commas)
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.7.3';
+const APP_VERSION = '1.7.4';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -291,12 +291,14 @@ function geolocate() {
 async function searchNearby(lat, lon, btn) {
   setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
   try {
-    const params = new URLSearchParams({
-      where:  "e85_prix is not null AND distance(geom, geom'POINT(" + lon + ' ' + lat + ")', 8000m)",
-      select: 'nom,adresse,ville,cp,e85_prix,sp98_prix,geom',
-      limit:  10
-    });
-    const resp = await fetch(PRIX_API + '?' + params.toString());
+    // URLSearchParams encode les virgules en %2C, ce que l'API ODS n'accepte pas
+    // dans geofilter.distance — on construit l'URL manuellement
+    const url = PRIX_API
+      + '?geofilter.distance=' + lat + ',' + lon + ',8000'
+      + '&where='   + encodeURIComponent('e85_prix is not null')
+      + '&select=nom,adresse,ville,cp,e85_prix,sp98_prix,geom'
+      + '&limit=10';
+    const resp = await fetch(url);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
