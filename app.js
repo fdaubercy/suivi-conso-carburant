@@ -1,15 +1,15 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.9.5.1 — Fix HTTP 400 : suppression champ nom inexistant dans le dataset
+   v1.9.6.0 — Requête OSM groupée (anti-429)
 ═══════════════════════════════════════ */
 
-/* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.9.5.1';
-const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
-const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
-const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
+/* ─── Configuration ─── */
+const APP_VERSION  = '1.9.6.0';
+const GAS_URL      = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
+const GS_SHEET_ID  = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
+const PRIX_API     = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
 const OVERPASS_API = 'https://overpass-api.de/api/interpreter';
-const DISTANCE_THRESHOLD = 2000; // en mètres
+const DISTANCE_THRESHOLD = 2000; // mètres — rayon de recherche OSM autour de chaque station
 
 /* ─── État global ─── */
 let currentType   = 'E85';
@@ -26,41 +26,76 @@ let _nearbyStations = [];
 })();
 
 /* ═══════════════════════════════════════
-   FONCTION RECHERCHE ENSEIGNE (OVERPASS OSM)
+   ENRICHISSEMENT OSM — REQUÊTE GROUPÉE
+   Une seule requête Overpass pour N stations,
+   évite les erreurs 429 (Too Many Requests).
 ═══════════════════════════════════════ */
 
 /**
- * Interroge l'API Overpass pour trouver un 'fuel' (node ou way) dans un rayon
- * DISTANCE_THRESHOLD autour des coordonnées, et retourne brand > name > operator.
+ * Envoie UNE requête Overpass pour toutes les stations du tableau.
+ * Pour chaque station {lat, lon}, trouve l'élément OSM le plus proche
+ * dans un rayon DISTANCE_THRESHOLD et retourne brand > name > operator.
+ *
+ * @param {Array<{lat: number, lon: number}>} stations
+ * @returns {Promise<Array<string|null>>} tableau de noms OSM, même ordre que l'entrée
  */
-async function fetchOsmBrandAndName(lat, lon) {
-  const query = `[out:json][timeout:8];(node(around:${DISTANCE_THRESHOLD},${lat},${lon})[amenity=fuel];way(around:${DISTANCE_THRESHOLD},${lat},${lon})[amenity=fuel];);out tags center;`;
+async function enrichAllStationsWithOsm(stations) {
+  if (!stations.length) return [];
+
+  // Construction de la requête groupée : une clause (node+way) par station
+  const clauses = stations.map(s =>
+    `node(around:${DISTANCE_THRESHOLD},${s.lat},${s.lon})[amenity=fuel];` +
+    `way(around:${DISTANCE_THRESHOLD},${s.lat},${s.lon})[amenity=fuel];`
+  ).join('');
+  const query = `[out:json][timeout:25];(${clauses});out tags center;`;
 
   try {
-    const response = await fetch(OVERPASS_API, {
+    const resp = await fetch(OVERPASS_API, {
       method: 'POST',
       body: 'data=' + encodeURIComponent(query)
     });
-    if (!response.ok) return null;
-    const data = await response.json();
-
-    if (data.elements && data.elements.length > 0) {
-      // Pour les way, Overpass retourne un champ 'center' avec lat/lon
-      const el = data.elements.sort((a, b) => {
-        const aLat = a.lat ?? a.center?.lat ?? 0;
-        const aLon = a.lon ?? a.center?.lon ?? 0;
-        const bLat = b.lat ?? b.center?.lat ?? 0;
-        const bLon = b.lon ?? b.center?.lon ?? 0;
-        return haversine(lat, lon, aLat, aLon) - haversine(lat, lon, bLat, bLon);
-      })[0];
-
-      const tags = el.tags || {};
-      return tags.brand || tags.name || tags.operator || null;
+    if (!resp.ok) {
+      console.warn(`[OSM] Requête groupée échouée : HTTP ${resp.status}`);
+      return stations.map(() => null);
     }
+    const data = await resp.json();
+    const elements = data.elements || [];
+
+    console.log(`[OSM] Requête groupée : ${elements.length} élément(s) retourné(s) pour ${stations.length} station(s)`);
+
+    // Pour chaque station d'entrée, trouver l'élément OSM le plus proche
+    return stations.map(s => {
+      const candidates = elements
+        .map(el => {
+          const elLat = el.lat ?? el.center?.lat;
+          const elLon = el.lon ?? el.center?.lon;
+          if (elLat == null || elLon == null) return null;
+          const dist = haversine(s.lat, s.lon, elLat, elLon);
+          return dist <= DISTANCE_THRESHOLD ? { el, dist } : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.dist - b.dist);
+
+      if (!candidates.length) return null;
+      const tags = candidates[0].el.tags || {};
+      return tags.brand || tags.name || tags.operator || null;
+    });
   } catch (e) {
-    console.warn(`[DEBUG] Erreur Overpass :`, e.message);
+    console.warn('[OSM] Erreur requête groupée :', e.message);
+    return stations.map(() => null);
   }
-  return null;
+}
+
+/**
+ * Résout le nom affiché d'une station :
+ *   1. osmName  — issu de la requête groupée Overpass
+ *   2. stationLabel(r) — extraction sémantique services/adresse
+ *   3. ville en majuscules (dans stationLabel)
+ * Note : le dataset gouvernemental ne fournit pas de champ 'nom'.
+ */
+function resolveStationName(osmName, r) {
+  if (osmName) return osmName;
+  return stationLabel(r);
 }
 
 /* ═══════════════════════════════════════
@@ -202,7 +237,6 @@ function selectStationFromMap(idx) {
     if (pin) pin.style.background = i === idx ? '#1B3A5C' : '#2E75B6';
   });
   showPinLabel(idx);
-
   pickStation(s.name, s.lat, s.lon);
 
   if (s.src === 'nearby') {
@@ -229,50 +263,37 @@ function getCoords(r) {
   return null;
 }
 
-/**
- * Résout le nom affiché d'une station selon la priorité :
- *   1. Nom OSM (brand / name / operator) — passé en paramètre
- *   2. Extraction sémantique depuis services/adresse (stationLabel)
- *   3. Ville en majuscules
- * Note : le dataset gouvernemental ne fournit pas de champ 'nom'.
- */
-function resolveStationName(osmName, r) {
-  if (osmName) return osmName;
-  return stationLabel(r);
-}
-
-/* ─── Extraction sémantique de secours (si OSM et nom API indisponibles) ─── */
+/* ─── Extraction sémantique de secours (si OSM ne retourne rien) ─── */
 function stationLabel(r) {
   const targets = [
-    { key: 'total',      display: 'TotalEnergies' },
-    { key: 'carrefour',  display: 'Carrefour' },
-    { key: 'leclerc',    display: 'E.Leclerc' },
-    { key: 'intermarche',display: 'Intermarché' },
-    { key: 'systeme u',  display: 'Système U' },
-    { key: 'super u',    display: 'Système U' },
-    { key: 'hyper u',    display: 'Système U' },
-    { key: 'u express',  display: 'Système U' },
-    { key: 'esso',       display: 'Esso' },
-    { key: 'auchan',     display: 'Auchan' },
-    { key: 'avanti',     display: 'Avanti' },
-    { key: 'bp',         display: 'BP' },
-    { key: 'casino',     display: 'Casino' },
-    { key: 'cora',       display: 'Cora' },
-    { key: 'shell',      display: 'Shell' },
-    { key: 'elan',       display: 'Elan' },
-    { key: 'agip',       display: 'Agip' }
+    { key: 'total',       display: 'TotalEnergies' },
+    { key: 'carrefour',   display: 'Carrefour' },
+    { key: 'leclerc',     display: 'E.Leclerc' },
+    { key: 'intermarche', display: 'Intermarché' },
+    { key: 'systeme u',   display: 'Système U' },
+    { key: 'super u',     display: 'Système U' },
+    { key: 'hyper u',     display: 'Système U' },
+    { key: 'u express',   display: 'Système U' },
+    { key: 'esso',        display: 'Esso' },
+    { key: 'auchan',      display: 'Auchan' },
+    { key: 'avanti',      display: 'Avanti' },
+    { key: 'bp',          display: 'BP' },
+    { key: 'casino',      display: 'Casino' },
+    { key: 'cora',        display: 'Cora' },
+    { key: 'shell',       display: 'Shell' },
+    { key: 'elan',        display: 'Elan' },
+    { key: 'agip',        display: 'Agip' }
   ];
 
   const searchStr = `${r.services || ''} ${r.adresse || ''}`.toLowerCase();
   for (const target of targets) {
     if (searchStr.includes(target.key)) return target.display;
   }
-
   if (r.ville) return r.ville.trim().toUpperCase();
   return 'STATION SERVICE';
 }
 
-/* ─── Génération de la ligne d'adresse secondaire ─── */
+/* ─── Ligne d'adresse secondaire ─── */
 function stationSubLabel(r) {
   const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
   const addr  = cap(r.adresse || '');
@@ -294,9 +315,7 @@ function setType(type) {
   fp.placeholder = type === 'E85' ? '0.798' : '2.091';
   updateCout();
   const sel = document.getElementById('stationSel').value;
-  if (sel && sel !== '__autre') {
-    fetchPricesNearUser();
-  }
+  if (sel && sel !== '__autre') fetchPricesNearUser();
 }
 
 /* ─── Coût du plein ─── */
@@ -357,6 +376,7 @@ function geolocate() {
 async function searchNearby(lat, lon, btn) {
   setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
   try {
+    // ① Requête API gouvernementale
     const resp = await fetch(odsUrl({
       where:  `e85_prix is not null and distance(geom, geom'POINT(${lon} ${lat})', 8000m)`,
       select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
@@ -374,51 +394,50 @@ async function searchNearby(lat, lon, btn) {
       return;
     }
 
-    const knownNames = Array.from(
-      document.querySelectorAll('#knownGroup option:not([value="__autre"])')
-    ).map(o => o.value.toLowerCase());
-
-    const stationsPromises = data.results
-      .filter(r => {
+    // ② Filtrer et préparer les candidats avec coordonnées
+    const candidates = data.results
+      .filter(r => getCoords(r) && r.e85_prix != null)
+      .map(r => {
         const c = getCoords(r);
-        return c && r.e85_prix != null;
+        return { r, lat: c.lat, lon: c.lon, dist: Math.round(haversine(lat, lon, c.lat, c.lon)) };
       })
-      .map(async r => {
-        const c    = getCoords(r);
-        const sLat = c.lat, sLon = c.lon;
-        const d    = haversine(lat, lon, sLat, sLon);
-
-        const osmName = await fetchOsmBrandAndName(sLat, sLon);
-        const name    = resolveStationName(osmName, r);
-        const sub     = stationSubLabel(r);
-        const known   = knownNames.some(k => k.includes((r.ville || '').toLowerCase()) || k.includes(name.toLowerCase()));
-
-        return { name, sub, dist: Math.round(d), lat: sLat, lon: sLon,
-                 e85: r.e85_prix, s98: r.sp98_prix, known };
-      });
-
-    const resolvedStations = await Promise.all(stationsPromises);
-
-    const stations = resolvedStations
       .filter(s => s.dist <= 8000)
       .sort((a, b) => a.dist - b.dist)
       .slice(0, 7);
 
-    if (!stations.length) {
+    if (!candidates.length) {
       setGeoStatus('info', 'Aucune station E85 trouvée dans 8 km.');
       return;
     }
 
+    // ③ UNE SEULE requête OSM groupée pour toutes les stations
+    setGeoStatus('info', 'Identification des enseignes…');
+    const osmNames = await enrichAllStationsWithOsm(candidates);
+
+    // ④ Construire le tableau final enrichi
+    const knownNames = Array.from(
+      document.querySelectorAll('#knownGroup option:not([value="__autre"])')
+    ).map(o => o.value.toLowerCase());
+
+    const stations = candidates.map((c, i) => {
+      const name  = resolveStationName(osmNames[i], c.r);
+      const sub   = stationSubLabel(c.r);
+      const known = knownNames.some(k => k.includes(name.toLowerCase()) || k.includes((c.r.ville || '').toLowerCase()));
+      return { name, sub, dist: c.dist, lat: c.lat, lon: c.lon,
+               e85: c.r.e85_prix, s98: c.r.sp98_prix, known };
+    });
+
     _nearbyStations = stations;
 
-    console.log('[DEBUG] Tableau enrichi (_nearbyStations) — priorité OSM > nom API > sémantique :');
+    console.log('[DEBUG] Tableau enrichi (_nearbyStations) — OSM > sémantique :');
     console.table(_nearbyStations);
 
     renderNearby(stations);
     showMap(lat, lon, stations.map((s, i) => ({ ...s, src: 'nearby', srcIdx: i })));
     setGeoStatus('ok', stations.length + ' station(s) E85 trouvée(s)');
   } catch (e) {
-    btn.classList.remove('loading'); btn.textContent = '📍';
+    document.getElementById('geoBtn').classList.remove('loading');
+    document.getElementById('geoBtn').textContent = '📍';
     setGeoStatus('err', 'Erreur de recherche (' + e.message + ').');
   }
 }
@@ -472,42 +491,54 @@ function onAutreInput() {
 
 async function searchStationSuggestions(q) {
   try {
+    // ① Requête API gouvernementale
     const resp = await fetch(odsUrl({
-      where:  `ville like "${q}*" OR adresse like "${q}*" OR services like "${q}*"`,
+      where:  `ville like "${q}%" OR adresse like "${q}%" OR services like "%${q}%"`,
       select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
       limit:  15
     }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
-    console.log('[DEBUG] Résultats bruts suggestions manuelles (API Gouvernementale) :', data.results);
+    console.log('[DEBUG] Résultats bruts suggestions (API Gouvernementale) :', data.results);
 
     if (!data.results?.length) {
       setSuggStatus('', "Aucun résultat — vérifiez l'orthographe ou utilisez la géolocalisation.");
       return;
     }
 
-    const enrichedResultsPromises = data.results.map(async r => {
-      const gc = getCoords(r);
-      let osmName = null;
-      if (gc) {
-        osmName = await fetchOsmBrandAndName(gc.lat, gc.lon);
-      }
-      return {
-        ...r,
-        _calculatedLabel: resolveStationName(osmName, r)
-      };
+    // ② Extraire les coords valides pour la requête OSM groupée
+    const withCoords = data.results.map(r => {
+      const c = getCoords(r);
+      return c ? { r, lat: c.lat, lon: c.lon } : null;
     });
 
-    const enrichedResults = await Promise.all(enrichedResultsPromises);
+    // ③ UNE SEULE requête OSM groupée pour toutes les suggestions
+    const coordsOnly = withCoords.map(s => s ? { lat: s.lat, lon: s.lon } : null);
+    const validCoords = coordsOnly.filter(Boolean);
+    let osmNames = data.results.map(() => null);
 
-    console.log('[DEBUG] Tableau enrichi suggestions — priorité OSM > nom API > sémantique :');
+    if (validCoords.length) {
+      const osmNamesValid = await enrichAllStationsWithOsm(validCoords);
+      // Réinjecter en respectant l'ordre original (certaines entrées n'ont pas de coords)
+      let vi = 0;
+      osmNames = withCoords.map(s => s ? osmNamesValid[vi++] : null);
+    }
+
+    // ④ Construire le tableau enrichi
+    const enrichedResults = data.results.map((r, i) => ({
+      ...r,
+      _calculatedLabel: resolveStationName(osmNames[i], r)
+    }));
+
+    console.log('[DEBUG] Tableau enrichi suggestions — OSM > sémantique :');
     console.table(enrichedResults.map(r => ({ label: r._calculatedLabel, ville: r.ville, adresse: r.adresse })));
 
     renderSuggestions(enrichedResults);
     setSuggStatus('', '');
   } catch (e) {
     setSuggStatus('', 'Erreur de recherche — saisie libre conservée.');
+    console.error('[Suggestions]', e);
   }
 }
 
@@ -527,16 +558,14 @@ function renderSuggestions(results) {
 
   const stationsGeo = results.reduce((acc, r, origIdx) => {
     const c = getCoords(r);
-    if (c)
-      acc.push({ name: r._calculatedLabel, lat: c.lat, lon: c.lon,
-                 src: 'suggestion', srcIdx: origIdx });
+    if (c) acc.push({ name: r._calculatedLabel, lat: c.lat, lon: c.lon, src: 'suggestion', srcIdx: origIdx });
     return acc;
   }, []);
   if (stationsGeo.length) showMap(userLat, userLon, stationsGeo);
 }
 
 function pickSuggestion(idx) {
-  const list = document.getElementById('suggList');
+  const list    = document.getElementById('suggList');
   const r       = list._results[idx];
   const oldName = document.getElementById('fAutre').value.trim();
   const newName = r._calculatedLabel;
@@ -561,8 +590,7 @@ function pickSuggestion(idx) {
 
   const gc = getCoords(r);
   if (gc) {
-    showMap(userLat, userLon,
-      [{ name: r._calculatedLabel, lat: gc.lat, lon: gc.lon, src: 'suggestion', srcIdx: idx }]);
+    showMap(userLat, userLon, [{ name: r._calculatedLabel, lat: gc.lat, lon: gc.lon, src: 'suggestion', srcIdx: idx }]);
     fetchPricesAtCoords(gc.lat, gc.lon, false);
   } else {
     fetchPricesNearUser();
@@ -590,6 +618,7 @@ function onAutreBlur() {
   }, 200);
 }
 
+/* ─── Helpers API ─── */
 function odsUrl(params) {
   return PRIX_API + '?' + new URLSearchParams(params).toString();
 }
@@ -614,7 +643,7 @@ function applyPricesResult(data) {
 
   const mainVal = currentType === 'E85' ? r.e85_prix : r.sp98_prix;
   const mainPh  = currentType === 'E85' ? '0.798'    : '2.091';
-  setFieldPrice('fPrix', mainVal, mainPh);
+  setFieldPrice('fPrix',    mainVal, mainPh);
   setFieldPrice('fPrixS98', r.sp98_prix, '2.091');
   s98Autofilled = !!(r.sp98_prix);
   updateCout();
@@ -643,9 +672,6 @@ async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
       }));
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const data = await resp.json();
-
-      console.log(`[DEBUG] Prix coordonnées r=${r}m :`, data.results);
-
       if (data.results?.length) { applyPricesResult(data); return; }
     } catch (e) {
       console.error('[PRIX] fetchAtCoords r=' + r, e);
@@ -686,9 +712,6 @@ async function fetchPricesByCP() {
     }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
-
-    console.log('[DEBUG] Prix par CP :', data.results);
-
     if (data.results?.length) { hideCpSearch(); applyPricesResult(data); }
     else setS98Status('info', 'Aucune station trouvée pour ' + cp + ' — saisie manuelle.');
   } catch (e) {
