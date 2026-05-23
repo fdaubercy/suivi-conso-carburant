@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.9.0 — Interopérabilité OSM & Enrichissement Géocodage
+   v1.9.0 — Interopérabilité OSM & Enrichissement Enseigne en Gras
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '1.9.1';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -189,7 +189,7 @@ function getCoords(r) {
   return null;
 }
 
-/* ─── Extraction sémantique / Fallback Enseigne ─── */
+/* ─── Extraction sémantique / Fallback Enseigne de secours ─── */
 function stationLabel(r) {
   const targets = [
     { key: 'total', display: 'TotalEnergies' },
@@ -305,7 +305,6 @@ function geolocate() {
 async function fetchOsmNamesForStations(stations) {
   if (!stations.length) return [];
   
-  // Génération d'un bloc de requêtes spatiales "around" groupées (Rayon 300m)
   let aroundClauses = '';
   stations.forEach(s => {
     aroundClauses += `node(around:300,${s.lat},${s.lon})["amenity"="fuel"];`;
@@ -321,8 +320,6 @@ async function fetchOsmNamesForStations(stations) {
     });
     if (!resp.ok) return [];
     const data = await resp.json();
-    
-    console.log('[DEBUG] Données brutes de croisement Overpass OSM :', data.elements);
     return data.elements || [];
   } catch (e) {
     console.warn('[OSM] Impossible de croiser les données de marque :', e);
@@ -340,8 +337,6 @@ async function searchNearby(lat, lon, btn) {
     }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
-    
-    console.log('[DEBUG] Résultats bruts géolocalisation :', data.results);
 
     btn.classList.remove('loading'); btn.textContent = '📍';
 
@@ -354,7 +349,6 @@ async function searchNearby(lat, lon, btn) {
       document.querySelectorAll('#knownGroup option:not([value="__autre"])')
     ).map(o => o.value.toLowerCase());
 
-    // 1. Filtrage et mapping initial de l'API d'État
     let stations = data.results
       .filter(r => {
         const c = getCoords(r);
@@ -379,13 +373,11 @@ async function searchNearby(lat, lon, btn) {
       return;
     }
 
-    // 2. Croisement avec OpenStreetMap via l'API Overpass
     setGeoStatus('info', 'Enrichissement des enseignes via OpenStreetMap…');
     const osmElements = await fetchOsmNamesForStations(stations);
     
     if (osmElements.length) {
       stations = stations.map(s => {
-        // Recherche de l'élément OSM le plus proche dans le rayon des 300m
         let bestMatch = null;
         let minD = 300; 
         
@@ -401,7 +393,6 @@ async function searchNearby(lat, lon, btn) {
           }
         });
         
-        // Si un nom précis est extrait de OpenStreetMap, on écrase le label calculé
         if (bestMatch) {
           s.name = bestMatch;
           s.known = knownNames.some(k => k.includes(bestMatch.toLowerCase()));
@@ -413,7 +404,7 @@ async function searchNearby(lat, lon, btn) {
     _nearbyStations = stations;
     renderNearby(stations);
     showMap(lat, lon, stations.map((s, i) => ({ ...s, src: 'nearby', srcIdx: i })));
-    setGeoStatus('ok', stations.length + ' station(s) E85 enrichie(s)');
+    setGeoStatus('ok', stations.length + ' station(s) E85 localisée(s)');
   } catch (e) {
     btn.classList.remove('loading'); btn.textContent = '📍';
     setGeoStatus('err', 'Erreur de recherche (' + e.message + ').');
@@ -479,13 +470,41 @@ async function searchStationSuggestions(q) {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
-    console.log('[DEBUG] Résultats bruts suggestions manuelles :', data.results);
-
     if (!data.results?.length) {
       setSuggStatus('', "Aucun résultat — vérifiez l'orthographe ou utilisez la géolocalisation.");
       return;
     }
-    renderSuggestions(data.results);
+
+    let results = data.results;
+    const stationsGeo = results.reduce((acc, r, origIdx) => {
+      const c = getCoords(r);
+      if (c) acc.push({ name: stationLabel(r), lat: c.lat, lon: c.lon, src: 'suggestion', srcIdx: origIdx });
+      return acc;
+    }, []);
+
+    if (stationsGeo.length) {
+      const osmElements = await fetchOsmNamesForStations(stationsGeo);
+      if (osmElements.length) {
+        results = results.map(r => {
+          const c = getCoords(r);
+          if (!c) return r;
+          let bestMatch = null;
+          let minD = 300;
+          osmElements.forEach(el => {
+            const elLat = el.lat || el.center?.lat;
+            const elLon = el.lon || el.center?.lon;
+            if (elLat && elLon) {
+              const d = haversine(c.lat, c.lon, elLat, elLon);
+              if (d < minD && el.tags?.name) { minD = d; bestMatch = el.tags.name; }
+            }
+          });
+          if (bestMatch) r._osmName = bestMatch;
+          return r;
+        });
+      }
+    }
+
+    renderSuggestions(results);
     setSuggStatus('', '');
   } catch (e) {
     setSuggStatus('', 'Erreur de recherche — saisie libre conservée.');
@@ -495,7 +514,7 @@ async function searchStationSuggestions(q) {
 function renderSuggestions(results) {
   const list = document.getElementById('suggList');
   list.innerHTML = results.map((r, i) => {
-    const label = stationLabel(r);
+    const label = r._osmName || stationLabel(r);
     const sub   = stationSubLabel(r);
     const prix  = r.e85_prix ? 'E85 ' + parseFloat(r.e85_prix).toFixed(3) + ' €/L' : '';
     return '<div class="suggestion-item" onmousedown="pickSuggestion(' + i + ')">'
@@ -508,9 +527,7 @@ function renderSuggestions(results) {
 
   const stationsGeo = results.reduce((acc, r, origIdx) => {
     const c = getCoords(r);
-    if (c)
-      acc.push({ name: stationLabel(r), lat: c.lat, lon: c.lon,
-                 src: 'suggestion', srcIdx: origIdx });
+    if (c) acc.push({ name: r._osmName || stationLabel(r), lat: c.lat, lon: c.lon, src: 'suggestion', srcIdx: origIdx });
     return acc;
   }, []);
   if (stationsGeo.length) showMap(userLat, userLon, stationsGeo);
@@ -520,7 +537,7 @@ function pickSuggestion(idx) {
   const list    = document.getElementById('suggList');
   const r       = list._results[idx];
   const oldName = document.getElementById('fAutre').value.trim();
-  const newName = stationLabel(r);
+  const newName = r._osmName || stationLabel(r);
 
   document.getElementById('fAutre').value = newName;
   hideSuggestions();
@@ -542,8 +559,7 @@ function pickSuggestion(idx) {
 
   const gc = getCoords(r);
   if (gc) {
-    showMap(userLat, userLon,
-      [{ name: stationLabel(r), lat: gc.lat, lon: gc.lon, src: 'suggestion', srcIdx: idx }]);
+    showMap(userLat, userLon, [{ name: newName, lat: gc.lat, lon: gc.lon, src: 'suggestion', srcIdx: idx }]);
     fetchPricesAtCoords(gc.lat, gc.lon, false);
   } else {
     fetchPricesNearUser();

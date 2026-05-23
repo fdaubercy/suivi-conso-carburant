@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [1.9.1] — 2026-05-23
+
+### Ajouté
+- **Interopérabilité sémantique OpenStreetMap** : Croisement géospatial unifié entre la base gouvernementale et l'API Overpass pour valider l'enseigne réelle des stations à moins de 300 mètres.
+- **Rendu typographique ciblé** : Modification de `renderNearby` et `renderSuggestions` pour isoler et afficher explicitement **le nom/enseigne de la station en gras** (`<strong>`). La localisation géographique et l'adresse complète sont reléguées en métadonnées secondaires textuelles pour maximiser la clarté opérationnelle.
+
 ## [1.9.0] — 2026-05-23
 
 ### Ajouté
