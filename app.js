@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v2.0.0.0 — Overpass around série, rayon 2000m coordonnées imprécises
+   v2.0.1.0 — Recherche manuelle : q param accents, nearbyList, autreField avant carte
 ═══════════════════════════════════════ */
 
 /* ─── Configuration ─── */
-const APP_VERSION  = '2.0.0.0';
+const APP_VERSION  = '2.0.1.0';
 const GAS_URL      = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID  = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API     = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -319,8 +319,15 @@ function updateCout() {
 /* ─── Station (dropdown) ─── */
 function onStationChange() {
   const sel = document.getElementById('stationSel');
-  document.getElementById('autreField').classList.toggle('hidden', sel.value !== '__autre');
-  if (sel.value && sel.value !== '__autre') fetchPricesNearUser();
+  const isManual = sel.value === '__autre';
+  document.getElementById('autreField').classList.toggle('hidden', !isManual);
+  if (!isManual) {
+    // Masquer les résultats de recherche manuelle précédents
+    document.getElementById('nearbyList').style.display = 'none';
+    document.getElementById('fAutre').value = '';
+    setAutreStatus('', '');
+  }
+  if (sel.value && !isManual) fetchPricesNearUser();
 }
 
 /* ─── Saisie manuelle S98 ─── */
@@ -468,118 +475,66 @@ let _autreDebounce = null;
 function onAutreInput() {
   const q = document.getElementById('fAutre').value.trim();
   clearTimeout(_autreDebounce);
-  hideSuggestions();
-  if (q.length < 3) { setSuggStatus('', ''); return; }
-  setSuggStatus('spin', 'Recherche…');
+  document.getElementById('nearbyList').style.display = 'none';
+  if (q.length < 3) { setAutreStatus('', ''); return; }
+  setAutreStatus('spin', 'Recherche…');
   _autreDebounce = setTimeout(() => searchStationSuggestions(q), 500);
+}
+
+function setAutreStatus(cls, msg) {
+  const el = document.getElementById('autreStatus');
+  el.className = cls;
+  el.textContent = msg;
 }
 
 async function searchStationSuggestions(q) {
   try {
-    // ① Requête API gouvernementale
-    const resp = await fetch(odsUrl({
-      where:  `ville like "${q}%" OR adresse like "${q}%" OR services like "%${q}%"`,
+    // Utiliser le paramètre `q` (full-text, insensible aux accents et à la casse)
+    // Ex. "raches" trouve "Râches", "leclerc" trouve "E.LECLERC"
+    const url = PRIX_API + '?' + new URLSearchParams({
+      q:      q,
+      where:  'e85_prix is not null',
       select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
       limit:  15
-    }));
+    });
+    const resp = await fetch(url);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
-    console.log('[DEBUG] Résultats bruts suggestions (API Gouvernementale) :', data.results);
+    console.log('[DEBUG] Résultats recherche manuelle :', data.results);
 
     if (!data.results?.length) {
-      setSuggStatus('', "Aucun résultat — vérifiez l'orthographe ou utilisez la géolocalisation.");
+      setAutreStatus('err', 'Aucune station E85 trouvée — essayez un autre terme.');
       return;
     }
 
-    // ② Construire les suggestions (adresse comme nom, pas d'appel externe)
-    const enrichedResults = data.results.map(r => ({
-      ...r,
-      _calculatedLabel: stationLabel(r)
-    }));
+    // Construire les stations avec distance (depuis position user si connue)
+    const knownNames = Array.from(
+      document.querySelectorAll('#knownGroup option:not([value="__autre"])')
+    ).map(o => o.value.toLowerCase());
 
-    renderSuggestions(enrichedResults);
-    setSuggStatus('', '');
+    const stations = data.results
+      .filter(r => getCoords(r))
+      .map(r => {
+        const c    = getCoords(r);
+        const dist = (userLat && userLon)
+          ? Math.round(haversine(userLat, userLon, c.lat, c.lon))
+          : null;
+        const name  = stationLabel(r);
+        const sub   = stationSubLabel(r);
+        const known = knownNames.some(k => k.includes(name.toLowerCase()) || k.includes((r.ville || '').toLowerCase()));
+        return { name, sub, dist, lat: c.lat, lon: c.lon,
+                 e85: r.e85_prix, s98: r.sp98_prix, known };
+      })
+      .sort((a, b) => (a.dist ?? 99999) - (b.dist ?? 99999));
+
+    setAutreStatus('ok', stations.length + ' station(s) E85 trouvée(s)');
+    renderNearby(stations);
+    showMap(userLat, userLon, stations.map((s, i) => ({ ...s, src: 'nearby', srcIdx: i })));
   } catch (e) {
-    setSuggStatus('', 'Erreur de recherche — saisie libre conservée.');
+    setAutreStatus('err', 'Erreur de recherche (' + e.message + ').');
     console.error('[Suggestions]', e);
   }
-}
-
-function renderSuggestions(results) {
-  const list = document.getElementById('suggList');
-  list.innerHTML = results.map((r, i) => {
-    const label = r._calculatedLabel;
-    const sub   = stationSubLabel(r);
-    const prix  = r.e85_prix ? 'E85 ' + parseFloat(r.e85_prix).toFixed(3) + ' €/L' : '';
-    return '<div class="suggestion-item" onmousedown="pickSuggestion(' + i + ')">'
-      + '<span class="suggestion-item-name">⛽ <strong>' + escHtml(label) + '</strong></span>'
-      + '<span class="suggestion-item-addr">' + escHtml(sub) + (prix ? '  ·  ' + prix : '') + '</span>'
-      + '</div>';
-  }).join('');
-  list._results = results;
-  list.style.display = 'block';
-
-  const stationsGeo = results.reduce((acc, r, origIdx) => {
-    const c = getCoords(r);
-    if (c) acc.push({ name: r._calculatedLabel, lat: c.lat, lon: c.lon, src: 'suggestion', srcIdx: origIdx });
-    return acc;
-  }, []);
-  if (stationsGeo.length) showMap(userLat, userLon, stationsGeo);
-}
-
-function pickSuggestion(idx) {
-  const list    = document.getElementById('suggList');
-  const r       = list._results[idx];
-  const oldName = document.getElementById('fAutre').value.trim();
-  const newName = r._calculatedLabel;
-
-  document.getElementById('fAutre').value = newName;
-  hideSuggestions();
-  setSuggStatus('', '');
-
-  const sel = document.getElementById('stationSel');
-  Array.from(sel.options).forEach(opt => {
-    if (opt.value !== '__autre' && opt.value.toLowerCase() === oldName.toLowerCase()) {
-      opt.value = newName; opt.text = newName;
-    }
-  });
-  if (!Array.from(sel.options).some(o => o.value === newName)) {
-    document.getElementById('knownGroup').insertBefore(
-      new Option(newName, newName),
-      document.querySelector('#knownGroup option[value="__autre"]')
-    );
-  }
-  sel.value = '__autre';
-
-  const gc = getCoords(r);
-  if (gc) {
-    showMap(userLat, userLon, [{ name: r._calculatedLabel, lat: gc.lat, lon: gc.lon, src: 'suggestion', srcIdx: idx }]);
-    fetchPricesAtCoords(gc.lat, gc.lon, false);
-  } else {
-    fetchPricesNearUser();
-  }
-}
-
-function hideSuggestions() {
-  const list = document.getElementById('suggList');
-  list.style.display = 'none';
-  list.innerHTML = '';
-  list._results = [];
-}
-
-function setSuggStatus(cls, msg) {
-  const el = document.getElementById('suggStatus');
-  el.className = 'suggestion-status ' + cls;
-  el.textContent = msg;
-}
-
-function onAutreBlur() {
-  setTimeout(() => {
-    if (document.getElementById('suggList').style.display !== 'none') return;
-    const q = document.getElementById('fAutre').value.trim();
-    if (q) fetchPricesNearUser();
-  }, 200);
 }
 
 /* ─── Helpers API ─── */
@@ -771,8 +726,7 @@ function resetForm() {
   document.getElementById('autreField').classList.add('hidden');
   document.getElementById('s98Status').className = 's98-status';
   document.getElementById('s98Status').textContent = '';
-  hideSuggestions();
-  setSuggStatus('', '');
+  setAutreStatus('', '');
   hideCpSearch();
   s98Autofilled = false;
 }

@@ -127,6 +127,11 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
 }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
+/* ─── Police réduite dans le select (options) ─── */
+.field select { font-size: 14px; }
+.field select option,
+.field select optgroup { font-size: 13px; }
+
 /* ─── Station + géo ─── */
 .station-wrap { position: relative; }
 .station-wrap select { padding-right: 50px; }
@@ -146,10 +151,27 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
 .geo-status.err  { color: var(--red); }
 .geo-status.info { color: var(--text-muted); }
 
-/* ─── Liste stations géo proches ─── */
+/* ─── Saisie manuelle — juste sous le select ─── */
+#autreField { margin-top: 10px; margin-bottom: 0; }
+
+/* ─── Status saisie manuelle ─── */
+#autreStatus {
+  font-size: 12px; margin-top: 5px; min-height: 16px;
+  display: flex; align-items: center; gap: 5px;
+}
+#autreStatus.spin::before {
+  content: ''; display: inline-block; width: 12px; height: 12px;
+  border: 2px solid var(--text-muted); border-top-color: transparent;
+  border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0;
+}
+#autreStatus.ok   { color: var(--green); }
+#autreStatus.err  { color: var(--red); }
+#autreStatus.info { color: var(--text-muted); }
+
+/* ─── Liste stations (géoloc + saisie manuelle) ─── */
 .nearby-list {
   display: none; border: 1.5px solid var(--border);
-  border-radius: 10px; overflow: hidden; margin-top: 8px;
+  border-radius: 10px; overflow: hidden; margin-top: 10px;
   max-height: 280px; overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
 .nearby-item {
@@ -184,7 +206,6 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
 
 /* ─── Carte OSM iframe ─── */
 #stationMapWrap {
-  /* Casse le padding de .card pour être pleine largeur */
   margin: 12px -16px -16px -16px;
   overflow: hidden;
   border-top: 1.5px solid var(--border);
@@ -224,57 +245,6 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
   user-select: none;
 }
 
-/* ─── Suggestions station manuelle ─── */
-.suggestion-status {
-  font-size: 12px; margin-top: 5px; min-height: 16px;
-  color: var(--text-muted); display: flex; align-items: center; gap: 5px;
-}
-.suggestion-status.spin::before {
-  content: ''; display: inline-block; width: 12px; height: 12px;
-  border: 2px solid var(--text-muted); border-top-color: transparent;
-  border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0;
-}
-.suggestion-list {
-  display: none; border: 1.5px solid var(--border);
-  border-radius: 10px; overflow: hidden; margin-top: 8px;
-  max-height: 220px; overflow-y: auto; -webkit-overflow-scrolling: touch;
-}
-.suggestion-item {
-  display: flex; flex-direction: column; gap: 2px;
-  padding: 11px 14px; cursor: pointer;
-  border-bottom: 1px solid var(--border);
-  background: var(--white); color: var(--text);
-  -webkit-tap-highlight-color: transparent;
-}
-.suggestion-item:last-child { border-bottom: none; }
-.suggestion-item:active  { background: var(--blue-light); }
-.suggestion-item.selected { background: var(--blue-light); }
-.suggestion-item-name { font-size: 15px; font-weight: 500; }
-.suggestion-item-addr { font-size: 12px; color: var(--text-muted); }
-
-/* ─── Coût du plein ─── */
-.cout-box {
-  display: none;
-  align-items: center;
-  gap: 10px;
-  background: var(--blue-light);
-  border-radius: 10px;
-  padding: 11px 14px;
-  margin-top: 10px;
-}
-.cout-label {
-  font-size: 16px;
-  font-weight: 400;
-  color: var(--blue-dark);
-  white-space: nowrap;
-}
-.cout-val {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--blue-dark);
-  font-family: inherit;
-}
-
 /* ─── Recherche par code postal ─── */
 .cp-row { display: flex; gap: 8px; margin-top: 8px; }
 .cp-input {
@@ -307,34 +277,19 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
   border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0;
 }
 
-/* ─── Bouton submit sticky ─── */
-.submit-wrap {
-  position: sticky; bottom: 0;
-  padding: 12px 16px 16px;
-  background: linear-gradient(to top, var(--bg) 70%, transparent);
-  margin-top: 8px;
+/* ─── Coût du plein ─── */
+.cout-box {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background: var(--blue-light);
+  border-radius: 10px;
+  padding: 11px 14px;
+  margin-top: 10px;
 }
-.submit-btn {
-  width: 100%; height: 52px; border: none;
-  border-radius: 12px; background: var(--blue-dark);
-  color: #fff; font-size: 17px; font-weight: 600;
-  cursor: pointer; font-family: inherit;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  -webkit-tap-highlight-color: transparent;
-}
-.submit-btn:active { background: #0F2740; transform: scale(.98); }
-.submit-btn:disabled { opacity: .55; }
+.cout-label { font-size: 16px; font-weight: 400; color: var(--blue-dark); white-space: nowrap; }
+.cout-val   { font-size: 16px; font-weight: 600; color: var(--blue-dark); font-family: inherit; }
 
-/* ─── Feedback soumission ─── */
-.feedback {
-  display: none; margin: 8px 16px 0;
-  border-radius: var(--radius); padding: 14px 16px; font-size: 14px;
-}
-.feedback.success { background: var(--green-light); border: 1.5px solid #9FE1CB; color: #085041; }
-.feedback.error   { background: var(--red-light);   border: 1.5px solid #F7C1C1; color: #501313; }
-.feedback strong  { display: block; font-size: 16px; margin-bottom: 3px; }
-
-.hidden { display: none !important; }
 /* ─── Marqueurs carte ─── */
 .map-pin {
   color: #fff;
@@ -364,6 +319,35 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
 }
 #stationMap [onclick]:hover  .map-pin-label,
 #stationMap [onclick]:active .map-pin-label { opacity: 1; }
+
+/* ─── Bouton submit sticky ─── */
+.submit-wrap {
+  position: sticky; bottom: 0;
+  padding: 12px 16px 16px;
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+  margin-top: 8px;
+}
+.submit-btn {
+  width: 100%; height: 52px; border: none;
+  border-radius: 12px; background: var(--blue-dark);
+  color: #fff; font-size: 17px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+.submit-btn:active { background: #0F2740; transform: scale(.98); }
+.submit-btn:disabled { opacity: .55; }
+
+/* ─── Feedback soumission ─── */
+.feedback {
+  display: none; margin: 8px 16px 0;
+  border-radius: var(--radius); padding: 14px 16px; font-size: 14px;
+}
+.feedback.success { background: var(--green-light); border: 1.5px solid #9FE1CB; color: #085041; }
+.feedback.error   { background: var(--red-light);   border: 1.5px solid #F7C1C1; color: #501313; }
+.feedback strong  { display: block; font-size: 16px; margin-bottom: 3px; }
+
+.hidden { display: none !important; }
 
 footer { text-align: center; font-size: 11px; color: var(--text-muted); padding: 8px 16px 0; }
 

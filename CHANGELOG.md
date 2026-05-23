@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.0.1.0] — 2026-05-23
+
+### Changed
+- **Recherche manuelle accent-insensible** : utilisation du paramètre `q` de l'API ODS (full-text) au lieu de `like`. "raches" trouve désormais "Râches", "leclerc" trouve "E.LECLERC".
+- **Résultats dans `nearbyList`** : la recherche manuelle affiche les stations dans la même liste que la géolocalisation, avec distance (si position connue) et carte.
+- **`autreField` repositionné** dans `index.html` : apparaît immédiatement sous le sélecteur, avant `nearbyList` et la carte (ordre HTML corrigé).
+- **Police réduite** dans le `<select>` : `font-size: 14px` sur le select, `13px` sur les options.
+- **`setAutreStatus`** : nouveau helper de statut pour la saisie manuelle (remplace `setSuggStatus`).
+- **`onStationChange`** : vide `nearbyList` et `fAutre` quand on repasse sur une station du dropdown.
+
+### Removed
+- `renderSuggestions`, `pickSuggestion`, `hideSuggestions`, `setSuggStatus`, `onAutreBlur` — remplacés par le flux `renderNearby` + `nearbyList`.
+- `suggList`, `suggStatus` retirés de `index.html`.
+
+---
+
 ## [2.0.0.0] — 2026-05-23
 
 ### Changed
