@@ -6,6 +6,20 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.7.2] — 2026-05-23
+
+### Corrigé
+- **Marqueurs carte absents en recherche manuelle** : `requestAnimationFrame` était
+  trop précoce pour lire `offsetWidth` après `hidden → visible`. Remplacé par
+  `setTimeout(fn, 0)` + `getBoundingClientRect()` pour forcer un reflow complet
+  avant le calcul de la grille de tuiles — les marqueurs apparaissent désormais
+  correctement dès l'affichage de la liste de suggestions.
+- **Géolocalisation sans résultat** : rayon API `geofilter.distance` porté de
+  6 000 m à **8 000 m**. Filtre client assoupli à 10 000 m pour ne pas tronquer
+  les résultats en bordure de rayon. Message d'état mis à jour (« dans 8 km »).
+
+---
+
 ## [1.7.1] — 2026-05-23
 
 ### Ajouté

@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.7.1 — noms stations, infobulles tactiles
+   v1.7.2 — rayon géoloc 8 km, marqueurs carte corrigés
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.7.2';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -67,15 +67,24 @@ function bestZoom(allLats, allLons, maxW, maxH) {
 function showMap(uLat, uLon, stations) {
   _mapStations = stations.filter(s => s.lat && s.lon);
   if (!_mapStations.length) return;
-  document.getElementById('stationMapWrap').classList.remove('hidden');
-  // Attendre un frame pour que le container soit rendu
-  requestAnimationFrame(() => _renderMap(uLat, uLon));
+  const wrap = document.getElementById('stationMapWrap');
+  const wasHidden = wrap.classList.contains('hidden');
+  wrap.classList.remove('hidden');
+  // setTimeout 0 garantit que le browser a terminé le reflow après display:block
+  // avant de lire offsetWidth — requestAnimationFrame est trop tôt après hidden→visible
+  if (wasHidden) {
+    setTimeout(() => _renderMap(uLat, uLon), 0);
+  } else {
+    _renderMap(uLat, uLon);
+  }
 }
 
 function _renderMap(uLat, uLon) {
   const container = document.getElementById('stationMap');
-  const W = container.offsetWidth  || 320;
-  const H = container.offsetHeight || 220;
+  // getBoundingClientRect() force un layout flush et retourne les vraies dimensions
+  const rect = container.getBoundingClientRect();
+  const W = rect.width  || container.offsetWidth  || 360;
+  const H = rect.height || container.offsetHeight || 220;
   const mg = 0.008;
 
   const allLats = _mapStations.map(s => s.lat);
@@ -280,10 +289,10 @@ function geolocate() {
 }
 
 async function searchNearby(lat, lon, btn) {
-  setGeoStatus('info', 'Recherche des stations E85 dans 6 km…');
+  setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
   try {
     const params = new URLSearchParams({
-      'geofilter.distance': lat + ',' + lon + ',6000',
+      'geofilter.distance': lat + ',' + lon + ',8000',
       where:  'e85_prix is not null',
       select: 'nom,adresse,ville,cp,e85_prix,sp98_prix,geom',
       limit:  10
@@ -295,7 +304,7 @@ async function searchNearby(lat, lon, btn) {
     btn.classList.remove('loading'); btn.textContent = '📍';
 
     if (!data.results?.length) {
-      setGeoStatus('info', 'Aucune station E85 trouvée dans 6 km.');
+      setGeoStatus('info', 'Aucune station E85 trouvée dans 8 km.');
       return;
     }
 
@@ -314,7 +323,7 @@ async function searchNearby(lat, lon, btn) {
         return { name, sub, dist: Math.round(d), lat: sLat, lon: sLon,
                  e85: r.e85_prix, s98: r.sp98_prix, known };
       })
-      .filter(s => s.dist <= 8000)
+      .filter(s => s.dist <= 10000)
       .sort((a, b) => a.dist - b.dist)
       .slice(0, 7);
 
