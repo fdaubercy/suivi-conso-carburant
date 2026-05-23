@@ -1,13 +1,12 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.7.8.2 — Fix CORS & Récupération Enseignes via API Gouv Officielle
+   v1.7.9.0 — Fix Géolocalisation & Distance Max Fixée à 8km
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.7.8.2';
+const APP_VERSION = '1.7.9.0';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
-// Retour à l'API gouvernementale officielle (gère parfaitement le CORS)
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
 
 /* ─── État global ─── */
@@ -197,11 +196,8 @@ function getCoords(r) {
   return null;
 }
 
-/* ─── Nom de la marque extrait intelligemment des métadonnées gouv ─── */
+/* ─── Nom de la marque extrait des métadonnées gouv ─── */
 function stationLabel(r) {
-  const cap = s => s ? s.trim().toUpperCase() : '';
-  
-  // L'API officielle renvoie souvent l'enseigne dans les champs de services ou adresse
   if (r.services) {
     const srv = r.services.toLowerCase();
     if (srv.includes('total')) return 'TotalEnergies';
@@ -311,11 +307,11 @@ function geolocate() {
 async function searchNearby(lat, lon, btn) {
   setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
   try {
+    // Utilisation de la clause standard SQL spatial `distance` requise par les points d'accès v2.1 d'OpenDataSoft
     const resp = await fetch(odsUrl({
-      where:  'e85_prix is not null',
+      where:  `e85_prix is not null and distance(geom, geom'POINT(${lon} ${lat})', 8000m)`,
       select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
-      limit:  40,
-      geofilter: `${lat},${lon},8000`
+      limit:  40
     }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
@@ -346,9 +342,14 @@ async function searchNearby(lat, lon, btn) {
         return { name, sub, dist: Math.round(d), lat: sLat, lon: sLon,
                  e85: r.e85_prix, s98: r.sp98_prix, known };
       })
-      .filter(s => s.dist <= 10000)
+      .filter(s => s.dist <= 8000) // Verrouillage strict de la distance maximale demandée à 8 km
       .sort((a, b) => a.dist - b.dist)
       .slice(0, 7);
+
+    if (!stations.length) {
+      setGeoStatus('info', 'Aucune station E85 trouvée dans 8 km.');
+      return;
+    }
 
     _nearbyStations = stations;
     renderNearby(stations);
@@ -559,10 +560,9 @@ async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
   for (const r of [500, 2000, 5000]) {
     try {
       const resp = await fetch(odsUrl({
-        where:    `(e85_prix is not null OR sp98_prix is not null)`,
+        where:    `e85_prix is not null or sp98_prix is not null and distance(geom, geom'POINT(${lon} ${lat})', ${r}m)`,
         select:   'e85_prix,sp98_prix,adresse,ville,services',
-        limit:    1,
-        geofilter: `${lat},${lon},${r}`
+        limit:    1
       }));
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const data = await resp.json();

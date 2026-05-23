@@ -10,6 +10,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [1.7.9.0] — 2026-05-23
+
+### Corrigé
+- **Bouton Géolocalisation fonctionnel** : Remplacement du filtrage `geofilter` obsolète par une clause SQL `where` spatial utilisant `distance(geom, geom'POINT(...)', 8000m)` compatible avec l'API v2.1 de la plateforme d'État.
+- **Rayon strict à 8 km** : Ajustement et limitation stricte du filtrage de distance à 8 km maximum conformément aux instructions pour éviter la pollution des résultats lointains.
+
 ---
 
 ## [1.7.8.2] — 2026-05-23
