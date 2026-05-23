@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [1.9.9.0] — 2026-05-23
+
+### Added
+- **`fetchNominatimName(lat, lon)`** : reverse geocoding Nominatim (`extratags=1`) pour récupérer `brand` ou `operator` OSM. Accepte le résultat uniquement si `type=fuel` ou `extratags.amenity=fuel` — évite les faux positifs sur bâtiments voisins. Timeout 5 s via `AbortSignal.timeout`.
+- **`enrichWithNominatim(stations)`** : boucle séquentielle sur les candidats avec 1 100 ms de délai entre requêtes (CGU Nominatim : max 1 req/s). Progression affichée dans le statut : « Identification station 2/7… ».
+- **`NOMINATIM_UA`** : `User-Agent` conforme aux CGU Nominatim.
+
+### Changed
+- **`searchNearby`** : enrichissement via Nominatim en série après sélection des 7 candidats. Fallback `stationLabel(r)` (adresse) si Nominatim ne trouve pas de `fuel`.
+- **`searchStationSuggestions`** : inchangé — adresse directement (l'utilisateur cherche déjà par texte, Nominatim serait redondant et trop lent pour 15 résultats).
+
+### Removed
+- **`enrichAllStationsWithOsm`** (bbox Overpass) — définitivement retiré.
+
+---
+
 ## [1.9.8.0] — 2026-05-23
 
 ### Changed

@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.9.8.0 — Suppression OSM, adresse comme nom de station
+   v1.9.9.0 — Nominatim reverse geocoding pour nom des stations
 ═══════════════════════════════════════ */
 
 /* ─── Configuration ─── */
-const APP_VERSION  = '1.9.8.0';
+const APP_VERSION  = '1.9.9.0';
 const GAS_URL      = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID  = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API     = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -23,10 +23,62 @@ let _nearbyStations = [];
   document.getElementById('s98Field').classList.remove('hidden');
 })();
 
+/* ═══════════════════════════════════════
+   ENRICHISSEMENT — NOMINATIM REVERSE GEOCODING
+   Requêtes séquentielles (1/s, CGU Nominatim).
+   Retourne brand > name si type=fuel, sinon null.
+═══════════════════════════════════════ */
+
+const NOMINATIM_UA = 'suivi-e85/1.9.9 (https://fdaubercy.github.io/suivi-e85/)';
+const NOMINATIM_DELAY = 1100; // ms entre requêtes (max 1 req/s)
+
 /**
- * Nom affiché d'une station : adresse capitalisée.
- * Le dataset gouvernemental ne contient pas de nom d'enseigne —
- * l'adresse est le seul identifiant unique fiable, sans appel externe.
+ * Interroge Nominatim pour UNE station.
+ * Accepte le résultat uniquement si type/category = fuel.
+ * @returns {Promise<string|null>} nom de la marque ou null
+ */
+async function fetchNominatimName(lat, lon) {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&extratags=1&zoom=18`;
+  try {
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': NOMINATIM_UA },
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!resp.ok) return null;
+    const d = await resp.json();
+    // N'accepter que si c'est bien une station essence OSM
+    const isFuel = d.type === 'fuel'
+      || d.category === 'amenity' && d.type === 'fuel'
+      || d.extratags?.amenity === 'fuel';
+    if (!isFuel) return null;
+    return d.extratags?.brand || d.extratags?.operator || d.name || null;
+  } catch (e) {
+    console.warn('[Nominatim] Erreur :', e.message);
+    return null;
+  }
+}
+
+/**
+ * Enrichit un tableau de stations via Nominatim en série.
+ * Affiche la progression dans le statut géolocalisation.
+ * @param {Array<{lat,lon}>} stations
+ * @returns {Promise<Array<string|null>>}
+ */
+async function enrichWithNominatim(stations) {
+  const names = [];
+  for (let i = 0; i < stations.length; i++) {
+    setGeoStatus('info', `Identification station ${i + 1}/${stations.length}…`);
+    names.push(await fetchNominatimName(stations[i].lat, stations[i].lon));
+    if (i < stations.length - 1) {
+      await new Promise(r => setTimeout(r, NOMINATIM_DELAY));
+    }
+  }
+  return names;
+}
+
+/**
+ * Nom de fallback depuis les données gouvernementales :
+ * adresse capitalisée > ville > 'Station service'
  */
 function stationLabel(r) {
   if (r.adresse) {
@@ -305,25 +357,38 @@ async function searchNearby(lat, lon, btn) {
       return;
     }
 
-    // ② Construire le tableau final (adresse comme nom, pas d'appel externe)
-    const knownNames = Array.from(
-      document.querySelectorAll('#knownGroup option:not([value="__autre"])')
-    ).map(o => o.value.toLowerCase());
-
-    const stations = data.results
+    // ② Construire les candidats (coordonnées + données brutes)
+    const candidates = data.results
       .filter(r => getCoords(r) && r.e85_prix != null)
       .map(r => {
         const c    = getCoords(r);
         const dist = Math.round(haversine(lat, lon, c.lat, c.lon));
-        const name = stationLabel(r);
-        const sub  = stationSubLabel(r);
-        const known = knownNames.some(k => k.includes(name.toLowerCase()) || k.includes((r.ville || '').toLowerCase()));
-        return { name, sub, dist, lat: c.lat, lon: c.lon,
-                 e85: r.e85_prix, s98: r.sp98_prix, known };
+        return { r, lat: c.lat, lon: c.lon, dist };
       })
-      .filter(s => s.dist <= 8000)
+      .filter(c => c.dist <= 8000)
       .sort((a, b) => a.dist - b.dist)
       .slice(0, 7);
+
+    if (!candidates.length) {
+      setGeoStatus('info', 'Aucune station E85 trouvée dans 8 km.');
+      return;
+    }
+
+    // ③ Enrichissement Nominatim en série (brand/operator OSM)
+    const nominatimNames = await enrichWithNominatim(candidates);
+
+    // ④ Tableau final enrichi
+    const knownNames = Array.from(
+      document.querySelectorAll('#knownGroup option:not([value="__autre"])')
+    ).map(o => o.value.toLowerCase());
+
+    const stations = candidates.map((c, i) => {
+      const name  = nominatimNames[i] || stationLabel(c.r);
+      const sub   = stationSubLabel(c.r);
+      const known = knownNames.some(k => k.includes(name.toLowerCase()) || k.includes((c.r.ville || '').toLowerCase()));
+      return { name, sub, dist: c.dist, lat: c.lat, lon: c.lon,
+               e85: c.r.e85_prix, s98: c.r.sp98_prix, known };
+    });
 
     _nearbyStations = stations;
 
