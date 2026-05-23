@@ -69,6 +69,7 @@ function setType(type) {
   currentType = type;
   document.getElementById('btnE85').classList.toggle('active', type === 'E85');
   document.getElementById('btnS98').classList.toggle('active', type === 'S98');
+  document.getElementById('headerBadge').textContent = type;
   document.getElementById('s98Field').classList.toggle('hidden', type !== 'E85');
   document.getElementById('prixLabel').textContent = type === 'E85' ? 'Prix E85 (€/L)' : 'Prix S98 (€/L)';
   const fp = document.getElementById('fPrix');
@@ -137,11 +138,13 @@ function geolocate() {
 async function searchNearby(lat, lon, btn) {
   setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
   try {
-    const resp = await fetch(odsUrl({
-      where:  "e85_prix is not null AND distance(geom, geom'POINT(" + lon + " " + lat + ")', 8000m)",
+    const params = new URLSearchParams({
+      'geofilter.distance': lat + ',' + lon + ',8000',
+      where:  'e85_prix is not null',
       select: 'adresse,ville,cp,e85_prix,sp98_prix,geom',
       limit:  10
-    }));
+    });
+    const resp = await fetch(PRIX_API + '?' + params.toString());
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
