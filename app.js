@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.9.6.0 — Requête OSM groupée (anti-429)
+   v1.9.7.0 — Requête OSM bbox (anti-timeout)
 ═══════════════════════════════════════ */
 
 /* ─── Configuration ─── */
-const APP_VERSION  = '1.9.6.0';
+const APP_VERSION  = '1.9.7.0';
 const GAS_URL      = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID  = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API     = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -32,9 +32,10 @@ let _nearbyStations = [];
 ═══════════════════════════════════════ */
 
 /**
- * Envoie UNE requête Overpass pour toutes les stations du tableau.
- * Pour chaque station {lat, lon}, trouve l'élément OSM le plus proche
- * dans un rayon DISTANCE_THRESHOLD et retourne brand > name > operator.
+ * Envoie UNE requête Overpass avec bounding box englobant toutes les stations.
+ * Bien plus légère que N clauses `around` individuelles — évite les timeouts.
+ * Pour chaque station, l'élément OSM le plus proche est sélectionné (haversine).
+ * Retourne brand > name > operator, ou null si aucun match.
  *
  * @param {Array<{lat: number, lon: number}>} stations
  * @returns {Promise<Array<string|null>>} tableau de noms OSM, même ordre que l'entrée
@@ -42,12 +43,15 @@ let _nearbyStations = [];
 async function enrichAllStationsWithOsm(stations) {
   if (!stations.length) return [];
 
-  // Construction de la requête groupée : une clause (node+way) par station
-  const clauses = stations.map(s =>
-    `node(around:${DISTANCE_THRESHOLD},${s.lat},${s.lon})[amenity=fuel];` +
-    `way(around:${DISTANCE_THRESHOLD},${s.lat},${s.lon})[amenity=fuel];`
-  ).join('');
-  const query = `[out:json][timeout:25];(${clauses});out tags center;`;
+  // Bounding box englobant toutes les stations + marge DISTANCE_THRESHOLD
+  const margin = DISTANCE_THRESHOLD / 111320; // mètres → degrés (approx)
+  const south  = Math.min(...stations.map(s => s.lat)) - margin;
+  const north  = Math.max(...stations.map(s => s.lat)) + margin;
+  const west   = Math.min(...stations.map(s => s.lon)) - margin;
+  const east   = Math.max(...stations.map(s => s.lon)) + margin;
+
+  // Une seule requête bbox — beaucoup plus légère que N clauses around
+  const query = `[out:json][timeout:15];(node[amenity=fuel](${south},${west},${north},${east});way[amenity=fuel](${south},${west},${north},${east}););out tags center;`;
 
   try {
     const resp = await fetch(OVERPASS_API, {
@@ -55,15 +59,15 @@ async function enrichAllStationsWithOsm(stations) {
       body: 'data=' + encodeURIComponent(query)
     });
     if (!resp.ok) {
-      console.warn(`[OSM] Requête groupée échouée : HTTP ${resp.status}`);
+      console.warn(`[OSM] Requête bbox échouée : HTTP ${resp.status}`);
       return stations.map(() => null);
     }
     const data = await resp.json();
     const elements = data.elements || [];
 
-    console.log(`[OSM] Requête groupée : ${elements.length} élément(s) retourné(s) pour ${stations.length} station(s)`);
+    console.log(`[OSM] Requête bbox : ${elements.length} élément(s) OSM pour ${stations.length} station(s) — bbox (${south.toFixed(4)},${west.toFixed(4)},${north.toFixed(4)},${east.toFixed(4)})`);
 
-    // Pour chaque station d'entrée, trouver l'élément OSM le plus proche
+    // Pour chaque station, trouver l'élément OSM le plus proche dans DISTANCE_THRESHOLD
     return stations.map(s => {
       const candidates = elements
         .map(el => {
@@ -81,7 +85,7 @@ async function enrichAllStationsWithOsm(stations) {
       return tags.brand || tags.name || tags.operator || null;
     });
   } catch (e) {
-    console.warn('[OSM] Erreur requête groupée :', e.message);
+    console.warn('[OSM] Erreur requête bbox :', e.message);
     return stations.map(() => null);
   }
 }

@@ -23,29 +23,32 @@ Ajouter à l'écran d'accueil iPhone : Safari → Partager → « Sur l'écran d
 Dès la sélection d'une station, l'API gouvernementale `data.economie.gouv.fr` est interrogée
 pour récupérer simultanément le prix **E85** et le prix **SP98** :
 - Prix trouvé → champ pré-rempli en vert pendant 6 secondes
-- Prix non trouvé → placeholder `--` en grisé, saisie manuelle disponible
+- Prix non trouvé → placeholder `--`, saisie manuelle disponible
 - Stratégie progressive : rayon 500 m → 2 km → 5 km → fallback GPS → code postal
-L'application interroge l'API `data.economie.gouv.fr` et enrichit les données avec OpenStreetMap (Overpass API).
-- Rayon de recherche : **2000 mètres**.
-- Priorité : `brand` > `name` > `operator`.
+
+### Identification des enseignes (OSM)
+L'application enrichit les données gouvernementales avec OpenStreetMap (Overpass API) :
+- **Une seule requête bbox** pour toutes les stations — évite les 429 et les timeouts
+- Rayon de matching : `DISTANCE_THRESHOLD` = **2 000 mètres**
+- Priorité des champs OSM : `brand` > `name` > `operator`
+- Fallback : extraction sémantique depuis `services`/`adresse` (TotalEnergies, E.Leclerc, Carrefour…)
 
 ### Carte interactive (moteur maison, sans librairie externe)
-La carte utilise un rendu de **tuiles OpenStreetMap en JS pur** :
+- Tuiles **OpenStreetMap** rendues en JS pur (zéro dépendance externe)
 - Marqueurs ⛽ cliquables pour chaque station trouvée
 - Cliquer sur un marqueur sélectionne la station et met en surbrillance sa ligne dans la liste
 - Marqueur vert pour la position de l'utilisateur
 - Synchronisation bidirectionnelle liste ↔ carte
 
 ### Géolocalisation
-- Bouton 📍 : détecte les stations E85 dans un rayon de **6 km**
+- Bouton 📍 : détecte les stations E85 dans un rayon de **8 km**
 - Liste des 7 stations les plus proches, triées par distance
 - Badge « connue » pour les stations déjà présentes dans le dropdown
 - Tap sur une station (liste ou carte) → sélection + récupération des prix
 
 ### Recherche manuelle avec suggestions
-- Dès 3 caractères tapés dans le champ « Autre station »,
-  une recherche avec debounce 500 ms est lancée dans l'API gouvernementale
-- **Affichage simultané** : liste de suggestions + marqueurs sur la carte
+- Dès 3 caractères saisis, recherche avec debounce 500 ms dans l'API gouvernementale
+- Affichage simultané : liste de suggestions + marqueurs sur la carte
 - Sélection possible depuis la liste **ou depuis la carte**
 - Sélection d'une suggestion → nom canonique, mise à jour dropdown, récupération des prix
 
@@ -110,12 +113,13 @@ function doPost(e) {
 
 ### 2. Connecter le formulaire
 
-Dans `app.js`, deux constantes en tête de fichier :
+Dans `app.js`, constantes en tête de fichier :
 
 ```javascript
-const APP_VERSION = '1.7.0';         // ← mettre à jour à chaque déploiement
-const GAS_URL     = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
-const GS_SHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
+const APP_VERSION        = '1.9.7.0';   // ← mettre à jour à chaque déploiement
+const GAS_URL            = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
+const GS_SHEET_ID        = 'VOTRE_ID_GOOGLE_SHEET';
+const DISTANCE_THRESHOLD = 2000;         // rayon OSM en mètres
 ```
 
 ### 3. Google Sheet cible
@@ -137,7 +141,7 @@ const GS_SHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
 
 ## 🗺️ Carte interactive
 
-La carte est construite sans aucune librairie externe :
+Moteur de rendu sans librairie externe :
 - Tuiles OpenStreetMap chargées dynamiquement selon le bounding box
 - Marqueurs positionnés via la projection Mercator (formule standard)
 - Zoom optimal calculé automatiquement pour englober toutes les stations
@@ -145,10 +149,31 @@ La carte est construite sans aucune librairie externe :
 
 ---
 
+## 🏷️ Identification des enseignes — Architecture
+
+```
+API gouvernementale (data.economie.gouv.fr)
+        ↓  adresse, ville, cp, e85_prix, sp98_prix, geom, services
+        ↓
+enrichAllStationsWithOsm(stations)
+  → 1 requête Overpass bbox englobant toutes les stations
+  → matching haversine par station (élément OSM le plus proche ≤ 2 000 m)
+  → brand > name > operator
+        ↓ si null
+resolveStationName → stationLabel(r)
+  → extraction sémantique services/adresse
+  → (TotalEnergies, E.Leclerc, Carrefour, Système U…)
+        ↓ si null
+  → ville en MAJUSCULES
+```
+
+---
+
 ## 📦 Technologies
 
 - HTML / CSS / JavaScript vanilla
 - [API Prix des Carburants v2](https://data.economie.gouv.fr/explore/dataset/prix-des-carburants-en-france-flux-instantane-v2/) — stations et prix (géoloc + recherche)
+- [OpenStreetMap Overpass API](https://overpass-api.de/) — identification des enseignes (requête bbox unique)
 - [OpenStreetMap](https://www.openstreetmap.org/) — tuiles cartographiques
 - Google Apps Script — backend (enregistrement pleins + gestion des stations)
 - Google Sheets — stockage des données et liste des stations
