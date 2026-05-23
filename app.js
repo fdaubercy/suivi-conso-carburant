@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.9.5.0 — Nom OSM prioritaire sur nom API gouvernementale
+   v1.9.5.1 — Fix HTTP 400 : suppression champ nom inexistant dans le dataset
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.9.5.0';
+const APP_VERSION = '1.9.5.1';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -232,13 +232,12 @@ function getCoords(r) {
 /**
  * Résout le nom affiché d'une station selon la priorité :
  *   1. Nom OSM (brand / name / operator) — passé en paramètre
- *   2. Champ `nom` de l'API gouvernementale
- *   3. Extraction sémantique depuis services/adresse
- *   4. Ville en majuscules
+ *   2. Extraction sémantique depuis services/adresse (stationLabel)
+ *   3. Ville en majuscules
+ * Note : le dataset gouvernemental ne fournit pas de champ 'nom'.
  */
 function resolveStationName(osmName, r) {
-  if (osmName)  return osmName;
-  if (r.nom)    return r.nom.trim();
+  if (osmName) return osmName;
   return stationLabel(r);
 }
 
@@ -360,7 +359,7 @@ async function searchNearby(lat, lon, btn) {
   try {
     const resp = await fetch(odsUrl({
       where:  `e85_prix is not null and distance(geom, geom'POINT(${lon} ${lat})', 8000m)`,
-      select: 'nom,adresse,ville,cp,e85_prix,sp98_prix,geom,services',
+      select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
       limit:  40
     }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -475,7 +474,7 @@ async function searchStationSuggestions(q) {
   try {
     const resp = await fetch(odsUrl({
       where:  `ville like "${q}*" OR adresse like "${q}*" OR services like "${q}*"`,
-      select: 'nom,adresse,ville,cp,e85_prix,sp98_prix,geom,services',
+      select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
       limit:  15
     }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -503,7 +502,7 @@ async function searchStationSuggestions(q) {
     const enrichedResults = await Promise.all(enrichedResultsPromises);
 
     console.log('[DEBUG] Tableau enrichi suggestions — priorité OSM > nom API > sémantique :');
-    console.table(enrichedResults.map(r => ({ label: r._calculatedLabel, nom: r.nom, ville: r.ville })));
+    console.table(enrichedResults.map(r => ({ label: r._calculatedLabel, ville: r.ville, adresse: r.adresse })));
 
     renderSuggestions(enrichedResults);
     setSuggStatus('', '');
