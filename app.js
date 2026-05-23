@@ -15,7 +15,6 @@ let userLat = null, userLon = null;
   const t = new Date();
   document.getElementById('fDate').value =
     `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
-  // s98Field visible par défaut (mode E85)
   document.getElementById('s98Field').classList.remove('hidden');
 })();
 
@@ -197,7 +196,6 @@ function pickSuggestion(idx) {
   hideSuggestions();
   setSuggStatus('', '');
 
-  // Remplace dans le dropdown toutes les options portant l'ancienne saisie
   const sel = document.getElementById('stationSel');
   Array.from(sel.options).forEach(opt => {
     if (opt.value !== '__autre' && opt.value.toLowerCase() === oldName.toLowerCase()) {
@@ -241,16 +239,12 @@ function onAutreBlur() {
 
 /* ═══════════════════════════════════════
    PRIX — API gouvernementale
-   data.economie.gouv.fr  (schéma v2)
-   1 ligne = 1 station
-   Champs : e85_prix, sp98_prix, adresse, ville
 ═══════════════════════════════════════ */
 
 function odsUrl(params) {
   return PRIX_API + '?' + new URLSearchParams(params).toString();
 }
 
-/* Remplit un champ prix ou affiche '--' en grisé */
 function setFieldPrice(id, value, defaultPh) {
   const el = document.getElementById(id);
   const v  = value ? parseFloat(value) : 0;
@@ -265,7 +259,6 @@ function setFieldPrice(id, value, defaultPh) {
   }
 }
 
-/* Applique les deux prix (E85 + SP98) après un résultat API */
 function applyPricesResult(data) {
   const r     = data.results[0];
   const label = [r.adresse, r.ville].filter(Boolean).join(' · ');
@@ -288,7 +281,6 @@ function applyPricesResult(data) {
   }
 }
 
-/* Recherche par coordonnées, rayon progressif 500 m → 2 km → 5 km */
 async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
   setS98Status('spin', 'Recherche des prix…');
   hideCpSearch();
@@ -322,7 +314,6 @@ async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
   }
 }
 
-/* Recherche près du GPS utilisateur */
 async function fetchPricesNearUser() {
   if (userLat && userLon) {
     await fetchPricesAtCoords(userLat, userLon, false);
@@ -332,7 +323,6 @@ async function fetchPricesNearUser() {
   }
 }
 
-/* Recherche par code postal */
 async function fetchPricesByCP() {
   const cp = document.getElementById('fCp').value.trim();
   if (cp.length !== 5) { setS98Status('err', 'Code postal invalide (5 chiffres requis).'); return; }
@@ -375,7 +365,10 @@ function haversine(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-/* ─── Soumission ─── */
+/* ═══════════════════════════════════════
+   SOUMISSION
+═══════════════════════════════════════ */
+
 async function submitForm() {
   const date    = document.getElementById('fDate').value;
   const km      = document.getElementById('fKm').value.trim();
@@ -400,6 +393,8 @@ async function submitForm() {
     const json = await fetch(GAS_URL, { method: 'POST', body, redirect: 'follow' }).then(r => r.json());
     if (json.success) {
       showFeedback('success', 'Plein enregistré ✓', json.message || `${litres} L à ${prix} €/L — ${station}`);
+      // ── Sync automatique si nouvelle station ──
+      await syncStationSiNouvelle(station);
       resetForm();
     } else {
       showFeedback('error', 'Erreur serveur', json.error || 'Veuillez réessayer.');
@@ -448,9 +443,46 @@ function resetForm() {
   s98Autofilled = false;
 }
 
+/* ═══════════════════════════════════════
+   SYNC STATION VERS GOOGLE SHEETS
+   Appelé automatiquement après chaque
+   plein validé. N'envoie que si la
+   station est absente du dropdown.
+═══════════════════════════════════════ */
+
+async function syncStationSiNouvelle(nom) {
+  if (!nom) return;
+
+  // Vérifie si la station est déjà dans le groupe "habituelles"
+  const group   = document.getElementById('knownGroup');
+  const options = Array.from(group.querySelectorAll('option'))
+    .map(o => o.value.toLowerCase())
+    .filter(v => v !== '__autre');
+
+  if (options.includes(nom.toLowerCase())) return; // déjà connue, rien à faire
+
+  try {
+    await fetch(GAS_URL, {
+      method:   'POST',
+      redirect: 'follow',
+      body:     JSON.stringify({ action: 'addStation', station: nom })
+    });
+    // Ajoute localement dans le dropdown pour la session en cours
+    const autreOpt = group.querySelector('[value="__autre"]');
+    group.insertBefore(new Option(nom, nom), autreOpt);
+    console.log('[Stations] Nouvelle station synchronisée :', nom);
+  } catch (e) {
+    console.warn('[Stations] Sync échouée (silencieux) :', e.message);
+  }
+}
+
+/* ═══════════════════════════════════════
+   CHARGEMENT DES STATIONS
+   Depuis l'onglet Stations du Google Sheet
+═══════════════════════════════════════ */
+
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 
-/* ─── Chargement des stations depuis Google Sheets ─── */
 async function chargerStations() {
   const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}`
             + `/gviz/tq?tqx=out:csv&sheet=Stations`;
@@ -460,28 +492,29 @@ async function chargerStations() {
     const csv  = await resp.text();
 
     const lignes = csv.split('\n').map(l => l.trim().replace(/^"|"$/g, ''));
-    // lignes[0] = en-tête "Station", on saute
     const stations = lignes.slice(1).filter(s => s && s !== '__autre');
 
     const group = document.getElementById('knownGroup');
-    // Supprime les options existantes sauf "Autre"
     Array.from(group.querySelectorAll('option:not([value="__autre"])')).forEach(o => o.remove());
 
-    // Insère les stations avant l'option "Autre"
     const autreOpt = group.querySelector('[value="__autre"]');
     stations.forEach(nom => {
       const opt = new Option(nom, nom);
       group.insertBefore(opt, autreOpt);
     });
   } catch(e) {
-    // Fallback silencieux : on garde les stations codées en dur si besoin
     console.warn('Chargement stations échoué :', e.message);
+    // Fallback : stations par défaut si l'onglet Stations est absent
+    const fallback = ['Carrefour Flers', 'Intermarché', 'Leclerc Douai', 'Total Access', 'Total Waziers', 'ZONE DU MOULIN RUE ARTHUR LAMENDIN — Beuvry'];
+    const group    = document.getElementById('knownGroup');
+    const autreOpt = group.querySelector('[value="__autre"]');
+    fallback.forEach(nom => group.insertBefore(new Option(nom, nom), autreOpt));
   }
 }
 
-// Appel au démarrage (remplace le bloc Date du jour existant)
+/* ─── Démarrage ─── */
 const _t = new Date();
 document.getElementById('fDate').value =
   `${_t.getFullYear()}-${String(_t.getMonth()+1).padStart(2,'0')}-${String(_t.getDate()).padStart(2,'0')}`;
 
-chargerStations();   // ← ajouter cette ligne
+chargerStations();
