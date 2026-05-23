@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.8.2.2 — Enrichissement OpenStreetMap (Nom/Marque en Gras)
+   v1.8.2 — Enrichissement OpenStreetMap (Nom/Marque en Gras)
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.8.2.2';
+const APP_VERSION = '1.9.2.2';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
