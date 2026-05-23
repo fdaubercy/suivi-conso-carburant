@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.7.6 — correction HTTP 400 : geom→geo_point_2d dans select
+   v1.7.7 — correction HTTP 400 : suppression select géo, helper getCoords()
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.7.6';
+const APP_VERSION = '1.7.7';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -198,22 +198,29 @@ function hideMap() {
   document.getElementById('stationMapWrap').classList.add('hidden');
 }
 
+/* ─── Extraction coordonnées — schéma confirmé du dataset ─── */
+function getCoords(r) {
+  // Le dataset prix-des-carburants-v2 retourne geom: {lon, lat}
+  if (r.geom?.lat != null && r.geom?.lon != null) {
+    return { lat: +r.geom.lat, lon: +r.geom.lon };
+  }
+  return null;
+}
+
 /* ─── Nom lisible d'une station depuis l'API ─── */
 function stationLabel(r) {
+  // Le dataset n'a pas de champ enseigne — on construit le nom depuis ville/adresse
   const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
-  // Priorité : nom officiel → ville → adresse
-  if (r.nom)   return r.nom;
   if (r.ville) return cap(r.ville);
   return cap(r.adresse || 'Station inconnue');
 }
 
-/* ─── Sous-titre lisible (adresse + localisation) ─── */
+/* ─── Sous-titre lisible (adresse + code postal) ─── */
 function stationSubLabel(r) {
   const cap  = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
   const addr = cap(r.adresse || '');
   const cp   = r.cp   || '';
-  const ville = r.nom ? cap(r.ville || '') : '';   // ville affichée seulement si on a un nom
-  const parts = [addr, [cp, ville].filter(Boolean).join(' ')].filter(Boolean);
+  const parts = [addr, cp].filter(Boolean);
   return parts.join(' · ');
 }
 
@@ -291,11 +298,12 @@ function geolocate() {
 async function searchNearby(lat, lon, btn) {
   setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
   try {
-    // Utiliser distance() dans le WHERE exactement comme fetchPricesAtCoords (200 confirmé)
-    // geom et geofilter.distance dans select causent HTTP 400 — utiliser geo_point_2d
+    // Le dataset n'a PAS de champ "nom" → l'inclure dans select cause HTTP 400
+    // Champs valides confirmés via /datasets/.../records?limit=1 :
+    // id, latitude, longitude, cp, adresse, ville, geom{lon,lat}, e85_prix, sp98_prix...
     const resp = await fetch(odsUrl({
       where:  "e85_prix is not null AND distance(geom, geom'POINT(" + lon + ' ' + lat + ")', 8000m)",
-      select: 'nom,adresse,ville,cp,e85_prix,sp98_prix,geo_point_2d',
+      select: 'adresse,ville,cp,e85_prix,sp98_prix,geom',
       limit:  20
     }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -314,11 +322,11 @@ async function searchNearby(lat, lon, btn) {
 
     const stations = data.results
       .filter(r => {
-        const c = r.geo_point_2d || r.geom;
-        return c?.lat != null && c?.lon != null && r.e85_prix != null;
+        const c = getCoords(r);
+        return c && r.e85_prix != null;
       })
       .map(r => {
-        const c    = r.geo_point_2d || r.geom;
+        const c    = getCoords(r);
         const sLat = c.lat, sLon = c.lon;
         const d    = haversine(lat, lon, sLat, sLon);
         const name = stationLabel(r);
@@ -392,11 +400,10 @@ function onAutreInput() {
 
 async function searchStationSuggestions(q) {
   try {
-    // id et geom ne sont pas des champs valides pour le select → HTTP 400
-    // geo_point_2d est le nom ODS v2.1 pour les coordonnées géographiques
+    // Le dataset n'a pas de champ "nom" — sans nom dans select, plus de HTTP 400
     const resp = await fetch(odsUrl({
       q:        q,
-      select:   'nom,adresse,ville,cp,e85_prix,sp98_prix,geo_point_2d',
+      select:   'adresse,ville,cp,e85_prix,sp98_prix,geom',
       order_by: 'ville',
       limit:    15
     }));
@@ -429,8 +436,8 @@ function renderSuggestions(results) {
 
   // Toutes les stations géolocalisées s'affichent sur la carte
   const stationsGeo = results.reduce((acc, r, origIdx) => {
-    const c = r.geo_point_2d || r.geom;
-    if (c?.lat != null && c?.lon != null)
+    const c = getCoords(r);
+    if (c)
       acc.push({ name: stationLabel(r), lat: c.lat, lon: c.lon,
                  src: 'suggestion', srcIdx: origIdx });
     return acc;
@@ -462,8 +469,8 @@ function pickSuggestion(idx) {
   }
   sel.value = '__autre';
 
-  const gc = r.geo_point_2d || r.geom;
-  if (gc?.lon != null && gc?.lat != null) {
+  const gc = getCoords(r);
+  if (gc) {
     showMap(userLat, userLon,
       [{ name: stationLabel(r), lat: gc.lat, lon: gc.lon, src: 'suggestion', srcIdx: idx }]);
     fetchPricesAtCoords(gc.lat, gc.lon, false);
