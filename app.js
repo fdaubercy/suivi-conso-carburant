@@ -136,10 +136,10 @@ function geolocate() {
 }
 
 async function searchNearby(lat, lon, btn) {
-  setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
+  setGeoStatus('info', 'Recherche des stations E85 dans 6 km…');
   try {
     const params = new URLSearchParams({
-      'geofilter.distance': lat + ',' + lon + ',8000',
+      'geofilter.distance': lat + ',' + lon + ',6000',
       where:  'e85_prix is not null',
       select: 'adresse,ville,cp,e85_prix,sp98_prix,geom',
       limit:  10
@@ -151,7 +151,7 @@ async function searchNearby(lat, lon, btn) {
     btn.classList.remove('loading'); btn.textContent = '📍';
 
     if (!data.results?.length) {
-      setGeoStatus('info', 'Aucune station E85 trouvée dans 8 km.');
+      setGeoStatus('info', 'Aucune station E85 trouvée dans 6 km.');
       return;
     }
 
