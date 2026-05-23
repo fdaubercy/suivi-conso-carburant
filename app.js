@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v1.9.0 — Interopérabilité OSM & Enrichissement Enseigne en Gras
+   v1.9.1 — Traçabilité des flux d'API & Audit de Croisement
 ═══════════════════════════════════════ */
 
 /* ─── Configuration — à mettre à jour à chaque déploiement ─── */
-const APP_VERSION = '1.9.1';
+const APP_VERSION = '1.9.1.1';
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API    = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -312,6 +312,7 @@ async function fetchOsmNamesForStations(stations) {
   });
 
   const query = `[out:json][timeout:5];(${aroundClauses});out tags;`;
+  console.log('[API OSM] Requête Overpass soumise (corps HTTP POST) :', query);
   
   try {
     const resp = await fetch(OVERPASS_API, {
@@ -330,11 +331,14 @@ async function fetchOsmNamesForStations(stations) {
 async function searchNearby(lat, lon, btn) {
   setGeoStatus('info', 'Recherche des stations E85 dans 8 km…');
   try {
-    const resp = await fetch(odsUrl({
+    const targetUrl = odsUrl({
       where:  `e85_prix is not null and distance(geom, geom'POINT(${lon} ${lat})', 8000m)`,
       select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
       limit:  40
-    }));
+    });
+    console.log('[API ÉTAT] Requête géolocalisation :', targetUrl);
+
+    const resp = await fetch(targetUrl);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
@@ -401,6 +405,8 @@ async function searchNearby(lat, lon, btn) {
       });
     }
 
+    console.log('[TABLEAU ENRICHI] Stations E85 filtrées et croisées avec OSM :', stations);
+
     _nearbyStations = stations;
     renderNearby(stations);
     showMap(lat, lon, stations.map((s, i) => ({ ...s, src: 'nearby', srcIdx: i })));
@@ -462,11 +468,14 @@ function onAutreInput() {
 
 async function searchStationSuggestions(q) {
   try {
-    const resp = await fetch(odsUrl({
+    const targetUrl = odsUrl({
       where:    `ville like "${q}*" OR adresse like "${q}*" OR services like "${q}*"`,
       select:   'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
       limit:    15
-    }));
+    });
+    console.log('[API ÉTAT] Requête suggestions manuelles :', targetUrl);
+
+    const resp = await fetch(targetUrl);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
@@ -503,6 +512,8 @@ async function searchStationSuggestions(q) {
         });
       }
     }
+
+    console.log('[TABLEAU ENRICHI] Suggestions filtrées et croisées avec OSM :', results);
 
     renderSuggestions(results);
     setSuggStatus('', '');
@@ -633,11 +644,14 @@ async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
 
   for (const r of [500, 2000, 5000]) {
     try {
-      const resp = await fetch(odsUrl({
+      const targetUrl = odsUrl({
         where:    `(e85_prix is not null or sp98_prix is not null) and distance(geom, geom'POINT(${lon} ${lat})', ${r}m)`,
         select:   'e85_prix,sp98_prix,adresse,ville,services',
         limit:    1
-      }));
+      });
+      console.log(`[API PRIX] Requête à r=${r}m :`, targetUrl);
+
+      const resp = await fetch(targetUrl);
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const data = await resp.json();
       if (data.results?.length) { applyPricesResult(data); return; }
@@ -673,11 +687,14 @@ async function fetchPricesByCP() {
   if (cp.length !== 5) { setS98Status('err', 'Code postal invalide (5 chiffres requis).'); return; }
   setS98Status('spin', 'Recherche dans ' + cp + '…');
   try {
-    const resp = await fetch(odsUrl({
+    const targetUrl = odsUrl({
       where:    `(e85_prix is not null OR sp98_prix is not null) AND cp="${cp}"`,
       select:   'e85_prix,sp98_prix,adresse,ville,services',
       limit:    1
-    }));
+    });
+    console.log('[API PRIX] Requête par Code Postal :', targetUrl);
+
+    const resp = await fetch(targetUrl);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     if (data.results?.length) { hideCpSearch(); applyPricesResult(data); }

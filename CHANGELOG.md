@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [1.9.1.1] — 2026-05-23
+
+### Ajouté
+- **Logs de traçabilité réseau** : Ajout de marqueurs `console.log` explicites imprimant les URLs de requêtes exécutées vers l'API gouvernementale (`data.economie.gouv.fr`).
+- **Audit de payload OpenStreetMap** : Sortie de la chaîne QL textuelle générée à destination de l'API Overpass pour inspecter le périmètre spatial exact (`around:300`).
+- **Trace du tableau d'enrichissement** : Impression structurée dans la console (`console.log`) du tableau final d'objets `stations` après résolution et injection du nom de marque de l'enseigne validé.
+
 ## [1.9.1] — 2026-05-23
 
 ### Ajouté
