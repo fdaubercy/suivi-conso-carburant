@@ -3,7 +3,7 @@ import { FUEL_CONFIG, FUEL_KEYS, GAS_URL } from './config.js';
 import { state } from './state.js';
 import { setS98Status, setAutreStatus, hideCpSearch, setSubmitState, showFeedback, updateCout } from './ui.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
-import { fetchPricesNearUser } from './prix.js';
+import { fetchPricesNearUser, fetchNearestE85Price } from './prix.js';
 import { syncStationSiNouvelle } from './stations.js';
 
 export function onStationChange() {
@@ -47,6 +47,16 @@ export async function submitForm() {
   const stationPrices = Object.keys(state._stationPrices).length > 0
     ? Object.fromEntries(FUEL_KEYS.map(k => [k, state._stationPrices[k] || '']))
     : {};
+
+  // Garantir le prix E85 même pour les pleins non-E85 (référence de comparaison)
+  if (!stationPrices.E85) {
+    const lat = state._selectedLat || state.userLat;
+    const lon = state._selectedLon || state.userLon;
+    if (lat && lon) {
+      const e85Price = await fetchNearestE85Price(lat, lon);
+      if (e85Price) stationPrices.E85 = e85Price;
+    }
+  }
 
   try {
     const json = await fetch(GAS_URL, {

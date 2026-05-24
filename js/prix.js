@@ -75,6 +75,23 @@ export async function fetchPricesNearUser() {
   }
 }
 
+/** Cherche le prix E85 le plus proche d'un point (fallback pour pleins non-E85). */
+export async function fetchNearestE85Price(lat, lon) {
+  for (const r of [1000, 5000, 15000]) {
+    try {
+      const resp = await fetch(odsUrl({
+        where:  `e85_prix is not null and distance(geom, geom'POINT(${lon} ${lat})', ${r}m)`,
+        select: 'e85_prix',
+        limit:  1
+      }));
+      if (!resp.ok) throw new Error();
+      const data = await resp.json();
+      if (data.results?.length && data.results[0].e85_prix != null) return data.results[0].e85_prix;
+    } catch(e) { return null; }
+  }
+  return null;
+}
+
 /** Cherche les prix via code postal saisi manuellement. */
 export async function fetchPricesByCP() {
   const cp = document.getElementById('fCp').value.trim();

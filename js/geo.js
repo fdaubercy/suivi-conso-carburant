@@ -95,6 +95,7 @@ export function pickStation(name, lat, lon) {
   document.getElementById('nearbyList').style.display = 'none';
   document.getElementById('autreField').classList.add('hidden');
   setGeoStatus('', '');
+  state._selectedLat = lat; state._selectedLon = lon;
   state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
   fetchPricesAtCoords(lat, lon, true);
 }
