@@ -82,6 +82,40 @@ function doPost(e) {
 }
 
 // ────────────────────────────────────────────────────────────
+//  migrateHeaders — À exécuter UNE SEULE FOIS manuellement
+//  Met à jour la ligne 1 de _ImportGS vers 15 colonnes A→O
+//  sans toucher aux lignes de données existantes.
+// ────────────────────────────────────────────────────────────
+function migrateHeaders() {
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = getOrCreateSheet(ss);
+
+  // Écrire les 15 en-têtes en ligne 1
+  sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+
+  // Reformater la ligne d'en-tête
+  sheet.getRange(1, 1, 1, HEADERS.length)
+    .setFontWeight('bold')
+    .setBackground('#1B3A5C')
+    .setFontColor('#FFFFFF')
+    .setHorizontalAlignment('center');
+
+  // Figer la ligne 1 si ce n'est pas déjà fait
+  sheet.setFrozenRows(1);
+
+  // Ajuster la largeur des colonnes nouvelles (I→O)
+  sheet.setColumnWidth(9,  100);  // I — Véhicule
+  sheet.setColumnWidth(10, 110);  // J — E85 station
+  sheet.setColumnWidth(11, 110);  // K — SP98 station
+  sheet.setColumnWidth(12, 110);  // L — SP95 station
+  sheet.setColumnWidth(13, 110);  // M — E10 station
+  sheet.setColumnWidth(14, 110);  // N — Gazole station
+  sheet.setColumnWidth(15, 110);  // O — GPLc station
+
+  Logger.log('✅ Migration terminée — ' + HEADERS.length + ' colonnes en ligne 1.');
+}
+
+// ────────────────────────────────────────────────────────────
 //  Helpers
 // ────────────────────────────────────────────────────────────
 function getOrCreateSheet(ss) {
