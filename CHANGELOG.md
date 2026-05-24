@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.2.4.3] — 2026-05-24
+
+### Fixed
+- **`vba/modSyncGS.bas` — `ParseRecords`** : remplacement du `Split(arrStr, "},{")` fragile par un parser à **comptage d'accolades** robuste. L'ancienne approche échouait si : (1) un nom de station contient `},{`, (2) GAS ajoute des espaces/sauts de ligne entre objets, (3) objets imbriqués dans les valeurs. Le nouveau parser traverse le JSON caractère par caractère, suit la profondeur d'imbrication et la présence dans une chaîne (détecte les `\"` échappés), et extrait chaque objet racine complet de manière fiable.
+
+---
+
 ## [2.2.4.2] — 2026-05-24
 
 ### Fixed
