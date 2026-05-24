@@ -84,7 +84,21 @@ Si OSM ne retourne pas de résultat, l'adresse de l'API gouvernementale est util
 suivi-e85/
 ├── index.html           # Structure HTML
 ├── style.css            # Feuille de styles
-├── app.js               # Logique JavaScript (APP_VERSION à mettre à jour)
+├── js/
+│   ├── main.js          # Point d'entrée (APP_VERSION à mettre à jour dans config.js)
+│   ├── config.js        # Constantes : APP_VERSION, FUEL_CONFIG, URLs…
+│   ├── state.js         # État partagé (currentType, userLat, _stationPrices…)
+│   ├── utils.js         # Fonctions pures (haversine, getCoords, odsUrl…)
+│   ├── ui.js            # Helpers DOM (setGeoStatus, showFeedback, updateCout…)
+│   ├── vehicules.js     # Gestion véhicules (localStorage)
+│   ├── osm.js           # Enrichissement Overpass (nom enseigne)
+│   ├── carte.js         # Rendu carte tuiles OSM
+│   ├── carburant.js     # Toggle type de carburant + badges header
+│   ├── prix.js          # API prix (fetchPricesAtCoords, applyPricesResult…)
+│   ├── geo.js           # Géolocalisation + liste stations proches
+│   ├── recherche.js     # Recherche manuelle par ville
+│   ├── formulaire.js    # Soumission et réinitialisation formulaire
+│   └── stations.js      # Chargement liste stations Google Sheets
 ├── README.md
 ├── CHANGELOG.md
 └── .claude/
@@ -133,7 +147,7 @@ function doPost(e) {
 Dans `app.js`, constantes en tête de fichier :
 
 ```javascript
-const APP_VERSION = '2.2.0.0';   // ← mettre à jour à chaque déploiement
+const APP_VERSION = '2.2.1.0';   // ← mettre à jour à chaque déploiement (js/config.js)
 const GAS_URL     = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
 const GS_SHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
 ```

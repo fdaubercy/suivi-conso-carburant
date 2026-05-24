@@ -159,6 +159,7 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
   color: var(--blue-dark); font-weight: 600;
 }
 .type-btn-sm:active { background: var(--blue-light); }
+.type-btn-sm.dimmed { opacity: 0.38; }
 
 /* Prix affiché dans les boutons secondaires */
 .type-price {

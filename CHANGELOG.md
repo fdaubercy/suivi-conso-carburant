@@ -4,6 +4,24 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.2.1.0] — 2026-05-24
+
+### Fixed
+- **Carburants secondaires non sélectionnables** : SP95, E10, Gazole, GPLc n'apparaissaient que si la station avait déjà des prix chargés. La ligne secondaire est désormais **toujours affichée** — boutons actifs dès l'ouverture de l'app, grisés (`dimmed`) uniquement si la station sélectionnée ne vend pas ce carburant.
+
+### Changed
+- **Refactorisation en ES Modules** : `app.js` (772 lignes) découpé en 14 modules sous `js/` :
+  `config.js`, `state.js`, `utils.js`, `ui.js`, `vehicules.js`, `osm.js`, `carte.js`, `carburant.js`, `prix.js`, `geo.js`, `recherche.js`, `formulaire.js`, `stations.js`, `main.js`.
+- **`index.html`** : `<script src="app.js">` → `<script type="module" src="js/main.js">`.
+- **Dépendance circulaire carburant ↔ prix** résolue via `registerPriceCallback()` câblé dans `main.js`.
+- **Handlers HTML** exposés sur `window` dans `main.js` (`setType`, `geolocate`, `pickStation`, `selectStationFromMap`…).
+- **`.type-btn-sm.dimmed`** (CSS) : opacité 0.38 pour les carburants indisponibles à la station courante.
+
+### Added
+- `app.js` supprimé — remplacé par `js/main.js` (point d'entrée).
+
+---
+
 ## [2.2.0.0] — 2026-05-24
 
 ### Added
