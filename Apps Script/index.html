@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Suivi E85">
+<title>Suivi Conso E85</title>
+<script>
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzljFbh6QcgQ9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
+</script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue-dark:   #1B3A5C;
+  --blue-mid:    #2E75B6;
+  --blue-light:  #E6F1FB;
+  --green:       #1D9E75;
+  --green-light: #E1F5EE;
+  --red:         #E24B4A;
+  --red-light:   #FCEBEB;
+  --amber:       #F0A500;
+  --text:        #1a1a1a;
+  --text-muted:  #6B7280;
+  --border:      #e2e8f0;
+  --bg:          #f1f5f9;
+  --white:       #ffffff;
+  --radius:      10px;
+}
+
+html { height: -webkit-fill-available; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  padding-bottom: 1.5rem;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+/* ─── Header ─── */
+header {
+  background: var(--blue-dark);
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+header h1 { color: #fff; font-size: 17px; font-weight: 600; }
+.badge {
+  background: var(--amber); color: var(--blue-dark);
+  font-size: 10px; font-weight: 700;
+  padding: 3px 8px; border-radius: 4px;
+}
+
+/* ─── Cards ─── */
+.card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 0 rgba(0,0,0,.04);
+  padding: 16px;
+  margin: 12px 16px 0;
+}
+
+.section-title {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px;
+}
+
+/* ─── Toggle type ─── */
+.type-toggle {
+  display: grid; grid-template-columns: 1fr 1fr;
+  background: #e5e7eb; border-radius: 10px;
+  padding: 3px; margin-bottom: 16px;
+}
+.type-btn {
+  padding: 10px 6px;
+  font-size: 14px; font-weight: 500;
+  border: none; background: transparent;
+  color: var(--text-muted); cursor: pointer;
+  border-radius: 8px; font-family: inherit;
+  min-height: 44px;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  -webkit-tap-highlight-color: transparent;
+  transition: all .15s;
+}
+.type-btn.active {
+  background: var(--white); color: var(--blue-dark); font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
+}
+
+/* ─── Champs ─── */
+.field { margin-bottom: 12px; }
+.field:last-child { margin-bottom: 0; }
+.field label {
+  display: block; font-size: 13px; font-weight: 500;
+  color: var(--text-muted); margin-bottom: 5px;
+}
+/* 16px partout — empêche le zoom auto Safari */
+.field input, .field select {
+  width: 100%; height: 44px; padding: 0 14px;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 16px; color: var(--text); background: var(--white);
+  font-family: inherit; -webkit-appearance: none; appearance: none;
+}
+.field input::placeholder { color: #b0b7c3; }
+.field input:focus, .field select:focus {
+  outline: none; border-color: var(--blue-mid);
+  box-shadow: 0 0 0 4px rgba(46,117,182,.15);
+}
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ─── Station + géo ─── */
+.station-wrap { position: relative; }
+.station-wrap select { padding-right: 50px; }
+.geo-btn {
+  position: absolute; right: 1px; top: 1px; bottom: 1px; width: 46px;
+  border: none; background: transparent;
+  border-left: 1.5px solid var(--border); border-radius: 0 9px 9px 0;
+  cursor: pointer; font-size: 20px;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.geo-btn:active { background: var(--blue-light); }
+.geo-btn.loading { animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.geo-status { font-size: 12px; margin-top: 5px; min-height: 16px; }
+.geo-status.ok   { color: var(--green); }
+.geo-status.err  { color: var(--red); }
+.geo-status.info { color: var(--text-muted); }
+
+.nearby-list {
+  display: none; border: 1.5px solid var(--border);
+  border-radius: 10px; overflow: hidden; margin-top: 8px;
+  max-height: 260px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+.nearby-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 13px 14px; cursor: pointer; font-size: 15px;
+  border-bottom: 1px solid var(--border);
+  background: var(--white); color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+.nearby-item:last-child { border-bottom: none; }
+.nearby-item:active { background: var(--blue-light); }
+.nearby-dist { font-size: 12px; color: var(--text-muted); margin-left: auto; white-space: nowrap; }
+.nearby-badge {
+  font-size: 10px; background: var(--green-light); color: #085041;
+  padding: 2px 7px; border-radius: 4px; font-weight: 600;
+}
+
+/* ─── Coût ─── */
+.cout-box {
+  display: none; background: var(--blue-light);
+  border-radius: 10px; padding: 11px 14px; margin-top: 10px;
+  align-items: baseline; gap: 8px;
+}
+.cout-label { font-size: 14px; color: var(--blue-dark); }
+.cout-val   { font-size: 24px; font-weight: 700; color: var(--blue-dark); }
+
+/* ─── Bouton submit sticky ─── */
+.submit-wrap {
+  position: sticky; bottom: 0;
+  padding: 12px 16px 16px;
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+  margin-top: 8px;
+}
+.submit-btn {
+  width: 100%; height: 52px; border: none;
+  border-radius: 12px; background: var(--blue-dark);
+  color: #fff; font-size: 17px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+.submit-btn:active { background: #0F2740; transform: scale(.98); }
+.submit-btn:disabled { opacity: .55; }
+
+/* ─── Feedback ─── */
+.feedback {
+  display: none; margin: 8px 16px 0;
+  border-radius: var(--radius); padding: 14px 16px; font-size: 14px;
+}
+.feedback.success { background: var(--green-light); border: 1.5px solid #9FE1CB; color: #085041; }
+.feedback.error   { background: var(--red-light);   border: 1.5px solid #F7C1C1; color: #501313; }
+.feedback strong  { display: block; font-size: 16px; margin-bottom: 3px; }
+
+.hidden { display: none !important; }
+footer { text-align: center; font-size: 11px; color: var(--text-muted); padding: 8px 16px 0; }
+
+/* ════════════════════════════════════════
+   SAFE AREAS iOS — notch + home indicator
+   @supports détecte iOS de façon fiable,
+   contrairement à navigator.userAgent
+   dans les iframes GAS
+════════════════════════════════════════ */
+@supports (padding: env(safe-area-inset-top)) {
+  header {
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-left:  max(1.25rem, env(safe-area-inset-left));
+    padding-right: max(1.25rem, env(safe-area-inset-right));
+  }
+  .submit-wrap {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  footer {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:22px">⛽</span>
+  <h1>Saisie d'un plein</h1>
+  <span class="badge">E85</span>
+</header>
+
+<div class="card">
+  <p class="section-title">Type de carburant</p>
+  <div class="type-toggle">
+    <button class="type-btn active" id="btnE85" onclick="setType('E85')">🌿 SuperEthanol E85</button>
+    <button class="type-btn" id="btnS98" onclick="setType('S98')">💧 Super 98</button>
+  </div>
+
+  <p class="section-title">Informations du plein</p>
+  <div class="row2">
+    <div class="field">
+      <label for="fDate">Date</label>
+      <input type="date" id="fDate">
+    </div>
+    <div class="field">
+      <label for="fKm">Km compteur</label>
+      <input type="number" id="fKm" placeholder="11 596" inputmode="numeric">
+    </div>
+  </div>
+  <div class="row2">
+    <div class="field">
+      <label for="fLitres">Litres</label>
+      <input type="number" id="fLitres" step="0.01" placeholder="14.90"
+             inputmode="decimal" oninput="updateCout()">
+    </div>
+    <div class="field">
+      <label id="prixLabel" for="fPrix">Prix E85 (€/L)</label>
+      <input type="number" id="fPrix" step="0.001" placeholder="0.798"
+             inputmode="decimal" oninput="updateCout()">
+    </div>
+  </div>
+  <div class="field hidden" id="s98Field">
+    <label for="fPrixS98">Prix S98 du jour (€/L)</label>
+    <input type="number" id="fPrixS98" step="0.001" placeholder="2.091" inputmode="decimal">
+  </div>
+  <div class="cout-box" id="coutBox">
+    <span class="cout-label">Coût du plein :</span>
+    <span class="cout-val" id="coutVal">—</span>
+  </div>
+</div>
+
+<div class="card">
+  <p class="section-title">Station essence</p>
+  <div class="field">
+    <label for="stationSel">Station</label>
+    <div class="station-wrap">
+      <select id="stationSel" onchange="onStationChange()">
+        <option value="">— Choisir —</option>
+        <optgroup label="Stations habituelles" id="knownGroup">
+          <option value="Carrefour Flers">Carrefour Flers</option>
+          <option value="Leclerc Douai">Leclerc Douai</option>
+          <option value="Leclerc Drive Beuvry">Leclerc Drive Beuvry</option>
+          <option value="Total Waziers">Total Waziers</option>
+          <option value="__autre">+ Autre (saisie manuelle)</option>
+        </optgroup>
+      </select>
+      <button class="geo-btn" id="geoBtn" onclick="geolocate()">📍</button>
+    </div>
+    <div class="geo-status info" id="geoStatus"></div>
+    <div class="nearby-list" id="nearbyList"></div>
+  </div>
+  <div class="field hidden" id="autreField">
+    <label for="fAutre">Nom de la station</label>
+    <input type="text" id="fAutre" placeholder="ex. Intermarché Lens"
+           autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+</div>
+
+<div class="feedback" id="feedback"></div>
+
+<div class="submit-wrap">
+  <button class="submit-btn" id="submitBtn" onclick="submitForm()">
+    <span id="submitIcon">✓</span>
+    <span id="submitText">Enregistrer le plein</span>
+  </button>
+</div>
+
+<footer>Données enregistrées dans Google Sheets · Suivi Conso E85</footer>
+
+<script>
+const _t = new Date();
+document.getElementById('fDate').value =
+  `${_t.getFullYear()}-${String(_t.getMonth()+1).padStart(2,'0')}-${String(_t.getDate()).padStart(2,'0')}`;
+
+let currentType = 'E85';
+
+function setType(type) {
+  currentType = type;
+  document.getElementById('btnE85').classList.toggle('active', type==='E85');
+  document.getElementById('btnS98').classList.toggle('active', type==='S98');
+  document.getElementById('s98Field').classList.toggle('hidden', type!=='E85');
+  document.getElementById('prixLabel').textContent = type==='E85' ? 'Prix E85 (€/L)' : 'Prix S98 (€/L)';
+  document.getElementById('fPrix').placeholder = type==='E85' ? '0.798' : '2.091';
+  updateCout();
+}
+
+function updateCout() {
+  const l = parseFloat(document.getElementById('fLitres').value);
+  const p = parseFloat(document.getElementById('fPrix').value);
+  const box = document.getElementById('coutBox');
+  if (!isNaN(l) && !isNaN(p) && l>0 && p>0) {
+    box.style.display = 'flex';
+    document.getElementById('coutVal').textContent = (l*p).toFixed(2)+' €';
+  } else { box.style.display = 'none'; }
+}
+
+function onStationChange() {
+  document.getElementById('autreField').classList.toggle('hidden',
+    document.getElementById('stationSel').value !== '__autre');
+}
+
+function geolocate() {
+  if (!navigator.geolocation) { setGeoStatus('err','Géolocalisation non disponible.'); return; }
+  const btn = document.getElementById('geoBtn');
+  btn.classList.add('loading'); btn.textContent='🔄';
+  setGeoStatus('info','Localisation en cours…');
+  document.getElementById('nearbyList').style.display='none';
+  navigator.geolocation.getCurrentPosition(
+    pos => searchNearby(pos.coords.latitude, pos.coords.longitude, btn),
+    err => {
+      btn.classList.remove('loading'); btn.textContent='📍';
+      const msgs={1:'Accès refusé — autorisez dans Réglages > Safari.',2:'Position introuvable.',3:'Délai dépassé.'};
+      setGeoStatus('err', msgs[err.code]||'Erreur.');
+    },
+    {timeout:10000, maximumAge:60000}
+  );
+}
+
+async function searchNearby(lat, lon, btn) {
+  setGeoStatus('info','Recherche des stations E85 dans 8 km…');
+  const q=`[out:json][timeout:15];(node["fuel:e85"="yes"](around:8000,${lat},${lon});way["fuel:e85"="yes"](around:8000,${lat},${lon}););out center;`;
+  try {
+    const data = await fetch('https://overpass-api.de/api/interpreter',
+      {method:'POST',body:'data='+encodeURIComponent(q)}).then(r=>r.json());
+    btn.classList.remove('loading'); btn.textContent='📍';
+    if (!data.elements?.length) { setGeoStatus('info','Aucune station E85 trouvée dans 8 km.'); return; }
+    const known=['Carrefour Flers','Leclerc Douai','Leclerc Drive Beuvry','Total Waziers'];
+    const stations=data.elements.map(el=>{
+      const eLat=el.lat??el.center?.lat, eLon=el.lon??el.center?.lon;
+      const d=haversine(lat,lon,eLat,eLon);
+      const brand=el.tags?.brand||el.tags?.name||el.tags?.operator||'Station';
+      const city=el.tags?.['addr:city']||el.tags?.['addr:suburb']||'';
+      const name=city?`${brand} ${city}`:brand;
+      return {name,dist:Math.round(d),known:known.some(k=>k.toLowerCase().startsWith(brand.toLowerCase().slice(0,5)))};
+    }).sort((a,b)=>a.dist-b.dist).slice(0,7);
+    renderNearby(stations);
+    setGeoStatus('ok',`${stations.length} station(s) trouvée(s)`);
+  } catch(e) {
+    btn.classList.remove('loading'); btn.textContent='📍';
+    setGeoStatus('err','Impossible de joindre OpenStreetMap.');
+  }
+}
+
+function renderNearby(stations) {
+  const list=document.getElementById('nearbyList');
+  list.innerHTML=stations.map(s=>
+    `<div class="nearby-item" onclick="pickStation('${s.name.replace(/'/g,"\\'")}')">
+      <span>📍</span><span>${s.name}</span>
+      ${s.known?'<span class="nearby-badge">connue</span>':''}
+      <span class="nearby-dist">${s.dist<1000?s.dist+' m':(s.dist/1000).toFixed(1)+' km'}</span>
+    </div>`).join('');
+  list.style.display='block';
+}
+
+function pickStation(name) {
+  const sel=document.getElementById('stationSel');
+  if (!Array.from(sel.options).map(o=>o.value).includes(name))
+    document.getElementById('knownGroup').appendChild(new Option(name,name));
+  sel.value=name;
+  document.getElementById('nearbyList').style.display='none';
+  document.getElementById('autreField').classList.add('hidden');
+  setGeoStatus('','');
+}
+
+function setGeoStatus(cls,msg) {
+  const el=document.getElementById('geoStatus');
+  el.className='geo-status '+cls; el.textContent=msg;
+}
+
+function haversine(lat1,lon1,lat2,lon2) {
+  const R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+async function submitForm() {
+  const date=document.getElementById('fDate').value;
+  const km=document.getElementById('fKm').value.trim();
+  const litres=document.getElementById('fLitres').value.trim();
+  const prix=document.getElementById('fPrix').value.trim();
+  const prixS98=document.getElementById('fPrixS98').value.trim();
+  let station=document.getElementById('stationSel').value;
+  if (station==='__autre') station=document.getElementById('fAutre').value.trim();
+  if (!date||!km||!litres||!prix) {
+    showFeedback('error','Champs manquants','Date, km, litres et prix sont obligatoires.'); return;
+  }
+  if (!station) {
+    showFeedback('error','Station manquante','Sélectionnez ou saisissez le nom de la station.'); return;
+  }
+  if (currentType==='E85'&&!prixS98)
+    if (!confirm('Prix S98 du jour non saisi. Continuer quand même ?')) return;
+  setSubmitState(true);
+  try {
+    const body=JSON.stringify({date,type:currentType==='E85'?'SuperEthanol E85':'Super 98',km,litres,prix,prixS98,station});
+    const json=await fetch(GAS_URL,{method:'POST',body,redirect:'follow'}).then(r=>r.json());
+    if (json.success) {
+      showFeedback('success','Plein enregistré ✓',json.message||`${litres} L à ${prix} €/L — ${station}`);
+      resetForm();
+    } else { showFeedback('error','Erreur serveur',json.error||'Veuillez réessayer.'); }
+  } catch(e) { showFeedback('error','Connexion impossible','Vérifiez votre accès internet.'); }
+  finally { setSubmitState(false); }
+}
+
+function setSubmitState(loading) {
+  document.getElementById('submitBtn').disabled=loading;
+  document.getElementById('submitIcon').textContent=loading?'⏳':'✓';
+  document.getElementById('submitText').textContent=loading?'Enregistrement…':'Enregistrer le plein';
+}
+
+function showFeedback(type,title,msg) {
+  const el=document.getElementById('feedback');
+  el.className='feedback '+type;
+  el.innerHTML=`<strong>${title}</strong>${msg}`;
+  el.style.display='block';
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+  if (type==='success') setTimeout(()=>el.style.display='none',5000);
+}
+
+function resetForm() {
+  const n=new Date();
+  document.getElementById('fDate').value=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+  ['fKm','fLitres','fPrix','fPrixS98','fAutre'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('stationSel').value='';
+  document.getElementById('coutBox').style.display='none';
+  document.getElementById('nearbyList').style.display='none';
+  document.getElementById('autreField').classList.add('hidden');
+}
+</script>
+</body>
+</html>

@@ -15,16 +15,20 @@ Ajouter à l'écran d'accueil iPhone : Safari → Partager → « Sur l'écran d
 
 ### Saisie du plein
 - Formulaire rapide : date (pré-remplie à aujourd'hui), km compteur, litres, prix, station
-- Toggle **E85 / Super 98** — adapte les libellés, placeholders, badge du bandeau (🌿 / 💧)
+- **Toggle multi-carburant** dynamique :
+  - Ligne primaire : 🌿 E85 / 💧 SP98 (toujours visibles)
+  - Ligne secondaire : 🔵 SP95, 🟢 E10, ⚫ Gazole, 🟡 GPLc — apparaît avec les prix dès qu'une station est sélectionnée
+  - Mini-badges dans le bandeau : carburants disponibles ≠ type courant, cliquables pour changer de type
 - **Calcul en temps réel** du coût du plein (litres × prix)
 - Version de l'application affichée dans le bandeau
 
-### Récupération automatique des prix
+### Récupération automatique des prix — tous carburants
 Dès la sélection d'une station, l'API gouvernementale `data.economie.gouv.fr` est interrogée
-pour récupérer simultanément le prix **E85** et le prix **SP98** :
+pour récupérer **tous les prix disponibles** (E85, SP98, SP95, E10, Gazole, GPLc) en une seule requête :
 - Prix trouvé → champ pré-rempli en vert pendant 6 secondes
 - Prix non trouvé → placeholder `--`, saisie manuelle disponible
 - Stratégie progressive : rayon 500 m → 2 km → 5 km → fallback GPS → code postal
+- Les prix chargés sont mis en cache (`_stationPrices`) — aucun appel supplémentaire lors du changement de type
 
 ### Identification des stations
 Les stations sont enrichies via **OpenStreetMap (Overpass API)** pour afficher le nom d'enseigne réel (`brand` / `name` / `operator`) — aussi bien en géolocalisation qu'en recherche manuelle.
@@ -129,7 +133,7 @@ function doPost(e) {
 Dans `app.js`, constantes en tête de fichier :
 
 ```javascript
-const APP_VERSION = '1.9.8.0';   // ← mettre à jour à chaque déploiement
+const APP_VERSION = '2.2.0.0';   // ← mettre à jour à chaque déploiement
 const GAS_URL     = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
 const GS_SHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
 ```

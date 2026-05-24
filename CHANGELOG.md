@@ -4,6 +4,33 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.2.0.0] — 2026-05-24
+
+### Added
+- **`FUEL_CONFIG`** : dictionnaire des 6 carburants (E85, SP98, SP95, E10, Gazole, GPLc) — `apiField`, `label`, `short`, `icon`, `ph`.
+- **`FUEL_KEYS`, `FUEL_SELECT`, `FUEL_ANY`** : constantes dérivées pour les requêtes API.
+- **`_stationPrices`** : état global stockant les prix de la station sélectionnée pour tous les carburants — évite les doubles appels API lors du changement de type.
+- **`_buildTypeToggle(prices)`** : construit dynamiquement le toggle carburant. Ligne primaire (E85 + SP98 toujours visibles), ligne secondaire (SP95, E10, Gazole, GPLc) si prix disponibles à la station.
+- **`_updateHeaderBadges()`** : affiche dans le bandeau des mini-badges cliquables pour les carburants disponibles à la station (hors type courant).
+- **`#headerOtherFuels`** (HTML) : zone de mini-badges dans le header.
+- **`.badge-sm`**, **`.header-right`** (CSS) : style des mini-badges et alignement header.
+- **`.type-row-primary`**, **`.type-row-secondary`**, **`.type-btn-sm`**, **`.type-price`** (CSS) : styles du toggle dynamique.
+
+### Changed
+- **`setType(type)`** : reécrit pour utiliser `FUEL_CONFIG`. Applique les prix depuis le cache `_stationPrices` si disponibles (sans appel API). Met à jour le badge header et les mini-badges.
+- **`onStationChange()`**, **`pickStation()`** : réinitialisent `_stationPrices` et reconstruisent le toggle lors d'un changement de station.
+- **`searchNearby()`** : `where` et `select` dynamiques selon `currentType` — recherche le carburant sélectionné, pas E85 en dur. Messages de statut dynamiques.
+- **`renderNearby()`** : affiche le prix du carburant courant (`currentType`) au lieu du prix E85 fixe.
+- **`buildStations()`** : intègre tous les prix dans `s.prices` (objet `{ E85, SP98, … }`) au lieu de `s.e85` / `s.s98`.
+- **`applyPricesResult()`** : parse tous les prix API dans `_stationPrices`, reconstruit le toggle et les badges, affiche le statut complet (ex. `E85 : 0.798 · SP98 : 2.091 · Gazole : 1.742`).
+- **`fetchPricesAtCoords()`**, **`fetchPricesByCP()`** : utilisent `FUEL_ANY` et `FUEL_SELECT` au lieu des champs e85/sp98 en dur.
+- **`searchStationSuggestions()`**, **`searchStationsCityOnly()`** : `where` et `select` dynamiques selon `currentType`.
+- **`submitForm()`** : `type` envoyé via `FUEL_CONFIG[currentType].label` — supporte tous les carburants. `prixS98` uniquement pour le mode E85.
+- **`resetForm()`** : réinitialise `_stationPrices` et reconstruit le toggle vide.
+- **`index.html`** : toggle type statique remplacé par `<div id="typeToggle">` peuplé par JS. `#s98Status` et `#cpSearch` déplacés hors de `#s98Field` (visibles pour tous les carburants). Ajout `#headerOtherFuels` dans le header.
+
+---
+
 ## [2.1.4.2] — 2026-05-24
 
 ### Fixed
