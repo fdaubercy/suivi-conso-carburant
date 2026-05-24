@@ -64,6 +64,12 @@ export async function fetchPricesNearUser() {
   if (state.userLat && state.userLon) {
     await fetchPricesAtCoords(state.userLat, state.userLon, false);
   } else {
+    // GPS indisponible : vider les prix stale avant d'afficher le CP search
+    state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
+    setFieldPrice('fPrix', null, FUEL_CONFIG[state.currentType].ph);
+    setFieldPrice('fPrixS98', null, '2.091');
+    state.s98Autofilled = false;
+    updateCout();
     setS98Status('info', 'Position inconnue — entrez le code postal :');
     showCpSearch();
   }
