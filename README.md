@@ -155,7 +155,7 @@ function doPost(e) {
 Dans `js/config.js` :
 
 ```javascript
-export const APP_VERSION = '2.2.2.0';   // ← mettre à jour à chaque déploiement
+export const APP_VERSION = '2.2.2.4';   // ← mettre à jour à chaque déploiement
 export const GAS_URL     = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
 export const GS_SHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
 ```

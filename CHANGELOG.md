@@ -4,6 +4,44 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.2.2.4] — 2026-05-24
+
+### Changed
+- **CHANGELOG.md** : entrées v2.2.2.1 → v2.2.2.3 rétro-documentées ; section [2.1.0.0] complétée avec les détails du sélecteur de véhicules et des helpers associés.
+- **`CHANGELOG_entry.md`** supprimé — contenu fusionné dans `CHANGELOG.md`.
+- **`image.png`** supprimé (asset obsolète).
+- **`Suivi conso E85.xlsm`** : mise à jour du fichier Excel (import Power Query actualisé).
+- **`APP_VERSION`** passée à `2.2.2.4` dans `js/config.js`.
+
+---
+
+## [2.2.2.3] — 2026-05-24
+
+### Fixed
+- **`Code.gs` — handler `syncStations` manquant** : la requête `action: 'syncStations'` envoyée par `stations.js` tombait dans la branche par défaut (enregistrement plein), ajoutant une ligne vide dans `_ImportGS`. Ajout du bloc conditionnel dédié : vide l'onglet `Stations` puis réécrit les stations reçues ligne par ligne.
+
+---
+
+## [2.2.2.2] — 2026-05-24
+
+### Fixed
+- **Prix E85 toujours enregistré** : lors d'un plein non-E85 (SP98, SP95…), `submitForm` appelait `fetchNearestE85Price(lat, lon)` pour garantir une valeur E85 dans `stationPrices` même si elle n'avait pas été chargée — utile comme référence de comparaison dans Google Sheets.
+- **Coordonnées station mémorisées** : `pickStation` stocke désormais `state._selectedLat` / `state._selectedLon` pour que `submitForm` puisse les utiliser sans avoir à ré-interroger la géoloc.
+- **Robustesse import VBA** (`Suivi conso E85.xlsm`) : amélioration de la macro d'import pour éviter les erreurs sur les nouvelles colonnes prix station J→O.
+
+### Added
+- **`fetchNearestE85Price(lat, lon)`** (`js/prix.js`) : nouvelle fonction asynchrone — requête API progressive (rayons 1 km → 5 km → 15 km) retournant le prix E85 le plus proche d'un point GPS. Retourne `null` si aucun résultat.
+- **`state._selectedLat` / `state._selectedLon`** (`js/state.js`) : coordonnées persistées lors de `pickStation`.
+
+---
+
+## [2.2.2.1] — 2026-05-24
+
+### Fixed
+- **URL déploiement GAS** : `GAS_URL` mise à jour dans `js/config.js` après re-déploiement du script Google Apps Script (ancienne URL `/AKfycbzl…` → nouvelle `/AKfycbwI…`).
+
+---
+
 ## [2.2.2.0] — 2026-05-24
 
 ### Added
@@ -145,6 +183,32 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 ### Added
 - **Gestion des véhicules** : liste en localStorage, options `＋ Ajouter` et `✕ Supprimer` dans le select, champ de saisie inline.
 - **Recherche accent-insensible** : `search(ville, 'q')` remplace `like` pour la recherche manuelle.
+- **Sélecteur de véhicules** (localStorage) : nouvelle section en tête de formulaire. Liste déroulante avec les véhicules enregistrés + deux actions intégrées : `＋ Ajouter un véhicule` (champ inline avec confirmation) et `✕ Supprimer ce véhicule` (confirme la suppression du véhicule actuellement sélectionné). Les véhicules sont persistés dans `localStorage` sous la clé `suivi_e85_vehicules`. Le nom du véhicule est inclus dans le payload envoyé à Google Sheets (champ `vehicule`).
+- **`chargerVehicules()`** : charge la liste depuis localStorage, restaure la sélection courante.
+- **`sauvegarderVehicules(liste)`** : persiste le tableau en localStorage.
+- **`onVehiculeChange()`** : gère les trois cas — sélection d'un véhicule, ajout, suppression.
+- **`confirmerAjoutVehicule()`** : validation du nom, ajout à la liste, sélection automatique.
+- **`setVehiculeStatus(cls, msg)`** : statut inline sous le sélecteur (même pattern que `setGeoStatus`).
+- **`buildStations(results)`** : helper extrait pour factoriser la construction du tableau de stations (évite la duplication entre recherche avec et sans proximité).
+- **`buildSearchClause(q)`** : détecte automatiquement si la saisie est un code postal (2-5 chiffres → `cp like 'q%'`) ou une ville (`search(ville, 'q')`).
+
+### Changed
+- **Recherche manuelle — champ ciblé** : remplacement du paramètre `q` (full-text tous champs) par `search(ville, 'q')` en ODSQL. La recherche est désormais accent-insensible et porte uniquement sur le champ `ville` — élimine les faux positifs (stations dont l'adresse contient le terme recherché dans une autre ville). Fallback automatique sans proximité si aucun résultat local.
+- **`searchStationSuggestions`** : refactorisé pour utiliser `buildSearchClause` et `buildStations`.
+- **`searchStationSuggestionsGlobal` renommée `searchStationSuggestionsNoProx`** : cohérence de nommage.
+- **`resetForm`** : le véhicule sélectionné est intentionnellement conservé entre deux pleins consécutifs.
+- **`submitForm`** : inclut `vehicule: currentVehiculeNom` dans le payload JSON envoyé au GAS.
+- **`index.html`** : section "Véhicule" ajoutée en tête du formulaire ; placeholder du champ `fAutre` mis à jour ("Ville de la station", exemples de villes).
+
+### Note GAS (optionnel)
+Pour enregistrer le véhicule dans Google Sheets, ajouter la colonne `Véhicule` dans l'onglet `_ImportGS` et mettre à jour `doPost` :
+```javascript
+sheet.appendRow([
+  new Date(), new Date(payload.date), payload.type,
+  Number(payload.km), Number(payload.litres), Number(payload.prix),
+  payload.prixS98 ? Number(payload.prixS98) : '',
+  payload.station, payload.vehicule || ''   // ← nouvelle colonne
+]);
 
 ---
 
