@@ -46,6 +46,7 @@ function handleExport() {
   const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = getOrCreateSheet(ss);
   const data  = sheet.getDataRange().getValues();
+  const tz    = ss.getSpreadsheetTimeZone();   // heure locale du Sheet (Europe/Paris)
 
   if (data.length <= 1) return jsonResponse({ records: [] });
 
@@ -54,7 +55,10 @@ function handleExport() {
     const obj = {};
     headers.forEach((h, i) => {
       const v = row[i];
-      obj[h] = (v instanceof Date) ? v.toISOString() : v;
+      // Dates formatées en heure locale : "2026-05-22 06:01:55" (pas d'UTC, pas de Z)
+      obj[h] = (v instanceof Date)
+        ? Utilities.formatDate(v, tz, "yyyy-MM-dd HH:mm:ss")
+        : v;
     });
     return obj;
   });

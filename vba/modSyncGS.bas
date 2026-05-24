@@ -2,7 +2,7 @@ Attribute VB_Name = "modSyncGS"
 ' ============================================================
 '  SUIVI E85 - Synchronisation bidirectionnelle
 '  Google Sheets (_ImportGS) <-> Excel (GS_Pleins)
-'  v2.2.4.4
+'  v2.2.4.5
 ' ============================================================
 Option Explicit
 
@@ -82,6 +82,117 @@ Public Sub TestConnexion()
            "Code HTTP : " & status & vbNewLine & _
            "Diagnostic: " & cause & vbNewLine & vbNewLine & _
            "Reponse   : " & body, vbInformation, "Diagnostic Sync E85"
+End Sub
+
+
+' ════════════════════════════════════════════════════════════
+'  DIAGNOSTIC DE SYNC - decompose pour comprendre les 0/0
+' ════════════════════════════════════════════════════════════
+Public Sub SyncDiagnose()
+    Dim ws       As Worksheet
+    Dim jsonStr  As String
+    Dim gsRecs() As String
+    Dim i        As Long
+    Dim r        As Long
+    Dim lastRow  As Long
+    Dim sid      As String
+
+    Dim nGsTotal       As Long  ' Records dans GS
+    Dim nGsWithSid     As Long  ' Records GS avec sync_id
+    Dim nLocalTotal    As Long  ' Lignes locales (sauf entete)
+    Dim nLocalWithSid  As Long  ' Lignes locales avec sync_id
+    Dim nMatching      As Long  ' sync_id presents des 2 cotes
+    Dim nOnlyGs        As Long  ' sync_id seulement dans GS
+    Dim nOnlyLocal     As Long  ' sync_id seulement dans Excel
+    Dim nGsNoSid       As Long  ' GS sans sync_id (skip a l'import)
+    Dim nLocalNoSid    As Long  ' Local sans sync_id (UUID genere au prochain sync)
+
+    Set ws = ThisWorkbook.Sheets(WS_NAME)
+
+    ' ── Cote GS ───────────────────────────────────────────────
+    jsonStr = HttpGet(GAS_URL & "?action=export")
+    If jsonStr = "" Or InStr(jsonStr, """records""") = 0 Then
+        MsgBox "Erreur : impossible de recuperer l'export GS." & vbNewLine & _
+               "Lancez TestConnexion() d'abord.", vbCritical, "Diagnose Sync"
+        Exit Sub
+    End If
+
+    gsRecs = ParseRecords(jsonStr)
+
+    Dim gsIds As Object
+    Set gsIds = CreateObject("Scripting.Dictionary")
+    gsIds.CompareMode = vbTextCompare
+
+    nGsTotal = UBound(gsRecs) + 1
+    If gsRecs(0) = "" Then nGsTotal = 0   ' tableau vide
+
+    For i = 0 To UBound(gsRecs)
+        If Len(gsRecs(i)) > 10 Then
+            sid = JsonGet(gsRecs(i), "sync_id")
+            If sid <> "" Then
+                gsIds(sid) = True
+                nGsWithSid = nGsWithSid + 1
+            Else
+                nGsNoSid = nGsNoSid + 1
+            End If
+        End If
+    Next i
+
+    ' ── Cote Excel ────────────────────────────────────────────
+    Dim localIds As Object
+    Set localIds = CreateObject("Scripting.Dictionary")
+    localIds.CompareMode = vbTextCompare
+
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    nLocalTotal = lastRow - 1   ' moins l'entete
+
+    For r = 2 To lastRow
+        sid = Trim(CStr(ws.Cells(r, COL_SYNC_ID).Value))
+        If sid <> "" Then
+            localIds(sid) = True
+            nLocalWithSid = nLocalWithSid + 1
+        Else
+            nLocalNoSid = nLocalNoSid + 1
+        End If
+    Next r
+
+    ' ── Intersections ─────────────────────────────────────────
+    Dim key As Variant
+    For Each key In gsIds.Keys
+        If localIds.Exists(CStr(key)) Then
+            nMatching = nMatching + 1
+        Else
+            nOnlyGs = nOnlyGs + 1
+        End If
+    Next key
+
+    For Each key In localIds.Keys
+        If Not gsIds.Exists(CStr(key)) Then nOnlyLocal = nOnlyLocal + 1
+    Next key
+
+    ' ── Rapport ──────────────────────────────────────────────
+    Dim msg As String
+    msg = "DIAGNOSTIC SYNC" & vbNewLine & String(40, "-") & vbNewLine & vbNewLine & _
+          "GOOGLE SHEETS (_ImportGS)" & vbNewLine & _
+          "  Total enregistrements : " & nGsTotal & vbNewLine & _
+          "  Avec sync_id          : " & nGsWithSid & vbNewLine & _
+          "  Sans sync_id (skip)   : " & nGsNoSid & vbNewLine & vbNewLine & _
+          "EXCEL (GS_Pleins)" & vbNewLine & _
+          "  Total lignes          : " & nLocalTotal & vbNewLine & _
+          "  Avec sync_id          : " & nLocalWithSid & vbNewLine & _
+          "  Sans sync_id          : " & nLocalNoSid & vbNewLine & vbNewLine & _
+          "INTERSECTIONS" & vbNewLine & _
+          "  Communs (deja sync)   : " & nMatching & vbNewLine & _
+          "  Seulement dans GS     : " & nOnlyGs & "  -> seront importes" & vbNewLine & _
+          "  Seulement dans Excel  : " & nOnlyLocal & "  -> seront envoyes"
+
+    If nGsNoSid > 0 Then
+        msg = msg & vbNewLine & vbNewLine & _
+              "ATTENTION : " & nGsNoSid & " enreg. GS sans sync_id." & vbNewLine & _
+              "-> Executer migrateSyncId() dans GAS Editor."
+    End If
+
+    MsgBox msg, vbInformation, "Diagnose Sync E85"
 End Sub
 
 
@@ -204,6 +315,18 @@ Private Function ImportGSToExcel(ws As Worksheet, gsRecs() As String, _
     added = 0
     If ws.ListObjects.Count > 0 Then Set tbl = ws.ListObjects(1)
 
+    ' Force le format francais sur les colonnes Horodatage et Date
+    ' (s'applique a toutes les lignes existantes + futures)
+    If Not tbl Is Nothing Then
+        On Error Resume Next
+        tbl.ListColumns(1).DataBodyRange.NumberFormat = "dd/mm/yyyy hh:mm:ss"
+        tbl.ListColumns(2).DataBodyRange.NumberFormat = "dd/mm/yyyy"
+        On Error GoTo 0
+    Else
+        ws.Columns(1).NumberFormat = "dd/mm/yyyy hh:mm:ss"
+        ws.Columns(2).NumberFormat = "dd/mm/yyyy"
+    End If
+
     For i = 0 To UBound(gsRecs)
         rec = gsRecs(i)
         If Len(rec) < 10 Then GoTo NextRec
@@ -219,8 +342,8 @@ Private Function ImportGSToExcel(ws As Worksheet, gsRecs() As String, _
             Set rng = ws.Range(ws.Cells(lr, 1), ws.Cells(lr, COL_SYNC_ID))
         End If
 
-        rng(1).Value  = IsoToDate(JsonGet(rec, "Horodatage"))
-        rng(2).Value  = IsoToDate(JsonGet(rec, "Date"))
+        rng(1).Value  = ParseDt(JsonGet(rec, "Horodatage"))
+        rng(2).Value  = ParseDt(JsonGet(rec, "Date"))
         rng(3).Value  = JsonGet(rec, "Type")
         rng(4).Value  = ToNum(JsonGet(rec, "Km compteur"))
         rng(5).Value  = ToNum(JsonGet(rec, "Nb. Litres"))
@@ -302,8 +425,9 @@ Private Function RowToJson(ws As Worksheet, r As Long, sid As String) As String
     Dim ts As String
     Dim ds As String
 
+    ' Format heure locale (pas d'UTC) - GAS le parse en local via new Date()
     If IsDate(ws.Cells(r, 1).Value) Then
-        ts = Format(ws.Cells(r, 1).Value, "yyyy-mm-ddThh:mm:ss") & ".000Z"
+        ts = Format(ws.Cells(r, 1).Value, "yyyy-mm-dd hh:mm:ss")
     End If
     If IsDate(ws.Cells(r, 2).Value) Then
         ds = Format(ws.Cells(r, 2).Value, "yyyy-mm-dd")
@@ -452,14 +576,65 @@ End Function
 ' ════════════════════════════════════════════════════════════
 '  HELPERS DIVERS
 ' ════════════════════════════════════════════════════════════
-Private Function IsoToDate(iso As String) As Variant
-    If iso = "" Then
-        IsoToDate = ""
+' Parse une date ISO ou "YYYY-MM-DD HH:MM:SS" en valeur Date VBA complete
+' Conserve l'heure (l'ancienne IsoToDate la jetait avec Left(iso,10))
+Private Function ParseDt(s As String) As Variant
+    Dim norm  As String
+    Dim sp    As Long
+    Dim dotP  As Long
+    Dim dStr  As String
+    Dim tStr  As String
+    Dim dp()  As String
+    Dim tp()  As String
+    Dim y As Integer, m As Integer, d As Integer
+    Dim hh As Integer, mm As Integer, ss As Integer
+
+    If s = "" Then
+        ParseDt = ""
         Exit Function
     End If
-    On Error Resume Next
-    IsoToDate = CDate(Replace(Left(iso, 10), "-", "/"))
-    On Error GoTo 0
+
+    On Error GoTo Bad
+
+    norm = s
+    norm = Replace(norm, "T", " ")          ' ISO "2026-05-22T17:41:04..." -> "2026-05-22 17:41:04..."
+
+    dotP = InStr(norm, ".")
+    If dotP > 0 Then norm = Left(norm, dotP - 1)     ' Coupe les millisecondes
+    If Right(norm, 1) = "Z" Then norm = Left(norm, Len(norm) - 1)
+
+    sp = InStr(norm, " ")
+    If sp > 0 Then
+        dStr = Left(norm, sp - 1)
+        tStr = Mid(norm, sp + 1)
+    Else
+        dStr = norm
+        tStr = ""
+    End If
+
+    dp = Split(dStr, "-")
+    If UBound(dp) <> 2 Then GoTo Bad
+    y = CInt(dp(0)): m = CInt(dp(1)): d = CInt(dp(2))
+
+    If tStr <> "" Then
+        tp = Split(tStr, ":")
+        If UBound(tp) >= 2 Then
+            hh = CInt(tp(0)): mm = CInt(tp(1)): ss = CInt(tp(2))
+            ParseDt = DateSerial(y, m, d) + TimeSerial(hh, mm, ss)
+        Else
+            ParseDt = DateSerial(y, m, d)
+        End If
+    Else
+        ParseDt = DateSerial(y, m, d)
+    End If
+    Exit Function
+Bad:
+    ParseDt = ""
+End Function
+
+' Conserve le nom legacy pour compatibilite
+Private Function IsoToDate(iso As String) As Variant
+    IsoToDate = ParseDt(iso)
 End Function
 
 Private Function ToNum(s As String) As Variant

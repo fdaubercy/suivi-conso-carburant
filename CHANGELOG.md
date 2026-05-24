@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.2.4.5] — 2026-05-24
+
+### Added
+- **`vba/modSyncGS.bas` — `ParseDt()`** : nouvelle fonction qui parse correctement les dates ISO et `YYYY-MM-DD HH:MM:SS` en conservant **l'heure complète**. L'ancienne `IsoToDate` tronquait à `Left(iso, 10)` et perdait l'heure ; conservée comme alias pour compatibilité.
+- **Format français appliqué automatiquement** : à chaque sync, les colonnes `Horodatage` (`dd/mm/yyyy hh:mm:ss`) et `Date` (`dd/mm/yyyy`) du tableau `GS_Pleins` reçoivent le format français — toutes lignes incluses (existantes et futures).
+
+### Changed
+- **`Code.gs` — `handleExport`** : utilise désormais `Utilities.formatDate(v, ss.getSpreadsheetTimeZone(), "yyyy-MM-dd HH:mm:ss")` au lieu de `toISOString()`. Les dates sont exportées en **heure locale du Google Sheet** (Europe/Paris). Évite l'écart de 1-2 h dû à la conversion UTC↔local.
+- **`vba/modSyncGS.bas` — `RowToJson`** : envoie aussi les dates en heure locale (`yyyy-mm-dd hh:mm:ss` sans `T` ni `Z`). GAS les re-parse via `new Date()` en heure locale.
+- **`ImportGSToExcel`** : utilise `ParseDt` au lieu de `IsoToDate` pour les colonnes 1 et 2.
+
+---
+
 ## [2.2.4.4] — 2026-05-24
 
 ### Fixed
