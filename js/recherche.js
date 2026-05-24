@@ -89,6 +89,7 @@ export async function searchStationSuggestions(q) {
 
     const stations = buildStations(data.results);
     const osmNames = await enrichWithOsmSerial(stations, setAutreStatus);
+    if (!osmNames) return; // annulé par une recherche plus récente
     const stationsFinal = stations.map((s, i) => ({ ...s, name: osmNames[i] || s.name }));
     setAutreStatus('ok', radiusLabel
       ? stationsFinal.length + ' station(s) ' + cfg.short + ' dans ' + radiusLabel + ' autour de ' + cityName
@@ -113,6 +114,7 @@ export async function searchStationsCityOnly(searchClause, cityName) {
     const stations = buildStations(data.results);
     if (!stations.length) { setAutreStatus('err', `Aucune station ${cfg.short} trouvée.`); return; }
     const osmNames = await enrichWithOsmSerial(stations, setAutreStatus);
+    if (!osmNames) return; // annulé par une recherche plus récente
     const stationsFinal = stations.map((s, i) => ({ ...s, name: osmNames[i] || s.name }));
     setAutreStatus('ok', stationsFinal.length + ' station(s) ' + cfg.short + ' à ' + cityName);
     renderNearby(stationsFinal);

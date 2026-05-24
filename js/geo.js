@@ -45,6 +45,7 @@ export async function searchNearby(lat, lon, btn) {
       .filter(c => c.dist <= 8000).sort((a, b) => a.dist - b.dist).slice(0, 7);
     if (!candidates.length) { setGeoStatus('info', `Aucune station ${cfg.short} trouvée dans 8 km.`); return; }
     const osmNames   = await enrichWithOsmSerial(candidates);
+    if (!osmNames) return; // annulé par une recherche manuelle plus récente
     const knownNames = Array.from(document.querySelectorAll('#knownGroup option:not([value="__autre"])')).map(o => o.value.toLowerCase());
     const stations   = candidates.map((c, i) => {
       const name = osmNames[i] || stationLabel(c.r);

@@ -6,6 +6,9 @@ const OVERPASS_API     = 'https://overpass-api.de/api/interpreter';
 const OSM_RADIUS       = 2000;
 const OSM_SERIAL_DELAY = 600;
 
+// Token d'annulation : chaque enrichissement concurrent annule le précédent
+let _enrichToken = 0;
+
 /** Cherche le nom de la station la plus proche (brand > name > operator) via Overpass. */
 export async function fetchOsmNameAround(lat, lon) {
   const query =
@@ -38,10 +41,13 @@ export async function fetchOsmNameAround(lat, lon) {
 /**
  * Enrichit un tableau de stations en série (anti-429).
  * setStatus : fonction de statut à appeler (défaut setGeoStatus).
+ * Retourne null si un appel plus récent a démarré (annulation automatique).
  */
 export async function enrichWithOsmSerial(stations, setStatus = setGeoStatus) {
+  const myToken = ++_enrichToken;
   const names = [];
   for (let i = 0; i < stations.length; i++) {
+    if (myToken !== _enrichToken) return null; // annulé par une recherche plus récente
     setStatus('info', `Identification station ${i+1}/${stations.length}…`);
     names.push(await fetchOsmNameAround(stations[i].lat, stations[i].lon));
     if (i < stations.length - 1) await new Promise(r => setTimeout(r, OSM_SERIAL_DELAY));
