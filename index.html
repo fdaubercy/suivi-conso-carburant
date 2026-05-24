@@ -20,7 +20,6 @@
   <span class="badge" id="headerBadge">🌿 E85</span>
 </header>
 
-<!-- ─── Carte informations du plein ─── -->
 <div class="card">
 
   <!-- Véhicule -->
@@ -62,29 +61,24 @@
       <input type="number" id="fKm" placeholder="11 596" inputmode="numeric">
     </div>
   </div>
-
   <div class="row2">
     <div class="field">
       <label for="fLitres">Litres</label>
-      <input type="number" id="fLitres" step="0.01" placeholder="14.90"
-             inputmode="decimal" oninput="updateCout()">
+      <input type="number" id="fLitres" step="0.01" placeholder="14.90" inputmode="decimal" oninput="updateCout()">
     </div>
     <div class="field">
       <label id="prixLabel" for="fPrix">Prix E85 (€/L)</label>
-      <input type="number" id="fPrix" step="0.001" placeholder="0.798"
-             inputmode="decimal" oninput="updateCout()">
+      <input type="number" id="fPrix" step="0.001" placeholder="0.798" inputmode="decimal" oninput="updateCout()">
     </div>
   </div>
 
   <div class="field" id="s98Field">
     <label for="fPrixS98">Prix S98 du jour (€/L)</label>
-    <input type="number" id="fPrixS98" step="0.001" placeholder="2.091"
-           inputmode="decimal" oninput="onS98ManualEdit()">
+    <input type="number" id="fPrixS98" step="0.001" placeholder="2.091" inputmode="decimal" oninput="onS98ManualEdit()">
     <div class="s98-status" id="s98Status"></div>
     <div class="cp-row hidden" id="cpSearch">
       <input type="text" id="fCp" class="cp-input" placeholder="Code postal (ex. 69620)"
-             inputmode="numeric" maxlength="5"
-             onkeydown="if(event.key==='Enter') fetchPricesByCP()">
+             inputmode="numeric" maxlength="5" onkeydown="if(event.key==='Enter') fetchPricesByCP()">
       <button class="cp-btn" onclick="fetchPricesByCP()">Chercher</button>
     </div>
   </div>
@@ -95,7 +89,7 @@
   </div>
 </div>
 
-<!-- ─── Carte station essence ─── -->
+<!-- ─── Station essence ─── -->
 <div class="card">
   <p class="section-title">Station essence</p>
 
@@ -120,13 +114,13 @@
            placeholder="ex. Villefranche, Mâcon, Douai…"
            autocomplete="off" autocorrect="off" spellcheck="false"
            oninput="onAutreInput()">
-    <!-- Sélecteur de rayon -->
+    <!-- Rayon centré sur la ville trouvée (pas sur l'utilisateur) -->
     <div class="radius-row">
-      <span class="radius-label">Rayon :</span>
-      <button class="radius-btn" data-m="20000"  onclick="setRadius(this, 20000)">20 km</button>
-      <button class="radius-btn" data-m="50000"  onclick="setRadius(this, 50000)">50 km</button>
-      <button class="radius-btn" data-m="100000" onclick="setRadius(this, 100000)">100 km</button>
-      <button class="radius-btn" data-m="null"   onclick="setRadius(this, null)">France</button>
+      <span class="radius-label">Rayon autour de la ville :</span>
+      <button class="radius-btn active" data-m="20000"  onclick="setRadius(this, 20000)">20 km</button>
+      <button class="radius-btn"        data-m="50000"  onclick="setRadius(this, 50000)">50 km</button>
+      <button class="radius-btn"        data-m="100000" onclick="setRadius(this, 100000)">100 km</button>
+      <button class="radius-btn"        data-m="null"   onclick="setRadius(this, null)">Ville seule</button>
     </div>
     <div class="s98-status" id="autreStatus"></div>
   </div>
@@ -152,7 +146,6 @@
 </div>
 
 <footer>Données enregistrées dans Google Sheets · Suivi Conso E85</footer>
-
 <script src="app.js"></script>
 </body>
 </html>
