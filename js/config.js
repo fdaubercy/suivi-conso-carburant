@@ -1,6 +1,6 @@
 /* ─── Configuration globale ─── */
 export const APP_VERSION       = '2.2.2.0';
-export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
+export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 export const GS_SHEET_ID       = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 export const PRIX_API          = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
 export const VEHICULES_KEY     = 'suivi_e85_vehicules';
