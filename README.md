@@ -155,17 +155,21 @@ function doPost(e) {
 Dans `js/config.js` :
 
 ```javascript
-export const APP_VERSION = '2.2.1.0';   // ← mettre à jour à chaque déploiement
+export const APP_VERSION = '2.2.2.0';   // ← mettre à jour à chaque déploiement
 export const GAS_URL     = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
 export const GS_SHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
 ```
 
 ### 3. Google Sheet cible
 
-**Onglet `_ImportGS`** :
+**Onglet `_ImportGS`** (15 colonnes A→O) :
 
-| Horodatage | Date | Type | Km compteur | Nb. Litres | Prix €/L | Prix S98 jour | Station | Véhicule |
-|---|---|---|---|---|---|---|---|---|
+| A Horodatage | B Date | C Type | D Km | E Litres | F Prix €/L | G Prix S98 | H Station | I Véhicule | J E85 st. | K SP98 st. | L SP95 st. | M E10 st. | N Gazole st. | O GPLc st. |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+
+> Les colonnes J→O sont remplies automatiquement par l'app via l'API prix carburants lors de la sélection d'une station. Elles restent vides si la station est saisie manuellement.
+>
+> ⚠️ Si vous utilisez **Power Query** dans Excel pour importer `_ImportGS`, pensez à actualiser la requête pour inclure les nouvelles colonnes.
 
 **Onglet `Stations`** :
 

@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.2.2.0] — 2026-05-24
+
+### Added
+- **Prix station envoyés au Google Sheet** : `formulaire.js` inclut désormais `stationPrices` (objet `{ E85, SP98, SP95, E10, GAZOLE, GPLC }`) dans le payload soumis. Toujours vide si aucune station sélectionnée via API (saisie manuelle).
+- **`Code.gs` — 6 colonnes prix station** : `_ImportGS` Google Sheet reçoit désormais les colonnes J→O : `E85 station (€/L)`, `SP98 station (€/L)`, `SP95 station (€/L)`, `E10 station (€/L)`, `Gazole station (€/L)`, `GPLc station (€/L)`. Structure GS : A=Horodatage … I=Véhicule, J=E85 station … O=GPLc station (15 colonnes).
+
+### Fixed
+- **Excel `Suivi conso E85.xlsm` — formules section ANALYSE figées sur 10 lignes** : `COUNTIF(C16:C25,…)`, `SUM(L16:L25)`, `SUMIF(…,F16:F25)`, `AVERAGEIFS(J16:J25,C16:C25,…)`, `COUNTA(D16:D25)` remplacées par des références structurées `Tableau2[colonne]` qui s'étendent automatiquement à chaque nouveau plein.
+
+### Docs
+- **README** : structure `_ImportGS` mise à jour (15 colonnes A→O) + note sur l'ajout manuel de la colonne Véhicule en I dans Power Query Excel.
+
+---
+
 ## [2.2.1.1] — 2026-05-24
 
 ### Fixed

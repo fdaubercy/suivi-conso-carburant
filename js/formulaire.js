@@ -1,5 +1,5 @@
 /* ─── Formulaire — soumission et réinitialisation ─── */
-import { FUEL_CONFIG, GAS_URL } from './config.js';
+import { FUEL_CONFIG, FUEL_KEYS, GAS_URL } from './config.js';
 import { state } from './state.js';
 import { setS98Status, setAutreStatus, hideCpSearch, setSubmitState, showFeedback, updateCout } from './ui.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
@@ -42,10 +42,16 @@ export async function submitForm() {
   if (!station) { showFeedback('error', 'Station manquante', 'Sélectionnez ou saisissez le nom de la station.'); return; }
   if (state.currentType === 'E85' && !prixS98) if (!confirm('Prix S98 du jour non saisi. Continuer quand même ?')) return;
   setSubmitState(true);
+
+  // Prix station pour tous les carburants disponibles lors du plein
+  const stationPrices = Object.keys(state._stationPrices).length > 0
+    ? Object.fromEntries(FUEL_KEYS.map(k => [k, state._stationPrices[k] || '']))
+    : {};
+
   try {
     const json = await fetch(GAS_URL, {
       method: 'POST', redirect: 'follow',
-      body: JSON.stringify({ date, type: FUEL_CONFIG[state.currentType].label, km, litres, prix, prixS98, station, vehicule })
+      body: JSON.stringify({ date, type: FUEL_CONFIG[state.currentType].label, km, litres, prix, prixS98, station, vehicule, stationPrices })
     }).then(r => r.json());
     if (json.success) {
       showFeedback('success', 'Plein enregistré ✓', json.message || litres + ' L à ' + prix + ' €/L — ' + station);

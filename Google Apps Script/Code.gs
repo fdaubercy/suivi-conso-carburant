@@ -7,8 +7,10 @@ const STATIONS_SHEET  = 'Stations';
 const VEHICULES_SHEET = 'Vehicules';
 
 const HEADERS = [
-  'Horodatage','Date','Type','Km compteur',
-  'Nb. Litres','Prix €/L','Prix S98 jour (€/L)','Station essence','Véhicule'
+  'Horodatage', 'Date', 'Type', 'Km compteur',
+  'Nb. Litres', 'Prix €/L', 'Prix S98 jour (€/L)', 'Station essence', 'Véhicule',
+  'E85 station (€/L)', 'SP98 station (€/L)', 'SP95 station (€/L)',
+  'E10 station (€/L)', 'Gazole station (€/L)', 'GPLc station (€/L)'
 ];
 
 // ────────────────────────────────────────────────────────────
@@ -56,18 +58,25 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Enregistrement d'un plein
+  // Enregistrement d'un plein (colonnes A→O)
+  const sp = payload.stationPrices || {};
   const sheet = getOrCreateSheet(ss);
   sheet.appendRow([
-    new Date(),
-    new Date(payload.date),
-    payload.type,
-    Number(payload.km),
-    Number(payload.litres),
-    Number(payload.prix),
-    payload.prixS98 ? Number(payload.prixS98) : '',
-    payload.station,
-    payload.vehicule || ''   // colonne I — Véhicule
+    new Date(),                                          // A — Horodatage
+    new Date(payload.date),                              // B — Date
+    payload.type,                                        // C — Type
+    Number(payload.km),                                  // D — Km compteur
+    Number(payload.litres),                              // E — Nb. Litres
+    Number(payload.prix),                                // F — Prix €/L
+    payload.prixS98 ? Number(payload.prixS98) : '',      // G — Prix S98 jour
+    payload.station,                                     // H — Station essence
+    payload.vehicule || '',                              // I — Véhicule
+    sp.E85    ? Number(sp.E85)    : '',                  // J — E85 station
+    sp.SP98   ? Number(sp.SP98)   : '',                  // K — SP98 station
+    sp.SP95   ? Number(sp.SP95)   : '',                  // L — SP95 station
+    sp.E10    ? Number(sp.E10)    : '',                  // M — E10 station
+    sp.GAZOLE ? Number(sp.GAZOLE) : '',                  // N — Gazole station
+    sp.GPLC   ? Number(sp.GPLC)   : '',                  // O — GPLc station
   ]);
   return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
 }
