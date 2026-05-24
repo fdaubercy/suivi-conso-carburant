@@ -8,7 +8,7 @@ const VEHICULES_SHEET = 'Vehicules';
 
 const HEADERS = [
   'Horodatage','Date','Type','Km compteur',
-  'Nb. Litres','Prix €/L','Prix S98 jour (€/L)','Station essence'
+  'Nb. Litres','Prix €/L','Prix S98 jour (€/L)','Station essence','Véhicule'
 ];
 
 // ────────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ function doPost(e) {
   }
 
   // Enregistrement d'un plein
-  const sheet = ss.getSheetByName(SHEET_NAME);
+  const sheet = getOrCreateSheet(ss);
   sheet.appendRow([
     new Date(),
     new Date(payload.date),

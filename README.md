@@ -5,7 +5,11 @@ et les enregistrer automatiquement dans Google Sheets.
 
 ## 🌐 Accès
 
-**https://fdaubercy.github.io/suivi-e85/**
+| Ressource | Lien |
+|---|---|
+| 📱 Application | **https://fdaubercy.github.io/suivi-e85/** |
+| 📊 Google Sheet | https://docs.google.com/spreadsheets/d/1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE/edit |
+| ⚙️ Google Apps Script | Google Sheet → Extensions → Apps Script |
 
 Ajouter à l'écran d'accueil iPhone : Safari → Partager → « Sur l'écran d'accueil »
 
@@ -111,6 +115,9 @@ suivi-e85/
 
 ## ⚙️ Configuration
 
+> 📊 **Google Sheet** : https://docs.google.com/spreadsheets/d/1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE/edit
+> ⚙️ **Google Apps Script** : Google Sheet → Extensions → Apps Script *(le fichier source est dans `Google Apps Script/Code.gs`)*
+
 ### 1. Google Apps Script (backend)
 
 ```javascript
@@ -134,7 +141,8 @@ function doPost(e) {
   sheet.appendRow([
     new Date(), new Date(payload.date), payload.type,
     Number(payload.km), Number(payload.litres), Number(payload.prix),
-    payload.prixS98 ? Number(payload.prixS98) : '', payload.station
+    payload.prixS98 ? Number(payload.prixS98) : '', payload.station,
+    payload.vehicule || ''
   ]);
   return ContentService
     .createTextOutput(JSON.stringify({ success: true }))
@@ -144,12 +152,12 @@ function doPost(e) {
 
 ### 2. Connecter le formulaire
 
-Dans `app.js`, constantes en tête de fichier :
+Dans `js/config.js` :
 
 ```javascript
-const APP_VERSION = '2.2.1.0';   // ← mettre à jour à chaque déploiement (js/config.js)
-const GAS_URL     = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
-const GS_SHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
+export const APP_VERSION = '2.2.1.0';   // ← mettre à jour à chaque déploiement
+export const GAS_URL     = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
+export const GS_SHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
 ```
 
 ### 3. Google Sheet cible

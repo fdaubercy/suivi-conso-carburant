@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.2.1.1] — 2026-05-24
+
+### Fixed
+- **`Code.gs` — constante `HEADERS`** : 'Véhicule' manquait en 9ème position ; le sheet créé automatiquement n'aurait pas eu la colonne.
+- **`Code.gs` — `doPost` plein** : utilise désormais `getOrCreateSheet()` au lieu de `getSheetByName()` directement, pour garantir la création et l'en-tête si l'onglet n'existe pas.
+
+### Docs
+- **README** : liens directs vers le Google Sheet et le Google Apps Script dans la section Accès et Configuration.
+- **README** : code GAS mis à jour avec `payload.vehicule`. Référence `app.js` → `js/config.js` pour les constantes.
+
+---
+
 ## [2.2.1.0] — 2026-05-24
 
 ### Fixed
