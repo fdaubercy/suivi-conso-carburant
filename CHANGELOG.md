@@ -4,6 +4,26 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.2.4.2] — 2026-05-24
+
+### Fixed
+- **`vba/modSyncGS.bas` — HTTP** : `ServerXMLHTTP60` absent sur cette machine (composant MSXML6 non enregistré). Remplacement par `WinHttp.WinHttpRequest.5.1` (natif Windows, toujours disponible depuis Vista, suit les redirections HTTPS Google). Fallback automatique sur `MSXML2.XMLHTTP60` si WinHttp lui-même est indisponible. Factorisation dans `CreateHttp()`.
+- **`TestConnexion()`** : tente successivement WinHttp puis MSXML2, affiche le composant effectivement utilisé.
+- **`SetTimeouts`** harmonisé pour WinHttp (méthode identique : resolve/connect/send/receive en ms).
+
+---
+
+## [2.2.4.1] — 2026-05-24
+
+### Fixed
+- **`vba/modSyncGS.bas` — HTTP** : remplacement de `MSXML2.XMLHTTP60` par `MSXML2.ServerXMLHTTP60` + `setTimeouts` (5 s resolve / 10 s connect / 30 s send+receive). `XMLHTTP60` (mode navigateur/WinInet) échouait silencieusement sur la double redirection HTTPS de Google Apps Script ; `ServerXMLHTTP60` (mode serveur/WinHTTP) la gère correctement.
+- **Messages d'erreur distincts** : séparation des cas "réseau muet" (`jsonStr = ""`) et "réponse inattendue" (`InStr(..., "records") = 0` — GAS non re-déployé). Chaque cas affiche un message spécifique avec la marche à suivre.
+
+### Added
+- **`TestConnexion()`** : fonction de diagnostic publique — affiche le code HTTP, le début de la réponse brute et la cause probable (réseau KO, GAS non re-déployé, accès refusé, redirection non suivie…). À lancer en premier en cas de problème.
+
+---
+
 ## [2.2.4.0] — 2026-05-24
 
 ### Added

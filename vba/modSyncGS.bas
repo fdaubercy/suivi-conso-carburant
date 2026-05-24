@@ -2,7 +2,7 @@ Attribute VB_Name = "modSyncGS"
 ' ============================================================
 '  SUIVI E85 - Synchronisation bidirectionnelle
 '  Google Sheets (_ImportGS) <-> Excel (GS_Pleins)
-'  v2.2.4.0
+'  v2.2.4.2
 ' ============================================================
 '
 '  INSTALLATION :
@@ -12,7 +12,9 @@ Attribute VB_Name = "modSyncGS"
 '             SyncOnOpen
 '         End Sub
 '    3. Ajouter la colonne sync_id (P) dans le tableau GS_Pleins
-'       (voir README - section Sync)
+'    4. Executer migrateSyncId() dans l'editeur GAS (une seule fois)
+'
+'  DIAGNOSTIC : lancer TestConnexion() depuis l'editeur VBA (F5)
 '
 ' ============================================================
 Option Explicit
@@ -22,14 +24,95 @@ Private Const GAS_URL     As String = "https://script.google.com/macros/s/AKfycb
 Private Const WS_NAME     As String = "GS_Pleins"
 Private Const COL_SYNC_ID As Integer = 16  ' Colonne P
 
+' Timeouts HTTP en millisecondes (resolve, connect, send, receive)
+Private Const T_RESOLVE  As Long = 5000
+Private Const T_CONNECT  As Long = 10000
+Private Const T_SEND     As Long = 30000
+Private Const T_RECEIVE  As Long = 30000
+
 ' Unicode : evite les problemes d'encodage du .bas
-Private Function Euro() As String:    Euro = ChrW(8364): End Function  ' €
-Private Function eAcc() As String:    eAcc = ChrW(233):  End Function  ' é
+Private Function Euro() As String:    Euro = ChrW(8364): End Function  ' euro
+Private Function eAcc() As String:    eAcc = ChrW(233):  End Function  ' e accent
 
 ' Cle JSON avec substitution {E}=euro, {e}=e accent
 Private Function K(s As String) As String
     K = Replace(Replace(s, "{E}", Euro()), "{e}", eAcc())
 End Function
+
+
+' ════════════════════════════════════════════════════════════
+'  DIAGNOSTIC
+'  Lancer en premier en cas de probleme (F5 dans l'editeur VBA)
+'  Affiche : composant HTTP utilise, code HTTP, debut de reponse
+' ════════════════════════════════════════════════════════════
+Public Sub TestConnexion()
+    Dim url As String: url = GAS_URL & "?action=export"
+    Dim status As Long
+    Dim body   As String
+    Dim errTxt As String
+    Dim driver As String
+
+    On Error Resume Next
+    Dim h As Object
+
+    ' Essai 1 : WinHttp - natif Windows, toujours disponible, suit les redirections HTTPS
+    Set h = CreateObject("WinHttp.WinHttpRequest.5.1")
+    If Err.Number = 0 Then
+        driver = "WinHttp.WinHttpRequest.5.1"
+        h.SetTimeouts T_RESOLVE, T_CONNECT, T_SEND, T_RECEIVE
+        h.Open "GET", url, False
+        h.Send
+        If Err.Number <> 0 Then errTxt = Err.Description: Err.Clear
+    Else
+        Err.Clear
+        ' Essai 2 : MSXML2.XMLHTTP60
+        Set h = CreateObject("MSXML2.XMLHTTP60")
+        If Err.Number = 0 Then
+            driver = "MSXML2.XMLHTTP60"
+            h.Open "GET", url, False
+            h.send
+            If Err.Number <> 0 Then errTxt = Err.Description: Err.Clear
+        Else
+            errTxt = "Aucun composant HTTP disponible (WinHttp ni MSXML2)."
+            Err.Clear
+        End If
+    End If
+
+    If errTxt = "" And Not h Is Nothing Then
+        status = h.Status
+        body   = Left(h.ResponseText, 300)
+    End If
+    On Error GoTo 0
+
+    Dim cause As String
+    If errTxt <> "" Then
+        cause = "ERREUR : " & errTxt
+    Else
+        Select Case True
+            Case status = 200 And InStr(body, """records""") > 0
+                cause = "OK - reponse JSON valide."
+            Case status = 200
+                cause = "HTTP 200 mais contenu non JSON." & vbNewLine & _
+                        "-> GAS probablement pas RE-DEPLOYE apres la mise a jour du code." & vbNewLine & _
+                        "GAS Editor -> Deployer -> Gerer les deploiements -> Nouvelle version."
+            Case status = 0
+                cause = "Aucune reponse (status 0) - probleme reseau ou URL incorrecte."
+            Case status = 302
+                cause = "Redirection non suivie (302) - " & driver & " ne suit pas les redirections."
+            Case status = 401 Or status = 403
+                cause = "Acces refuse (HTTP " & status & ")." & vbNewLine & _
+                        "-> Deploiement GAS : choisir 'Tout le monde' sans connexion requise."
+            Case Else
+                cause = "Code HTTP inattendu : " & status
+        End Select
+    End If
+
+    MsgBox "Composant HTTP : " & IIf(driver = "", "aucun trouve", driver) & vbNewLine & _
+           "Code HTTP      : " & status                                    & vbNewLine & _
+           "Diagnostic     : " & cause                                     & vbNewLine & vbNewLine & _
+           "Debut de reponse :" & vbNewLine & body, _
+           vbInformation, "Diagnostic Sync E85"
+End Sub
 
 
 ' ════════════════════════════════════════════════════════════
@@ -64,35 +147,50 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
 
     Set ws = ThisWorkbook.Sheets(WS_NAME)
 
-    ' ── 1. Export GAS -> JSON ─────────────────────────────────
+    ' 1. Export GAS -> JSON
     Dim jsonStr As String
     jsonStr = HttpGet(GAS_URL & "?action=export")
 
-    If jsonStr = "" Or InStr(jsonStr, """records""") = 0 Then
+    ' Cas A : erreur reseau
+    If jsonStr = "" Then
         If Not silentIfEmpty Then
-            MsgBox "Impossible de contacter Google Sheets." & vbNewLine & _
-                   "Verifiez votre connexion internet.", vbExclamation, "Sync E85"
+            MsgBox "Erreur reseau : impossible de joindre Google Sheets." & vbNewLine & vbNewLine & _
+                   "Lancez TestConnexion() pour diagnostiquer.", _
+                   vbExclamation, "Sync E85"
         End If
         GoTo Cleanup
     End If
 
-    ' ── 2. Parse les enregistrements GS ──────────────────────
+    ' Cas B : reponse recue mais pas du JSON attendu (GAS pas re-deploye ?)
+    If InStr(jsonStr, """records""") = 0 Then
+        If Not silentIfEmpty Then
+            MsgBox "Reponse inattendue de Google Sheets." & vbNewLine & vbNewLine & _
+                   "Cause probable : script GAS pas RE-DEPLOYE apres modification." & vbNewLine & _
+                   "GAS Editor -> Deployer -> Gerer les deploiements" & vbNewLine & _
+                   "-> Modifier -> Nouvelle version -> Deployer" & vbNewLine & vbNewLine & _
+                   "Lancez TestConnexion() pour voir la reponse brute.", _
+                   vbExclamation, "Sync E85"
+        End If
+        GoTo Cleanup
+    End If
+
+    ' 2. Parse les enregistrements GS
     Dim gsRecs() As String
     gsRecs = ParseRecords(jsonStr)
 
-    ' ── 3. Index des sync_id locaux {id -> True} ─────────────
+    ' 3. Index des sync_id locaux
     Dim localIds As Object
     Set localIds = BuildLocalIndex(ws)
 
-    ' ── 4. GS -> Excel (lignes GS absentes localement) ───────
+    ' 4. GS -> Excel
     Application.StatusBar = "Sync E85 - Import depuis Google Sheets..."
     addedFromGS = ImportGSToExcel(ws, gsRecs, localIds)
 
-    ' ── 5. Excel -> GS (lignes locales absentes de GS) ───────
+    ' 5. Excel -> GS
     Application.StatusBar = "Sync E85 - Export vers Google Sheets..."
     sentToGS = ExportExcelToGS(ws, gsRecs)
 
-    ' ── 6. Compte-rendu ──────────────────────────────────────
+    ' 6. Compte-rendu
     If Not silentIfEmpty Or addedFromGS > 0 Or sentToGS > 0 Then
         MsgBox "Synchronisation terminee :" & vbNewLine & vbNewLine & _
                "  <- " & addedFromGS & " ligne(s) recues depuis Google Sheets" & vbNewLine & _
@@ -109,7 +207,8 @@ ErrHandler:
     Application.StatusBar = False
     Application.Cursor = xlDefault
     If Not silentIfEmpty Then
-        MsgBox "Erreur lors de la synchronisation :" & vbNewLine & Err.Description, _
+        MsgBox "Erreur inattendue :" & vbNewLine & Err.Description & vbNewLine & vbNewLine & _
+               "Lancez TestConnexion() pour verifier l'acces au GAS.", _
                vbCritical, "Sync E85"
     End If
 End Sub
@@ -119,7 +218,6 @@ End Sub
 '  DIRECTION 1 : GS -> EXCEL
 ' ════════════════════════════════════════════════════════════
 
-' Construit un dictionnaire {sync_id -> True} depuis GS_Pleins
 Private Function BuildLocalIndex(ws As Worksheet) As Object
     Dim dict As Object
     Set dict = CreateObject("Scripting.Dictionary")
@@ -138,12 +236,10 @@ Private Function BuildLocalIndex(ws As Worksheet) As Object
     Set BuildLocalIndex = dict
 End Function
 
-' Insere dans GS_Pleins les lignes GS absentes localement
 Private Function ImportGSToExcel(ws As Worksheet, gsRecs() As String, _
                                   localIds As Object) As Long
     Dim added As Long: added = 0
 
-    ' Detecte le ListObject (tableau Excel) s'il existe
     Dim tbl As ListObject
     If ws.ListObjects.Count > 0 Then Set tbl = ws.ListObjects(1)
 
@@ -156,17 +252,15 @@ Private Function ImportGSToExcel(ws As Worksheet, gsRecs() As String, _
         If sid = "" Then GoTo NextRec
         If localIds.Exists(sid) Then GoTo NextRec
 
-        ' Cible : nouvelle ligne dans le tableau ou en-dessous
         Dim rng As Range
         If Not tbl Is Nothing Then
-            Set rng = tbl.ListRows.Add.Range   ' etend le ListObject proprement
+            Set rng = tbl.ListRows.Add.Range
         Else
             Dim lr As Long
             lr = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1
             Set rng = ws.Range(ws.Cells(lr, 1), ws.Cells(lr, COL_SYNC_ID))
         End If
 
-        ' Mapping JSON -> colonnes A..P
         rng(1).Value  = IsoToDate(JsonGet(rec, "Horodatage"))
         rng(2).Value  = IsoToDate(JsonGet(rec, "Date"))
         rng(3).Value  = JsonGet(rec, "Type")
@@ -197,9 +291,7 @@ End Function
 '  DIRECTION 2 : EXCEL -> GS
 ' ════════════════════════════════════════════════════════════
 
-' Envoie vers GS les lignes locales absentes de l'export
 Private Function ExportExcelToGS(ws As Worksheet, gsRecs() As String) As Long
-    ' Set des sync_id GS
     Dim gsIds As Object
     Set gsIds = CreateObject("Scripting.Dictionary")
     gsIds.CompareMode = vbTextCompare
@@ -210,7 +302,6 @@ Private Function ExportExcelToGS(ws As Worksheet, gsRecs() As String) As Long
         If gid <> "" Then gsIds(gid) = True
     Next i
 
-    ' Collecte les lignes locales manquantes
     Dim lastRow As Long
     lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
 
@@ -220,19 +311,16 @@ Private Function ExportExcelToGS(ws As Worksheet, gsRecs() As String) As Long
 
     Dim r As Long
     For r = 2 To lastRow
-        ' Cellule vide en A = ligne vide, on saute
         If ws.Cells(r, 1).Value = "" Then GoTo NextRow
 
         Dim lsid As String
         lsid = Trim(CStr(ws.Cells(r, COL_SYNC_ID).Value))
 
-        ' Genere un UUID si la ligne n'en a pas encore
         If lsid = "" Then
             lsid = GenerateUUID()
             ws.Cells(r, COL_SYNC_ID).Value = lsid
         End If
 
-        ' Ignore si deja dans GS
         If gsIds.Exists(lsid) Then GoTo NextRow
 
         rowsJson(count) = RowToJson(ws, r, lsid)
@@ -251,7 +339,6 @@ NextRow:
     ExportExcelToGS = count
 End Function
 
-' Serialise une ligne Excel en objet JSON pour bulkAdd
 Private Function RowToJson(ws As Worksheet, r As Long, sid As String) As String
     Dim ts As String, ds As String
 
@@ -285,19 +372,15 @@ End Function
 
 
 ' ════════════════════════════════════════════════════════════
-'  JSON PARSER MINIMAL (JSON plat uniquement)
+'  JSON PARSER MINIMAL (objets plats uniquement)
 ' ════════════════════════════════════════════════════════════
 
-' Extrait la valeur d'une cle dans un objet JSON plat {"k":"v","k2":n,...}
-' Supporte : chaines, nombres, null
 Private Function JsonGet(jsonObj As String, key As String) As String
     Dim pat As String: pat = """" & key & """:"
     Dim pos As Long:   pos = InStr(jsonObj, pat)
     If pos = 0 Then Exit Function
 
     pos = pos + Len(pat)
-
-    ' Saute les espaces eventuels
     Do While pos <= Len(jsonObj) And Mid(jsonObj, pos, 1) = " "
         pos = pos + 1
     Loop
@@ -306,7 +389,6 @@ Private Function JsonGet(jsonObj As String, key As String) As String
 
     Select Case ch
         Case """"
-            ' Valeur chaine - cherche le " fermant (non echappe)
             Dim vs As Long: vs = pos + 1
             Dim ve As Long: ve = vs
             Do While ve <= Len(jsonObj)
@@ -314,12 +396,9 @@ Private Function JsonGet(jsonObj As String, key As String) As String
                 ve = ve + 1
             Loop
             JsonGet = Mid(jsonObj, vs, ve - vs)
-
         Case "n"
-            JsonGet = ""   ' null
-
+            JsonGet = ""
         Case Else
-            ' Nombre - lit jusqu'a , ou }
             Dim ns As Long: ns = pos
             Do While pos <= Len(jsonObj)
                 ch = Mid(jsonObj, pos, 1)
@@ -330,33 +409,26 @@ Private Function JsonGet(jsonObj As String, key As String) As String
     End Select
 End Function
 
-' Decoupe {"records":[{obj1},{obj2},...]} en tableau d'objets JSON
-' Fonctionne uniquement pour des JSON plats (pas d'objets imbrique dans les valeurs)
 Private Function ParseRecords(jsonStr As String) As String()
     Dim empty(0) As String: empty(0) = ""
 
-    ' Trouve la position apres le [ de "records":[
     Dim p As Long
     p = InStr(jsonStr, """records"":[")
     If p = 0 Then ParseRecords = empty: Exit Function
-    p = p + Len("""records"":[")  ' Pointe sur le premier { ou ] si vide
+    p = p + Len("""records"":[")
 
-    ' Trouve la fin du tableau : dernier ]} dans le JSON
     Dim ep As Long
     ep = InStrRev(jsonStr, "]}")
     If ep = 0 Then ep = InStrRev(jsonStr, "]")
     If ep = 0 Or ep <= p Then ParseRecords = empty: Exit Function
 
     Dim arrStr As String
-    arrStr = Mid(jsonStr, p, ep - p)  ' Contenu entre [ et ]
-    arrStr = Trim(arrStr)
+    arrStr = Trim(Mid(jsonStr, p, ep - p))
     If arrStr = "" Then ParseRecords = empty: Exit Function
 
-    ' Decoupe sur },{ - safe pour JSON plat
     Dim parts() As String
     parts = Split(arrStr, "},{")
 
-    ' Remet les accolades supprimees par le split
     Dim i As Integer
     For i = 0 To UBound(parts)
         If Left(parts(i), 1) <> "{" Then parts(i) = "{" & parts(i)
@@ -371,20 +443,18 @@ End Function
 '  HELPERS JSON (serialisation)
 ' ════════════════════════════════════════════════════════════
 
-' Paire cle:valeur chaine  →  "key":"value"
 Private Function jS(key As String, val As String) As String
     val = Replace(val, "\", "\\")
     val = Replace(val, """", "\""")
     jS = """" & key & """:""" & val & """"
 End Function
 
-' Paire cle:valeur numerique  →  "key":1.23  ou  "key":null
 Private Function jN(key As String, val As Variant) As String
     Dim n As String
     If IsEmpty(val) Or IsNull(val) Or val = "" Then
         n = "null"
     ElseIf IsNumeric(val) Then
-        n = Replace(CStr(CDbl(val)), ",", ".")  ' virgule FR -> point JSON
+        n = Replace(CStr(CDbl(val)), ",", ".")
     Else
         n = "null"
     End If
@@ -396,7 +466,6 @@ End Function
 '  HELPERS DIVERS
 ' ════════════════════════════════════════════════════════════
 
-' Convertit une date ISO 8601 ("2026-05-22T06:01:55.000Z") en Date VBA
 Private Function IsoToDate(iso As String) As Variant
     If iso = "" Then IsoToDate = "": Exit Function
     On Error Resume Next
@@ -404,7 +473,6 @@ Private Function IsoToDate(iso As String) As Variant
     On Error GoTo 0
 End Function
 
-' Convertit une chaine JSON en Double, ou "" si vide/null
 Private Function ToNum(s As String) As Variant
     If s = "" Or s = "null" Then
         ToNum = ""
@@ -415,13 +483,11 @@ Private Function ToNum(s As String) As Variant
     End If
 End Function
 
-' Generateur UUID via Scriptlet.TypeLib (Windows)
-' Fallback horodatage+random si indisponible
 Public Function GenerateUUID() As String
     On Error GoTo Fallback
     Dim g As String
-    g = CreateObject("Scriptlet.TypeLib").GUID   ' {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
-    GenerateUUID = Mid(g, 2, Len(g) - 2)         ' Supprime { et }
+    g = CreateObject("Scriptlet.TypeLib").GUID
+    GenerateUUID = Mid(g, 2, Len(g) - 2)
     Exit Function
 Fallback:
     Randomize
@@ -432,17 +498,30 @@ End Function
 
 
 ' ════════════════════════════════════════════════════════════
-'  HTTP
+'  HTTP  -  WinHttp.WinHttpRequest.5.1 en priorite
+'           (natif Windows, suit les redirections HTTPS Google)
+'           Fallback sur MSXML2.XMLHTTP60 si WinHttp indisponible
 ' ════════════════════════════════════════════════════════════
+
+Private Function CreateHttp() As Object
+    On Error Resume Next
+    Set CreateHttp = CreateObject("WinHttp.WinHttpRequest.5.1")
+    If Err.Number <> 0 Or CreateHttp Is Nothing Then
+        Err.Clear
+        Set CreateHttp = CreateObject("MSXML2.XMLHTTP60")
+    End If
+    On Error GoTo 0
+End Function
 
 Private Function HttpGet(url As String) As String
     On Error GoTo Err_
     Dim h As Object
-    Set h = CreateObject("MSXML2.XMLHTTP60")
+    Set h = CreateHttp()
+    If h Is Nothing Then Exit Function
+    h.SetTimeouts T_RESOLVE, T_CONNECT, T_SEND, T_RECEIVE
     h.Open "GET", url, False
-    h.setRequestHeader "Cache-Control", "no-cache"
-    h.send
-    If h.Status = 200 Then HttpGet = h.responseText
+    h.Send
+    If h.Status = 200 Then HttpGet = h.ResponseText
     Exit Function
 Err_: HttpGet = ""
 End Function
@@ -450,11 +529,13 @@ End Function
 Private Function HttpPost(url As String, body As String) As String
     On Error GoTo Err_
     Dim h As Object
-    Set h = CreateObject("MSXML2.XMLHTTP60")
+    Set h = CreateHttp()
+    If h Is Nothing Then Exit Function
+    h.SetTimeouts T_RESOLVE, T_CONNECT, T_SEND, T_RECEIVE
     h.Open "POST", url, False
     h.setRequestHeader "Content-Type", "application/json; charset=utf-8"
-    h.send body
-    If h.Status = 200 Then HttpPost = h.responseText
+    h.Send body
+    If h.Status = 200 Then HttpPost = h.ResponseText
     Exit Function
 Err_: HttpPost = ""
 End Function
