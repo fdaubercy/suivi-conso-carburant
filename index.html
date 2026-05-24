@@ -22,7 +22,32 @@
 
 <!-- ─── Carte informations du plein ─── -->
 <div class="card">
-  <p class="section-title">Type de carburant</p>
+
+  <!-- Véhicule -->
+  <p class="section-title">Véhicule</p>
+  <div class="field">
+    <select id="vehiculeSel" onchange="onVehiculeChange()">
+      <option value="">— Choisir un véhicule —</option>
+      <optgroup label="Mes véhicules" id="vehiculeGroup">
+        <option value="__ajouter">＋ Ajouter un véhicule</option>
+        <option value="__supprimer">✕ Supprimer ce véhicule</option>
+      </optgroup>
+    </select>
+    <div class="geo-status" id="vehiculeStatus"></div>
+    <!-- Champ d'ajout inline -->
+    <div id="vehiculeAddField" class="hidden">
+      <div class="cp-row" style="margin-top:8px">
+        <input type="text" id="fNouveauVehicule" class="cp-input"
+               placeholder="Ex : Moto Honda CBR600"
+               autocomplete="off"
+               onkeydown="if(event.key==='Enter') confirmerAjoutVehicule()">
+        <button class="cp-btn" onclick="confirmerAjoutVehicule()">Ajouter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Type de carburant -->
+  <p class="section-title" style="margin-top:14px">Type de carburant</p>
   <div class="type-toggle">
     <button class="type-btn active" id="btnE85" onclick="setType('E85')">🌿 SuperEthanol E85</button>
     <button class="type-btn"        id="btnS98" onclick="setType('S98')">💧 Super 98</button>
@@ -60,7 +85,7 @@
            inputmode="decimal" oninput="onS98ManualEdit()">
     <div class="s98-status" id="s98Status"></div>
     <div class="cp-row hidden" id="cpSearch">
-      <input type="text" id="fCp" class="cp-input" placeholder="Code postal (ex. 59500)"
+      <input type="text" id="fCp" class="cp-input" placeholder="Code postal (ex. 69620)"
              inputmode="numeric" maxlength="5"
              onkeydown="if(event.key==='Enter') fetchPricesByCP()">
       <button class="cp-btn" onclick="fetchPricesByCP()">Chercher</button>
@@ -93,11 +118,11 @@
     <div class="geo-status info" id="geoStatus"></div>
   </div>
 
-  <!-- Saisie manuelle — juste sous le sélecteur, avant la liste et la carte -->
+  <!-- Saisie manuelle ville — juste sous le sélecteur -->
   <div class="field hidden" id="autreField">
-    <label for="fAutre">Ville ou adresse</label>
+    <label for="fAutre">Ville de la station</label>
     <input type="text" id="fAutre"
-           placeholder="ex. Râches, Douai, Leclerc…"
+           placeholder="ex. Villefranche, Mâcon, Douai…"
            autocomplete="off" autocorrect="off" spellcheck="false"
            oninput="onAutreInput()">
     <div class="s98-status" id="autreStatus"></div>

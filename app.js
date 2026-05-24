@@ -1,19 +1,21 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v2.0.2.0 — Fix getCoords GeoJSON, filtre proximité recherche manuelle
+   v2.1.0.0 — Véhicules localStorage, recherche sur champ ville uniquement
 ═══════════════════════════════════════ */
 
 /* ─── Configuration ─── */
-const APP_VERSION  = '2.0.2.0';
+const APP_VERSION  = '2.1.0.0';
 const GAS_URL      = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID  = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API     = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
+const VEHICULES_KEY = 'suivi_e85_vehicules';
 
 /* ─── État global ─── */
-let currentType   = 'E85';
-let s98Autofilled = false;
+let currentType        = 'E85';
+let s98Autofilled      = false;
 let userLat = null, userLon = null;
-let _nearbyStations = [];
+let _nearbyStations    = [];
+let currentVehiculeNom = '';
 
 /* ─── Init date ─── */
 (function () {
@@ -24,11 +26,99 @@ let _nearbyStations = [];
 })();
 
 /* ═══════════════════════════════════════
+   VÉHICULES — stockage localStorage
+═══════════════════════════════════════ */
+
+function getVehicules() {
+  try { return JSON.parse(localStorage.getItem(VEHICULES_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function sauvegarderVehicules(liste) {
+  localStorage.setItem(VEHICULES_KEY, JSON.stringify(liste));
+}
+
+function chargerVehicules() {
+  const liste = getVehicules();
+  const group = document.getElementById('vehiculeGroup');
+  Array.from(group.querySelectorAll('option[data-v]')).forEach(o => o.remove());
+  const ajouterOpt = group.querySelector('[value="__ajouter"]');
+  liste.forEach(nom => {
+    const opt = new Option(nom, nom);
+    opt.dataset.v = '1';
+    group.insertBefore(opt, ajouterOpt);
+  });
+  if (currentVehiculeNom && liste.includes(currentVehiculeNom)) {
+    document.getElementById('vehiculeSel').value = currentVehiculeNom;
+  }
+}
+
+function onVehiculeChange() {
+  const sel      = document.getElementById('vehiculeSel');
+  const addField = document.getElementById('vehiculeAddField');
+  const val      = sel.value;
+
+  if (val === '__ajouter') {
+    sel.value = currentVehiculeNom || '';
+    addField.classList.remove('hidden');
+    document.getElementById('fNouveauVehicule').focus();
+    return;
+  }
+
+  if (val === '__supprimer') {
+    addField.classList.add('hidden');
+    if (!currentVehiculeNom) {
+      setVehiculeStatus('err', 'Sélectionnez d\'abord un véhicule à supprimer.');
+      sel.value = '';
+      return;
+    }
+    if (confirm('Supprimer "' + currentVehiculeNom + '" ?')) {
+      const liste = getVehicules().filter(v => v !== currentVehiculeNom);
+      sauvegarderVehicules(liste);
+      currentVehiculeNom = '';
+      chargerVehicules();
+      sel.value = '';
+      setVehiculeStatus('', '');
+    } else {
+      sel.value = currentVehiculeNom;
+    }
+    return;
+  }
+
+  currentVehiculeNom = val;
+  addField.classList.add('hidden');
+  setVehiculeStatus('', '');
+}
+
+function confirmerAjoutVehicule() {
+  const nom = document.getElementById('fNouveauVehicule').value.trim();
+  if (!nom) { setVehiculeStatus('err', 'Nom requis.'); return; }
+  const liste = getVehicules();
+  if (!liste.includes(nom)) {
+    liste.push(nom);
+    sauvegarderVehicules(liste);
+  }
+  chargerVehicules();
+  document.getElementById('vehiculeSel').value = nom;
+  currentVehiculeNom = nom;
+  document.getElementById('fNouveauVehicule').value = '';
+  document.getElementById('vehiculeAddField').classList.add('hidden');
+  setVehiculeStatus('ok', '"' + nom + '" enregistré');
+  setTimeout(() => setVehiculeStatus('', ''), 3000);
+}
+
+function setVehiculeStatus(cls, msg) {
+  const el = document.getElementById('vehiculeStatus');
+  el.className   = 'geo-status ' + cls;
+  el.textContent = msg;
+}
+
+/* ═══════════════════════════════════════
    ENRICHISSEMENT — OVERPASS around EN SÉRIE
 ═══════════════════════════════════════ */
 
-const OVERPASS_API   = 'https://overpass-api.de/api/interpreter';
-const OSM_RADIUS     = 2000;
+const OVERPASS_API     = 'https://overpass-api.de/api/interpreter';
+const OSM_RADIUS       = 2000;
 const OSM_SERIAL_DELAY = 600;
 
 async function fetchOsmNameAround(lat, lon) {
@@ -40,14 +130,13 @@ async function fetchOsmNameAround(lat, lon) {
   try {
     const resp = await fetch(OVERPASS_API, {
       method: 'POST',
-      body: 'data=' + encodeURIComponent(query),
+      body:   'data=' + encodeURIComponent(query),
       signal: AbortSignal.timeout(8000)
     });
     if (!resp.ok) return null;
-    const data = await resp.json();
+    const data     = await resp.json();
     const elements = data.elements || [];
     if (!elements.length) return null;
-
     const sorted = elements
       .map(el => {
         const eLat = el.lat ?? el.center?.lat;
@@ -57,7 +146,6 @@ async function fetchOsmNameAround(lat, lon) {
       })
       .filter(Boolean)
       .sort((a, b) => a.dist - b.dist);
-
     const tags = sorted[0].tags;
     const name = tags.brand || tags.name || tags.operator || null;
     console.log(`[OSM] around(${lat.toFixed(4)},${lon.toFixed(4)}) → "${name || '—'}" (Δ${Math.round(sorted[0].dist)} m)`);
@@ -73,9 +161,8 @@ async function enrichWithOsmSerial(stations) {
   for (let i = 0; i < stations.length; i++) {
     setGeoStatus('info', `Identification station ${i + 1}/${stations.length}…`);
     names.push(await fetchOsmNameAround(stations[i].lat, stations[i].lon));
-    if (i < stations.length - 1) {
+    if (i < stations.length - 1)
       await new Promise(r => setTimeout(r, OSM_SERIAL_DELAY));
-    }
   }
   return names;
 }
@@ -127,7 +214,7 @@ function bestZoom(allLats, allLons, maxW, maxH) {
 function showMap(uLat, uLon, stations) {
   _mapStations = stations.filter(s => s.lat && s.lon);
   if (!_mapStations.length) return;
-  const wrap = document.getElementById('stationMapWrap');
+  const wrap     = document.getElementById('stationMapWrap');
   const wasHidden = wrap.classList.contains('hidden');
   wrap.classList.remove('hidden');
   if (wasHidden) {
@@ -140,8 +227,8 @@ function showMap(uLat, uLon, stations) {
 function _renderMap(uLat, uLon) {
   const container = document.getElementById('stationMap');
   const rect = container.getBoundingClientRect();
-  const W = rect.width  || container.offsetWidth  || 360;
-  const H = rect.height || container.offsetHeight || 220;
+  const W  = rect.width  || container.offsetWidth  || 360;
+  const H  = rect.height || container.offsetHeight || 220;
   const mg = 0.008;
 
   const allLats = _mapStations.map(s => s.lat);
@@ -153,9 +240,8 @@ function _renderMap(uLat, uLon) {
     [Math.min(...allLons) - mg, Math.max(...allLons) + mg],
     W, H
   );
-  const nw = tileXY(Math.max(...allLats) + mg, Math.min(...allLons) - mg, z);
-  const se = tileXY(Math.min(...allLats) - mg, Math.max(...allLons) + mg, z);
-
+  const nw    = tileXY(Math.max(...allLats) + mg, Math.min(...allLons) - mg, z);
+  const se    = tileXY(Math.min(...allLats) - mg, Math.max(...allLons) + mg, z);
   const gridW = (se.x - nw.x + 1) * TILE_SZ;
   const gridH = (se.y - nw.y + 1) * TILE_SZ;
   const offX  = Math.round((W - gridW) / 2);
@@ -222,22 +308,15 @@ function escHtml(str) {
 function selectStationFromMap(idx) {
   const s = _mapStations[idx];
   if (!s) return;
-
   _mapStations.forEach((_, i) => {
     const pin = document.getElementById('mapPinDot' + i);
     if (pin) pin.style.background = i === idx ? '#1B3A5C' : '#2E75B6';
   });
   showPinLabel(idx);
   pickStation(s.name, s.lat, s.lon);
-
   if (s.src === 'nearby') {
     highlightNearbyItem(s.srcIdx);
     document.getElementById('nearbyItem' + s.srcIdx)
-      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  } else if (s.src === 'suggestion') {
-    document.querySelectorAll('.suggestion-item').forEach((el, i) =>
-      el.classList.toggle('selected', i === s.srcIdx));
-    document.querySelectorAll('.suggestion-item')[s.srcIdx]
       ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 }
@@ -248,26 +327,21 @@ function hideMap() {
 
 /* ─── Extraction coordonnées ───────────────────────────────
    L'API ODS v2.1 retourne geom dans deux formats selon la requête :
-   • Avec filtre distance() dans where → {lat: N, lon: N}  (format plat)
-   • Sans filtre distance()            → {type:"Point", coordinates:[lon,lat]}  (GeoJSON)
-   Les deux formats sont gérés ici.
+   • Avec filtre distance() → {lat, lon}  (format plat)
+   • Sans filtre distance() → {type:"Point", coordinates:[lon,lat]}  (GeoJSON)
 ─────────────────────────────────────────────────────────── */
 function getCoords(r) {
   if (!r.geom) return null;
-  // Format plat {lat, lon}
-  if (r.geom.lat != null && r.geom.lon != null) {
+  if (r.geom.lat != null && r.geom.lon != null)
     return { lat: +r.geom.lat, lon: +r.geom.lon };
-  }
-  // Format GeoJSON Point {type:"Point", coordinates:[lon, lat]}
-  if (r.geom.type === 'Point' && Array.isArray(r.geom.coordinates) && r.geom.coordinates.length >= 2) {
+  if (r.geom.type === 'Point' && Array.isArray(r.geom.coordinates) && r.geom.coordinates.length >= 2)
     return { lat: +r.geom.coordinates[1], lon: +r.geom.coordinates[0] };
-  }
   return null;
 }
 
 /* ─── Ligne d'adresse secondaire ─── */
 function stationSubLabel(r) {
-  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+  const cap   = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
   const addr  = cap(r.adresse || '');
   const cp    = r.cp || '';
   const ville = r.ville ? r.ville.trim().toUpperCase() : '';
@@ -292,8 +366,8 @@ function setType(type) {
 
 /* ─── Coût du plein ─── */
 function updateCout() {
-  const l = parseFloat(document.getElementById('fLitres').value);
-  const p = parseFloat(document.getElementById('fPrix').value);
+  const l   = parseFloat(document.getElementById('fLitres').value);
+  const p   = parseFloat(document.getElementById('fPrix').value);
   const box = document.getElementById('coutBox');
   if (!isNaN(l) && !isNaN(p) && l > 0 && p > 0) {
     box.style.display = 'flex';
@@ -305,7 +379,7 @@ function updateCout() {
 
 /* ─── Station (dropdown) ─── */
 function onStationChange() {
-  const sel = document.getElementById('stationSel');
+  const sel      = document.getElementById('stationSel');
   const isManual = sel.value === '__autre';
   document.getElementById('autreField').classList.toggle('hidden', !isManual);
   if (!isManual) {
@@ -362,7 +436,7 @@ async function searchNearby(lat, lon, btn) {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
-    console.log('[DEBUG] Résultats bruts géolocalisation (API Gouvernementale) :', data.results);
+    console.log('[DEBUG] Résultats bruts géolocalisation :', data.results);
 
     btn.classList.remove('loading'); btn.textContent = '📍';
 
@@ -396,14 +470,14 @@ async function searchNearby(lat, lon, btn) {
     const stations = candidates.map((c, i) => {
       const name  = nominatimNames[i] || stationLabel(c.r);
       const sub   = stationSubLabel(c.r);
-      const known = knownNames.some(k => k.includes(name.toLowerCase()) || k.includes((c.r.ville || '').toLowerCase()));
+      const known = knownNames.some(k =>
+        k.includes(name.toLowerCase()) || k.includes((c.r.ville || '').toLowerCase()));
       return { name, sub, dist: c.dist, lat: c.lat, lon: c.lon,
                e85: c.r.e85_prix, s98: c.r.sp98_prix, known };
     });
 
     _nearbyStations = stations;
-
-    console.log('[DEBUG] Tableau enrichi (_nearbyStations) — OSM > sémantique :');
+    console.log('[DEBUG] Tableau enrichi (_nearbyStations) :');
     console.table(_nearbyStations);
 
     renderNearby(stations);
@@ -418,23 +492,24 @@ async function searchNearby(lat, lon, btn) {
 
 function renderNearby(stations) {
   const list = document.getElementById('nearbyList');
+  if (!stations.length) { list.style.display = 'none'; return; }
   list.innerHTML = stations.map((s, i) => {
     const distNum = s.dist != null ? s.dist : null;
     const dist    = distNum == null ? '' :
-                    distNum < 1000 ? distNum + ' m' :
+                    distNum < 1000  ? distNum + ' m' :
                     (distNum / 1000).toFixed(1) + ' km';
     const mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + s.lat + ',' + s.lon;
-    const prix    = s.e85 ? ' · E85 ' + parseFloat(s.e85).toFixed(3) + ' €/L' : '';
+    const prix    = s.e85 ? (dist ? ' · ' : '') + 'E85 ' + parseFloat(s.e85).toFixed(3) + ' €/L' : '';
     return '<div class="nearby-item" id="nearbyItem' + i + '">'
-      + '<div class="nearby-main" onclick="pickStation(\'' + s.name.replace(/'/g, "\\'") + '\',' + s.lat + ',' + s.lon + '); highlightNearbyItem(' + i + ')">'
+      + '<div class="nearby-main" onclick="pickStation(\'' + s.name.replace(/'/g, "\\'") + '\',' + s.lat + ',' + s.lon + ');highlightNearbyItem(' + i + ')">'
       + '<span class="nearby-name"><strong>' + escHtml(s.name) + '</strong></span>'
-      + '<span class="nearby-sub">'  + escHtml(s.sub)  + '</span>'
-      + '<span class="nearby-meta">' + (dist ? dist + prix : prix.slice(3)) + (s.known ? ' <span class="nearby-badge">connue</span>' : '') + '</span>'
+      + '<span class="nearby-sub">'   + escHtml(s.sub)  + '</span>'
+      + '<span class="nearby-meta">'  + dist + prix + (s.known ? ' <span class="nearby-badge">connue</span>' : '') + '</span>'
       + '</div>'
       + '<a class="nearby-map-btn" href="' + mapsUrl + '" target="_blank" rel="noopener" title="Voir sur la carte">🗺️</a>'
       + '</div>';
   }).join('');
-  list.style.display = stations.length ? 'block' : 'none';
+  list.style.display = 'block';
 }
 
 function highlightNearbyItem(idx) {
@@ -453,7 +528,7 @@ function pickStation(name, lat, lon) {
   fetchPricesAtCoords(lat, lon, true);
 }
 
-/* ─── SUGGESTIONS STATION MANUELLE ─── */
+/* ─── RECHERCHE MANUELLE PAR VILLE ─── */
 
 let _autreDebounce = null;
 
@@ -468,23 +543,61 @@ function onAutreInput() {
 
 function setAutreStatus(cls, msg) {
   const el = document.getElementById('autreStatus');
-  el.className = cls;
+  el.className   = cls;
   el.textContent = msg;
 }
 
+/**
+ * Construit la clause de recherche selon le type de saisie :
+ * - Code postal (2-5 chiffres) → cp like 'q%'
+ * - Ville                      → search(ville, 'q')   [accent-insensible, champ ville uniquement]
+ */
+function buildSearchClause(q) {
+  return /^\d{2,5}$/.test(q)
+    ? `cp like '${q}%'`
+    : `search(ville, '${q}')`;
+}
+
+/** Construit le tableau de stations depuis les résultats bruts ODS */
+function buildStations(results) {
+  const knownNames = Array.from(
+    document.querySelectorAll('#knownGroup option:not([value="__autre"])')
+  ).map(o => o.value.toLowerCase());
+
+  return results
+    .filter(r => getCoords(r))
+    .map(r => {
+      const c     = getCoords(r);
+      const dist  = (userLat && userLon)
+        ? Math.round(haversine(userLat, userLon, c.lat, c.lon))
+        : null;
+      const name  = stationLabel(r);
+      const sub   = stationSubLabel(r);
+      const known = knownNames.some(k =>
+        k.includes(name.toLowerCase()) || k.includes((r.ville || '').toLowerCase()));
+      return { name, sub, dist, lat: c.lat, lon: c.lon,
+               e85: r.e85_prix, s98: r.sp98_prix, known };
+    })
+    .sort((a, b) => (a.dist ?? 99999) - (b.dist ?? 99999));
+}
+
+/**
+ * Recherche principale — filtre de proximité 100 km si position connue.
+ * Si aucun résultat → fallback sans proximité (France entière).
+ */
 async function searchStationSuggestions(q) {
   try {
-    // Filtre de proximité si la position est connue (rayon 100 km)
-    // Évite d'afficher des stations de toute la France qui matchent le terme
-    const whereProximity = (userLat && userLon)
+    const searchClause    = buildSearchClause(q);
+    const proximityClause = (userLat && userLon)
       ? ` and distance(geom, geom'POINT(${userLon} ${userLat})', 100000m)`
       : '';
+    const where = `${searchClause} and e85_prix is not null${proximityClause}`;
 
     const url = PRIX_API + '?' + new URLSearchParams({
-      q:      q,
-      where:  'e85_prix is not null' + whereProximity,
-      select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
-      limit:  15
+      where,
+      select:   'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
+      order_by: 'ville',
+      limit:    15
     });
     const resp = await fetch(url);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -492,42 +605,24 @@ async function searchStationSuggestions(q) {
 
     console.log('[DEBUG] Résultats recherche manuelle :', data.results);
 
-    // Si aucun résultat avec filtre de proximité, on retente sans filtre
-    if (!data.results?.length && whereProximity) {
-      return searchStationSuggestionsGlobal(q);
+    // Aucun résultat local → fallback France entière
+    if ((!data.results?.length || !buildStations(data.results).length) && proximityClause) {
+      return searchStationSuggestionsNoProx(q, searchClause);
     }
 
     if (!data.results?.length) {
-      setAutreStatus('err', 'Aucune station E85 trouvée — essayez un autre terme.');
+      setAutreStatus('err', 'Aucune station E85 trouvée pour cette ville.');
       return;
     }
 
-    const knownNames = Array.from(
-      document.querySelectorAll('#knownGroup option:not([value="__autre"])')
-    ).map(o => o.value.toLowerCase());
-
-    const stations = data.results
-      .filter(r => getCoords(r))
-      .map(r => {
-        const c    = getCoords(r);
-        const dist = (userLat && userLon)
-          ? Math.round(haversine(userLat, userLon, c.lat, c.lon))
-          : null;
-        const name  = stationLabel(r);
-        const sub   = stationSubLabel(r);
-        const known = knownNames.some(k => k.includes(name.toLowerCase()) || k.includes((r.ville || '').toLowerCase()));
-        return { name, sub, dist, lat: c.lat, lon: c.lon,
-                 e85: r.e85_prix, s98: r.sp98_prix, known };
-      })
-      .sort((a, b) => (a.dist ?? 99999) - (b.dist ?? 99999));
-
+    const stations = buildStations(data.results);
     if (!stations.length) {
-      setAutreStatus('err', 'Aucune station E85 trouvée — essayez un autre terme.');
+      setAutreStatus('err', 'Aucune station E85 trouvée pour cette ville.');
       return;
     }
 
-    const proximiteMsg = whereProximity ? ' (dans 100 km)' : '';
-    setAutreStatus('ok', stations.length + ' station(s) E85 trouvée(s)' + proximiteMsg);
+    const label = proximityClause ? ' (dans 100 km)' : '';
+    setAutreStatus('ok', stations.length + ' station(s) E85 trouvée(s)' + label);
     renderNearby(stations);
     showMap(userLat, userLon, stations.map((s, i) => ({ ...s, src: 'nearby', srcIdx: i })));
   } catch (e) {
@@ -536,54 +631,34 @@ async function searchStationSuggestions(q) {
   }
 }
 
-/* ─── Fallback sans filtre de proximité ─── */
-async function searchStationSuggestionsGlobal(q) {
+/** Fallback sans filtre de proximité */
+async function searchStationSuggestionsNoProx(q, searchClause) {
   try {
     const url = PRIX_API + '?' + new URLSearchParams({
-      q:      q,
-      where:  'e85_prix is not null',
-      select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
-      limit:  15
+      where:    `${searchClause} and e85_prix is not null`,
+      select:   'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
+      order_by: 'ville',
+      limit:    15
     });
     const resp = await fetch(url);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
     if (!data.results?.length) {
-      setAutreStatus('err', 'Aucune station E85 trouvée — essayez un autre terme.');
+      setAutreStatus('err', 'Aucune station E85 trouvée pour cette ville.');
       return;
     }
-
-    const knownNames = Array.from(
-      document.querySelectorAll('#knownGroup option:not([value="__autre"])')
-    ).map(o => o.value.toLowerCase());
-
-    const stations = data.results
-      .filter(r => getCoords(r))
-      .map(r => {
-        const c    = getCoords(r);
-        const dist = (userLat && userLon)
-          ? Math.round(haversine(userLat, userLon, c.lat, c.lon))
-          : null;
-        const name  = stationLabel(r);
-        const sub   = stationSubLabel(r);
-        const known = knownNames.some(k => k.includes(name.toLowerCase()) || k.includes((r.ville || '').toLowerCase()));
-        return { name, sub, dist, lat: c.lat, lon: c.lon,
-                 e85: r.e85_prix, s98: r.sp98_prix, known };
-      })
-      .sort((a, b) => (a.dist ?? 99999) - (b.dist ?? 99999));
-
+    const stations = buildStations(data.results);
     if (!stations.length) {
-      setAutreStatus('err', 'Aucune station E85 trouvée — essayez un autre terme.');
+      setAutreStatus('err', 'Aucune station E85 trouvée pour cette ville.');
       return;
     }
-
     setAutreStatus('ok', stations.length + ' station(s) E85 trouvée(s) (France entière)');
     renderNearby(stations);
     showMap(userLat, userLon, stations.map((s, i) => ({ ...s, src: 'nearby', srcIdx: i })));
   } catch (e) {
-    setAutreStatus('err', 'Erreur de recherche (' + e.message + ').');
-    console.error('[SuggestionsGlobal]', e);
+    setAutreStatus('err', 'Erreur (' + e.message + ').');
+    console.error('[SuggestionsNoProx]', e);
   }
 }
 
@@ -699,7 +774,7 @@ function setS98Status(cls, msg) {
 
 function setGeoStatus(cls, msg) {
   const el = document.getElementById('geoStatus');
-  el.className = 'geo-status ' + cls;
+  el.className   = 'geo-status ' + cls;
   el.textContent = msg;
 }
 
@@ -710,12 +785,13 @@ function haversine(lat1, lon1, lat2, lon2) {
 }
 
 async function submitForm() {
-  const date    = document.getElementById('fDate').value;
-  const km      = document.getElementById('fKm').value.trim();
-  const litres  = document.getElementById('fLitres').value.trim();
-  const prix    = document.getElementById('fPrix').value.trim();
-  const prixS98 = document.getElementById('fPrixS98').value.trim();
-  let station   = document.getElementById('stationSel').value;
+  const date      = document.getElementById('fDate').value;
+  const km        = document.getElementById('fKm').value.trim();
+  const litres    = document.getElementById('fLitres').value.trim();
+  const prix      = document.getElementById('fPrix').value.trim();
+  const prixS98   = document.getElementById('fPrixS98').value.trim();
+  const vehicule  = currentVehiculeNom || '';
+  let   station   = document.getElementById('stationSel').value;
   if (station === '__autre') station = document.getElementById('fAutre').value.trim();
 
   if (!date || !km || !litres || !prix) {
@@ -729,7 +805,10 @@ async function submitForm() {
 
   setSubmitState(true);
   try {
-    const body = JSON.stringify({ date, type: currentType === 'E85' ? 'SuperEthanol E85' : 'Super 98', km, litres, prix, prixS98, station });
+    const body = JSON.stringify({
+      date, type: currentType === 'E85' ? 'SuperEthanol E85' : 'Super 98',
+      km, litres, prix, prixS98, station, vehicule
+    });
     const json = await fetch(GAS_URL, { method: 'POST', body, redirect: 'follow' }).then(r => r.json());
     if (json.success) {
       showFeedback('success', 'Plein enregistré ✓', json.message || litres + ' L à ' + prix + ' €/L — ' + station);
@@ -753,8 +832,8 @@ function setSubmitState(loading) {
 
 function showFeedback(type, title, msg) {
   const el = document.getElementById('feedback');
-  el.className = 'feedback ' + type;
-  el.innerHTML = '<strong>' + title + '</strong>' + msg;
+  el.className  = 'feedback ' + type;
+  el.innerHTML  = '<strong>' + title + '</strong>' + msg;
   el.style.display = 'block';
   el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   if (type === 'success') setTimeout(() => el.style.display = 'none', 5000);
@@ -762,7 +841,8 @@ function showFeedback(type, title, msg) {
 
 function resetForm() {
   const n = new Date();
-  document.getElementById('fDate').value = n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
+  document.getElementById('fDate').value =
+    n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
   ['fKm','fLitres','fAutre'].forEach(id => document.getElementById(id).value = '');
   const fp = document.getElementById('fPrix');
   fp.value = ''; fp.placeholder = currentType === 'E85' ? '0.798' : '2.091';
@@ -770,15 +850,16 @@ function resetForm() {
   const fs = document.getElementById('fPrixS98');
   fs.value = ''; fs.placeholder = '2.091';
   fs.classList.remove('autofilled');
-  document.getElementById('stationSel').value = '';
+  document.getElementById('stationSel').value     = '';
   document.getElementById('coutBox').style.display = 'none';
   document.getElementById('nearbyList').style.display = 'none';
   document.getElementById('autreField').classList.add('hidden');
-  document.getElementById('s98Status').className = 's98-status';
+  document.getElementById('s98Status').className  = 's98-status';
   document.getElementById('s98Status').textContent = '';
   setAutreStatus('', '');
   hideCpSearch();
   s98Autofilled = false;
+  // Véhicule conservé intentionnellement entre deux pleins
 }
 
 async function syncStationSiNouvelle(nom) {
@@ -803,16 +884,16 @@ async function syncStationSiNouvelle(nom) {
 async function chargerStations() {
   const url = 'https://docs.google.com/spreadsheets/d/' + GS_SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=Stations';
   try {
-    const resp = await fetch(url);
+    const resp   = await fetch(url);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const csv  = await resp.text();
+    const csv    = await resp.text();
     const lignes = csv.split('\n').map(l => l.trim().replace(/^"|"$/g, ''));
     const stations = lignes.slice(1).filter(s => s && s !== '__autre');
-    const group = document.getElementById('knownGroup');
+    const group    = document.getElementById('knownGroup');
     Array.from(group.querySelectorAll('option:not([value="__autre"])')).forEach(o => o.remove());
     const autreOpt = group.querySelector('[value="__autre"]');
     stations.forEach(nom => group.insertBefore(new Option(nom, nom), autreOpt));
-  } catch(e) {
+  } catch (e) {
     console.warn('Chargement stations échoué :', e.message);
     ['Carrefour Flers','Intermarché','Leclerc Douai','Total Access','Total Waziers',
      'ZONE DU MOULIN RUE ARTHUR LAMENDIN — Beuvry'].forEach(nom => {
@@ -823,4 +904,5 @@ async function chargerStations() {
 }
 
 chargerStations();
+chargerVehicules();
 document.getElementById('appVersion').textContent = 'v' + APP_VERSION;

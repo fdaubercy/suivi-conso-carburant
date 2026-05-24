@@ -1,11 +1,31 @@
-## [2.0.2.0] — 2026-05-23
+## [2.1.0.0] — 2026-05-24
 
-### Fixed
-- **`getCoords` — support GeoJSON Point** : l'API ODS v2.1 retourne `geom` dans deux formats selon la requête. Avec `distance()` dans le `where` → `{lat, lon}` plat (fonctionnait). Sans `distance()` (recherche manuelle par `q`) → `{type:"Point", coordinates:[lon, lat]}` GeoJSON (ne fonctionnait pas). `getCoords` gère désormais les deux formats — c'est la cause pour laquelle les 15 résultats de la recherche manuelle n'étaient ni affichés dans la liste ni sur la carte.
-- **`renderNearby` — dist null** : la distance `null` (position inconnue) n'affiche plus `"null m"` mais est simplement omise.
-- **`renderNearby` — liste vide** : `style.display` reste `none` si `stations` est vide (au lieu de montrer une liste vide).
+### Added
+- **Sélecteur de véhicules** (localStorage) : nouvelle section en tête de formulaire. Liste déroulante avec les véhicules enregistrés + deux actions intégrées : `＋ Ajouter un véhicule` (champ inline avec confirmation) et `✕ Supprimer ce véhicule` (confirme la suppression du véhicule actuellement sélectionné). Les véhicules sont persistés dans `localStorage` sous la clé `suivi_e85_vehicules`. Le nom du véhicule est inclus dans le payload envoyé à Google Sheets (champ `vehicule`).
+- **`chargerVehicules()`** : charge la liste depuis localStorage, restaure la sélection courante.
+- **`sauvegarderVehicules(liste)`** : persiste le tableau en localStorage.
+- **`onVehiculeChange()`** : gère les trois cas — sélection d'un véhicule, ajout, suppression.
+- **`confirmerAjoutVehicule()`** : validation du nom, ajout à la liste, sélection automatique.
+- **`setVehiculeStatus(cls, msg)`** : statut inline sous le sélecteur (même pattern que `setGeoStatus`).
+- **`buildStations(results)`** : helper extrait pour factoriser la construction du tableau de stations (évite la duplication entre recherche avec et sans proximité).
+- **`buildSearchClause(q)`** : détecte automatiquement si la saisie est un code postal (2-5 chiffres → `cp like 'q%'`) ou une ville (`search(ville, 'q')`).
 
 ### Changed
-- **Filtre de proximité en recherche manuelle** : quand la position GPS est connue, la requête `q` inclut un filtre `distance(geom, …, 100000m)` (100 km). Évite de retourner des stations de toute la France qui matchent le terme recherché. Si aucun résultat dans ce rayon, fallback automatique sur France entière avec mention "(France entière)" dans le statut.
-- **`searchStationSuggestionsGlobal`** : nouveau helper pour le fallback sans filtre de proximité.
+- **Recherche manuelle — champ ciblé** : remplacement du paramètre `q` (full-text tous champs) par `search(ville, 'q')` en ODSQL. La recherche est désormais accent-insensible et porte uniquement sur le champ `ville` — élimine les faux positifs (stations dont l'adresse contient le terme recherché dans une autre ville). Fallback automatique sans proximité si aucun résultat local.
+- **`searchStationSuggestions`** : refactorisé pour utiliser `buildSearchClause` et `buildStations`.
+- **`searchStationSuggestionsGlobal` renommée `searchStationSuggestionsNoProx`** : cohérence de nommage.
+- **`resetForm`** : le véhicule sélectionné est intentionnellement conservé entre deux pleins consécutifs.
+- **`submitForm`** : inclut `vehicule: currentVehiculeNom` dans le payload JSON envoyé au GAS.
+- **`index.html`** : section "Véhicule" ajoutée en tête du formulaire ; placeholder du champ `fAutre` mis à jour ("Ville de la station", exemples de villes).
+
+### Note GAS (optionnel)
+Pour enregistrer le véhicule dans Google Sheets, ajouter la colonne `Véhicule` dans l'onglet `_ImportGS` et mettre à jour `doPost` :
+```javascript
+sheet.appendRow([
+  new Date(), new Date(payload.date), payload.type,
+  Number(payload.km), Number(payload.litres), Number(payload.prix),
+  payload.prixS98 ? Number(payload.prixS98) : '',
+  payload.station, payload.vehicule || ''   // ← nouvelle colonne
+]);
+```
 
