@@ -2,13 +2,13 @@ Attribute VB_Name = "modSyncGS"
 ' ============================================================
 '  SUIVI E85 - Synchronisation bidirectionnelle
 '  Google Sheets (_ImportGS) <-> Excel (GS_Pleins)
-'  v2.2.4.5
+'  v2.3.0.0  - schema reduit a 15 colonnes A-O (col G Prix S98 jour supprimee)
 ' ============================================================
 Option Explicit
 
 Private Const GAS_URL     As String = "https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec"
 Private Const WS_NAME     As String = "GS_Pleins"
-Private Const COL_SYNC_ID As Integer = 16
+Private Const COL_SYNC_ID As Integer = 15   ' v2.3.0.0 : col O (etait P avant suppression S98)
 
 Private Const T_RESOLVE  As Long = 5000
 Private Const T_CONNECT  As Long = 10000
@@ -342,22 +342,22 @@ Private Function ImportGSToExcel(ws As Worksheet, gsRecs() As String, _
             Set rng = ws.Range(ws.Cells(lr, 1), ws.Cells(lr, COL_SYNC_ID))
         End If
 
+        ' v2.3.0.0 : schema A-O (15 colonnes), col G "Prix S98 jour" supprimee
         rng(1).Value  = ParseDt(JsonGet(rec, "Horodatage"))
         rng(2).Value  = ParseDt(JsonGet(rec, "Date"))
         rng(3).Value  = JsonGet(rec, "Type")
         rng(4).Value  = ToNum(JsonGet(rec, "Km compteur"))
         rng(5).Value  = ToNum(JsonGet(rec, "Nb. Litres"))
         rng(6).Value  = ToNum(JsonGet(rec, K("Prix {E}/L")))
-        rng(7).Value  = ToNum(JsonGet(rec, K("Prix S98 jour ({E}/L)")))
-        rng(8).Value  = JsonGet(rec, "Station essence")
-        rng(9).Value  = JsonGet(rec, K("V{e}hicule"))
-        rng(10).Value = ToNum(JsonGet(rec, K("E85 station ({E}/L)")))
-        rng(11).Value = ToNum(JsonGet(rec, K("SP98 station ({E}/L)")))
-        rng(12).Value = ToNum(JsonGet(rec, K("SP95 station ({E}/L)")))
-        rng(13).Value = ToNum(JsonGet(rec, K("E10 station ({E}/L)")))
-        rng(14).Value = ToNum(JsonGet(rec, K("Gazole station ({E}/L)")))
-        rng(15).Value = ToNum(JsonGet(rec, K("GPLc station ({E}/L)")))
-        rng(16).Value = sid
+        rng(7).Value  = JsonGet(rec, "Station essence")
+        rng(8).Value  = JsonGet(rec, K("V{e}hicule"))
+        rng(9).Value  = ToNum(JsonGet(rec, K("E85 station ({E}/L)")))
+        rng(10).Value = ToNum(JsonGet(rec, K("SP98 station ({E}/L)")))
+        rng(11).Value = ToNum(JsonGet(rec, K("SP95 station ({E}/L)")))
+        rng(12).Value = ToNum(JsonGet(rec, K("E10 station ({E}/L)")))
+        rng(13).Value = ToNum(JsonGet(rec, K("Gazole station ({E}/L)")))
+        rng(14).Value = ToNum(JsonGet(rec, K("GPLc station ({E}/L)")))
+        rng(15).Value = sid
 
         localIds(sid) = True
         added = added + 1
@@ -433,6 +433,7 @@ Private Function RowToJson(ws As Worksheet, r As Long, sid As String) As String
         ds = Format(ws.Cells(r, 2).Value, "yyyy-mm-dd")
     End If
 
+    ' v2.3.0.0 : schema A-O (15 col), col G "Prix S98 jour" supprimee
     RowToJson = "{" & _
         jS("sync_id",    sid)                                 & "," & _
         jS("horodatage", ts)                                  & "," & _
@@ -441,16 +442,15 @@ Private Function RowToJson(ws As Worksheet, r As Long, sid As String) As String
         jN("km",         ws.Cells(r, 4).Value)                & "," & _
         jN("litres",     ws.Cells(r, 5).Value)                & "," & _
         jN("prix",       ws.Cells(r, 6).Value)                & "," & _
-        jN("prixS98",    ws.Cells(r, 7).Value)                & "," & _
-        jS("station",    CStr(ws.Cells(r, 8).Value))          & "," & _
-        jS("vehicule",   CStr(ws.Cells(r, 9).Value))          & "," & _
+        jS("station",    CStr(ws.Cells(r, 7).Value))          & "," & _
+        jS("vehicule",   CStr(ws.Cells(r, 8).Value))          & "," & _
         """stationPrices"":{" & _
-            jN("E85",    ws.Cells(r, 10).Value)               & "," & _
-            jN("SP98",   ws.Cells(r, 11).Value)               & "," & _
-            jN("SP95",   ws.Cells(r, 12).Value)               & "," & _
-            jN("E10",    ws.Cells(r, 13).Value)               & "," & _
-            jN("GAZOLE", ws.Cells(r, 14).Value)               & "," & _
-            jN("GPLC",   ws.Cells(r, 15).Value)               & _
+            jN("E85",    ws.Cells(r, 9).Value)                & "," & _
+            jN("SP98",   ws.Cells(r, 10).Value)               & "," & _
+            jN("SP95",   ws.Cells(r, 11).Value)               & "," & _
+            jN("E10",    ws.Cells(r, 12).Value)               & "," & _
+            jN("GAZOLE", ws.Cells(r, 13).Value)               & "," & _
+            jN("GPLC",   ws.Cells(r, 14).Value)               & _
         "}}"
 End Function
 

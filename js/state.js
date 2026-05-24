@@ -1,7 +1,6 @@
 /* ─── État global partagé entre modules ─── */
 export const state = {
   currentType:        'E85',
-  s98Autofilled:      false,
   userLat:            null,
   userLon:            null,
   _nearbyStations:    [],

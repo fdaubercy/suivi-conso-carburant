@@ -60,7 +60,6 @@ export function setType(type) {
   document.getElementById('headerBadge').textContent = cfg.icon + ' ' + cfg.short;
   _updateHeaderBadges();
   _buildTypeToggle(state._stationPrices);
-  document.getElementById('s98Field').classList.toggle('hidden', type !== 'E85');
   document.getElementById('prixLabel').textContent = 'Prix ' + cfg.short + ' (€/L)';
   const fp = document.getElementById('fPrix'); fp.value = ''; fp.classList.remove('autofilled'); fp.placeholder = cfg.ph;
   updateCout();
@@ -68,10 +67,6 @@ export function setType(type) {
   if (Object.keys(state._stationPrices).length > 0) {
     // Prix déjà chargés — application immédiate depuis le cache
     setFieldPrice('fPrix', state._stationPrices[type] || null, cfg.ph);
-    if (type === 'E85') {
-      setFieldPrice('fPrixS98', state._stationPrices['SP98'] || null, '2.091');
-      state.s98Autofilled = !!state._stationPrices['SP98'];
-    }
     updateCout();
     const found = FUEL_KEYS
       .filter(k => state._stationPrices[k])

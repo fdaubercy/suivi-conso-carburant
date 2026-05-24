@@ -19,8 +19,6 @@ export function applyPricesResult(data) {
 
   const cfg = FUEL_CONFIG[state.currentType];
   setFieldPrice('fPrix', state._stationPrices[state.currentType] || null, cfg.ph);
-  setFieldPrice('fPrixS98', state._stationPrices['SP98'] || null, '2.091');
-  state.s98Autofilled = !!state._stationPrices['SP98'];
   updateCout();
 
   const label = [r.adresse, r.ville].filter(Boolean).join(' · ');
@@ -53,7 +51,6 @@ export async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
   } else {
     state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
     setFieldPrice('fPrix', null, FUEL_CONFIG[state.currentType].ph);
-    setFieldPrice('fPrixS98', null, '2.091');
     updateCout();
     setS98Status('info', 'Prix non trouvés — entrez le code postal :'); showCpSearch();
   }
@@ -67,8 +64,6 @@ export async function fetchPricesNearUser() {
     // GPS indisponible : vider les prix stale avant d'afficher le CP search
     state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
     setFieldPrice('fPrix', null, FUEL_CONFIG[state.currentType].ph);
-    setFieldPrice('fPrixS98', null, '2.091');
-    state.s98Autofilled = false;
     updateCout();
     setS98Status('info', 'Position inconnue — entrez le code postal :');
     showCpSearch();

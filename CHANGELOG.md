@@ -4,6 +4,47 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.3.0.0] — 2026-05-24
+
+### ⚠️ BREAKING CHANGE — Schéma `_ImportGS` réduit à 15 colonnes (A→O)
+
+La colonne `G` **"Prix S98 jour (€/L)"** est supprimée — elle faisait doublon avec `K` ("SP98 station") dans 99 % des cas. La colonne `K` (renommée en `J` après décalage) reste la seule source SP98.
+
+### Removed
+- **`Code.gs` — colonne G `Prix S98 jour`** : retirée de `HEADERS`, du `doPost` (plein web app) et du `handleBulkAdd` (sync Excel).
+- **`js/formulaire.js`** : variable `prixS98`, lecture du champ `fPrixS98`, confirmation "Prix S98 du jour non saisi", `onS98ManualEdit`, reset du champ.
+- **`js/state.js`** : flag `s98Autofilled` retiré.
+- **`js/prix.js`** : appels `setFieldPrice('fPrixS98', …)` et `state.s98Autofilled = …` retirés (3 occurrences).
+- **`js/carburant.js`** : toggle `s98Field.classList.toggle('hidden', …)` et autofill `fPrixS98` retirés.
+- **`js/main.js`** : import et exposition de `onS98ManualEdit` retirés.
+- **`index.html`** : bloc `<div class="field" id="s98Field">` (input + label) retiré.
+
+### Changed
+- **`Code.gs` — schéma 15 colonnes** : nouveau mapping A=Horodatage, B=Date, C=Type, D=Km, E=Litres, F=Prix €/L, **G=Station essence**, H=Véhicule, I=E85 station, J=SP98 station, K=SP95 station, L=E10 station, M=Gazole station, N=GPLc station, **O=sync_id** (avant : P).
+- **`Code.gs` — `handleBulkAdd`** : dedup par `r[14]` au lieu de `r[15]` (colonne O au lieu de P).
+- **`Code.gs` — `migrateSyncId` / `migrateHeaders`** : utilisent `getRange(_, 15)` au lieu de 16.
+- **`vba/modSyncGS.bas` — `COL_SYNC_ID`** : passe de 16 à 15 (colonne O).
+- **`vba/modSyncGS.bas` — `ImportGSToExcel`** : indices `rng(N)` décalés, le mapping suit le nouveau schéma A→O.
+- **`vba/modSyncGS.bas` — `RowToJson`** : suppression de `jN("prixS98", …)`, indices `ws.Cells(r, N)` décalés.
+- **`js/config.js`** : `APP_VERSION` passée à `2.3.0.0`.
+
+### Added
+- **`Code.gs` — `migrateRemoveS98()`** : fonction utilitaire à exécuter **une seule fois** dans GAS Editor pour supprimer l'ancienne colonne G de `_ImportGS`. Toutes les colonnes H→P sont automatiquement décalées en G→O par Google Sheets.
+- **`vba/modSyncGS.bas`** (v2.3.0.0) : module VBA de synchronisation bidirectionnelle Excel ↔ Google Sheets aligné sur le nouveau schéma 15 colonnes — `COL_SYNC_ID = 15`, indices `rng()` et `ws.Cells()` décalés, `RowToJson` sans `prixS98`.
+
+### Moved
+- **Réorganisation arborescence** : `Google Apps Script/` déplacé sous `Google Drive/Sauvegarde & Geolocalisation - Suivi conso SuperEthanol/Google Apps Script/`. Le dossier `Google Drive/` regroupe désormais les exports/sauvegardes externes (`Réponses - Suivi E85.xlsx` ajouté).
+- **`Suivi conso E85.xlsm`** : structure mise à jour (suppression colonne G `Prix S98 jour` dans `GS_Pleins`, ajout colonne O `sync_id`, Power Query rafraîchie sur le nouveau schéma 15 colonnes).
+
+### Migration utilisateur (étapes obligatoires)
+1. **GAS Editor** → coller le nouveau `Code.gs` → exécuter `migrateRemoveS98()` → re-déployer.
+2. **Excel `Suivi conso E85.xlsm`** → tableau `GS_Pleins` → supprimer la colonne `Prix S98 jour (€/L)` (la colonne `sync_id` revient en colonne O).
+3. **Excel Power Query** → Actualiser pour refléter le nouveau schéma 15 colonnes.
+4. **VBA** → ré-importer `modSyncGS.bas` (v2.3.0.0).
+5. **Web app** → déployer le nouveau code (formulaire sans champ S98 du jour).
+
+---
+
 ## [2.2.4.5] — 2026-05-24
 
 ### Added

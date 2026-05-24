@@ -199,7 +199,7 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
 /* ─── Décalage bas de la liste véhicules ─── */
 #vehiculeSel { margin-top: 8px; }
 
-/* ─── Statut prix (hors s98Field, affiché pour tous carburants) ─── */
+/* ─── Statut prix (affiché pour tous carburants) ─── */
 #s98Status { margin-top: 6px; }
 
 /* ─── Station + géo ─── */

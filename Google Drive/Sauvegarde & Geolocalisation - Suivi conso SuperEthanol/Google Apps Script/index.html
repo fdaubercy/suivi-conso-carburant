@@ -256,10 +256,6 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
              inputmode="decimal" oninput="updateCout()">
     </div>
   </div>
-  <div class="field hidden" id="s98Field">
-    <label for="fPrixS98">Prix S98 du jour (€/L)</label>
-    <input type="number" id="fPrixS98" step="0.001" placeholder="2.091" inputmode="decimal">
-  </div>
   <div class="cout-box" id="coutBox">
     <span class="cout-label">Coût du plein :</span>
     <span class="cout-val" id="coutVal">—</span>
@@ -315,7 +311,6 @@ function setType(type) {
   currentType = type;
   document.getElementById('btnE85').classList.toggle('active', type==='E85');
   document.getElementById('btnS98').classList.toggle('active', type==='S98');
-  document.getElementById('s98Field').classList.toggle('hidden', type!=='E85');
   document.getElementById('prixLabel').textContent = type==='E85' ? 'Prix E85 (€/L)' : 'Prix S98 (€/L)';
   document.getElementById('fPrix').placeholder = type==='E85' ? '0.798' : '2.091';
   updateCout();
@@ -415,7 +410,6 @@ async function submitForm() {
   const km=document.getElementById('fKm').value.trim();
   const litres=document.getElementById('fLitres').value.trim();
   const prix=document.getElementById('fPrix').value.trim();
-  const prixS98=document.getElementById('fPrixS98').value.trim();
   let station=document.getElementById('stationSel').value;
   if (station==='__autre') station=document.getElementById('fAutre').value.trim();
   if (!date||!km||!litres||!prix) {
@@ -424,11 +418,9 @@ async function submitForm() {
   if (!station) {
     showFeedback('error','Station manquante','Sélectionnez ou saisissez le nom de la station.'); return;
   }
-  if (currentType==='E85'&&!prixS98)
-    if (!confirm('Prix S98 du jour non saisi. Continuer quand même ?')) return;
   setSubmitState(true);
   try {
-    const body=JSON.stringify({date,type:currentType==='E85'?'SuperEthanol E85':'Super 98',km,litres,prix,prixS98,station});
+    const body=JSON.stringify({date,type:currentType==='E85'?'SuperEthanol E85':'Super 98',km,litres,prix,station});
     const json=await fetch(GAS_URL,{method:'POST',body,redirect:'follow'}).then(r=>r.json());
     if (json.success) {
       showFeedback('success','Plein enregistré ✓',json.message||`${litres} L à ${prix} €/L — ${station}`);
@@ -456,7 +448,7 @@ function showFeedback(type,title,msg) {
 function resetForm() {
   const n=new Date();
   document.getElementById('fDate').value=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
-  ['fKm','fLitres','fPrix','fPrixS98','fAutre'].forEach(id=>document.getElementById(id).value='');
+  ['fKm','fLitres','fPrix','fAutre'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('stationSel').value='';
   document.getElementById('coutBox').style.display='none';
   document.getElementById('nearbyList').style.display='none';
