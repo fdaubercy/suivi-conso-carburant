@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v2.1.4.1 — Import initial véhicules depuis GS si localStorage vide
+   v2.1.4.2 — Enrichissement OSM uniformisé (géoloc + recherche manuelle)
 ═══════════════════════════════════════ */
 
 /* ─── Configuration ─── */
-const APP_VERSION       = '2.1.4.1';
+const APP_VERSION       = '2.1.4.2';
 const GAS_URL           = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID       = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API          = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -210,10 +210,10 @@ async function fetchOsmNameAround(lat, lon) {
   } catch(e) { console.warn('[OSM] Erreur:', e.message); return null; }
 }
 
-async function enrichWithOsmSerial(stations) {
+async function enrichWithOsmSerial(stations, setStatus = setGeoStatus) {
   const names = [];
   for (let i = 0; i < stations.length; i++) {
-    setGeoStatus('info', `Identification station ${i+1}/${stations.length}…`);
+    setStatus('info', `Identification station ${i+1}/${stations.length}…`);
     names.push(await fetchOsmNameAround(stations[i].lat, stations[i].lon));
     if (i < stations.length-1) await new Promise(r => setTimeout(r, OSM_SERIAL_DELAY));
   }
@@ -503,11 +503,14 @@ async function searchStationSuggestions(q) {
     }
 
     const stations = buildStations(data.results);
+    // Enrichissement OSM — nom enseigne (cohérent avec la géolocalisation)
+    const osmNames = await enrichWithOsmSerial(stations, setAutreStatus);
+    const stationsFinal = stations.map((s, i) => ({ ...s, name: osmNames[i] || s.name }));
     setAutreStatus('ok', radiusLabel
-      ? stations.length + ' station(s) E85 dans ' + radiusLabel + ' autour de ' + cityName
-      : stations.length + ' station(s) E85 à ' + cityName);
-    renderNearby(stations);
-    showMap(userLat, userLon, stations.map((s,i)=>({...s,src:'nearby',srcIdx:i})));
+      ? stationsFinal.length + ' station(s) E85 dans ' + radiusLabel + ' autour de ' + cityName
+      : stationsFinal.length + ' station(s) E85 à ' + cityName);
+    renderNearby(stationsFinal);
+    showMap(userLat, userLon, stationsFinal.map((s,i)=>({...s,src:'nearby',srcIdx:i})));
   } catch(e) {
     setAutreStatus('err','Erreur de recherche ('+e.message+').');
     console.error('[Suggestions]',e);
@@ -522,9 +525,12 @@ async function searchStationsCityOnly(searchClause, cityName) {
     if (!data.results?.length) { setAutreStatus('err','Aucune station E85 trouvée.'); return; }
     const stations=buildStations(data.results);
     if (!stations.length) { setAutreStatus('err','Aucune station E85 trouvée.'); return; }
-    setAutreStatus('ok',stations.length+' station(s) E85 à '+cityName);
-    renderNearby(stations);
-    showMap(userLat,userLon,stations.map((s,i)=>({...s,src:'nearby',srcIdx:i})));
+    // Enrichissement OSM — nom enseigne (cohérent avec la géolocalisation)
+    const osmNames = await enrichWithOsmSerial(stations, setAutreStatus);
+    const stationsFinal = stations.map((s, i) => ({ ...s, name: osmNames[i] || s.name }));
+    setAutreStatus('ok', stationsFinal.length+' station(s) E85 à '+cityName);
+    renderNearby(stationsFinal);
+    showMap(userLat,userLon,stationsFinal.map((s,i)=>({...s,src:'nearby',srcIdx:i})));
   } catch(e) { setAutreStatus('err','Erreur ('+e.message+').'); }
 }
 

@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "statusMessage": "Vérification documentation…",
+            "command": "$r = (git status --porcelain 2>$null | Where-Object { $_ -match '\\.(js|css|html)$' }); if ($r) { Write-Output '{\"systemMessage\":\"📝 Rappel suivi-e85 : mettre à jour README.md et CHANGELOG.md avant de commiter !\"}' }"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -27,13 +27,20 @@ pour récupérer simultanément le prix **E85** et le prix **SP98** :
 - Stratégie progressive : rayon 500 m → 2 km → 5 km → fallback GPS → code postal
 
 ### Identification des stations
-Le dataset gouvernemental ne contient pas de nom d'enseigne. Chaque station est identifiée par son **adresse** (capitalisée), unique et toujours présente — sans appel à une API externe.
+Les stations sont enrichies via **OpenStreetMap (Overpass API)** pour afficher le nom d'enseigne réel (`brand` / `name` / `operator`) — aussi bien en géolocalisation qu'en recherche manuelle.
 Exemple d'affichage :
 ```
-345 Boulevard Louis Breguet    ← adresse (nom principal)
-59500 · DOUAI                  ← cp · ville (sous-titre)
-3,3 km · E85 0,781 €/L
+Intermarché                    ← nom enseigne OSM (nom principal)
+2 Rue de la Paix · BEUVRY      ← adresse · ville (sous-titre)
+3,3 km · E85 0,798 €/L
 ```
+Si OSM ne retourne pas de résultat, l'adresse de l'API gouvernementale est utilisée en fallback.
+
+### Gestion des véhicules
+- Liste stockée **100 % en localStorage** (aucune donnée envoyée côté serveur)
+- **Import initial** au premier lancement depuis l'onglet `vehicules` du Google Sheet (si localStorage vide)
+- **Ajout / suppression** directement depuis le sélecteur (local uniquement)
+- **Dernier véhicule utilisé** auto-sélectionné au démarrage
 
 ### Carte interactive (moteur maison, sans librairie externe)
 - Tuiles **OpenStreetMap** rendues en JS pur (zéro dépendance externe)
@@ -71,11 +78,15 @@ Exemple d'affichage :
 
 ```
 suivi-e85/
-├── index.html      # Structure HTML
-├── style.css       # Feuille de styles
-├── app.js          # Logique JavaScript (APP_VERSION à mettre à jour)
+├── index.html           # Structure HTML
+├── style.css            # Feuille de styles
+├── app.js               # Logique JavaScript (APP_VERSION à mettre à jour)
 ├── README.md
-└── CHANGELOG.md
+├── CHANGELOG.md
+└── .claude/
+    ├── settings.json    # Hook Stop : rappel README/CHANGELOG
+    └── commands/
+        └── majFilesMe.md  # Commande /majFilesMe
 ```
 
 ---
@@ -127,8 +138,8 @@ const GS_SHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
 
 **Onglet `_ImportGS`** :
 
-| Horodatage | Date | Type | Km compteur | Nb. Litres | Prix €/L | Prix S98 jour | Station |
-|---|---|---|---|---|---|---|---|
+| Horodatage | Date | Type | Km compteur | Nb. Litres | Prix €/L | Prix S98 jour | Station | Véhicule |
+|---|---|---|---|---|---|---|---|---|
 
 **Onglet `Stations`** :
 
@@ -136,6 +147,13 @@ const GS_SHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
 |---|
 | Carrefour Flers |
 | Intermarché |
+| … |
+
+**Onglet `vehicules`** :
+
+| Vehicule |
+|---|
+| Citroën C5 X |
 | … |
 
 ---
@@ -156,16 +174,19 @@ Moteur de rendu sans librairie externe :
 API gouvernementale (data.economie.gouv.fr)
         ↓  adresse, ville, cp, e85_prix, sp98_prix, geom, services
         ↓
-stationLabel(r)
-  → adresse capitalisée  (ex. "345 Boulevard Louis Breguet")
-  → fallback : ville en MAJUSCULES si adresse absente
+enrichWithOsmSerial(stations, setStatus)
+        ↓  requête Overpass around:2000m [amenity=fuel]
+        ↓  priorité : brand > name > operator
+        ↓
+  → nom enseigne OSM    (ex. "Intermarché")
+  → fallback : stationLabel(r) = adresse capitalisée
 
 stationSubLabel(r)
-  → cp · VILLE           (ex. "59500 · DOUAI")
+  → adresse · cp · VILLE  (ex. "2 Rue de la Paix · 62660 · BEUVRY")
 ```
 
-> Le dataset gouvernemental ne contient aucun champ de nom d'enseigne.
-> L'adresse est l'identifiant unique le plus fiable, sans dépendance externe.
+> L'enrichissement OSM s'applique désormais à la **géolocalisation ET à la recherche manuelle**.
+> Fallback sur l'adresse gouvernementale si Overpass ne retourne aucun résultat.
 
 ---
 

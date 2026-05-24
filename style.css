@@ -132,6 +132,9 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
 .field select option,
 .field select optgroup { font-size: 13px; }
 
+/* ─── Décalage bas de la liste véhicules ─── */
+#vehiculeSel { margin-top: 8px; }
+
 /* ─── Station + géo ─── */
 .station-wrap { position: relative; }
 .station-wrap select { padding-right: 50px; }

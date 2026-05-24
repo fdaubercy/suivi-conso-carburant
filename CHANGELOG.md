@@ -4,6 +4,87 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.1.4.2] — 2026-05-24
+
+### Fixed
+- **Incohérence OSM géoloc vs recherche manuelle** : `searchStationSuggestions` et `searchStationsCityOnly` utilisaient l'adresse brute de l'API gouvernementale ; la géolocalisation utilisait déjà OSM. Les deux chemins affichent désormais le nom d'enseigne OSM (`brand` / `name` / `operator`).
+
+### Changed
+- **`enrichWithOsmSerial(stations, setStatus)`** : paramètre optionnel `setStatus` (défaut `setGeoStatus`) — permet d'afficher la progression dans la zone de statut correcte selon le contexte (géoloc ou manuel).
+- **`searchStationSuggestions`** : enrichissement OSM appliqué après `buildStations`, via `setAutreStatus`.
+- **`searchStationsCityOnly`** : idem.
+
+### Style
+- **`#vehiculeSel { margin-top: 8px }`** : décalage bas du sélecteur véhicule.
+
+---
+
+## [2.1.4.1] — 2026-05-24
+
+### Changed
+- **Import initial véhicules depuis GS** : au premier lancement (localStorage vide), `chargerVehicules()` interroge l'onglet `vehicules` (minuscule) du Google Sheet. Seule la première colonne est extraite pour éviter le chargement des lignes CSV complètes.
+- **URL corrigée** : `sheet=Vehicules` → `sheet=vehicules` (nom réel de l'onglet).
+
+---
+
+## [2.1.4.0] — 2026-05-24
+
+### Fixed
+- **Liste véhicules affichait toutes les lignes de `_importgs`** : l'onglet `Vehicules` n'existait pas ; Google Sheets retournait la feuille par défaut. Correction : suppression du fetch GS, véhicules 100 % en localStorage.
+
+### Removed
+- `syncVehiculeToSheet()` — supprimée (ajout uniquement local désormais).
+- `syncVehiculeRemoveFromSheet()` — supprimée (suppression uniquement locale).
+
+### Changed
+- **`chargerVehicules()`** : simplifié, synchrone, lecture localStorage uniquement.
+
+---
+
+## [2.1.3.0] — 2026-05-24
+
+### Added
+- **Auto-sélection du dernier véhicule** au démarrage via `localStorage[LAST_VEHICULE_KEY]`.
+- **Persistance de la sélection** : véhicule courant sauvegardé à chaque changement.
+
+### Changed
+- Liste des véhicules chargée depuis l'onglet `Vehicules` du Google Sheet avec cache localStorage.
+
+---
+
+## [2.1.2.0] — 2026-05-24
+
+### Changed
+- **Recherche manuelle centrée sur la ville** : 2 étapes — localisation des coordonnées de la commune, puis stations dans le rayon autour de ce point (au lieu d'une clause `search(ville)` seule).
+- **Rayon par défaut** : 20 km.
+- **Champ `vehicule`** ajouté dans le payload envoyé au GAS.
+
+---
+
+## [2.1.1.0] — 2026-05-24
+
+### Added
+- **Sélecteur de rayon** pour la recherche manuelle : 20 km / 50 km / 100 km / Ville seule.
+- **`setRadius(btn, metres)`** : met à jour `searchRadiusM` et relance la recherche si une ville est déjà saisie.
+
+---
+
+## [2.1.0.0] — 2026-05-24
+
+### Added
+- **Gestion des véhicules** : liste en localStorage, options `＋ Ajouter` et `✕ Supprimer` dans le select, champ de saisie inline.
+- **Recherche accent-insensible** : `search(ville, 'q')` remplace `like` pour la recherche manuelle.
+
+---
+
+## [2.0.2.0] — 2026-05-24
+
+### Fixed
+- **`getCoords(r)`** : gère les deux formats de coordonnées de l'API ODS — `{lat, lon}` (requêtes avec `distance()`) et GeoJSON `{type: "Point", coordinates: [lon, lat]}` (requêtes sans `distance()`).
+- **Calcul de proximité** en recherche manuelle : extraction correcte des coordonnées pour le tri haversine.
+
+---
+
 ## [2.0.1.0] — 2026-05-23
 
 ### Changed
