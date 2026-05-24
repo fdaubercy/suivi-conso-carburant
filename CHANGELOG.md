@@ -4,6 +4,27 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.2.3.0] — 2026-05-24
+
+### Added
+- **`Code.gs` — colonne `sync_id` (P)** : UUID généré par `Utilities.getUuid()` à chaque nouveau plein enregistré via l'app web. Si le client fournit un `sync_id` dans le payload, il est utilisé tel quel (préparation étape 2). La réponse `doPost` retourne désormais `{ success: true, sync_id: "…" }`.
+- **`Code.gs` — `doGet ?action=export`** : nouveau endpoint JSON retournant tous les enregistrements de `_ImportGS` sous la forme `{ records: [ {Horodatage, Date, …, sync_id}, … ] }`. Les `Date` sont sérialisées en ISO 8601. Utilisé par la macro VBA Excel (étape 3) pour récupérer les données Google Sheets.
+- **`Code.gs` — `doPost action=bulkAdd`** : nouveau endpoint d'insertion en masse. Accepte un tableau `rows` depuis Excel, déduplique par `sync_id` (colonne P). Retourne `{ success, added, skipped }`.
+- **`Code.gs` — `handleBulkAdd(ss, rows)`** : fonction interne gérant la déduplication et l'insertion des lignes Excel.
+- **`Code.gs` — `migrateSyncId()`** : fonction utilitaire à exécuter **une seule fois** manuellement depuis l'éditeur GAS. Ajoute l'en-tête `sync_id` en colonne P et génère un UUID pour chaque ligne existante sans identifiant.
+
+### Changed
+- **`Code.gs` — `HEADERS`** : ajout de `'sync_id'` en 16ème position (colonne P). `getOrCreateSheet()` et `migrateHeaders()` alignés sur 16 colonnes.
+- **`Code.gs` — `doPost` plein** : utilise `payload.sync_id || Utilities.getUuid()` pour garantir un identifiant unique sur chaque enregistrement.
+- **`Code.gs` — `doPost` actions** : tous les blocs `return ContentService…` remplacés par `return jsonResponse(…)` pour cohérence.
+- **`js/config.js`** : `APP_VERSION` passée à `2.2.3.0`.
+
+### Note
+> Étape 1/4 du plan de synchronisation bidirectionnelle Excel ↔ Google Sheets.
+> Étapes suivantes : (2) web app envoie `sync_id` pré-généré, (3) macro VBA Excel sync à l'ouverture, (4) colonne `sync_id` dans `GS_Pleins`.
+
+---
+
 ## [2.2.2.4] — 2026-05-24
 
 ### Changed
