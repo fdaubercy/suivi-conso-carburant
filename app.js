@@ -1,15 +1,15 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v2.1.2.0 — Recherche centrée sur la ville trouvée (pas sur l'utilisateur)
-              Rayon par défaut 20 km · Véhicule dans le payload GAS
+   v2.1.3.0 — Dernier véhicule auto-sélectionné · Liste véhicules depuis Google Sheets
 ═══════════════════════════════════════ */
 
 /* ─── Configuration ─── */
-const APP_VERSION   = '2.1.2.0';
-const GAS_URL       = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
-const GS_SHEET_ID   = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
-const PRIX_API      = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
-const VEHICULES_KEY = 'suivi_e85_vehicules';
+const APP_VERSION       = '2.1.3.0';
+const GAS_URL           = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
+const GS_SHEET_ID       = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
+const PRIX_API          = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
+const VEHICULES_KEY     = 'suivi_e85_vehicules';       // cache localStorage de la liste
+const LAST_VEHICULE_KEY = 'suivi_e85_last_vehicule';   // dernier véhicule sélectionné
 
 /* ─── État global ─── */
 let currentType        = 'E85';
@@ -17,7 +17,7 @@ let s98Autofilled      = false;
 let userLat = null, userLon = null;
 let _nearbyStations    = [];
 let currentVehiculeNom = '';
-let searchRadiusM      = 20000; // null = France entière
+let searchRadiusM      = 20000; // null = ville seule
 
 /* ─── Init ─── */
 (function () {
@@ -25,7 +25,6 @@ let searchRadiusM      = 20000; // null = France entière
   document.getElementById('fDate').value =
     `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
   document.getElementById('s98Field').classList.remove('hidden');
-  // Activer le bouton 20 km par défaut
   const btn = document.querySelector('.radius-btn[data-m="20000"]');
   if (btn) btn.classList.add('active');
 })();
@@ -47,7 +46,18 @@ function setRadius(btn, metres) {
 }
 
 /* ═══════════════════════════════════════
-   VÉHICULES — stockage localStorage
+   VÉHICULES
+   ─────────────────────────────────────
+   Source de vérité  : onglet "Vehicules" du Google Sheet (Drive)
+   Cache local       : localStorage[VEHICULES_KEY]
+   Dernière sélection: localStorage[LAST_VEHICULE_KEY]
+
+   Chargement au démarrage :
+   1. Affichage immédiat depuis le cache localStorage
+   2. Auto-sélection du dernier véhicule utilisé
+   3. Rechargement async depuis Google Sheets
+   4. Si la liste GS diffère → mise à jour du cache et de l'affichage
+      sans modifier la sélection en cours si le véhicule est toujours présent
 ═══════════════════════════════════════ */
 
 function getVehicules() {
@@ -56,49 +66,147 @@ function getVehicules() {
 }
 function sauvegarderVehicules(liste) { localStorage.setItem(VEHICULES_KEY, JSON.stringify(liste)); }
 
-function chargerVehicules() {
-  const liste  = getVehicules();
+/** Remplit le <select> avec la liste donnée (conserve les options système) */
+function _populateVehiculeSelect(liste) {
   const group  = document.getElementById('vehiculeGroup');
   Array.from(group.querySelectorAll('option[data-v]')).forEach(o => o.remove());
   const addOpt = group.querySelector('[value="__ajouter"]');
-  liste.forEach(nom => { const opt = new Option(nom, nom); opt.dataset.v = '1'; group.insertBefore(opt, addOpt); });
-  if (currentVehiculeNom && liste.includes(currentVehiculeNom))
-    document.getElementById('vehiculeSel').value = currentVehiculeNom;
+  liste.forEach(nom => {
+    const opt = new Option(nom, nom); opt.dataset.v = '1';
+    group.insertBefore(opt, addOpt);
+  });
+}
+
+/** Sélectionne automatiquement le dernier véhicule connu */
+function _autoSelectLastVehicule() {
+  const last = localStorage.getItem(LAST_VEHICULE_KEY);
+  if (!last) return;
+  const sel = document.getElementById('vehiculeSel');
+  if (Array.from(sel.options).some(o => o.value === last)) {
+    sel.value          = last;
+    currentVehiculeNom = last;
+  }
+}
+
+/**
+ * Charge la liste des véhicules :
+ * 1. Depuis le cache localStorage → affichage immédiat + auto-sélection
+ * 2. Depuis l'onglet "Vehicules" du Google Sheet → mise à jour si besoin
+ */
+async function chargerVehicules() {
+  // ── Étape 1 : cache local (immédiat) ──
+  const listeLocale = getVehicules();
+  _populateVehiculeSelect(listeLocale);
+  _autoSelectLastVehicule();
+
+  // ── Étape 2 : Google Sheets (async) ──
+  const url = 'https://docs.google.com/spreadsheets/d/' + GS_SHEET_ID
+            + '/gviz/tq?tqx=out:csv&sheet=Vehicules';
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const csv   = await resp.text();
+    const liste = csv.split('\n')
+      .map(l => l.trim().replace(/^"|"$/g, ''))
+      .slice(1)                                // ignorer l'en-tête
+      .filter(s => s.length > 0);
+
+    if (!liste.length) return; // onglet vide ou inexistant → garder le cache
+
+    // Mettre à jour le cache local si la liste GS est différente
+    const listeStr = JSON.stringify(liste.slice().sort());
+    const cacheStr = JSON.stringify(listeLocale.slice().sort());
+    if (listeStr !== cacheStr) {
+      sauvegarderVehicules(liste);
+      _populateVehiculeSelect(liste);
+      // Conserver la sélection si le véhicule est toujours dans la nouvelle liste
+      if (currentVehiculeNom && liste.includes(currentVehiculeNom)) {
+        document.getElementById('vehiculeSel').value = currentVehiculeNom;
+      } else {
+        _autoSelectLastVehicule();
+      }
+    }
+  } catch(e) {
+    console.warn('[Véhicules] Rechargement GS échoué, cache conservé :', e.message);
+  }
 }
 
 function onVehiculeChange() {
   const sel      = document.getElementById('vehiculeSel');
   const addField = document.getElementById('vehiculeAddField');
   const val      = sel.value;
+
   if (val === '__ajouter') {
     sel.value = currentVehiculeNom || '';
     addField.classList.remove('hidden');
     document.getElementById('fNouveauVehicule').focus();
     return;
   }
+
   if (val === '__supprimer') {
     addField.classList.add('hidden');
-    if (!currentVehiculeNom) { setVehiculeStatus('err', 'Sélectionnez d\'abord un véhicule à supprimer.'); sel.value = ''; return; }
+    if (!currentVehiculeNom) {
+      setVehiculeStatus('err', 'Sélectionnez d\'abord un véhicule à supprimer.');
+      sel.value = ''; return;
+    }
     if (confirm('Supprimer "' + currentVehiculeNom + '" ?')) {
-      sauvegarderVehicules(getVehicules().filter(v => v !== currentVehiculeNom));
-      currentVehiculeNom = ''; chargerVehicules(); sel.value = ''; setVehiculeStatus('', '');
-    } else { sel.value = currentVehiculeNom; }
+      const nom = currentVehiculeNom;
+      sauvegarderVehicules(getVehicules().filter(v => v !== nom));
+      // Effacer la dernière sélection si c'était ce véhicule
+      if (localStorage.getItem(LAST_VEHICULE_KEY) === nom)
+        localStorage.removeItem(LAST_VEHICULE_KEY);
+      currentVehiculeNom = '';
+      _populateVehiculeSelect(getVehicules());
+      sel.value = '';
+      setVehiculeStatus('', '');
+      syncVehiculeRemoveFromSheet(nom); // async, pas bloquant
+    } else {
+      sel.value = currentVehiculeNom;
+    }
     return;
   }
-  currentVehiculeNom = val; addField.classList.add('hidden'); setVehiculeStatus('', '');
+
+  // Sélection normale d'un véhicule
+  currentVehiculeNom = val;
+  if (val) localStorage.setItem(LAST_VEHICULE_KEY, val); // persister la sélection
+  addField.classList.add('hidden');
+  setVehiculeStatus('', '');
 }
 
-function confirmerAjoutVehicule() {
+async function confirmerAjoutVehicule() {
   const nom = document.getElementById('fNouveauVehicule').value.trim();
   if (!nom) { setVehiculeStatus('err', 'Nom requis.'); return; }
   const liste = getVehicules();
   if (!liste.includes(nom)) { liste.push(nom); sauvegarderVehicules(liste); }
-  chargerVehicules();
-  document.getElementById('vehiculeSel').value = nom; currentVehiculeNom = nom;
+  _populateVehiculeSelect(getVehicules());
+  document.getElementById('vehiculeSel').value = nom;
+  currentVehiculeNom = nom;
+  localStorage.setItem(LAST_VEHICULE_KEY, nom); // persister
   document.getElementById('fNouveauVehicule').value = '';
   document.getElementById('vehiculeAddField').classList.add('hidden');
   setVehiculeStatus('ok', '"' + nom + '" enregistré');
   setTimeout(() => setVehiculeStatus('', ''), 3000);
+  syncVehiculeToSheet(nom); // async, pas bloquant
+}
+
+/** Synchronise l'ajout d'un véhicule vers l'onglet "Vehicules" du GAS */
+async function syncVehiculeToSheet(nom) {
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST', redirect: 'follow',
+      body: JSON.stringify({ action: 'addVehicule', vehicule: nom })
+    });
+  } catch(e) { console.warn('[Véhicules] Sync ajout GAS échouée :', e.message); }
+}
+
+/** Synchronise la suppression d'un véhicule vers l'onglet "Vehicules" du GAS */
+async function syncVehiculeRemoveFromSheet(nom) {
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST', redirect: 'follow',
+      body: JSON.stringify({ action: 'removeVehicule', vehicule: nom })
+    });
+  } catch(e) { console.warn('[Véhicules] Sync suppression GAS échouée :', e.message); }
 }
 
 function setVehiculeStatus(cls, msg) {
@@ -123,10 +231,9 @@ async function fetchOsmNameAround(lat, lon) {
     const data = await resp.json();
     const elements = data.elements || []; if (!elements.length) return null;
     const sorted = elements
-      .map(el => { const eLat = el.lat ?? el.center?.lat, eLon = el.lon ?? el.center?.lon; if (eLat==null) return null; return { tags: el.tags||{}, dist: haversine(lat,lon,eLat,eLon) }; })
-      .filter(Boolean).sort((a,b) => a.dist-b.dist);
-    const tags = sorted[0].tags;
-    const name = tags.brand || tags.name || tags.operator || null;
+      .map(el => { const eLat=el.lat??el.center?.lat, eLon=el.lon??el.center?.lon; if (eLat==null) return null; return { tags:el.tags||{}, dist:haversine(lat,lon,eLat,eLon) }; })
+      .filter(Boolean).sort((a,b)=>a.dist-b.dist);
+    const tags=sorted[0].tags, name=tags.brand||tags.name||tags.operator||null;
     console.log(`[OSM] around(${lat.toFixed(4)},${lon.toFixed(4)}) → "${name||'—'}" (Δ${Math.round(sorted[0].dist)} m)`);
     return name;
   } catch(e) { console.warn('[OSM] Erreur:', e.message); return null; }
@@ -216,12 +323,12 @@ function _renderMap(uLat, uLon) {
 function showPinLabel(idx) {
   const lbl=document.getElementById('mapPinLbl'+idx); if (!lbl) return;
   lbl.style.opacity='1'; clearTimeout(lbl._hideTimer);
-  lbl._hideTimer=setTimeout(() => { lbl.style.opacity=''; },2000);
+  lbl._hideTimer=setTimeout(()=>{ lbl.style.opacity=''; },2000);
 }
 function escHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function selectStationFromMap(idx) {
   const s=_mapStations[idx]; if (!s) return;
-  _mapStations.forEach((_,i) => { const p=document.getElementById('mapPinDot'+i); if (p) p.style.background=i===idx?'#1B3A5C':'#2E75B6'; });
+  _mapStations.forEach((_,i)=>{ const p=document.getElementById('mapPinDot'+i); if (p) p.style.background=i===idx?'#1B3A5C':'#2E75B6'; });
   showPinLabel(idx); pickStation(s.name,s.lat,s.lon);
   if (s.src==='nearby') { highlightNearbyItem(s.srcIdx); document.getElementById('nearbyItem'+s.srcIdx)?.scrollIntoView({behavior:'smooth',block:'nearest'}); }
 }
@@ -260,7 +367,8 @@ function setType(type) {
 }
 
 function updateCout() {
-  const l=parseFloat(document.getElementById('fLitres').value), p=parseFloat(document.getElementById('fPrix').value), box=document.getElementById('coutBox');
+  const l=parseFloat(document.getElementById('fLitres').value), p=parseFloat(document.getElementById('fPrix').value);
+  const box=document.getElementById('coutBox');
   if (!isNaN(l)&&!isNaN(p)&&l>0&&p>0) { box.style.display='flex'; document.getElementById('coutVal').textContent=(l*p).toFixed(2)+' €'; }
   else box.style.display='none';
 }
@@ -287,12 +395,10 @@ function geolocate() {
   const btn=document.getElementById('geoBtn'); btn.classList.add('loading'); btn.textContent='🔄';
   setGeoStatus('info','Localisation en cours…'); document.getElementById('nearbyList').style.display='none';
   navigator.geolocation.getCurrentPosition(
-    pos => { userLat=pos.coords.latitude; userLon=pos.coords.longitude; searchNearby(userLat,userLon,btn); },
-    err => {
-      btn.classList.remove('loading'); btn.textContent='📍';
+    pos=>{ userLat=pos.coords.latitude; userLon=pos.coords.longitude; searchNearby(userLat,userLon,btn); },
+    err=>{ btn.classList.remove('loading'); btn.textContent='📍';
       const msgs={1:'Accès refusé — autorisez dans Réglages.',2:'Position introuvable.',3:'Délai dépassé.'};
-      setGeoStatus('err',msgs[err.code]||'Erreur.');
-    },
+      setGeoStatus('err',msgs[err.code]||'Erreur.'); },
     { timeout:10000, maximumAge:60000 }
   );
 }
@@ -351,12 +457,9 @@ function pickStation(name, lat, lon) {
 }
 
 /* ═══════════════════════════════════════
-   RECHERCHE MANUELLE PAR VILLE
-   ─────────────────────────────────────
-   Étape 1 : localiser la commune dont le nom ressemble à la saisie
-             via search(ville, 'q') → 1 résultat pour obtenir ses coordonnées
-   Étape 2 : chercher toutes les stations E85 dans le rayon autour
-             de ces coordonnées (pas autour de l'utilisateur)
+   RECHERCHE MANUELLE PAR VILLE (2 étapes)
+   1. Localiser la commune → obtenir ses coordonnées
+   2. Stations E85 dans le rayon AUTOUR DE LA COMMUNE
 ═══════════════════════════════════════ */
 
 let _autreDebounce = null;
@@ -370,19 +473,10 @@ function onAutreInput() {
 }
 function setAutreStatus(cls, msg) { const el=document.getElementById('autreStatus'); el.className=cls; el.textContent=msg; }
 
-/**
- * Clause de recherche sur le champ ville :
- * - 2-5 chiffres → cp like 'q%'  (code postal)
- * - sinon        → search(ville, 'q')  [accent-insensible, champ ville uniquement]
- */
 function buildSearchClause(q) {
   return /^\d{2,5}$/.test(q) ? `cp like '${q}%'` : `search(ville, '${q}')`;
 }
 
-/**
- * Construit et trie le tableau de stations depuis les résultats bruts.
- * Tri : distance à l'utilisateur si position connue, sinon ordre API.
- */
 function buildStations(results) {
   const knownNames=Array.from(document.querySelectorAll('#knownGroup option:not([value="__autre"])')).map(o=>o.value.toLowerCase());
   return results.filter(r=>getCoords(r)).map(r=>{
@@ -393,42 +487,28 @@ function buildStations(results) {
   }).sort((a,b)=>(a.dist??99999)-(b.dist??99999));
 }
 
-/**
- * Recherche en deux étapes :
- * 1. Localiser la commune dont le nom ressemble à la saisie → obtenir ses coordonnées
- * 2. Chercher les stations E85 dans le rayon choisi AUTOUR DE CES COORDONNÉES
- *
- * Si "France entière" → saute l'étape de proximité, retourne tout ce que search(ville) trouve.
- * Si aucun résultat dans le rayon → fallback sur les stations exactement dans la ville trouvée.
- */
 async function searchStationSuggestions(q) {
   try {
     const searchClause = buildSearchClause(q);
 
-    /* ── Étape 1 : trouver les coordonnées de la commune ── */
+    // ── Étape 1 : coordonnées de la commune ──
     setAutreStatus('spin', 'Localisation de la commune…');
-    const urlLoc = PRIX_API + '?' + new URLSearchParams({
-      where:  `${searchClause} and e85_prix is not null`,
-      select: 'ville,geom',
-      limit:  1
-    });
-    const respLoc = await fetch(urlLoc);
+    const respLoc = await fetch(PRIX_API + '?' + new URLSearchParams({
+      where: `${searchClause} and e85_prix is not null`, select:'ville,geom', limit:1
+    }));
     if (!respLoc.ok) throw new Error('HTTP ' + respLoc.status);
     const dataLoc = await respLoc.json();
 
     if (!dataLoc.results?.length || !getCoords(dataLoc.results[0])) {
-      setAutreStatus('err', 'Aucune commune E85 trouvée avec ce nom.');
-      return;
+      setAutreStatus('err', 'Aucune commune E85 trouvée avec ce nom.'); return;
     }
-
     const cityCoords = getCoords(dataLoc.results[0]);
     const cityName   = (dataLoc.results[0].ville || q).trim();
 
-    /* ── Étape 2 : stations dans le rayon autour de la commune ── */
+    // ── Étape 2 : stations dans le rayon autour de la commune ──
     const radiusLabel = searchRadiusM != null
-      ? searchRadiusM >= 1000 ? searchRadiusM/1000 + ' km' : searchRadiusM + ' m'
+      ? (searchRadiusM >= 1000 ? searchRadiusM/1000 + ' km' : searchRadiusM + ' m')
       : null;
-
     setAutreStatus('spin', radiusLabel
       ? `Stations dans ${radiusLabel} autour de ${cityName}…`
       : `Stations à ${cityName}…`);
@@ -436,65 +516,49 @@ async function searchStationSuggestions(q) {
     const proximityClause = searchRadiusM != null
       ? ` and distance(geom, geom'POINT(${cityCoords.lon} ${cityCoords.lat})', ${searchRadiusM}m)`
       : '';
-
-    // En mode "France entière", on filtre quand même par ville pour rester pertinent
     const whereStep2 = searchRadiusM != null
       ? `e85_prix is not null${proximityClause}`
       : `${searchClause} and e85_prix is not null`;
 
-    const url = PRIX_API + '?' + new URLSearchParams({
-      where:  whereStep2,
-      select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
-      limit:  15
-    });
-    const resp = await fetch(url);
+    const resp = await fetch(PRIX_API + '?' + new URLSearchParams({ where:whereStep2, select:'adresse,ville,cp,e85_prix,sp98_prix,geom,services', limit:15 }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
-    console.log(`[DEBUG] Stations autour de "${cityName}" (${radiusLabel||'France entière'}) :`, data.results);
+    console.log(`[DEBUG] Stations autour de "${cityName}" (${radiusLabel||'ville seule'}) :`, data.results);
 
     if (!data.results?.length || !buildStations(data.results).length) {
-      // Aucune station dans le rayon → fallback sur la ville exacte
-      setAutreStatus('info', `Aucune station dans ${radiusLabel||'ce périmètre'} — affichage de la ville.`);
+      setAutreStatus('info', `Aucune station dans ce périmètre — affichage de la ville.`);
       return searchStationsCityOnly(searchClause, cityName);
     }
 
     const stations = buildStations(data.results);
-    const label = radiusLabel
+    setAutreStatus('ok', radiusLabel
       ? stations.length + ' station(s) E85 dans ' + radiusLabel + ' autour de ' + cityName
-      : stations.length + ' station(s) E85 à ' + cityName;
-    setAutreStatus('ok', label);
+      : stations.length + ' station(s) E85 à ' + cityName);
     renderNearby(stations);
-    // Carte centrée sur la commune trouvée ; point vert = position utilisateur si connue
-    showMap(userLat, userLon, stations.map((s,i) => ({...s, src:'nearby', srcIdx:i})));
+    showMap(userLat, userLon, stations.map((s,i)=>({...s,src:'nearby',srcIdx:i})));
   } catch(e) {
-    setAutreStatus('err', 'Erreur de recherche (' + e.message + ').');
-    console.error('[Suggestions]', e);
+    setAutreStatus('err','Erreur de recherche ('+e.message+').');
+    console.error('[Suggestions]',e);
   }
 }
 
-/** Fallback : stations uniquement dans la ville exacte, sans contrainte de rayon */
 async function searchStationsCityOnly(searchClause, cityName) {
   try {
-    const url = PRIX_API + '?' + new URLSearchParams({
-      where:  `${searchClause} and e85_prix is not null`,
-      select: 'adresse,ville,cp,e85_prix,sp98_prix,geom,services',
-      limit:  15
-    });
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const data = await resp.json();
-    if (!data.results?.length) { setAutreStatus('err', 'Aucune station E85 trouvée.'); return; }
-    const stations = buildStations(data.results);
-    if (!stations.length) { setAutreStatus('err', 'Aucune station E85 trouvée.'); return; }
-    setAutreStatus('ok', stations.length + ' station(s) E85 à ' + cityName);
+    const resp=await fetch(PRIX_API+'?'+new URLSearchParams({ where:`${searchClause} and e85_prix is not null`, select:'adresse,ville,cp,e85_prix,sp98_prix,geom,services', limit:15 }));
+    if (!resp.ok) throw new Error('HTTP '+resp.status);
+    const data=await resp.json();
+    if (!data.results?.length) { setAutreStatus('err','Aucune station E85 trouvée.'); return; }
+    const stations=buildStations(data.results);
+    if (!stations.length) { setAutreStatus('err','Aucune station E85 trouvée.'); return; }
+    setAutreStatus('ok',stations.length+' station(s) E85 à '+cityName);
     renderNearby(stations);
-    showMap(userLat, userLon, stations.map((s,i) => ({...s, src:'nearby', srcIdx:i})));
-  } catch(e) { setAutreStatus('err', 'Erreur (' + e.message + ').'); }
+    showMap(userLat,userLon,stations.map((s,i)=>({...s,src:'nearby',srcIdx:i})));
+  } catch(e) { setAutreStatus('err','Erreur ('+e.message+').'); }
 }
 
 /* ─── Helpers API ─── */
-function odsUrl(params) { return PRIX_API + '?' + new URLSearchParams(params).toString(); }
+function odsUrl(params) { return PRIX_API+'?'+new URLSearchParams(params).toString(); }
 
 function setFieldPrice(id, value, defaultPh) {
   const el=document.getElementById(id), v=value?parseFloat(value):0;
@@ -503,7 +567,7 @@ function setFieldPrice(id, value, defaultPh) {
 }
 function applyPricesResult(data) {
   const r=data.results[0], label=[r.adresse,r.ville].filter(Boolean).join(' · ');
-  setFieldPrice('fPrix', currentType==='E85'?r.e85_prix:r.sp98_prix, currentType==='E85'?'0.798':'2.091');
+  setFieldPrice('fPrix',currentType==='E85'?r.e85_prix:r.sp98_prix,currentType==='E85'?'0.798':'2.091');
   setFieldPrice('fPrixS98',r.sp98_prix,'2.091'); s98Autofilled=!!(r.sp98_prix); updateCout();
   const found=[];
   if (currentType==='E85'&&r.e85_prix) found.push('E85 : '+parseFloat(r.e85_prix).toFixed(3)+' €/L');
@@ -591,7 +655,7 @@ function resetForm() {
   document.getElementById('nearbyList').style.display='none'; document.getElementById('autreField').classList.add('hidden');
   document.getElementById('s98Status').className='s98-status'; document.getElementById('s98Status').textContent='';
   setAutreStatus('',''); hideCpSearch(); s98Autofilled=false;
-  // Véhicule conservé intentionnellement
+  // Véhicule conservé intentionnellement (sélection + localStorage)
 }
 
 async function syncStationSiNouvelle(nom) {
@@ -624,5 +688,5 @@ async function chargerStations() {
 }
 
 chargerStations();
-chargerVehicules();
+chargerVehicules(); // async : cache local immédiat + rechargement GS en arrière-plan
 document.getElementById('appVersion').textContent='v'+APP_VERSION;
