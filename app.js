@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    Suivi Conso E85 — Logique applicative
-   v2.1.3.0 — Dernier véhicule auto-sélectionné · Liste véhicules depuis Google Sheets
+   v2.1.4.1 — Import initial véhicules depuis GS si localStorage vide
 ═══════════════════════════════════════ */
 
 /* ─── Configuration ─── */
-const APP_VERSION       = '2.1.3.0';
+const APP_VERSION       = '2.1.4.1';
 const GAS_URL           = 'https://script.google.com/macros/s/AKfycbzljFbh6Qcg9IadJ2yUePR56hpkSzrLsyuJLaxwB1qk7aoLcWzoHzH2btSbwV7tDeJGA/exec';
 const GS_SHEET_ID       = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const PRIX_API          = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -48,16 +48,9 @@ function setRadius(btn, metres) {
 /* ═══════════════════════════════════════
    VÉHICULES
    ─────────────────────────────────────
-   Source de vérité  : onglet "Vehicules" du Google Sheet (Drive)
-   Cache local       : localStorage[VEHICULES_KEY]
-   Dernière sélection: localStorage[LAST_VEHICULE_KEY]
-
-   Chargement au démarrage :
-   1. Affichage immédiat depuis le cache localStorage
-   2. Auto-sélection du dernier véhicule utilisé
-   3. Rechargement async depuis Google Sheets
-   4. Si la liste GS diffère → mise à jour du cache et de l'affichage
-      sans modifier la sélection en cours si le véhicule est toujours présent
+   Stockage       : localStorage uniquement (VEHICULES_KEY)
+   Dernière sélec : localStorage[LAST_VEHICULE_KEY]
+   Ajout/suppression : local uniquement (pas de sync Google Sheets)
 ═══════════════════════════════════════ */
 
 function getVehicules() {
@@ -90,45 +83,43 @@ function _autoSelectLastVehicule() {
 
 /**
  * Charge la liste des véhicules :
- * 1. Depuis le cache localStorage → affichage immédiat + auto-sélection
- * 2. Depuis l'onglet "Vehicules" du Google Sheet → mise à jour si besoin
+ * — Si localStorage non vide → affichage immédiat + auto-sélection (nominal)
+ * — Si localStorage vide     → import unique depuis l'onglet "Vehicules" du GS,
+ *                              puis sauvegarde locale (1er lancement / nouvel appareil)
  */
 async function chargerVehicules() {
-  // ── Étape 1 : cache local (immédiat) ──
   const listeLocale = getVehicules();
-  _populateVehiculeSelect(listeLocale);
-  _autoSelectLastVehicule();
 
-  // ── Étape 2 : Google Sheets (async) ──
-  const url = 'https://docs.google.com/spreadsheets/d/' + GS_SHEET_ID
-            + '/gviz/tq?tqx=out:csv&sheet=Vehicules';
+  if (listeLocale.length > 0) {
+    // Cas nominal : données déjà en local
+    _populateVehiculeSelect(listeLocale);
+    _autoSelectLastVehicule();
+    return;
+  }
+
+  // Premier lancement (localStorage vide) → import depuis Google Sheets
   try {
+    const url = 'https://docs.google.com/spreadsheets/d/' + GS_SHEET_ID
+              + '/gviz/tq?tqx=out:csv&sheet=vehicules';
     const resp = await fetch(url);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const csv   = await resp.text();
     const liste = csv.split('\n')
-      .map(l => l.trim().replace(/^"|"$/g, ''))
-      .slice(1)                                // ignorer l'en-tête
+      .map(l => l.trim().split(',')[0].replace(/^"|"$/g, ''))  // 1re colonne uniquement
+      .slice(1)                                                  // ignorer l'en-tête
       .filter(s => s.length > 0);
 
-    if (!liste.length) return; // onglet vide ou inexistant → garder le cache
-
-    // Mettre à jour le cache local si la liste GS est différente
-    const listeStr = JSON.stringify(liste.slice().sort());
-    const cacheStr = JSON.stringify(listeLocale.slice().sort());
-    if (listeStr !== cacheStr) {
+    if (liste.length > 0) {
       sauvegarderVehicules(liste);
-      _populateVehiculeSelect(liste);
-      // Conserver la sélection si le véhicule est toujours dans la nouvelle liste
-      if (currentVehiculeNom && liste.includes(currentVehiculeNom)) {
-        document.getElementById('vehiculeSel').value = currentVehiculeNom;
-      } else {
-        _autoSelectLastVehicule();
-      }
+      console.log('[Véhicules] Import initial depuis GS :', liste);
     }
   } catch(e) {
-    console.warn('[Véhicules] Rechargement GS échoué, cache conservé :', e.message);
+    console.warn('[Véhicules] Import initial GS échoué, départ liste vide :', e.message);
   }
+
+  // Affichage final (liste importée ou vide si import échoué)
+  _populateVehiculeSelect(getVehicules());
+  _autoSelectLastVehicule();
 }
 
 function onVehiculeChange() {
@@ -159,7 +150,7 @@ function onVehiculeChange() {
       _populateVehiculeSelect(getVehicules());
       sel.value = '';
       setVehiculeStatus('', '');
-      syncVehiculeRemoveFromSheet(nom); // async, pas bloquant
+      // suppression locale uniquement
     } else {
       sel.value = currentVehiculeNom;
     }
@@ -186,28 +177,8 @@ async function confirmerAjoutVehicule() {
   document.getElementById('vehiculeAddField').classList.add('hidden');
   setVehiculeStatus('ok', '"' + nom + '" enregistré');
   setTimeout(() => setVehiculeStatus('', ''), 3000);
-  syncVehiculeToSheet(nom); // async, pas bloquant
 }
 
-/** Synchronise l'ajout d'un véhicule vers l'onglet "Vehicules" du GAS */
-async function syncVehiculeToSheet(nom) {
-  try {
-    await fetch(GAS_URL, {
-      method: 'POST', redirect: 'follow',
-      body: JSON.stringify({ action: 'addVehicule', vehicule: nom })
-    });
-  } catch(e) { console.warn('[Véhicules] Sync ajout GAS échouée :', e.message); }
-}
-
-/** Synchronise la suppression d'un véhicule vers l'onglet "Vehicules" du GAS */
-async function syncVehiculeRemoveFromSheet(nom) {
-  try {
-    await fetch(GAS_URL, {
-      method: 'POST', redirect: 'follow',
-      body: JSON.stringify({ action: 'removeVehicule', vehicule: nom })
-    });
-  } catch(e) { console.warn('[Véhicules] Sync suppression GAS échouée :', e.message); }
-}
 
 function setVehiculeStatus(cls, msg) {
   const el = document.getElementById('vehiculeStatus'); el.className = 'geo-status ' + cls; el.textContent = msg;
