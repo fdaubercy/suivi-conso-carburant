@@ -1,0 +1,36 @@
+/* ─── Sélecteur de rayon de recherche ─── */
+.radius-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.radius-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.radius-btn {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.radius-btn:active  { background: var(--blue-light); }
+.radius-btn.active  {
+  background: var(--blue-dark);
+  border-color: var(--blue-dark);
+  color: #fff;
+  font-weight: 600;
+}

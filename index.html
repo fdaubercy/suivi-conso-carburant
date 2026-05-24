@@ -34,12 +34,10 @@
       </optgroup>
     </select>
     <div class="geo-status" id="vehiculeStatus"></div>
-    <!-- Champ d'ajout inline -->
     <div id="vehiculeAddField" class="hidden">
       <div class="cp-row" style="margin-top:8px">
         <input type="text" id="fNouveauVehicule" class="cp-input"
-               placeholder="Ex : Moto Honda CBR600"
-               autocomplete="off"
+               placeholder="Ex : Moto Honda CBR600" autocomplete="off"
                onkeydown="if(event.key==='Enter') confirmerAjoutVehicule()">
         <button class="cp-btn" onclick="confirmerAjoutVehicule()">Ajouter</button>
       </div>
@@ -78,7 +76,6 @@
     </div>
   </div>
 
-  <!-- Champ Prix S98 — visible en mode E85 uniquement -->
   <div class="field" id="s98Field">
     <label for="fPrixS98">Prix S98 du jour (€/L)</label>
     <input type="number" id="fPrixS98" step="0.001" placeholder="2.091"
@@ -92,7 +89,6 @@
     </div>
   </div>
 
-  <!-- Coût calculé en temps réel -->
   <div class="cout-box" id="coutBox">
     <span class="cout-label">Coût du plein :</span>
     <span class="cout-val" id="coutVal">—</span>
@@ -103,7 +99,6 @@
 <div class="card">
   <p class="section-title">Station essence</p>
 
-  <!-- Sélecteur + bouton géoloc -->
   <div class="field">
     <label for="stationSel">Station</label>
     <div class="station-wrap">
@@ -118,20 +113,26 @@
     <div class="geo-status info" id="geoStatus"></div>
   </div>
 
-  <!-- Saisie manuelle ville — juste sous le sélecteur -->
+  <!-- Saisie manuelle + sélecteur de rayon -->
   <div class="field hidden" id="autreField">
     <label for="fAutre">Ville de la station</label>
     <input type="text" id="fAutre"
            placeholder="ex. Villefranche, Mâcon, Douai…"
            autocomplete="off" autocorrect="off" spellcheck="false"
            oninput="onAutreInput()">
+    <!-- Sélecteur de rayon -->
+    <div class="radius-row">
+      <span class="radius-label">Rayon :</span>
+      <button class="radius-btn" data-m="20000"  onclick="setRadius(this, 20000)">20 km</button>
+      <button class="radius-btn" data-m="50000"  onclick="setRadius(this, 50000)">50 km</button>
+      <button class="radius-btn" data-m="100000" onclick="setRadius(this, 100000)">100 km</button>
+      <button class="radius-btn" data-m="null"   onclick="setRadius(this, null)">France</button>
+    </div>
     <div class="s98-status" id="autreStatus"></div>
   </div>
 
-  <!-- Liste résultats (géoloc ET saisie manuelle) -->
   <div class="nearby-list" id="nearbyList"></div>
 
-  <!-- ─── Carte OSM ─── -->
   <div id="stationMapWrap" class="hidden">
     <div class="map-header">
       <span class="map-title">🗺️ Carte des stations</span>
