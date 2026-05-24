@@ -4,6 +4,29 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.2.4.0] — 2026-05-24
+
+### Added
+- **`vba/modSyncGS.bas`** : module VBA de synchronisation bidirectionnelle `GS_Pleins` ↔ `_ImportGS`.
+  - `SyncOnOpen` : appelé depuis `Workbook_Open`, silencieux si aucun changement, affiche un résumé si des lignes ont été échangées.
+  - `SyncManuel` : point d'entrée pour un bouton dans le classeur, affiche toujours le compte-rendu.
+  - `SyncCore` : moteur commun — appel `GET ?action=export`, parsing JSON, import GS→Excel, export Excel→GS.
+  - `ImportGSToExcel` : insère dans `GS_Pleins` les lignes présentes dans GS mais absentes localement (déduplication par `sync_id`). Compatible ListObject (tableau Excel) et plage ordinaire.
+  - `ExportExcelToGS` : envoie à GAS (`action=bulkAdd`) les lignes locales absentes de GS. Génère automatiquement un UUID pour les lignes sans `sync_id`.
+  - `ParseRecords` : parser JSON minimal pour tableaux d'objets plats (sans dépendance externe).
+  - `JsonGet` : extraction de valeur par clé dans un objet JSON plat (chaîne, nombre, null).
+  - `GenerateUUID` : génère un UUID via `Scriptlet.TypeLib`, fallback horodatage+random.
+  - `HttpGet` / `HttpPost` : wrappers `MSXML2.XMLHTTP60`.
+  - `jS` / `jN` : sérialiseurs JSON (chaîne / nombre).
+  - Gestion correcte des caractères Unicode dans les clés JSON (`€` via `ChrW(8364)`, `é` via `ChrW(233)`).
+- **`vba/ThisWorkbook_snippet.bas`** : snippet `Workbook_Open` à coller dans le module `ThisWorkbook`.
+
+### Note
+> Étapes 3+4/4 du plan de synchronisation bidirectionnelle Excel ↔ Google Sheets.
+> Prérequis : exécuter `migrateSyncId()` dans GAS Editor + ajouter colonne P `sync_id` dans `GS_Pleins` + importer le module VBA (voir README).
+
+---
+
 ## [2.2.3.0] — 2026-05-24
 
 ### Added
