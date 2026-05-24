@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.2.4.4] — 2026-05-24
+
+### Fixed
+- **`vba/modSyncGS.bas` — `ParseRecords` — bug root cause** : la variable locale s'appelait `empty`, qui est un **mot-clé réservé** VBA (constante équivalente à `IsEmpty()`). L'éditeur VBA s'en trouvait perturbé au parsing — syntax error sur la première ligne sur certaines versions, comportement indéfini (gel/boucle) sur d'autres. Renommée en `emp`.
+- **Approche simplifiée** : retour au parser `Split("},{")` (suffisant pour un JSON plat sans `},{` dans les valeurs, ce qui est le cas du dataset E85). Le parser à comptage d'accolades était sur-dimensionné pour ce cas d'usage et introduisait des chemins d'exécution complexes inutiles.
+- **Toutes les variables déclarées en tête de fonction** (cohérence VBA classique).
+
+---
+
 ## [2.2.4.3] — 2026-05-24
 
 ### Fixed

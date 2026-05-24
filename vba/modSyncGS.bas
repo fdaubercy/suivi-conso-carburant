@@ -2,7 +2,7 @@ Attribute VB_Name = "modSyncGS"
 ' ============================================================
 '  SUIVI E85 - Synchronisation bidirectionnelle
 '  Google Sheets (_ImportGS) <-> Excel (GS_Pleins)
-'  v2.2.4.3
+'  v2.2.4.4
 ' ============================================================
 Option Explicit
 
@@ -375,95 +375,55 @@ Private Function JsonGet(jsonObj As String, key As String) As String
 End Function
 
 Private Function ParseRecords(jsonStr As String) As String()
-    Dim empty(0)   As String
-    Dim recs()     As String
-    Dim startPos   As Long
-    Dim pos        As Long
-    Dim depth      As Long
-    Dim inStr      As Boolean
-    Dim recStart   As Long
-    Dim recCount   As Long
-    Dim ch         As String
-    Dim done       As Boolean
-    Dim slashCount As Long
-    Dim bp         As Long
+    ' NOTE : ne pas nommer une variable "empty" (mot reserve VBA)
+    Dim emp(0)   As String
+    Dim parts()  As String
+    Dim result() As String
+    Dim p        As Long
+    Dim endP     As Long
+    Dim arr      As String
+    Dim i        As Long
+    Dim n        As Long
+    Dim s        As String
 
-    empty(0) = ""
+    emp(0) = ""
 
-    startPos = InStr(jsonStr, """records"":[")
-    If startPos = 0 Then
-        ParseRecords = empty
+    ' Position apres "records":[
+    p = InStr(jsonStr, """records"":[")
+    If p = 0 Then
+        ParseRecords = emp
         Exit Function
     End If
-    startPos = startPos + Len("""records"":[")
+    p = p + Len("""records"":[")
 
-    Do While startPos <= Len(jsonStr) And Mid(jsonStr, startPos, 1) = " "
-        startPos = startPos + 1
-    Loop
-
-    If startPos > Len(jsonStr) Then
-        ParseRecords = empty
-        Exit Function
-    End If
-    If Mid(jsonStr, startPos, 1) = "]" Then
-        ParseRecords = empty
+    ' Dernier ] du JSON
+    endP = InStrRev(jsonStr, "]")
+    If endP <= p Then
+        ParseRecords = emp
         Exit Function
     End If
 
-    ReDim recs(100)
-    recCount = 0
-    pos = startPos
-    depth = 0
-    inStr = False
-    recStart = 0
-    done = False
-
-    Do While pos <= Len(jsonStr) And Not done
-        ch = Mid(jsonStr, pos, 1)
-
-        If inStr Then
-            If ch = """" Then
-                slashCount = 0
-                bp = pos - 1
-                Do While bp >= 1 And Mid(jsonStr, bp, 1) = "\"
-                    slashCount = slashCount + 1
-                    bp = bp - 1
-                Loop
-                If (slashCount Mod 2) = 0 Then
-                    inStr = False
-                End If
-            End If
-        Else
-            If ch = "{" Then
-                depth = depth + 1
-                If depth = 1 Then recStart = pos
-            ElseIf ch = "}" Then
-                depth = depth - 1
-                If depth = 0 And recStart > 0 Then
-                    If recCount > UBound(recs) Then
-                        ReDim Preserve recs(recCount + 100)
-                    End If
-                    recs(recCount) = Mid(jsonStr, recStart, pos - recStart + 1)
-                    recCount = recCount + 1
-                    recStart = 0
-                End If
-            ElseIf ch = "]" And depth = 0 Then
-                done = True
-            ElseIf ch = """" Then
-                inStr = True
-            End If
-        End If
-
-        pos = pos + 1
-    Loop
-
-    If recCount = 0 Then
-        ParseRecords = empty
+    ' Contenu entre [ et ]
+    arr = Trim(Mid(jsonStr, p, endP - p))
+    If arr = "" Then
+        ParseRecords = emp
         Exit Function
     End If
 
-    ReDim Preserve recs(recCount - 1)
-    ParseRecords = recs
+    ' Split sur },{ - safe pour JSON plat sans },{ dans les valeurs
+    parts = Split(arr, "},{")
+    n = UBound(parts)
+
+    ReDim result(n)
+
+    For i = 0 To n
+        s = parts(i)
+        If Left(s, 1) <> "{" Then s = "{" & s
+        If Right(s, 1) <> "}" Then s = s & "}"
+        result(i) = s
+    Next i
+
+    ParseRecords = result
 End Function
 
 
