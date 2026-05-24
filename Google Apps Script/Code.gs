@@ -58,6 +58,15 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
   }
 
+  if (payload.action === 'syncStations') {
+    const sheet = ss.getSheetByName(STATIONS_SHEET);
+    if (sheet && payload.stations && payload.stations.length > 0) {
+      sheet.clearContents();
+      payload.stations.forEach((s, i) => sheet.getRange(i + 1, 1).setValue(s));
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+  }
+
   // Enregistrement d'un plein (colonnes A→O)
   const sp = payload.stationPrices || {};
   const sheet = getOrCreateSheet(ss);
