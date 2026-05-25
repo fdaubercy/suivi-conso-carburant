@@ -1,19 +1,11 @@
-# # Ignorer un fichier spécifique
+# Fichiers temporaires Office
 ~$*
 
-# Dépendances npm (W13 — ESLint)
+# Dépendances npm
 node_modules/
 
-# # Ignorer un dossier entier
-# build/
+# Build Vite (W12)
+dist/
 
-# # Ignorer par extension
-# *.log
-# *.tmp
-# *.env
-
-# # Ignorer dans tous les sous-dossiers
-# **/*.DS_Store
-
-# # Exception : ne PAS ignorer ce fichier malgré la règle ci-dessus
-# !important.log
+# Cache Vite
+.vite/

@@ -25,8 +25,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| W12 | Bundler **Vite** + tree-shaking | Réduit le poids du JS, charge plus vite sur mobile |
-| W14 | Tests unitaires **Vitest** sur `utils.js`, `prix.js` (mock fetch) | Régressions sur les helpers |
 
 ---
 
@@ -87,7 +85,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|---|
 | 1 | **X1** — Bouton "Synchroniser" sur la feuille Excel | 15 min | Ergonomie immédiate |
 | 2 | **S6** — Token secret sur les endpoints GAS | 30 min | Sécurité minimale, données aujourd'hui publiques |
-| 3 | **W4** — PWA install prompt + manifest enrichi (icônes, theme color, splash) | 1-2 h | Vraie expérience appli sur iPhone/Android |
+| 3 | **W15** — Auto-save brouillon localStorage | 1 h | UX : zéro perte de saisie |
 
 ---
 
@@ -116,6 +114,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.5.0.0 | **Graphique prix E85 (X7)** — feuille "Graphiques" : ligne Date → Prix E85 filtrée depuis `GS_Pleins` |
 | v2.5.0.0 | **Graphique conso L/100 km (X8)** — feuille "Graphiques" : ligne Date → L/100km calculée entre pleins consécutifs par véhicule |
 | v2.6.0.0 | **PWA install prompt (W4)** — `manifest.json` + icône SVG ⛽ + bannière "Installer" Android/Chrome + bannière instruction iOS Safari + `theme-color` |
+| v2.7.0.0 | **Vite bundler (W12)** — `vite.config.js`, `public/icons/`, workflow `deploy.yml` GitHub Actions → GitHub Pages, scripts `dev`/`build`/`preview` |
+| v2.7.0.0 | **Tests unitaires Vitest (W14)** — `tests/utils.test.js` (30 cas) + `tests/prix.test.js` (8 cas, fetch mocké) ; job `test` ajouté dans `ci.yml` |
 
 ---
 
