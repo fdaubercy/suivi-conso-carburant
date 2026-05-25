@@ -28,6 +28,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | W10 | ~~**Auto-complétion station par km**~~ | ❌ Redondant avec W2 (📋 Dupliquer dernier) — concept à redéfinir |
 | W11 | **Notification prix** : alerte quand E85 < seuil dans une station habituelle | Optimise les pleins · effort 3-4 h + dépend de W8 (Push API) |
 | W15 | **Auto-save brouillon** : à chaque frappe, sauve le formulaire dans localStorage. Restauré au prochain chargement si la page est fermée sans enregistrer | UX : pas de perte si on quitte par erreur |
+| W16 | **Photo ticket + OCR/AI** : capture caméra → OCR (Tesseract.js côté client OU API Vision Claude/Gemini côté GAS) → parse date / litres / prix / station → pré-remplit le formulaire. Évolution naturelle de W9 (qui n'est que stockage photo) | UX premium : 1 photo → formulaire complet sans saisie manuelle. Effort : 4-6 h (OCR/AI integration + parsing robuste + UI capture) |
 | W16 | **📸 Photo ticket → auto-fill du formulaire** : bouton "Scanner le ticket" qui ouvre la caméra (`<input type="file" accept="image/*" capture>`), puis extrait automatiquement km, litres, prix, type carburant, station via OCR ou API IA vision. Trois approches possibles : (a) **Tesseract.js** côté client (gratuit, ~2 Mo, lent ~5 s) ; (b) **API Claude Vision / GPT-4 Vision / Gemini Vision** côté GAS (rapide, payant à l'usage, plus précis sur tickets manuscrits ou photos floues) ; (c) **Hybride** Tesseract local + fallback IA si confiance faible | Saisie quasi-instantanée — divise le temps de saisie par 5-10. Plus de pertes/oublis car le ticket photographié sert aussi de justificatif. Absorbe W9 si on stocke l'image. |
 
 ### 🛠️ Tech debt
@@ -124,6 +125,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.4.2.0 | **Validation km rétrograde** (W3) — warning live + confirm au submit, filtré par véhicule |
 | v2.4.3.0 | **Badge rentabilité E85** (W5) — vert/orange sous le toggle, seuil 66% du SP98 |
 | v2.4.4.0 | **Stats live** (W7) — carte 4 KPIs (conso, €/100km, total 6 mois, éco E85) filtrée par véhicule |
+| v2.4.5.0 | **Stats par carburant + station "Nom - Ville"** — conso/€/100km filtrés sur type courant + format station avec ville en proper case |
 
 ---
 

@@ -1,7 +1,7 @@
 /* ─── Géolocalisation + liste stations proches ─── */
 import { FUEL_CONFIG, FUEL_KEYS, FUEL_SELECT } from './config.js';
 import { state } from './state.js';
-import { haversine, escHtml, getCoords, stationLabel, stationSubLabel } from './utils.js';
+import { haversine, escHtml, getCoords, stationLabel, stationSubLabel, composeStationName } from './utils.js';
 import { setGeoStatus } from './ui.js';
 import { enrichWithOsmSerial } from './osm.js';
 import { showMap } from './carte.js';
@@ -48,11 +48,12 @@ export async function searchNearby(lat, lon, btn) {
     if (!osmNames) return; // annulé par une recherche manuelle plus récente
     const knownNames = Array.from(document.querySelectorAll('#knownGroup option:not([value="__autre"])')).map(o => o.value.toLowerCase());
     const stations   = candidates.map((c, i) => {
-      const name = osmNames[i] || stationLabel(c.r);
-      const prices = {};
+      const rawName = osmNames[i] || stationLabel(c.r);
+      const name    = composeStationName(rawName, c.r.ville);
+      const prices  = {};
       FUEL_KEYS.forEach(k => { if (c.r[FUEL_CONFIG[k].apiField] != null) prices[k] = c.r[FUEL_CONFIG[k].apiField]; });
       return { name, sub: stationSubLabel(c.r), dist: c.dist, lat: c.lat, lon: c.lon, prices,
-               known: knownNames.some(k => k.includes(name.toLowerCase()) || k.includes((c.r.ville||'').toLowerCase())) };
+               known: knownNames.some(k => k.includes(rawName.toLowerCase()) || k.includes((c.r.ville||'').toLowerCase())) };
     });
     state._nearbyStations = stations;
     renderNearby(stations);

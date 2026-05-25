@@ -575,6 +575,17 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
   margin-top: 2px;
   letter-spacing: .02em;
 }
+.stat-tag {
+  display: inline-block;
+  background: var(--blue-mid);
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  margin-left: 3px;
+  vertical-align: middle;
+}
 .stat.pos .stat-val { color: var(--green); }
 .stat.neg .stat-val { color: var(--red); }
 

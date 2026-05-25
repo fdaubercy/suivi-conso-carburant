@@ -1,7 +1,7 @@
 /* ─── Recherche manuelle par ville ─── */
 import { PRIX_API, FUEL_CONFIG, FUEL_SELECT } from './config.js';
 import { state } from './state.js';
-import { haversine, getCoords, stationLabel, stationSubLabel } from './utils.js';
+import { haversine, getCoords, stationLabel, stationSubLabel, composeStationName } from './utils.js';
 import { setAutreStatus } from './ui.js';
 import { enrichWithOsmSerial } from './osm.js';
 import { showMap } from './carte.js';
@@ -39,11 +39,13 @@ export function buildStations(results) {
   return results.filter(r => getCoords(r)).map(r => {
     const c = getCoords(r);
     const dist = (state.userLat && state.userLon) ? Math.round(haversine(state.userLat, state.userLon, c.lat, c.lon)) : null;
-    const name = stationLabel(r);
+    const rawName = stationLabel(r);
+    const ville   = r.ville || '';
+    const name    = composeStationName(rawName, ville);
     const prices = {};
     Object.keys(FUEL_CONFIG).forEach(k => { if (r[FUEL_CONFIG[k].apiField] != null) prices[k] = r[FUEL_CONFIG[k].apiField]; });
-    return { name, sub: stationSubLabel(r), dist, lat: c.lat, lon: c.lon, prices,
-             known: knownNames.some(k => k.includes(name.toLowerCase()) || k.includes((r.ville||'').toLowerCase())) };
+    return { name, ville, sub: stationSubLabel(r), dist, lat: c.lat, lon: c.lon, prices,
+             known: knownNames.some(k => k.includes(rawName.toLowerCase()) || k.includes(ville.toLowerCase())) };
   }).sort((a, b) => (a.dist ?? 99999) - (b.dist ?? 99999));
 }
 
@@ -90,7 +92,7 @@ export async function searchStationSuggestions(q) {
     const stations = buildStations(data.results);
     const osmNames = await enrichWithOsmSerial(stations, setAutreStatus);
     if (!osmNames) return; // annulé par une recherche plus récente
-    const stationsFinal = stations.map((s, i) => ({ ...s, name: osmNames[i] || s.name }));
+    const stationsFinal = stations.map((s, i) => ({ ...s, name: composeStationName(osmNames[i] || s.name.split(' - ')[0], s.ville) }));
     setAutreStatus('ok', radiusLabel
       ? stationsFinal.length + ' station(s) ' + cfg.short + ' dans ' + radiusLabel + ' autour de ' + cityName
       : stationsFinal.length + ' station(s) ' + cfg.short + ' à ' + cityName);
@@ -115,7 +117,7 @@ export async function searchStationsCityOnly(searchClause, cityName) {
     if (!stations.length) { setAutreStatus('err', `Aucune station ${cfg.short} trouvée.`); return; }
     const osmNames = await enrichWithOsmSerial(stations, setAutreStatus);
     if (!osmNames) return; // annulé par une recherche plus récente
-    const stationsFinal = stations.map((s, i) => ({ ...s, name: osmNames[i] || s.name }));
+    const stationsFinal = stations.map((s, i) => ({ ...s, name: composeStationName(osmNames[i] || s.name.split(' - ')[0], s.ville) }));
     setAutreStatus('ok', stationsFinal.length + ' station(s) ' + cfg.short + ' à ' + cityName);
     renderNearby(stationsFinal);
     showMap(state.userLat, state.userLon, stationsFinal.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));

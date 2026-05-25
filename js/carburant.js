@@ -60,6 +60,9 @@ export function setType(type) {
   _updateHeaderBadges();
   _buildTypeToggle(state._stationPrices);
   document.getElementById('prixLabel').textContent = 'Prix ' + cfg.short + ' (€/L)';
+
+  // Re-rendu des stats : conso/coût/100km sont filtrés par carburant courant
+  if (typeof window.renderStats === 'function') window.renderStats();
   const fp = document.getElementById('fPrix'); fp.value = ''; fp.classList.remove('autofilled'); fp.placeholder = cfg.ph;
   updateCout();
 

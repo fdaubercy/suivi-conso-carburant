@@ -32,6 +32,21 @@ export function stationSubLabel(r) {
   return [cap(r.adresse||''), r.cp||'', r.ville ? r.ville.trim().toUpperCase() : ''].filter(Boolean).join(' · ');
 }
 
+/** Convertit une ville en "nom propre" : premier segment avant - ou espace, en proper case.
+ *  Ex : "FLERS-EN-ESCREBIEUX" → "Flers" / "DOUAI" → "Douai" */
+export function formatVille(city) {
+  if (!city) return '';
+  const first = String(city).trim().split(/[\s-]/)[0];
+  if (!first) return '';
+  return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+}
+
+/** Compose le label final d'une station : "Nom - Ville" (ville en proper case). */
+export function composeStationName(name, ville) {
+  const v = formatVille(ville);
+  return v && name ? name + ' - ' + v : (name || v);
+}
+
 /** Construit l'URL de l'API ODS avec les paramètres donnés. */
 export function odsUrl(params) {
   return PRIX_API + '?' + new URLSearchParams(params).toString();
