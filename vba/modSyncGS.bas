@@ -2,7 +2,7 @@ Attribute VB_Name = "modSyncGS"
 ' ============================================================
 '  SUIVI E85 - Synchronisation bidirectionnelle
 '  Google Sheets (_ImportGS) <-> Excel (GS_Pleins)
-'  v2.3.0.0  - schema reduit a 15 colonnes A-O (col G Prix S98 jour supprimee)
+'  v2.3.0.1  - MsgBox -> SetStatus (barre de statut + Immediate Window)
 ' ============================================================
 Option Explicit
 
@@ -21,6 +21,30 @@ Private Function eAcc() As String:   eAcc = ChrW(233):  End Function
 Private Function K(s As String) As String
     K = Replace(Replace(s, "{E}", Euro()), "{e}", eAcc())
 End Function
+
+
+' ════════════════════════════════════════════════════════════
+'  HELPERS DE LOGGING
+'  - Barre de statut Excel (non-bloquant, visible en bas)
+'  - Immediate Window VBA (Ctrl+G) pour garder l'historique
+' ════════════════════════════════════════════════════════════
+Private Sub SetStatus(msg As String)
+    Application.StatusBar = "[Sync E85] " & msg
+    Debug.Print Format(Now(), "hh:mm:ss") & "  " & msg
+End Sub
+
+' Variante multi-ligne : barre de statut = 1re ligne, Immediate = tout
+Private Sub SetStatusBlock(title As String, body As String)
+    Application.StatusBar = "[Sync E85] " & title
+    Debug.Print String(60, "-")
+    Debug.Print Format(Now(), "hh:mm:ss") & "  " & title
+    Debug.Print body
+    Debug.Print String(60, "-")
+End Sub
+
+Private Sub ClearStatus()
+    Application.StatusBar = False
+End Sub
 
 
 ' ════════════════════════════════════════════════════════════
@@ -78,10 +102,14 @@ Public Sub TestConnexion()
         cause = "Code HTTP inattendu : " & status
     End If
 
-    MsgBox "Composant : " & IIf(driver = "", "aucun", driver) & vbNewLine & _
-           "Code HTTP : " & status & vbNewLine & _
-           "Diagnostic: " & cause & vbNewLine & vbNewLine & _
-           "Reponse   : " & body, vbInformation, "Diagnostic Sync E85"
+    Dim summary As String
+    summary = "HTTP " & status & " (" & IIf(driver = "", "aucun", driver) & ") - " & cause
+
+    SetStatusBlock summary, _
+        "Composant : " & IIf(driver = "", "aucun", driver) & vbNewLine & _
+        "Code HTTP : " & status & vbNewLine & _
+        "Diagnostic: " & cause & vbNewLine & _
+        "Reponse   : " & body
 End Sub
 
 
@@ -110,10 +138,10 @@ Public Sub SyncDiagnose()
     Set ws = ThisWorkbook.Sheets(WS_NAME)
 
     ' ── Cote GS ───────────────────────────────────────────────
+    SetStatus "Diagnose : recuperation export GS..."
     jsonStr = HttpGet(GAS_URL & "?action=export")
     If jsonStr = "" Or InStr(jsonStr, """records""") = 0 Then
-        MsgBox "Erreur : impossible de recuperer l'export GS." & vbNewLine & _
-               "Lancez TestConnexion() d'abord.", vbCritical, "Diagnose Sync"
+        SetStatus "Diagnose ERREUR : export GS inaccessible (lancer TestConnexion)"
         Exit Sub
     End If
 
@@ -171,28 +199,33 @@ Public Sub SyncDiagnose()
     Next key
 
     ' ── Rapport ──────────────────────────────────────────────
-    Dim msg As String
-    msg = "DIAGNOSTIC SYNC" & vbNewLine & String(40, "-") & vbNewLine & vbNewLine & _
-          "GOOGLE SHEETS (_ImportGS)" & vbNewLine & _
-          "  Total enregistrements : " & nGsTotal & vbNewLine & _
-          "  Avec sync_id          : " & nGsWithSid & vbNewLine & _
-          "  Sans sync_id (skip)   : " & nGsNoSid & vbNewLine & vbNewLine & _
-          "EXCEL (GS_Pleins)" & vbNewLine & _
-          "  Total lignes          : " & nLocalTotal & vbNewLine & _
-          "  Avec sync_id          : " & nLocalWithSid & vbNewLine & _
-          "  Sans sync_id          : " & nLocalNoSid & vbNewLine & vbNewLine & _
-          "INTERSECTIONS" & vbNewLine & _
-          "  Communs (deja sync)   : " & nMatching & vbNewLine & _
-          "  Seulement dans GS     : " & nOnlyGs & "  -> seront importes" & vbNewLine & _
-          "  Seulement dans Excel  : " & nOnlyLocal & "  -> seront envoyes"
+    Dim body As String
+    body = "GOOGLE SHEETS (_ImportGS)" & vbNewLine & _
+           "  Total enreg. : " & nGsTotal & vbNewLine & _
+           "  Avec sync_id : " & nGsWithSid & vbNewLine & _
+           "  Sans sync_id : " & nGsNoSid & " (ignores a l'import)" & vbNewLine & _
+           vbNewLine & _
+           "EXCEL (GS_Pleins)" & vbNewLine & _
+           "  Total lignes : " & nLocalTotal & vbNewLine & _
+           "  Avec sync_id : " & nLocalWithSid & vbNewLine & _
+           "  Sans sync_id : " & nLocalNoSid & " (UUID genere au prochain sync)" & vbNewLine & _
+           vbNewLine & _
+           "INTERSECTIONS" & vbNewLine & _
+           "  Communs (deja sync)  : " & nMatching & vbNewLine & _
+           "  Seulement dans GS    : " & nOnlyGs & "  -> seront importes" & vbNewLine & _
+           "  Seulement dans Excel : " & nOnlyLocal & "  -> seront envoyes"
 
     If nGsNoSid > 0 Then
-        msg = msg & vbNewLine & vbNewLine & _
-              "ATTENTION : " & nGsNoSid & " enreg. GS sans sync_id." & vbNewLine & _
-              "-> Executer migrateSyncId() dans GAS Editor."
+        body = body & vbNewLine & vbNewLine & _
+               "ATTENTION : " & nGsNoSid & " enreg. GS sans sync_id" & vbNewLine & _
+               "-> Executer migrateSyncId() dans GAS Editor."
     End If
 
-    MsgBox msg, vbInformation, "Diagnose Sync E85"
+    Dim summary As String
+    summary = "GS=" & nGsTotal & " (sid:" & nGsWithSid & ") | XL=" & nLocalTotal & _
+              " (sid:" & nLocalWithSid & ") | sync->GS:" & nOnlyLocal & " ->XL:" & nOnlyGs
+
+    SetStatusBlock "Diagnose : " & summary, body
 End Sub
 
 
@@ -219,14 +252,14 @@ End Sub
 ' ════════════════════════════════════════════════════════════
 Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
                      silentIfEmpty As Boolean)
-    Dim ws      As Worksheet
-    Dim jsonStr As String
+    Dim ws       As Worksheet
+    Dim jsonStr  As String
     Dim gsRecs() As String
     Dim localIds As Object
 
     On Error GoTo ErrHandler
 
-    Application.StatusBar = "Sync E85 - Connexion..."
+    SetStatus "Connexion a Google Sheets..."
     Application.Cursor = xlWait
 
     Set ws = ThisWorkbook.Sheets(WS_NAME)
@@ -234,50 +267,34 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     jsonStr = HttpGet(GAS_URL & "?action=export")
 
     If jsonStr = "" Then
-        If Not silentIfEmpty Then
-            MsgBox "Erreur reseau : impossible de joindre Google Sheets." & vbNewLine & _
-                   "Lancez TestConnexion() pour diagnostiquer.", vbExclamation, "Sync E85"
-        End If
+        SetStatus "ERREUR reseau - lancer TestConnexion() pour diagnostiquer"
         GoTo Cleanup
     End If
 
     If InStr(jsonStr, """records""") = 0 Then
-        If Not silentIfEmpty Then
-            MsgBox "Reponse inattendue. GAS pas re-deploye apres modification ?" & vbNewLine & _
-                   "GAS Editor -> Deployer -> Gerer les deploiements -> Nouvelle version." & vbNewLine & _
-                   "Lancez TestConnexion() pour voir la reponse brute.", vbExclamation, "Sync E85"
-        End If
+        SetStatus "ERREUR : reponse non-JSON - GAS pas re-deploye ? (TestConnexion pour details)"
         GoTo Cleanup
     End If
 
+    SetStatus "Parsing JSON GS..."
     gsRecs = ParseRecords(jsonStr)
     Set localIds = BuildLocalIndex(ws)
 
-    Application.StatusBar = "Sync E85 - Import GS -> Excel..."
+    SetStatus "Import GS -> Excel..."
     addedFromGS = ImportGSToExcel(ws, gsRecs, localIds)
 
-    Application.StatusBar = "Sync E85 - Export Excel -> GS..."
+    SetStatus "Export Excel -> GS..."
     sentToGS = ExportExcelToGS(ws, gsRecs)
 
-    If Not silentIfEmpty Or addedFromGS > 0 Or sentToGS > 0 Then
-        MsgBox "Synchronisation terminee :" & vbNewLine & vbNewLine & _
-               "  <- " & addedFromGS & " ligne(s) recues depuis Google Sheets" & vbNewLine & _
-               "  -> " & sentToGS & " ligne(s) envoyees vers Google Sheets", _
-               vbInformation, "Sync E85"
-    End If
+    SetStatus "OK : <-" & addedFromGS & " recues / ->" & sentToGS & " envoyees"
 
 Cleanup:
-    Application.StatusBar = False
     Application.Cursor = xlDefault
     Exit Sub
 
 ErrHandler:
-    Application.StatusBar = False
     Application.Cursor = xlDefault
-    If Not silentIfEmpty Then
-        MsgBox "Erreur : " & Err.Description & vbNewLine & _
-               "Lancez TestConnexion() pour verifier.", vbCritical, "Sync E85"
-    End If
+    SetStatus "ERREUR : " & Err.Description & " (TestConnexion pour verifier)"
 End Sub
 
 

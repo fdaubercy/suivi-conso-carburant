@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.3.0.1] — 2026-05-24
+
+### Changed
+- **`vba/modSyncGS.bas` — debug non-bloquant** : remplacement de tous les `MsgBox` par un helper `SetStatus(msg)` qui écrit dans :
+  - **Application.StatusBar** (barre en bas d'Excel, non-bloquant)
+  - **Immediate Window VBA** (Ctrl+G, garde l'historique avec horodatage `hh:mm:ss`)
+- **`SetStatusBlock(title, body)`** : variante pour les rapports multi-lignes (`TestConnexion`, `SyncDiagnose`) — résumé d'une ligne dans la status bar + détail complet dans Immediate Window.
+- **`SyncCore`** : tous les messages d'erreur (réseau, GAS pas déployé, exception) et le compte-rendu final (`OK : ←N reçues / →M envoyées`) utilisent maintenant `SetStatus`.
+- **`SyncDiagnose`** : résumé compact dans la status bar (`GS=N (sid:X) | XL=N (sid:X) | sync→GS:N →XL:N`), rapport détaillé dans Immediate Window.
+- **`TestConnexion`** : ligne unique dans la status bar (`HTTP 200 (WinHttp) - OK reponse JSON valide`), corps complet (composant, URL, code, diagnostic, réponse brute) dans Immediate Window.
+
+### Removed
+- **`MsgBox` actifs** : aucun MsgBox bloquant restant dans le module — l'exécution n'est plus interrompue par des popups au démarrage du classeur ni en sortie de sync.
+
+---
+
 ## [2.3.0.0] — 2026-05-24
 
 ### ⚠️ BREAKING CHANGE — Schéma `_ImportGS` réduit à 15 colonnes (A→O)
