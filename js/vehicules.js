@@ -93,6 +93,9 @@ export function onVehiculeChange() {
   if (val) localStorage.setItem(LAST_VEHICULE_KEY, val);
   addField.classList.add('hidden');
   setVehiculeStatus('', '');
+
+  // Le km de reference change avec le vehicule -> re-valide l'avertissement
+  if (typeof window.onKmInput === 'function') window.onKmInput();
 }
 
 export async function confirmerAjoutVehicule() {

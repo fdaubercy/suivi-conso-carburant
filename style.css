@@ -222,6 +222,17 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
 /* ─── Statut prix (affiché pour tous carburants) ─── */
 #s98Status { margin-top: 6px; }
 
+/* ─── Validation km rétrograde ─── */
+.km-warn {
+  font-size: 11px;
+  margin-top: 4px;
+  min-height: 14px;
+  line-height: 1.3;
+}
+.km-warn.ok   { color: var(--green); }
+.km-warn.info { color: var(--amber); }
+.km-warn.err  { color: var(--red); font-weight: 500; }
+
 /* ─── Station + géo ─── */
 .station-wrap { position: relative; }
 .station-wrap select { padding-right: 50px; }

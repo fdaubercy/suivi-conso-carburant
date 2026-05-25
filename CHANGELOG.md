@@ -4,6 +4,28 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.4.2.0] — 2026-05-25
+
+### Added — ⚠️ Validation km rétrograde (ROADMAP W3)
+- **`js/historique.js`** :
+  - `_allRecords` (variable interne) : stocke désormais l'intégralité des enregistrements GS (pas seulement les 5 affichés).
+  - **`getMaxKmForVehicule(vehiculeNom)`** : nouvelle fonction exportée — filtre `_allRecords` par véhicule, retourne le `MAX(Km compteur)` enregistré (ou `null` si aucun). Robuste aux fautes de saisie passées (prend le max et non le dernier).
+- **`js/formulaire.js` — `onKmInput()`** : nouvelle fonction exportée appelée à chaque frappe dans `#fKm`. Affiche sous le champ un message contextuel selon la comparaison `km` vs `getMaxKmForVehicule(state.currentVehiculeNom)` :
+  - `km < lastKm`  → **rouge** `⚠️ Inférieur au dernier plein (12 345 km)`
+  - `km == lastKm` → **ambre** `⚠️ Identique au dernier plein`
+  - `km > lastKm`  → **vert** `✓ +351 km depuis le dernier plein`
+- **`submitForm`** : avant de soumettre, si `km < lastKm` du véhicule courant, affiche un `confirm()` détaillé (saisi vs dernier plein) ; abandon si annulé.
+- **`index.html`** : `oninput="onKmInput()"` sur `#fKm` + `<div class="km-warn" id="kmWarn"></div>` juste sous le champ.
+- **`style.css`** : nouveau bloc `.km-warn` avec 3 modificateurs `.ok / .info / .err`.
+
+### Changed
+- **`js/vehicules.js` — `onVehiculeChange`** : appelle `window.onKmInput()` après changement de véhicule → la référence du dernier plein est ré-évaluée pour le nouveau véhicule sans toucher au km déjà saisi.
+- **`js/main.js`** : import + exposition `onKmInput` sur `window` (pour l'handler HTML inline + l'appel cross-module depuis `vehicules.js`).
+- **`js/config.js`** : `APP_VERSION` passée à `2.4.2.0`.
+- **`ROADMAP.md`** : W3 marqué ✅, top 3 mis à jour (W5 promu).
+
+---
+
 ## [2.4.1.0] — 2026-05-25
 
 ### Added — 📋 Dupliquer dernier plein (ROADMAP W2)

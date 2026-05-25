@@ -7,6 +7,29 @@ import { fetchPricesNearUser, fetchNearestE85Price } from './prix.js';
 import { syncStationSiNouvelle } from './stations.js';
 import { chargerHistorique, getMaxKmForVehicule } from './historique.js';
 
+/** Validation live du km saisi par rapport au dernier plein du véhicule courant. */
+export function onKmInput() {
+  const el = document.getElementById('kmWarn');
+  if (!el) return;
+
+  const km = Number(document.getElementById('fKm').value);
+  const lastKm = getMaxKmForVehicule(state.currentVehiculeNom);
+
+  if (!lastKm || !km) { el.textContent = ''; el.className = 'km-warn'; return; }
+
+  const fmt = lastKm.toLocaleString('fr-FR');
+  if (km < lastKm) {
+    el.textContent = '⚠️ Inférieur au dernier plein (' + fmt + ' km)';
+    el.className   = 'km-warn err';
+  } else if (km === lastKm) {
+    el.textContent = '⚠️ Identique au dernier plein';
+    el.className   = 'km-warn info';
+  } else {
+    el.textContent = '✓ +' + (km - lastKm).toLocaleString('fr-FR') + ' km depuis le dernier plein';
+    el.className   = 'km-warn ok';
+  }
+}
+
 export function onStationChange() {
   const sel = document.getElementById('stationSel'), isManual = sel.value === '__autre';
   document.getElementById('autreField').classList.toggle('hidden', !isManual);
@@ -31,6 +54,20 @@ export async function submitForm() {
   if (station === '__autre') station = document.getElementById('fAutre').value.trim();
   if (!date || !km || !litres || !prix) { showFeedback('error', 'Champs manquants', 'Date, km, litres et prix sont obligatoires.'); return; }
   if (!station) { showFeedback('error', 'Station manquante', 'Sélectionnez ou saisissez le nom de la station.'); return; }
+
+  // Validation km rétrograde : confirme si km < dernier_km du véhicule courant
+  const lastKm = getMaxKmForVehicule(vehicule);
+  if (lastKm && Number(km) < lastKm) {
+    const fmt = lastKm.toLocaleString('fr-FR');
+    const ok = confirm(
+      '⚠️ Kilométrage rétrograde\n\n' +
+      'Saisi         : ' + Number(km).toLocaleString('fr-FR') + ' km\n' +
+      'Dernier plein : ' + fmt + ' km\n\n' +
+      'Continuer quand même ?'
+    );
+    if (!ok) return;
+  }
+
   setSubmitState(true);
 
   // Prix station pour tous les carburants disponibles lors du plein
