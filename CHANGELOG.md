@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.3.1.2] — 2026-05-24
+
+### Removed
+- **Ligne `#s98Status` redondante** : suppression du résumé verbeux `E85 : 0.849 €/L · SP98 : 2.179 €/L · …` affiché sous le formulaire après chargement des prix. Les prix sont déjà visibles dans chacun des 6 boutons de carburant et l'adresse station figure dans la zone "Station essence", la duplication n'apporte rien.
+
+### Changed
+- **`js/prix.js` — `applyPricesResult`** : en cas de succès, `setS98Status('', '')` (statut effacé) au lieu du résumé concaténé. Le cas d'échec (`Aucun prix trouvé`) déclenchant le code postal est inchangé.
+- **`js/carburant.js` — `setType`** : suppression du bloc qui réaffichait le résumé prix depuis le cache lors d'un changement de type. Import `setS98Status` retiré (devenu inutile).
+- **`js/config.js`** : `APP_VERSION` passée à `2.3.1.2`.
+
+---
+
 ## [2.3.1.1] — 2026-05-24
 
 ### Added

@@ -21,14 +21,14 @@ export function applyPricesResult(data) {
   setFieldPrice('fPrix', state._stationPrices[state.currentType] || null, cfg.ph);
   updateCout();
 
-  const label = [r.adresse, r.ville].filter(Boolean).join(' · ');
-  const found = FUEL_KEYS
-    .filter(k => state._stationPrices[k])
-    .map(k => FUEL_CONFIG[k].short + ' : ' + parseFloat(state._stationPrices[k]).toFixed(3) + ' €/L');
-
-  found.length
-    ? setS98Status('ok', found.join(' · ') + (label ? ' — ' + label : ''))
-    : (setS98Status('info', 'Aucun prix trouvé — code postal :'), showCpSearch());
+  // Prix maintenant affiches directement dans les boutons -> on efface le statut verbeux
+  // Conserve uniquement le cas "aucun prix" (fallback vers la saisie manuelle)
+  if (Object.keys(state._stationPrices).length > 0) {
+    setS98Status('', '');
+  } else {
+    setS98Status('info', 'Aucun prix trouvé — code postal :');
+    showCpSearch();
+  }
 }
 
 /** Cherche les prix autour de (lat, lon) par cercles croissants (500 m → 2 km → 5 km). */

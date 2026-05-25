@@ -1,7 +1,7 @@
 /* ─── Toggle type de carburant + badges header ─── */
 import { FUEL_CONFIG, FUEL_KEYS } from './config.js';
 import { state } from './state.js';
-import { setS98Status, setFieldPrice, updateCout } from './ui.js';
+import { setFieldPrice, updateCout } from './ui.js';
 
 /**
  * Callback enregistré par main.js pour éviter la dépendance circulaire
@@ -65,12 +65,9 @@ export function setType(type) {
 
   if (Object.keys(state._stationPrices).length > 0) {
     // Prix déjà chargés — application immédiate depuis le cache
+    // (les prix sont déjà visibles dans les boutons, pas besoin de répéter dans le statut)
     setFieldPrice('fPrix', state._stationPrices[type] || null, cfg.ph);
     updateCout();
-    const found = FUEL_KEYS
-      .filter(k => state._stationPrices[k])
-      .map(k => FUEL_CONFIG[k].short + ' : ' + parseFloat(state._stationPrices[k]).toFixed(3) + ' €/L');
-    if (found.length) setS98Status('ok', found.join(' · '));
   } else {
     const sel = document.getElementById('stationSel').value;
     if (sel && sel !== '__autre') _fetchPricesNearUser();
