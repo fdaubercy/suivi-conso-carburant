@@ -11,7 +11,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| W1 | **Historique 5 derniers pleins** affiché dans l'app (via `GET ?action=export`) | Évite d'ouvrir le sheet pour vérifier le dernier km |
+| ~~W1~~ | ~~**Historique 5 derniers pleins** affiché dans l'app (via `GET ?action=export`)~~ | ✅ v2.3.3.0 |
 | W2 | **"Dupliquer dernier plein"** (bouton) | Saisie 1-clic si rien n'a changé sauf litres/prix |
 | W3 | **Validation km rétrograde** : warning si `km < dernier_km` | Empêche les fautes de frappe |
 | W4 | **PWA install prompt** + manifest enrichi (icônes, theme color, splash) | Vraie expérience appli sur iPhone/Android |
@@ -96,8 +96,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | Rang | Item | Effort | Bénéfice |
 |---|---|---|---|
 | 1 | **X1** — Bouton "Synchroniser" sur la feuille Excel | 15 min | Ergonomie immédiate |
-| 2 | **W1** — Historique 5 derniers pleins dans l'app web | 1-2 h | Utile à chaque saisie, valide la sync GS → app |
-| 3 | **S6** — Token secret sur les endpoints GAS | 30 min | Sécurité minimale, données aujourd'hui publiques |
+| 2 | **S6** — Token secret sur les endpoints GAS | 30 min | Sécurité minimale, données aujourd'hui publiques |
+| 3 | **W3** — Validation km rétrograde (warning si km < dernier_km) | 1 h | Empêche les fautes de frappe (s'appuie sur W1 ✅) |
 
 ---
 
@@ -113,6 +113,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.3.1.2 | Suppression du résumé prix verbeux sous le formulaire (redondant) |
 | v2.3.1.3 | Fix overflow marqueurs carte sur bouton submit (z-index + fond opaque) |
 | v2.3.2.0 | Dark mode (W6) — toggle header 🌙/☀️ + localStorage + auto `prefers-color-scheme` |
+| v2.3.3.0 | Historique 5 derniers pleins (W1) — card en bas du formulaire, refresh auto après plein |
 
 ---
 

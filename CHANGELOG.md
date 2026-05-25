@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.3.3.0] — 2026-05-24
+
+### Added — 📜 Historique 5 derniers pleins (ROADMAP W1)
+- **`js/historique.js`** : nouveau module exportant `chargerHistorique()`. Appelle `GET GAS_URL?action=export`, trie par `Horodatage` décroissant, prend les 5 premiers et rend chaque ligne sur 3 niveaux (icône+date+total€, litres+prix+km, nom station tronqué à 40 car). Icône carburant déduite du champ `Type` (E85 → 🌿, SP98 → 💧, etc.).
+- **Carte historique dans `index.html`** : `<div class="card hist-card">` ajoutée juste avant le bloc feedback (donc en bas du formulaire, avant le bouton submit). Bouton ↻ pour actualiser manuellement, message "Chargement…" affiché en placeholder.
+- **`style.css` — bloc "Historique"** : nouvelles classes `.hist-card`, `.hist-header`, `.hist-refresh`, `.hist-item`, `.hist-row1/2/3`, `.hist-icon`, `.hist-date`, `.hist-total`, `.hist-km`, `.hist-msg`. Animation `transform: rotate(180deg)` sur le bouton refresh quand pressé. Tabular-nums sur les kilomètres.
+- **Refresh auto** : après chaque plein soumis avec succès, `submitForm` appelle `chargerHistorique()` → la nouvelle entrée apparaît instantanément en tête de liste.
+
+### Changed
+- **`js/main.js`** : import + appel `chargerHistorique()` au démarrage en parallèle de `chargerStations()` / `chargerVehicules()`. Exposition de `chargerHistorique` sur `window` pour le handler `onclick` du bouton ↻.
+- **`js/formulaire.js`** : import `chargerHistorique` + appel après `resetForm()` dans le bloc success de `submitForm`.
+- **`js/config.js`** : `APP_VERSION` passée à `2.3.3.0`.
+- **`ROADMAP.md`** : W1 marqué ✅, top 3 mis à jour (W3 promu en remplacement de W1).
+
+---
+
 ## [2.3.2.0] — 2026-05-24
 
 ### Added — 🌙 Dark mode (ROADMAP W6)

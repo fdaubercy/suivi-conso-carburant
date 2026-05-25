@@ -105,7 +105,9 @@ suivi-e85/
 │   ├── geo.js                       # Géolocalisation + liste stations proches
 │   ├── recherche.js                 # Recherche manuelle par ville
 │   ├── formulaire.js                # Soumission et réinitialisation
-│   └── stations.js                  # Chargement liste stations Google Sheets
+│   ├── stations.js                  # Chargement liste stations Google Sheets
+│   ├── theme.js                     # Dark mode (toggle + persist localStorage)
+│   └── historique.js                # 5 derniers pleins (via GET ?action=export)
 │
 ├── vba/                             # ── Sync Excel ↔ Google Sheets ──────
 │   ├── modSyncGS.bas                # Module VBA bidirectionnel (sync_id + WinHttp)

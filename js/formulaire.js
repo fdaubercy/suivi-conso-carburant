@@ -5,6 +5,7 @@ import { setAutreStatus, hideCpSearch, setSubmitState, showFeedback, updateCout 
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
 import { fetchPricesNearUser, fetchNearestE85Price } from './prix.js';
 import { syncStationSiNouvelle } from './stations.js';
+import { chargerHistorique } from './historique.js';
 
 export function onStationChange() {
   const sel = document.getElementById('stationSel'), isManual = sel.value === '__autre';
@@ -56,6 +57,7 @@ export async function submitForm() {
       showFeedback('success', 'Plein enregistré ✓', json.message || litres + ' L à ' + prix + ' €/L — ' + station);
       await syncStationSiNouvelle(station);
       resetForm();
+      chargerHistorique();   // refresh la liste pour voir le plein qui vient d'etre ajoute
     } else {
       showFeedback('error', 'Erreur serveur', json.error || 'Veuillez réessayer.');
     }
