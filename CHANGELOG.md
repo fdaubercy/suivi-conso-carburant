@@ -4,6 +4,33 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.4.4.0] — 2026-05-25
+
+### Added — 📈 Stats live (ROADMAP W7)
+- **`js/stats.js`** : nouveau module exportant `renderStats()`. Calcule 4 KPIs filtrés sur le **véhicule courant** + fenêtre **6 derniers mois** :
+  1. **Conso L/100 km** : `total_litres_véhicule × 100 / (km_max − km_min)`
+  2. **Coût aux 100 km** : `conso × prix_moyen_récent`
+  3. **Total dépensé** sur la fenêtre (Σ litres × prix)
+  4. **Économies E85 vs SP98** : Σ (sp98_station − prix_payé) × litres pour chaque plein E85 récent
+- **Carte HTML `<div class="card stats-card">`** insérée entre les cards du formulaire et la carte historique.
+- **`style.css` — grille 2×2 `.stats-grid`** : 4 tuiles avec valeurs en tabular-nums, fond `var(--toggle-bg)`, dark mode supporté. Variante `.pos` (vert) / `.neg` (rouge) pour les économies.
+
+### Changed
+- **`js/historique.js`** :
+  - Nouveau `export function getAllRecords()` qui retourne `_allRecords` (utilisé par stats.js).
+  - `chargerHistorique` appelle `renderStats()` après le rendu de la liste — les stats se mettent à jour dès que les données arrivent.
+- **`js/vehicules.js` — `onVehiculeChange`** : appelle aussi `window.renderStats()` car les KPIs sont filtrés par véhicule.
+- **`js/main.js`** : import + exposition `renderStats` sur `window`.
+- **`js/config.js`** : `APP_VERSION` passée à `2.4.4.0`.
+- **`ROADMAP.md`** :
+  - **W7 marqué ✅**
+  - **W10** marqué ❌ "redondant avec W2 (📋 Dupliquer dernier)" — concept à redéfinir
+  - **W8, W9, W11** annotés avec effort réaliste (3-4 h chacune)
+  - **W15 nouveau** : Auto-save brouillon (formulaire → localStorage, restauré au reload)
+  - **S8 nouveau** : Refresh quotidien des prix via GAS trigger temporel + onglet `_PrixHistory`
+
+---
+
 ## [2.4.3.0] — 2026-05-25
 
 ### Added — 🌿 Badge rentabilité E85 (ROADMAP W5)

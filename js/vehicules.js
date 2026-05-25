@@ -96,6 +96,8 @@ export function onVehiculeChange() {
 
   // Le km de reference change avec le vehicule -> re-valide l'avertissement
   if (typeof window.onKmInput === 'function') window.onKmInput();
+  // Les stats sont filtrees par vehicule -> re-render
+  if (typeof window.renderStats === 'function') window.renderStats();
 }
 
 export async function confirmerAjoutVehicule() {

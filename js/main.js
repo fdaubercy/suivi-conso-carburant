@@ -16,6 +16,7 @@ import { onStationChange, onKmInput, submitForm, resetForm } from './formulaire.
 import { chargerStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
 import { chargerHistorique, dupliquerDernier } from './historique.js';
+import { renderStats } from './stats.js';
 
 /* ─── Init synchrone ─── */
 initTheme();
@@ -39,6 +40,7 @@ Object.assign(window, {
   toggleTheme,
   chargerHistorique,
   dupliquerDernier,
+  renderStats,
   setType,
   geolocate,
   onAutreInput,

@@ -548,6 +548,53 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
 }
 
 /* ═══════════════════════════════════════
+   Stats live (W7) — grille 2x2 KPIs
+   ═══════════════════════════════════════ */
+.stats-card { padding: 14px 16px; }
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.stat {
+  background: var(--toggle-bg);
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: center;
+}
+.stat-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--blue-dark);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.stat-unit {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  letter-spacing: .02em;
+}
+.stat.pos .stat-val { color: var(--green); }
+.stat.neg .stat-val { color: var(--red); }
+
+[data-theme="dark"] .stat-val      { color: var(--text); }
+[data-theme="dark"] .stat.pos .stat-val { color: #34d399; }
+[data-theme="dark"] .stat.neg .stat-val { color: #f87171; }
+
+.stats-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 8px;
+  font-style: italic;
+}
+.stats-msg {
+  text-align: center; font-size: 12px;
+  color: var(--text-muted); padding: 8px 0;
+}
+
+/* ═══════════════════════════════════════
    Historique des derniers pleins
    ═══════════════════════════════════════ */
 .hist-card { padding: 14px 16px; }

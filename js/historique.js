@@ -1,6 +1,7 @@
 /* ─── Historique des 5 derniers pleins (via GET ?action=export) ─── */
 import { GAS_URL, FUEL_CONFIG } from './config.js';
 import { showFeedback } from './ui.js';
+import { renderStats } from './stats.js';
 
 let _lastRecord  = null;   // memorise le plein le plus recent pour dupliquerDernier()
 let _allRecords  = [];     // memorise TOUS les enregistrements pour validation km retrograde
@@ -34,11 +35,17 @@ export async function chargerHistorique() {
 
     _lastRecord = recent[0];   // pour dupliquerDernier()
     el.innerHTML = recent.map(renderItem).join('');
+    renderStats();             // recalcule les stats avec les nouvelles donnees
   } catch (e) {
     el.innerHTML = '<div class="hist-msg err">Erreur — ' + (e.message || 'réseau') + '</div>';
     _lastRecord = null;
     _allRecords = [];
   }
+}
+
+/** Retourne tous les enregistrements GS (vide tant que chargerHistorique() n'a pas tourne). */
+export function getAllRecords() {
+  return _allRecords;
 }
 
 /** Retourne le km maximum enregistre pour un vehicule donne (ou tous si vehicule vide). */
