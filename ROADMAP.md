@@ -16,7 +16,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | W3 | **Validation km rétrograde** : warning si `km < dernier_km` | Empêche les fautes de frappe |
 | W4 | **PWA install prompt** + manifest enrichi (icônes, theme color, splash) | Vraie expérience appli sur iPhone/Android |
 | W5 | **Indicateur rentabilité E85 temps réel** : badge vert "rentable" si `prix_E85 < prix_SP98 × 0.66` | Aide à la décision sur la station |
-| W6 | **Dark mode** (toggle ou auto via `prefers-color-scheme`) | Confort visuel le soir |
+| ~~W6~~ | ~~**Dark mode** (toggle ou auto via `prefers-color-scheme`)~~ | ✅ v2.3.2.0 |
 
 ### 🎯 Features visibles (½-1 jour chacun)
 
@@ -112,6 +112,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.3.1.x | Uniformisation visuelle des 6 boutons carburant + prix dans chaque bouton |
 | v2.3.1.2 | Suppression du résumé prix verbeux sous le formulaire (redondant) |
 | v2.3.1.3 | Fix overflow marqueurs carte sur bouton submit (z-index + fond opaque) |
+| v2.3.2.0 | Dark mode (W6) — toggle header 🌙/☀️ + localStorage + auto `prefers-color-scheme` |
 
 ---
 

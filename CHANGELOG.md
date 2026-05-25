@@ -4,6 +4,27 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.3.2.0] — 2026-05-24
+
+### Added — 🌙 Dark mode (ROADMAP W6)
+- **`js/theme.js`** : nouveau module exposant `initTheme()` et `toggleTheme()`. Au chargement, lit la clé `suivi_e85_theme` en localStorage ; à défaut, applique `prefers-color-scheme: dark` du système. Persiste le choix utilisateur à chaque toggle.
+- **Bouton 🌙 / ☀️ dans le header** (`#themeToggle`) : icône lune en mode clair, soleil en mode sombre. Mise à jour automatique de l'icône à chaque bascule.
+- **Variables CSS dark mode** (`[data-theme="dark"]`) : palette complète slate/blue dérivée des couleurs d'origine — `--bg: #0f172a`, `--white: #1e293b` (cards), `--text: #f1f5f9`, `--blue-mid: #60a5fa`, `--green: #34d399`, etc.
+- **`--toggle-bg`** : nouvelle variable pour le fond grisé du toggle de carburant (claires : `#e5e7eb`, sombre : `#2d3748`).
+- **Overrides ciblés** dark mode : `.feedback.success/error`, `.nearby-badge`, `.map-pin-label`, `#stationMap`, `.submit-btn`, `.badge`, `.radius-btn.active`, `.cout-box`, `.type-btn.active`.
+- **`color-scheme: dark`** sur `<body>` en mode sombre → inputs natifs (date picker, select) adoptent le thème système.
+
+### Changed
+- **`index.html`** : ajout `<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>` dans le header avant `.header-right`.
+- **`js/main.js`** : import et appel de `initTheme()` en init synchrone (avant `_buildTypeToggle`) pour éviter le flash de couleurs au chargement. Exposition de `toggleTheme` sur `window` pour le handler HTML inline.
+- **`style.css`** : `:root` enrichi de `--toggle-bg`, remplacement des `#e5e7eb` hardcodés par `var(--toggle-bg)` (2 occurrences) pour profiter de l'override dark.
+- **`js/config.js`** : `APP_VERSION` passée à `2.3.2.0`.
+
+### Note
+> Le choix utilisateur (localStorage) prime sur le système. Pour revenir à la détection auto : effacer la clé `suivi_e85_theme` dans les DevTools (Application → Local Storage).
+
+---
+
 ## [2.3.1.4] — 2026-05-24
 
 ### Added

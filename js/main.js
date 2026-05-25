@@ -14,8 +14,10 @@ import { geolocate, pickStation, highlightNearbyItem } from './geo.js';
 import { onAutreInput, setRadius } from './recherche.js';
 import { onStationChange, submitForm, resetForm } from './formulaire.js';
 import { chargerStations } from './stations.js';
+import { initTheme, toggleTheme } from './theme.js';
 
 /* ─── Init synchrone ─── */
+initTheme();
 const t = new Date();
 document.getElementById('fDate').value =
   `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
@@ -32,6 +34,7 @@ chargerVehicules();
 
 /* ─── Exposition globale pour les handlers HTML inline ─── */
 Object.assign(window, {
+  toggleTheme,
   setType,
   geolocate,
   onAutreInput,
