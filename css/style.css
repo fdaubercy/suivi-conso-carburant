@@ -797,4 +797,6 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
   line-height: 1;
 }
 .pwa-banner--ios { background: #0f3460; }
+/* Sans cette règle, display:flex écrase l'attribut HTML [hidden] */
+.pwa-banner[hidden] { display: none; }
 [data-theme="dark"] .pwa-banner { background: #0f1e30; }
