@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.3.1.4] — 2026-05-24
+
+### Added
+- **`ROADMAP.md`** : nouveau fichier dédié listant les propositions d'amélioration classées par axe (web / Excel / sync) et par effort (🔥 quick wins, 🎯 features visibles, 🛠️ tech debt, 🛡️ sécurité). Inclut un top 3 prioritaire et une section "déjà implémenté" rétro-documentée v2.2.4.x → v2.3.1.3. Référencé depuis README et listé dans la structure projet.
+
+### Changed
+- **`README.md`** : ajout d'un renvoi vers `ROADMAP.md` en tête de page + entrée dans l'arborescence projet.
+- **`js/config.js`** : `APP_VERSION` passée à `2.3.1.4`.
+
+---
+
 ## [2.3.1.3] — 2026-05-24
 
 ### Fixed

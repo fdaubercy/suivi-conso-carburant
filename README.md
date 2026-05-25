@@ -3,6 +3,8 @@
 Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 98)
 et les enregistrer automatiquement dans Google Sheets.
 
+> 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
+
 ## 🌐 Accès
 
 | Ressource | Lien |
@@ -119,6 +121,7 @@ suivi-e85/
 │
 ├── README.md
 ├── CHANGELOG.md
+├── ROADMAP.md                       # Propositions d'amelioration (web/Excel/sync)
 └── .claude/
     ├── settings.json
     └── commands/
