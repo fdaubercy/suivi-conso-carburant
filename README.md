@@ -132,8 +132,12 @@ Deux jobs automatiques sur chaque `push` / `pull_request` :
 ```
 suivi-e85/
 ├── index.html                       # Structure HTML
-├── style.css                        # Feuille de styles
-├── Suivi conso E85.xlsm             # Classeur Excel (Power Query + tableau GS_Pleins + VBA sync)
+│
+├── css/
+│   └── style.css                    # Feuille de styles
+│
+├── excel/
+│   └── Suivi conso E85.xlsm        # Classeur Excel (Power Query + tableau GS_Pleins + VBA sync)
 │
 ├── js/                              # ── Web app (ES Modules) ────────────
 │   ├── main.js                      # Point d'entrée
