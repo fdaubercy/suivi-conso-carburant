@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.3.1.3] — 2026-05-24
+
+### Fixed
+- **`style.css` — `.submit-wrap` transparent au-dessus de la carte** : les marqueurs `.map-pin` apparaissaient visiblement à travers le bouton "Enregistrer le plein". Le `background: linear-gradient(to top, var(--bg) 70%, transparent)` laissait passer la carte dans les 30 % supérieurs de la barre sticky.
+  - Remplacement par `background: var(--bg)` (fond solide).
+  - Ajout `z-index: 20` pour garantir l'empilement au-dessus de la carte et de ses marqueurs.
+  - Ajout `box-shadow: 0 -8px 12px -6px rgba(0,0,0,.08)` pour conserver la séparation visuelle subtile que le dégradé apportait.
+
+### Changed
+- **`js/config.js`** : `APP_VERSION` passée à `2.3.1.3`.
+
+---
+
 ## [2.3.1.2] — 2026-05-24
 
 ### Removed

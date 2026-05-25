@@ -394,8 +394,10 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
 /* ─── Bouton submit sticky ─── */
 .submit-wrap {
   position: sticky; bottom: 0;
+  z-index: 20;                             /* au-dessus de la carte et de ses marqueurs */
   padding: 12px 16px 16px;
-  background: linear-gradient(to top, var(--bg) 70%, transparent);
+  background: var(--bg);                   /* fond solide -> les marqueurs ne passent plus a travers */
+  box-shadow: 0 -8px 12px -6px rgba(0,0,0,.08);   /* separation visuelle subtile */
   margin-top: 8px;
 }
 .submit-btn {
