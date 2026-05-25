@@ -1,9 +1,38 @@
 /* ─── API prix carburants ─── */
-import { FUEL_CONFIG, FUEL_KEYS, FUEL_SELECT, FUEL_ANY } from './config.js';
+import { FUEL_CONFIG, FUEL_KEYS, FUEL_SELECT, FUEL_ANY, E85_RENTABLE_RATIO } from './config.js';
 import { state } from './state.js';
 import { haversine, odsUrl } from './utils.js';
 import { setS98Status, showCpSearch, hideCpSearch, setFieldPrice, updateCout } from './ui.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
+
+/** Évalue la rentabilité E85 vs SP98 à partir des prix station chargés. */
+export function evalRentabiliteE85() {
+  const el = document.getElementById('rentaBadge');
+  if (!el) return;
+
+  const e85  = parseFloat(state._stationPrices?.E85);
+  const sp98 = parseFloat(state._stationPrices?.SP98);
+
+  if (!isFinite(e85) || !isFinite(sp98) || e85 <= 0 || sp98 <= 0) {
+    el.className = 'renta-badge hidden';
+    el.textContent = '';
+    return;
+  }
+
+  const ratio  = e85 / sp98;
+  const seuil  = E85_RENTABLE_RATIO;
+  const pct    = Math.round(ratio * 100);
+  const pctSeuil = Math.round(seuil * 100);
+
+  if (ratio < seuil) {
+    el.textContent = `✓ E85 rentable — ${pct}% du SP98 (seuil ${pctSeuil}%)`;
+    el.className   = 'renta-badge ok';
+  } else {
+    el.textContent = `⚠ E85 peu rentable — ${pct}% du SP98 (seuil ${pctSeuil}%)`;
+    el.className   = 'renta-badge warn';
+  }
+}
+import { updateRentabilite } from './rentabilite.js';
 
 /** Parse tous les prix d'un résultat API, met à jour l'état et l'UI. */
 export function applyPricesResult(data) {
@@ -16,6 +45,7 @@ export function applyPricesResult(data) {
 
   _buildTypeToggle(state._stationPrices);
   _updateHeaderBadges();
+  evalRentabiliteE85();
 
   const cfg = FUEL_CONFIG[state.currentType];
   setFieldPrice('fPrix', state._stationPrices[state.currentType] || null, cfg.ph);
@@ -29,6 +59,8 @@ export function applyPricesResult(data) {
     setS98Status('info', 'Aucun prix trouvé — code postal :');
     showCpSearch();
   }
+
+  updateRentabilite();
 }
 
 /** Cherche les prix autour de (lat, lon) par cercles croissants (500 m → 2 km → 5 km). */
@@ -52,6 +84,7 @@ export async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
     state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
     setFieldPrice('fPrix', null, FUEL_CONFIG[state.currentType].ph);
     updateCout();
+    updateRentabilite();
     setS98Status('info', 'Prix non trouvés — entrez le code postal :'); showCpSearch();
   }
 }
@@ -65,6 +98,7 @@ export async function fetchPricesNearUser() {
     state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
     setFieldPrice('fPrix', null, FUEL_CONFIG[state.currentType].ph);
     updateCout();
+    updateRentabilite();
     setS98Status('info', 'Position inconnue — entrez le code postal :');
     showCpSearch();
   }

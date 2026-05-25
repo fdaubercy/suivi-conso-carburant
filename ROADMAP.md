@@ -15,7 +15,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | ~~W2~~ | ~~**"Dupliquer dernier plein"** (bouton)~~ | ✅ v2.4.1.0 |
 | ~~W3~~ | ~~**Validation km rétrograde** : warning si `km < dernier_km`~~ | ✅ v2.4.2.0 |
 | W4 | **PWA install prompt** + manifest enrichi (icônes, theme color, splash) | Vraie expérience appli sur iPhone/Android |
-| W5 | **Indicateur rentabilité E85 temps réel** : badge vert "rentable" si `prix_E85 < prix_SP98 × 0.66` | Aide à la décision sur la station |
+| ~~W5~~ | ~~**Indicateur rentabilité E85 temps réel** : badge vert "rentable" si `prix_E85 < prix_SP98 × 0.66`~~ | ✅ v2.4.3.0 |
 | ~~W6~~ | ~~**Dark mode** (toggle ou auto via `prefers-color-scheme`)~~ | ✅ v2.3.2.0 |
 
 ### 🎯 Features visibles (½-1 jour chacun)
@@ -98,7 +98,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|---|
 | 1 | **X1** — Bouton "Synchroniser" sur la feuille Excel | 15 min | Ergonomie immédiate |
 | 2 | **S6** — Token secret sur les endpoints GAS | 30 min | Sécurité minimale, données aujourd'hui publiques |
-| 3 | **W5** — Indicateur rentabilité E85 temps réel (badge "rentable") | 30 min | Décision sur la station, s'appuie sur prix déjà fetchés |
+| 3 | **W4** — PWA install prompt + manifest enrichi (icônes, theme color, splash) | 1-2 h | Vraie expérience appli sur iPhone/Android |
 
 ---
 
@@ -119,6 +119,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.4.0.3 | Fix `CreerTableauDeBord` — détection dynamique nom table + colonnes par position |
 | v2.4.1.0 | **Dupliquer dernier plein** (W2) — bouton 📋 dans la carte historique, pré-remplit véhicule/type/station |
 | v2.4.2.0 | **Validation km rétrograde** (W3) — warning live + confirm au submit, filtré par véhicule |
+| v2.4.3.0 | **Badge rentabilité E85** (W5) — vert/orange sous le toggle, seuil 66% du SP98 |
 
 ---
 

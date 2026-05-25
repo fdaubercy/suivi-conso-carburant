@@ -3,9 +3,10 @@ import { FUEL_CONFIG, FUEL_KEYS, GAS_URL } from './config.js';
 import { state } from './state.js';
 import { setAutreStatus, hideCpSearch, setSubmitState, showFeedback, updateCout } from './ui.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
-import { fetchPricesNearUser, fetchNearestE85Price } from './prix.js';
+import { fetchPricesNearUser, fetchNearestE85Price, evalRentabiliteE85 } from './prix.js';
 import { syncStationSiNouvelle } from './stations.js';
 import { chargerHistorique, getMaxKmForVehicule } from './historique.js';
+import { updateRentabilite } from './rentabilite.js';
 
 /** Validation live du km saisi par rapport au dernier plein du véhicule courant. */
 export function onKmInput() {
@@ -40,6 +41,7 @@ export function onStationChange() {
   }
   if (sel.value && !isManual) {
     state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
+    evalRentabiliteE85();   // reset le badge en attendant les nouveaux prix
     fetchPricesNearUser();
   }
 }
@@ -115,5 +117,6 @@ export function resetForm() {
   document.getElementById('s98Status').textContent = '';
   setAutreStatus('', ''); hideCpSearch();
   state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
+  evalRentabiliteE85();   // efface le badge
   updateCout();
 }

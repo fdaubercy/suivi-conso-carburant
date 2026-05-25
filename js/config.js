@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '2.4.2.0';
+export const APP_VERSION       = '2.4.3.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 export const GS_SHEET_ID       = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 export const PRIX_API          = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -14,6 +14,10 @@ export const FUEL_CONFIG = {
   GAZOLE: { apiField: 'gazole_prix', label: 'Gazole',           short: 'Gazole', icon: '⚫', ph: '1.750' },
   GPLC:   { apiField: 'gplc_prix',   label: 'GPLc',             short: 'GPLc',   icon: '🟡', ph: '0.850' },
 };
+// Seuil de rentabilite E85 vs SP98 : E85 consomme ~30% de plus
+// → pour etre rentable, prix_E85 doit etre < 66% du prix SP98
+export const E85_RENTABLE_RATIO = 0.66;
+
 export const FUEL_KEYS   = Object.keys(FUEL_CONFIG);
 export const FUEL_SELECT = 'adresse,ville,cp,geom,services,' + FUEL_KEYS.map(k => FUEL_CONFIG[k].apiField).join(',');
 export const FUEL_ANY    = '(' + FUEL_KEYS.map(k => `${FUEL_CONFIG[k].apiField} is not null`).join(' OR ') + ')';

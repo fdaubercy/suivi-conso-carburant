@@ -4,6 +4,30 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.4.3.0] — 2026-05-25
+
+### Added — 🌿 Badge rentabilité E85 (ROADMAP W5)
+- **`js/config.js` — `E85_RENTABLE_RATIO = 0.66`** : nouvelle constante exportée. Seuil basé sur la surconsommation typique de l'E85 (~30 % de plus que SP98). Tant que `prix_E85 / prix_SP98 < 0.66`, le plein E85 est économiquement rentable malgré la surconsommation.
+- **`js/prix.js` — `evalRentabiliteE85()`** : fonction exportée qui :
+  - Lit `state._stationPrices.E85` et `state._stationPrices.SP98`
+  - Si l'un manque ou est invalide → badge masqué
+  - Sinon calcule le ratio + 2 messages possibles :
+    - `✓ E85 rentable — 38% du SP98 (seuil 66%)` (vert)
+    - `⚠ E85 peu rentable — 72% du SP98 (seuil 66%)` (orange/ambre)
+- **`#rentaBadge`** : nouvel élément HTML inséré juste **sous le toggle carburant** (`#typeToggle`) pour être visible au moment de la décision.
+- **`.renta-badge`** + variantes `.ok` / `.warn` : nouveau style CSS (font-size 12 px, padding, border léger), avec **support dark mode** (couleurs adaptées : `#6ee7b7` vert, `#fbbf24` ambre).
+
+### Changed
+- **`js/prix.js` — `applyPricesResult`** : appelle `evalRentabiliteE85()` après peuplement de `_stationPrices`.
+- **`js/formulaire.js`** :
+  - Import `evalRentabiliteE85` ajouté.
+  - `onStationChange` → reset le badge quand on change de station (en attendant les nouveaux prix).
+  - `resetForm` → efface le badge après soumission.
+- **`js/config.js`** : `APP_VERSION` passée à `2.4.3.0`.
+- **`ROADMAP.md`** : W5 marqué ✅, top 3 réajusté (W4 promu).
+
+---
+
 ## [2.4.2.0] — 2026-05-25
 
 ### Added — ⚠️ Validation km rétrograde (ROADMAP W3)

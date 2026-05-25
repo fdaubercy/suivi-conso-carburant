@@ -187,6 +187,51 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
 }
 .type-btn-sm.active .type-price { color: var(--blue-mid); }
 
+/* ─── Indicateur rentabilité E85 vs SP98 ─── */
+.rentabilite {
+  font-size: 12px;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: center;
+  display: none;
+  line-height: 1.3;
+}
+.rentabilite.ok   { display: block; background: var(--green-light); color: var(--green); }
+.rentabilite.warn { display: block; background: rgba(240,165,0,0.12); color: var(--amber); }
+.rentabilite.err  { display: block; background: var(--red-light);   color: var(--red); }
+.rentabilite strong { font-weight: 700; }
+
+[data-theme="dark"] .rentabilite.ok   { background: rgba(52,211,153,0.15);  color: #6ee7b7; }
+[data-theme="dark"] .rentabilite.warn { background: rgba(251,191,36,0.15);  color: #fcd34d; }
+[data-theme="dark"] .rentabilite.err  { background: rgba(248,113,113,0.15); color: #fecaca; }
+
+/* ─── Badge rentabilité E85 vs SP98 ─── */
+.renta-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: 8px 0 4px;
+  text-align: center;
+  line-height: 1.3;
+}
+.renta-badge.ok {
+  background: var(--green-light);
+  color: #085041;
+  border: 1px solid var(--green);
+}
+.renta-badge.warn {
+  background: rgba(240, 165, 0, .14);
+  color: #8a4a00;
+  border: 1px solid var(--amber);
+}
+[data-theme="dark"] .renta-badge.ok   { color: #6ee7b7; }
+[data-theme="dark"] .renta-badge.warn { color: #fbbf24; }
+
 /* ─── Champs ─── */
 .field { margin-bottom: 12px; }
 .field:last-child { margin-bottom: 0; }
