@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.4.0.1] — 2026-05-24
+
+### Added
+- **`ROADMAP.md` — nouvel item X14** : *"Onglet 'Suivi des pleins' reconstruit depuis `_ImportGS`"* — la table de suivi devient une vue dérivée du tableau de données (Power Query ou formules dynamiques sur `Tableau2`) au lieu d'être saisie manuellement. Bénéfice : source unique de vérité, plus de double saisie ni de désynchronisation entre l'app web et le tableau Excel.
+- **`js/config.js`** : `APP_VERSION` passée à `2.4.0.1`.
+
+---
+
 ## [2.4.0.0] — 2026-05-24
 
 ### Added — 📊 Tableau de bord Excel (ROADMAP X6)
