@@ -4,6 +4,26 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.4.1.0] — 2026-05-25
+
+### Added — 📋 Dupliquer dernier plein (ROADMAP W2)
+- **`js/historique.js` — `dupliquerDernier()`** : nouvelle fonction exportée qui :
+  - Mémorise le plein le plus récent dans `_lastRecord` à chaque `chargerHistorique()`.
+  - Réinitialise les champs variables (`fKm`, `fLitres`, `fPrix`).
+  - Restaure le **véhicule** (`vehiculeSel`) si présent dans le dropdown.
+  - Restaure le **type de carburant** via `window.setType()` (mapping `FUEL_CONFIG[k].label` → clé).
+  - Restaure la **station** : sélection dans le dropdown si connue, sinon bascule sur `__autre` avec `fAutre` pré-rempli. `change` event déclenché pour relancer `fetchPricesNearUser()`.
+  - Affiche `showFeedback('success', 'Plein pré-rempli ✓', …)`.
+- **Bouton 📋** ajouté dans la carte historique à côté de ↻ (icône presse-papier explicite).
+- **`js/main.js`** : import + exposition `dupliquerDernier` sur `window`.
+
+### Changed
+- **`style.css`** : refactor du sélecteur `.hist-refresh` → classe générique `.hist-btn` (partagée par 📋 et ↻), animation `rotate(180deg)` au tap conservée uniquement sur `.hist-refresh`. Ajout `.hist-actions { display: flex; gap: 4px; }` pour aligner les 2 boutons.
+- **`index.html`** : header de `.hist-card` enrichi d'une `<div class="hist-actions">` contenant les deux boutons.
+- **`js/config.js`** : `APP_VERSION` passée à `2.4.1.0`.
+
+---
+
 ## [2.4.0.3] — 2026-05-25
 
 ### Fixed

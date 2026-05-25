@@ -15,7 +15,7 @@ import { onAutreInput, setRadius } from './recherche.js';
 import { onStationChange, submitForm, resetForm } from './formulaire.js';
 import { chargerStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
-import { chargerHistorique } from './historique.js';
+import { chargerHistorique, dupliquerDernier } from './historique.js';
 
 /* ─── Init synchrone ─── */
 initTheme();
@@ -38,6 +38,7 @@ chargerHistorique();
 Object.assign(window, {
   toggleTheme,
   chargerHistorique,
+  dupliquerDernier,
   setType,
   geolocate,
   onAutreInput,

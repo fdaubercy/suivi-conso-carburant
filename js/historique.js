@@ -1,5 +1,9 @@
 /* ─── Historique des 5 derniers pleins (via GET ?action=export) ─── */
-import { GAS_URL } from './config.js';
+import { GAS_URL, FUEL_CONFIG } from './config.js';
+import { showFeedback } from './ui.js';
+
+let _lastRecord  = null;   // memorise le plein le plus recent pour dupliquerDernier()
+let _allRecords  = [];     // memorise TOUS les enregistrements pour validation km retrograde
 
 /** Charge et affiche les 5 derniers pleins dans #historiqueList. */
 export async function chargerHistorique() {
@@ -15,8 +19,12 @@ export async function chargerHistorique() {
 
     if (!data.records?.length) {
       el.innerHTML = '<div class="hist-msg">Aucun plein enregistré.</div>';
+      _lastRecord = null;
+      _allRecords = [];
       return;
     }
+
+    _allRecords = data.records;   // pour validation km retrograde
 
     // Tri descendant par Horodatage (les plus récents en premier), puis 5 premiers
     const recent = data.records
@@ -24,9 +32,81 @@ export async function chargerHistorique() {
       .sort((a, b) => (b.Horodatage || '').localeCompare(a.Horodatage || ''))
       .slice(0, 5);
 
+    _lastRecord = recent[0];   // pour dupliquerDernier()
     el.innerHTML = recent.map(renderItem).join('');
   } catch (e) {
     el.innerHTML = '<div class="hist-msg err">Erreur — ' + (e.message || 'réseau') + '</div>';
+    _lastRecord = null;
+    _allRecords = [];
+  }
+}
+
+/** Retourne le km maximum enregistre pour un vehicule donne (ou tous si vehicule vide). */
+export function getMaxKmForVehicule(vehiculeNom) {
+  if (!_allRecords.length) return null;
+  const filtered = vehiculeNom
+    ? _allRecords.filter(r => (r['Véhicule'] || r['Vehicule'] || '') === vehiculeNom)
+    : _allRecords;
+  if (!filtered.length) return null;
+  const kms = filtered
+    .map(r => Number(r['Km compteur'] || 0))
+    .filter(n => isFinite(n) && n > 0);
+  return kms.length ? Math.max(...kms) : null;
+}
+
+/** Pré-remplit le formulaire avec le dernier plein. */
+export function dupliquerDernier() {
+  if (!_lastRecord) {
+    showFeedback('error', 'Rien à dupliquer', 'Chargez l\'historique d\'abord (bouton ↻).');
+    return;
+  }
+
+  const r = _lastRecord;
+
+  // Reset des champs variables (date reste a aujourd'hui)
+  ['fKm', 'fLitres', 'fPrix'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.classList.remove('autofilled'); }
+  });
+
+  // 1. Vehicule (si present dans le select)
+  const veh = r['Véhicule'] || r['Vehicule'] || '';
+  if (veh) setSelectValue('vehiculeSel', veh);
+
+  // 2. Type carburant via window.setType (deja expose dans main.js)
+  const label = r.Type;
+  const typeKey = Object.keys(FUEL_CONFIG).find(k => FUEL_CONFIG[k].label === label);
+  if (typeKey && typeof window.setType === 'function') window.setType(typeKey);
+
+  // 3. Station (option du dropdown OU saisie manuelle si absente)
+  const station = r['Station essence'];
+  if (station) {
+    const sel = document.getElementById('stationSel');
+    if (sel) {
+      const matches = Array.from(sel.options).some(o => o.value === station);
+      if (matches) {
+        sel.value = station;
+      } else {
+        sel.value = '__autre';
+        const fa = document.getElementById('fAutre');
+        if (fa) fa.value = station;
+      }
+      sel.dispatchEvent(new Event('change'));
+    }
+  }
+
+  showFeedback('success', 'Plein pré-rempli ✓',
+    'Vérifiez le véhicule, le type et la station — puis saisissez km / litres / prix.');
+}
+
+/* ─── Helpers ─── */
+function setSelectValue(id, value) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  const matches = Array.from(sel.options).some(o => o.value === value);
+  if (matches) {
+    sel.value = value;
+    sel.dispatchEvent(new Event('change'));
   }
 }
 
@@ -56,7 +136,6 @@ function renderItem(r) {
   `;
 }
 
-/* ─── Helpers ─── */
 function iconForType(type) {
   if (!type) return '⛽';
   const t = String(type).toLowerCase();
@@ -71,7 +150,6 @@ function iconForType(type) {
 
 function fmtDate(s) {
   if (!s) return '—';
-  // Format attendu : "2026-05-22 06:01:55" ou ISO
   const d = new Date(String(s).replace(' ', 'T'));
   if (isNaN(d)) return String(s).slice(0, 10);
   return [

@@ -499,17 +499,19 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 8px;
 }
-.hist-refresh {
+.hist-actions { display: flex; gap: 4px; }
+.hist-btn {
   background: transparent; border: none;
-  font-size: 18px; line-height: 1;
-  width: 28px; height: 28px;
+  font-size: 16px; line-height: 1;
+  width: 30px; height: 30px;
   border-radius: 6px;
   color: var(--text-muted); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   -webkit-tap-highlight-color: transparent;
   transition: background .15s, transform .3s;
 }
-.hist-refresh:active { background: var(--toggle-bg); transform: rotate(180deg); }
+.hist-btn:active { background: var(--toggle-bg); }
+.hist-refresh:active { transform: rotate(180deg); }
 
 .hist-item {
   padding: 8px 0;

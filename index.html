@@ -136,7 +136,10 @@
 <div class="card hist-card">
   <div class="hist-header">
     <p class="section-title" style="margin-bottom:0">5 derniers pleins</p>
-    <button class="hist-refresh" onclick="chargerHistorique()" title="Actualiser">↻</button>
+    <div class="hist-actions">
+      <button class="hist-btn" onclick="dupliquerDernier()" title="Dupliquer le dernier plein dans le formulaire">📋</button>
+      <button class="hist-btn hist-refresh" onclick="chargerHistorique()" title="Actualiser">↻</button>
+    </div>
   </div>
   <div id="historiqueList"><div class="hist-msg">Chargement…</div></div>
 </div>

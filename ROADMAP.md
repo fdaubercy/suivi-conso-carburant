@@ -12,7 +12,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi |
 |---|---|---|
 | ~~W1~~ | ~~**Historique 5 derniers pleins** affiché dans l'app (via `GET ?action=export`)~~ | ✅ v2.3.3.0 |
-| W2 | **"Dupliquer dernier plein"** (bouton) | Saisie 1-clic si rien n'a changé sauf litres/prix |
+| ~~W2~~ | ~~**"Dupliquer dernier plein"** (bouton)~~ | ✅ v2.4.1.0 |
 | W3 | **Validation km rétrograde** : warning si `km < dernier_km` | Empêche les fautes de frappe |
 | W4 | **PWA install prompt** + manifest enrichi (icônes, theme color, splash) | Vraie expérience appli sur iPhone/Android |
 | W5 | **Indicateur rentabilité E85 temps réel** : badge vert "rentable" si `prix_E85 < prix_SP98 × 0.66` | Aide à la décision sur la station |
@@ -116,6 +116,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.3.2.0 | Dark mode (W6) — toggle header 🌙/☀️ + localStorage + auto `prefers-color-scheme` |
 | v2.3.3.0 | Historique 5 derniers pleins (W1) — card en bas du formulaire, refresh auto après plein |
 | v2.4.0.0 | **Tableau de bord Excel** (X6) — 10 KPIs + **format date français forcé** (X5) à l'ouverture |
+| v2.4.0.3 | Fix `CreerTableauDeBord` — détection dynamique nom table + colonnes par position |
+| v2.4.1.0 | **Dupliquer dernier plein** (W2) — bouton 📋 dans la carte historique, pré-remplit véhicule/type/station |
 
 ---
 

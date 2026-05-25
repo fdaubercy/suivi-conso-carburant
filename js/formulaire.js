@@ -5,7 +5,7 @@ import { setAutreStatus, hideCpSearch, setSubmitState, showFeedback, updateCout 
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
 import { fetchPricesNearUser, fetchNearestE85Price } from './prix.js';
 import { syncStationSiNouvelle } from './stations.js';
-import { chargerHistorique } from './historique.js';
+import { chargerHistorique, getMaxKmForVehicule } from './historique.js';
 
 export function onStationChange() {
   const sel = document.getElementById('stationSel'), isManual = sel.value === '__autre';
