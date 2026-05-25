@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.3.1.0] — 2026-05-24
+
+### Changed
+- **`style.css` — uniformisation des boutons carburant** : la rangée secondaire (SP95, E10, Gazole, GPLc) adopte le même pattern visuel que la rangée primaire (E85 / SP98).
+  - **`.type-row-secondary`** : `display: grid` avec 4 colonnes égales, fond grisé conteneur `#e5e7eb`, padding `3px`, `border-radius: 10px` — identique à `.type-row-primary`.
+  - **`.type-btn-sm`** : bordure et fond blanc supprimés → boutons transparents sur le conteneur grisé.
+  - **`.type-btn-sm.active`** : fond `white` + ombre `0 1px 3px rgba(0,0,0,.12)` au lieu de `blue-light + border` → comportement identique à `.type-btn.active` (SuperEthanol E85 quand sélectionné).
+  - **`.type-btn-sm:active`** (pseudo-classe tap) retirée : redondante avec `.active`.
+- **`js/config.js`** : `APP_VERSION` passée à `2.3.1.0`.
+
+---
+
 ## [2.3.0.1] — 2026-05-24
 
 ### Changed
