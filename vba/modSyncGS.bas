@@ -2,7 +2,7 @@ Attribute VB_Name = "modSyncGS"
 ' ============================================================
 '  SUIVI E85 - Synchronisation bidirectionnelle
 '  Google Sheets (_ImportGS) <-> Excel (GS_Pleins)
-'  v2.3.0.1  - MsgBox -> SetStatus (barre de statut + Immediate Window)
+'  v2.4.0.0  - Public ForceFormatDates() pour Workbook_Open + extraction du format
 ' ============================================================
 Option Explicit
 
@@ -230,6 +230,32 @@ End Sub
 
 
 ' ════════════════════════════════════════════════════════════
+'  FORMAT DATES FRANCAIS (X5)
+'  A appeler depuis Workbook_Open pour restaurer le format
+'  meme si Power Query l'a ecrase lors d'un refresh.
+' ════════════════════════════════════════════════════════════
+Public Sub ForceFormatDates()
+    Dim ws  As Worksheet
+    Dim tbl As ListObject
+
+    On Error Resume Next
+    Set ws = ThisWorkbook.Sheets(WS_NAME)
+    If ws Is Nothing Then Exit Sub
+
+    If ws.ListObjects.Count > 0 Then Set tbl = ws.ListObjects(1)
+
+    If Not tbl Is Nothing Then
+        tbl.ListColumns(1).DataBodyRange.NumberFormat = "dd/mm/yyyy hh:mm:ss"
+        tbl.ListColumns(2).DataBodyRange.NumberFormat = "dd/mm/yyyy"
+    Else
+        ws.Columns(1).NumberFormat = "dd/mm/yyyy hh:mm:ss"
+        ws.Columns(2).NumberFormat = "dd/mm/yyyy"
+    End If
+    On Error GoTo 0
+End Sub
+
+
+' ════════════════════════════════════════════════════════════
 '  POINTS D'ENTREE
 ' ════════════════════════════════════════════════════════════
 Public Sub SyncOnOpen()
@@ -332,17 +358,8 @@ Private Function ImportGSToExcel(ws As Worksheet, gsRecs() As String, _
     added = 0
     If ws.ListObjects.Count > 0 Then Set tbl = ws.ListObjects(1)
 
-    ' Force le format francais sur les colonnes Horodatage et Date
-    ' (s'applique a toutes les lignes existantes + futures)
-    If Not tbl Is Nothing Then
-        On Error Resume Next
-        tbl.ListColumns(1).DataBodyRange.NumberFormat = "dd/mm/yyyy hh:mm:ss"
-        tbl.ListColumns(2).DataBodyRange.NumberFormat = "dd/mm/yyyy"
-        On Error GoTo 0
-    Else
-        ws.Columns(1).NumberFormat = "dd/mm/yyyy hh:mm:ss"
-        ws.Columns(2).NumberFormat = "dd/mm/yyyy"
-    End If
+    ' Reapplique le format francais (s'applique a toutes les lignes existantes + futures)
+    ForceFormatDates
 
     For i = 0 To UBound(gsRecs)
         rec = gsRecs(i)

@@ -4,6 +4,42 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.4.0.0] — 2026-05-24
+
+### Added — 📊 Tableau de bord Excel (ROADMAP X6)
+- **`vba/modDashboard.bas`** : nouveau module exposant `CreerTableauDeBord()`. Crée (ou réécrit) une feuille **"Tableau de bord"** insérée avant `GS_Pleins`, avec en-tête bleu titré "⛽ TABLEAU DE BORD" et 10 KPIs formatés sur 2 colonnes (libellé + valeur).
+- **10 KPIs en formules Excel** (auto-refresh dès qu'une ligne est ajoutée à `Tableau2`) :
+  1. **Consommation moyenne** L/100 km — `SUM(Litres) / (MAX(Km) - MIN(Km)) × 100`
+  2. **Coût au km** €/km — `SUMPRODUCT(Litres × Prix) / Km parcourus`
+  3. **Total dépensé YTD** € — somme `Litres × Prix` filtrée année courante
+  4. **Nombre de pleins YTD**
+  5. **% pleins E85** — `COUNTIF type E85 / COUNTA total`
+  6. **Économies estimées E85 vs SP98** € cumulés — `Litres_E85 × (Prix_moyen_SP98 - Prix_moyen_E85)`
+  7. **Prix moyen E85 30 derniers jours** €/L
+  8. **Date dernier plein** (format dd/mm/yyyy hh:mm)
+  9. **Litres totaux cumulés** L
+  10. **Km parcourus** (avec séparateur milliers)
+- **Helper interne `AjouterKPI(ws, r, label, formula, fmt)`** : factorise le rendu d'une ligne KPI (libellé gris à gauche, valeur bleu foncé en gras à droite, bordure basse `#E2E8F0`, hauteur 26 px).
+- Toutes les formules wrappées dans `IFERROR(..., 0)` ou similaire pour éviter `#DIV/0!` quand le tableau est vide.
+
+### Added — 📅 Format date français forcé (ROADMAP X5)
+- **`vba/modSyncGS.bas` — `Public Sub ForceFormatDates()`** : sub publique extraite du bloc inline de `ImportGSToExcel`. Applique `dd/mm/yyyy hh:mm:ss` sur la colonne Horodatage et `dd/mm/yyyy` sur la colonne Date du tableau `GS_Pleins`. Compatible ListObject et plage ordinaire.
+- **`vba/ThisWorkbook_snippet.bas` — `Workbook_Open` enrichi** : appelle `ForceFormatDates` **avant** `SyncOnOpen` pour restaurer le format français même si Power Query l'a écrasé lors d'un refresh automatique à l'ouverture du classeur.
+
+### Changed
+- **`vba/modSyncGS.bas` — `ImportGSToExcel`** : remplacement du bloc inline `NumberFormat` (~10 lignes) par un simple appel à `ForceFormatDates`. Centralise la logique de formatage en un seul endroit.
+- **`vba/modSyncGS.bas`** : version commentaire mise à `v2.4.0.0`.
+- **`js/config.js`** : `APP_VERSION` passée à `2.4.0.0`.
+- **`ROADMAP.md`** : X5 et X6 marqués ✅.
+
+### Installation utilisateur
+1. **Alt+F11** → clic droit `modSyncGS` → Supprimer → Non → importer la nouvelle version `vba/modSyncGS.bas`
+2. **Alt+F11** → Fichier → Importer → `vba/modDashboard.bas`
+3. **Alt+F11** → double-clic `ThisWorkbook` → coller le contenu de `vba/ThisWorkbook_snippet.bas`
+4. **F5** sur `CreerTableauDeBord` (depuis l'éditeur VBA, curseur dans la Sub) → la feuille "Tableau de bord" apparaît avec les KPIs
+
+---
+
 ## [2.3.3.0] — 2026-05-24
 
 ### Added — 📜 Historique 5 derniers pleins (ROADMAP W1)

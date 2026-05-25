@@ -48,13 +48,13 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | X2 | **Génération auto du `sync_id`** dans le formulaire Excel à la saisie (pas seulement au sync) | Cohérence immédiate des UUID |
 | X3 | **Validation kilométrage** dans le formulaire VBA (warning si < dernier km) | Saisie propre |
 | X4 | **Mise en forme conditionnelle** sur colonne "Prix €/L" : vert si < moyenne 30 j, rouge si > | Visuel rentabilité |
-| X5 | **Format date français forcé** à l'ouverture du classeur (au cas où Power Query refresh écrase) | Cohérence |
+| ~~X5~~ | ~~**Format date français forcé** à l'ouverture du classeur (au cas où Power Query refresh écrase)~~ | ✅ v2.4.0.0 |
 
 ### 🎯 Onglet "Tableau de bord"
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| X6 | **KPIs en haut** : conso moyenne, €/km, total dépensé YTD, % E85 vs autres | Vue d'ensemble immédiate |
+| ~~X6~~ | ~~**KPIs en haut** : conso moyenne, €/km, total dépensé YTD, % E85 vs autres~~ | ✅ v2.4.0.0 (10 KPIs) |
 | X7 | **Graphique évolution prix E85** par station fréquentée | Choisir la moins chère |
 | X8 | **Graphique conso L/100 km dans le temps** | Détecter un problème mécanique |
 | X9 | **Économies cumulées E85 vs SP98** (calcul rétroactif depuis colonne J SP98 station) | Le ROI E85 |
@@ -114,6 +114,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.3.1.3 | Fix overflow marqueurs carte sur bouton submit (z-index + fond opaque) |
 | v2.3.2.0 | Dark mode (W6) — toggle header 🌙/☀️ + localStorage + auto `prefers-color-scheme` |
 | v2.3.3.0 | Historique 5 derniers pleins (W1) — card en bas du formulaire, refresh auto après plein |
+| v2.4.0.0 | **Tableau de bord Excel** (X6) — 10 KPIs + **format date français forcé** (X5) à l'ouverture |
 
 ---
 

@@ -111,6 +111,7 @@ suivi-e85/
 │
 ├── vba/                             # ── Sync Excel ↔ Google Sheets ──────
 │   ├── modSyncGS.bas                # Module VBA bidirectionnel (sync_id + WinHttp)
+│   ├── modDashboard.bas             # Tableau de bord : 10 KPIs auto
 │   └── ThisWorkbook_snippet.bas     # Snippet Workbook_Open à coller
 │
 ├── Google Drive/                    # ── Sauvegardes et exports externes ─
