@@ -6,10 +6,26 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Suivi E85">
+  <meta name="theme-color" content="#1B3A5C">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="images/icons/icon.svg">
   <title>Suivi Conso E85</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
+<!-- PWA : banniere install Android/Chrome -->
+<div id="installBanner" class="pwa-banner" hidden>
+  <span>📲 Installer l'app sur votre écran d'accueil</span>
+  <button onclick="window._pwaInstall()" class="pwa-btn">Installer</button>
+  <button onclick="window._pwaDismiss('installBanner')" class="pwa-close">✕</button>
+</div>
+
+<!-- PWA : banniere install iOS Safari -->
+<div id="iosBanner" class="pwa-banner pwa-banner--ios" hidden>
+  <span>📲 Safari → <strong>Partager</strong> → <strong>Sur l'écran d'accueil</strong></span>
+  <button onclick="window._pwaDismiss('iosBanner')" class="pwa-close">✕</button>
+</div>
 
 <header>
   <span style="font-size:22px">⛽</span>

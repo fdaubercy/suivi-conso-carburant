@@ -11,7 +11,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| W4 | **PWA install prompt** + manifest enrichi (icônes, theme color, splash) | Vraie expérience appli sur iPhone/Android |
 
 ### 🎯 Features visibles (½-1 jour chacun)
 
@@ -116,6 +115,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.5.0.0 | **Scan ticket de caisse (W17)** — bouton 🧾 dans le formulaire → photo → Gemini Vision API (GAS) → JSON → pré-remplissage automatique date / km / litres / prix / type / station |
 | v2.5.0.0 | **Graphique prix E85 (X7)** — feuille "Graphiques" : ligne Date → Prix E85 filtrée depuis `GS_Pleins` |
 | v2.5.0.0 | **Graphique conso L/100 km (X8)** — feuille "Graphiques" : ligne Date → L/100km calculée entre pleins consécutifs par véhicule |
+| v2.6.0.0 | **PWA install prompt (W4)** — `manifest.json` + icône SVG ⛽ + bannière "Installer" Android/Chrome + bannière instruction iOS Safari + `theme-color` |
 
 ---
 

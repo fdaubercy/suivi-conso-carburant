@@ -18,6 +18,7 @@ import { initTheme, toggleTheme } from './theme.js';
 import { chargerHistorique, dupliquerDernier } from './historique.js';
 import { renderStats } from './stats.js';
 import { initScanner } from './ticket.js';
+import { initPWA }    from './pwa.js';
 
 /* ─── Init synchrone ─── */
 initTheme();
@@ -38,6 +39,9 @@ chargerHistorique();
 
 /* ─── Scanner ticket de caisse (W17) ─── */
 initScanner();
+
+/* ─── PWA install prompt (W4) ─── */
+initPWA();
 
 /* ─── Exposition globale pour les handlers HTML inline ─── */
 Object.assign(window, {

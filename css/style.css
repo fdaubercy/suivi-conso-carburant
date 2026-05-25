@@ -760,3 +760,41 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
 [data-theme="dark"] .type-btn-sm.active { color: var(--text); }
 [data-theme="dark"] .type-btn.active .type-price,
 [data-theme="dark"] .type-btn-sm.active .type-price { color: var(--blue-mid); }
+
+/* ─── PWA Install Banner (W4) ─── */
+.pwa-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--blue-dark);
+  color: #fff;
+  font-size: 13px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+.pwa-banner span { flex: 1; line-height: 1.4; }
+.pwa-btn {
+  flex-shrink: 0;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pwa-close {
+  flex-shrink: 0;
+  background: transparent;
+  color: rgba(255,255,255,0.55);
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+}
+.pwa-banner--ios { background: #0f3460; }
+[data-theme="dark"] .pwa-banner { background: #0f1e30; }

@@ -1,0 +1,33 @@
+{
+  "name": "Suivi Conso E85",
+  "short_name": "Suivi E85",
+  "description": "Saisie rapide des pleins SuperEthanol E85 — prix, km, station",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#1B3A5C",
+  "background_color": "#1B3A5C",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "images/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "images/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nouveau plein",
+      "short_name": "Plein",
+      "description": "Saisir un plein",
+      "url": "./"
+    }
+  ]
+}
