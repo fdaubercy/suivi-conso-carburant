@@ -1,9 +1,13 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend                v2.3.0.0
+//  SUIVI CONSO E85 — Web App Backend                v2.5.0.0
 //
 //  ⚠️  BREAKING CHANGE v2.3.0.0 : suppression colonne G "Prix S98 jour"
 //  La colonne K "SP98 station (€/L)" est désormais la seule source SP98.
 //  → exécuter migrateRemoveS98() une fois pour migrer les données.
+//
+//  W17 — Scan ticket de caisse :
+//  Configurer la clé Gemini dans : Extensions → Apps Script
+//  → Paramètres du projet → Propriétés de script → GEMINI_API_KEY
 // ============================================================
 const SPREADSHEET_ID  = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const SHEET_NAME      = '_ImportGS';
@@ -108,6 +112,11 @@ function doPost(e) {
     return handleBulkAdd(ss, payload.rows || []);
   }
 
+  // ── W17 — Scan ticket de caisse via Gemini Vision ──
+  if (payload.action === 'scanTicket') {
+    return handleScanTicket(payload.imageBase64, payload.mimeType);
+  }
+
   // ── Enregistrement d'un plein depuis l'app web (A→O, 15 col) ──
   const sp     = payload.stationPrices || {};
   const syncId = payload.sync_id || Utilities.getUuid();
@@ -132,6 +141,81 @@ function doPost(e) {
   ]);
 
   return jsonResponse({ success: true, sync_id: syncId });
+}
+
+// ────────────────────────────────────────────────────────────
+//  handleScanTicket — W17
+//  Analyse une photo de ticket de caisse via l'API Gemini Vision
+//  et retourne les champs du plein extraits en JSON.
+//
+//  Pré-requis : clé API Gemini dans les propriétés de script
+//    Extensions → Apps Script → Paramètres → Propriétés de script
+//    → Ajouter : GEMINI_API_KEY = <votre clé>
+// ────────────────────────────────────────────────────────────
+function handleScanTicket(imageBase64, mimeType) {
+  const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+
+  if (!apiKey) {
+    return jsonResponse({
+      success: false,
+      error:   'Clé GEMINI_API_KEY non configurée. ' +
+               'Extensions → Apps Script → Paramètres du projet → Propriétés de script → Ajouter GEMINI_API_KEY.'
+    });
+  }
+
+  const prompt =
+    'Tu es un assistant spécialisé dans la lecture de tickets de caisse de stations-service françaises.\n' +
+    'Analyse cette image et extrais les informations suivantes.\n' +
+    'Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks, sans texte autour) :\n' +
+    '{\n' +
+    '  "date": "YYYY-MM-DD ou null",\n' +
+    '  "km": nombre entier ou null,\n' +
+    '  "litres": nombre décimal ou null,\n' +
+    '  "prix_litre": nombre décimal ou null,\n' +
+    '  "montant_total": nombre décimal ou null,\n' +
+    '  "type_carburant": "E85|SP98|SP95|E10|Gazole|GPLc ou null",\n' +
+    '  "station": "nom de la station ou null"\n' +
+    '}\n' +
+    'Si une information est absente ou illisible, mets null. Ne mets que le JSON.';
+
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + apiKey;
+
+  try {
+    const resp = UrlFetchApp.fetch(url, {
+      method:      'post',
+      contentType: 'application/json',
+      muteHttpExceptions: true,
+      payload: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType: mimeType || 'image/jpeg', data: imageBase64 } }
+          ]
+        }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
+      })
+    });
+
+    const result = JSON.parse(resp.getContentText());
+
+    if (result.error) {
+      return jsonResponse({ success: false, error: result.error.message || 'Erreur API Gemini.' });
+    }
+
+    const text = (result.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+
+    // Extrait le premier objet JSON de la réponse (robuste si l'IA ajoute du texte)
+    const jsonMatch = text.match(/\{[\s\S]*?\}/);
+    if (!jsonMatch) {
+      return jsonResponse({ success: false, error: 'Réponse non parseable.', raw: text });
+    }
+
+    const data = JSON.parse(jsonMatch[0]);
+    return jsonResponse({ success: true, data });
+
+  } catch (err) {
+    return jsonResponse({ success: false, error: err.message });
+  }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -178,8 +262,6 @@ function handleBulkAdd(ss, rows) {
 
 // ────────────────────────────────────────────────────────────
 //  migrateRemoveS98 — À exécuter UNE SEULE FOIS manuellement
-//  Supprime l'ancienne colonne G "Prix S98 jour (€/L)" du sheet.
-//  Toutes les colonnes H→P sont décalées vers G→O.
 // ────────────────────────────────────────────────────────────
 function migrateRemoveS98() {
   const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -197,8 +279,6 @@ function migrateRemoveS98() {
 
 // ────────────────────────────────────────────────────────────
 //  migrateSyncId — À exécuter UNE SEULE FOIS (legacy)
-//  Génère un UUID pour les lignes existantes sans sync_id.
-//  Schéma 2.3.0.0 : sync_id en colonne O (index 15).
 // ────────────────────────────────────────────────────────────
 function migrateSyncId() {
   const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);

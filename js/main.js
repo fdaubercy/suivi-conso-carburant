@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════
-   Suivi Conso E85 — Point d'entrée v2.2.1.0
+   Suivi Conso E85 — Point d'entrée v2.5.0.0
    ES Module : chargé en defer automatique
 ═══════════════════════════════════════ */
 import { APP_VERSION } from './config.js';
@@ -17,6 +17,7 @@ import { chargerStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
 import { chargerHistorique, dupliquerDernier } from './historique.js';
 import { renderStats } from './stats.js';
+import { initScanner } from './ticket.js';
 
 /* ─── Init synchrone ─── */
 initTheme();
@@ -34,6 +35,9 @@ registerPriceCallback(fetchPricesNearUser);
 chargerStations();
 chargerVehicules();
 chargerHistorique();
+
+/* ─── Scanner ticket de caisse (W17) ─── */
+initScanner();
 
 /* ─── Exposition globale pour les handlers HTML inline ─── */
 Object.assign(window, {

@@ -54,7 +54,15 @@
   <!-- Indicateur rentabilité E85 vs SP98 (affiché si les 2 prix sont connus) -->
   <div class="rentabilite" id="rentabilite"></div>
 
-  <p class="section-title">Informations du plein</p>
+  <!-- ─── Scan ticket de caisse (W17) ─── -->
+  <div class="scan-row">
+    <button id="scanTicketBtn" class="scan-btn" type="button" title="Scanner un ticket de caisse pour pré-remplir le formulaire">
+      🧾 Scanner le ticket
+    </button>
+    <span class="scan-hint">Photo du ticket → champs auto-remplis</span>
+  </div>
+
+  <p class="section-title" style="margin-top:14px">Informations du plein</p>
   <div class="row2">
     <div class="field">
       <label for="fDate">Date</label>

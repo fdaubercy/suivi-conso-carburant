@@ -1,0 +1,71 @@
+name: CI — Lint & Version Check
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  # ────────────────────────────────────────
+  #  ESLint — qualite du code JS
+  # ────────────────────────────────────────
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+  # ────────────────────────────────────────
+  #  Verification coherence APP_VERSION
+  #  Compare js/config.js vs dernier tag Git
+  #  (avertissement seulement, ne bloque pas)
+  # ────────────────────────────────────────
+  version-check:
+    name: APP_VERSION coherente
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # historique complet pour les tags
+
+      - name: Verifier APP_VERSION vs dernier tag Git
+        run: |
+          # Extraire APP_VERSION depuis js/config.js
+          APP_VERSION=$(grep -oP "APP_VERSION\s*=\s*'\K[^']+" js/config.js)
+          echo "APP_VERSION dans config.js : $APP_VERSION"
+
+          # Dernier tag Git (format vX.Y.Z.W ou X.Y.Z.W)
+          LAST_TAG=$(git tag --sort=-version:refname | head -n1)
+          echo "Dernier tag Git : ${LAST_TAG:-<aucun tag>}"
+
+          if [ -z "$LAST_TAG" ]; then
+            echo "ℹ️  Aucun tag git existant — APP_VERSION : $APP_VERSION"
+            exit 0
+          fi
+
+          # Enleve le prefixe "v" si present
+          TAG_VERSION="${LAST_TAG#v}"
+
+          if [ "$APP_VERSION" = "$TAG_VERSION" ]; then
+            echo "✅ Coherent : APP_VERSION ($APP_VERSION) == dernier tag ($LAST_TAG)"
+          else
+            echo "⚠️  APP_VERSION ($APP_VERSION) differe du dernier tag ($LAST_TAG)"
+            echo "   → Si c'est voulu, pensez a creer : git tag v$APP_VERSION"
+          fi
+          # Ne fail pas : le developpement se fait souvent sans tag immediat
+          exit 0

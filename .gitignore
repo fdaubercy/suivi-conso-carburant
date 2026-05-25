@@ -1,8 +1,10 @@
 # # Ignorer un fichier spécifique
 ~$*
 
+# Dépendances npm (W13 — ESLint)
+node_modules/
+
 # # Ignorer un dossier entier
-# node_modules/
 # build/
 
 # # Ignorer par extension

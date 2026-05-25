@@ -1,0 +1,16 @@
+{
+  "name": "suivi-e85",
+  "version": "2.5.0.0",
+  "description": "Formulaire mobile de saisie des pleins E85/SP98 — GitHub Pages + Google Sheets",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint js/"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

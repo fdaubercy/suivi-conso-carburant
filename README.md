@@ -28,6 +28,16 @@ Ajouter à l'écran d'accueil iPhone : Safari → Partager → « Sur l'écran d
 - **Calcul en temps réel** du coût du plein (litres × prix)
 - Version de l'application affichée dans le bandeau
 
+### 🧾 Scan ticket de caisse (W17)
+Bouton **"🧾 Scanner le ticket"** dans le formulaire : sélection d'une photo (galerie ou caméra) → compression automatique (canvas, max 1 200 px, JPEG ≤ 800 Ko) → envoi GAS → **API Gemini Vision** → extraction des données du ticket → pré-remplissage automatique de tous les champs.
+
+Champs détectés : **date, km compteur, litres, prix/L, montant total, type de carburant, nom de la station**.
+
+**Configuration requise :** ajouter la clé API Gemini dans Google Apps Script :
+> Extensions → Apps Script → Paramètres du projet → Propriétés de script → `GEMINI_API_KEY`
+
+Obtenir une clé gratuite sur [Google AI Studio](https://aistudio.google.com/app/apikey).
+
 ### Récupération automatique des prix — tous carburants
 Dès la sélection d'une station, l'API gouvernementale `data.economie.gouv.fr` est interrogée
 pour récupérer **tous les prix disponibles** (E85, SP98, SP95, E10, Gazole, GPLc) en une seule requête :
@@ -81,6 +91,11 @@ Si OSM ne retourne pas de résultat, l'adresse de l'API gouvernementale est util
 - Validation des champs obligatoires avant envoi
 - Feedback visuel succès / erreur ; remise à zéro automatique du formulaire
 
+### 🔁 CI — GitHub Actions (W13)
+Deux jobs automatiques sur chaque `push` / `pull_request` :
+- **ESLint** : lint de tous les fichiers `js/` (règles `no-var`, `no-unused-vars`, `no-undef`…)
+- **Version check** : compare `APP_VERSION` dans `config.js` au dernier tag Git — avertissement si divergence
+
 ---
 
 ## 🗂️ Structure
@@ -107,18 +122,27 @@ suivi-e85/
 │   ├── formulaire.js                # Soumission et réinitialisation
 │   ├── stations.js                  # Chargement liste stations Google Sheets
 │   ├── theme.js                     # Dark mode (toggle + persist localStorage)
-│   └── historique.js                # 5 derniers pleins (via GET ?action=export)
+│   ├── historique.js                # 5 derniers pleins (via GET ?action=export)
+│   ├── stats.js                     # Stats live 4 KPIs filtrés par véhicule
+│   └── ticket.js                    # W17 : scan ticket de caisse → auto-fill
 │
 ├── vba/                             # ── Sync Excel ↔ Google Sheets ──────
 │   ├── modSyncGS.bas                # Module VBA bidirectionnel (sync_id + WinHttp)
-│   ├── modDashboard.bas             # Tableau de bord : 10 KPIs auto
+│   ├── modDashboard.bas             # Tableau de bord : 10 KPIs + graphiques X7/X8
 │   └── ThisWorkbook_snippet.bas     # Snippet Workbook_Open à coller
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml                   # W13 : ESLint + vérification APP_VERSION
+│
+├── package.json                     # Config npm (ESLint devDependency)
+├── eslint.config.js                 # Flat config ESLint 9
 │
 ├── Google Drive/                    # ── Sauvegardes et exports externes ─
 │   ├── Réponses - Suivi E85.xlsx
 │   └── Sauvegarde & Geolocalisation - Suivi conso SuperEthanol/
 │       └── Google Apps Script/
-│           ├── Code.gs              # Backend GAS (15 col + sync_id + export/bulkAdd)
+│           ├── Code.gs              # Backend GAS (15 col + sync_id + scanTicket W17)
 │           ├── index.html           # Page HTML servie par GAS (standalone)
 │           └── GAS_UPDATE.md
 │
