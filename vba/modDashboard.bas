@@ -257,15 +257,15 @@ Cleanup:
     ' ── 8. Graphiques X7 + X8 ──
     CreerGraphiques
 
-    ws.Range("A1").Select
     ws.Activate
+    ws.Range("A1").Select
 
     Debug.Print String(50, "=")
 End Sub
 
 
 ' ════════════════════════════════════════════════════════════
-'  X7 + X8 — GRAPHIQUES (feuille "Graphiques")
+'  X7 + X8 - GRAPHIQUES (feuille "Graphiques")
 '  Peut etre lance independamment de CreerTableauDeBord.
 ' ════════════════════════════════════════════════════════════
 Public Sub CreerGraphiques()
@@ -316,7 +316,7 @@ Public Sub CreerGraphiques()
 
     ' ── Titre ──
     With ws.Range("A1")
-        .Value = ChrW(9110) & " Graphiques — Suivi E85"
+        .Value = ChrW(9110) & " Graphiques - Suivi E85"
         .Font.Size = 14
         .Font.Bold = True
         .Font.Color = RGB(27, 58, 92)
@@ -357,13 +357,13 @@ End Sub
 
 
 ' ════════════════════════════════════════════════════════════
-'  X7 — Helper data : Date | Prix E85 | Station
+'  X7 - Helper data : Date | Prix E85 | Station
 '       Retourne la derniere ligne utilisee.
 ' ════════════════════════════════════════════════════════════
 Private Function BuildX7Data(tbl As ListObject, ws As Worksheet, startRow As Long) As Long
     ' En-tete de section
     With ws.Cells(startRow, 1)
-        .Value = ChrW(9123) & " X7 — Evolution du prix E85 par date"
+        .Value = ChrW(9123) & " X7 - Evolution du prix E85 par date"
         .Font.Bold = True
         .Font.Color = RGB(46, 117, 182)
     End With
@@ -414,7 +414,7 @@ End Function
 
 
 ' ════════════════════════════════════════════════════════════
-'  X7 — Graphique ligne : Date → Prix E85
+'  X7 - Graphique ligne : Date -> Prix E85
 ' ════════════════════════════════════════════════════════════
 Private Sub BuildX7Chart(ws As Worksheet, dataStart As Long, dataEnd As Long)
     Dim headerRow As Long: headerRow = dataStart + 1
@@ -446,7 +446,7 @@ Private Sub BuildX7Chart(ws As Worksheet, dataStart As Long, dataEnd As Long)
         End With
 
         .HasTitle = True
-        .ChartTitle.Text = ChrW(128200) & " Evolution du prix E85"
+        .ChartTitle.Text = "Evolution du prix E85"
         .ChartTitle.Font.Size  = 12
         .ChartTitle.Font.Bold  = True
         .ChartTitle.Font.Color = RGB(27, 58, 92)
@@ -477,14 +477,14 @@ End Sub
 
 
 ' ════════════════════════════════════════════════════════════
-'  X8 — Helper data : Date | L/100km | Vehicule
+'  X8 - Helper data : Date | L/100km | Vehicule
 '       Calcule la conso entre pleins consecutifs (meme vehicule).
 '       Retourne la derniere ligne utilisee.
 ' ════════════════════════════════════════════════════════════
 Private Function BuildX8Data(tbl As ListObject, ws As Worksheet, startRow As Long) As Long
     ' En-tete de section
     With ws.Cells(startRow, 1)
-        .Value = ChrW(9123) & " X8 — Consommation L/100 km dans le temps"
+        .Value = ChrW(9123) & " X8 - Consommation L/100 km dans le temps"
         .Font.Bold = True
         .Font.Color = RGB(29, 158, 117)
     End With
@@ -510,7 +510,7 @@ Private Function BuildX8Data(tbl As ListObject, ws As Worksheet, startRow As Lon
 
     ' ── Copie dans une plage temporaire pour tri par vehicule+km ──
     ' On utilise un tableau de structure (vehicule, km, litres, date, indexOriginal)
-    ' Tri: vehicule ASC puis km ASC (bubble sort — suffisant pour < 1000 lignes)
+    ' Tri: vehicule ASC puis km ASC (bubble sort - suffisant pour < 1000 lignes)
     Dim idx()  As Long
     ReDim idx(1 To n)
     Dim i As Long
@@ -576,7 +576,7 @@ End Function
 
 
 ' ════════════════════════════════════════════════════════════
-'  X8 — Graphique ligne : Date → L/100 km
+'  X8 - Graphique ligne : Date -> L/100 km
 ' ════════════════════════════════════════════════════════════
 Private Sub BuildX8Chart(ws As Worksheet, dataStart As Long, dataEnd As Long)
     Dim headerRow As Long: headerRow = dataStart + 1
