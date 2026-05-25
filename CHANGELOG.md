@@ -4,6 +4,48 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.4.0.3] — 2026-05-25
+
+### Fixed
+- **`vba/modDashboard.bas` — formules adaptatives aux noms réels des colonnes** : `DiagnoseDashboard()` a révélé que le tableau Excel s'appelle `GS_Pleins` (pas `Tableau2`) et que les en-têtes diffèrent du Google Sheet :
+  - `Km compteur` → `Km`
+  - `Nb. Litres` → `Litres`
+  - `Prix €/L` → `PrixL` (sans le `€`)
+  - `Véhicule` → `Vehicule`
+  - `E85 station (€/L)` → `E85 station` (sans le `(€/L)`)
+  - idem SP98/SP95/E10/Gazole/GPLc
+- **Détection par position (1-based)** au lieu de noms hardcodés :
+  - Constantes sémantiques `COL_HORODATAGE = 1`, `COL_KM = 4`, `COL_LITRES = 5`, `COL_PRIX = 6`, etc.
+  - Au démarrage, `g_cols(i) = tbl.ListColumns(i).Name` peuple le tableau avec les noms réels.
+  - Helper `cr(colIdx)` construit la référence structurée `g_tbl[g_cols(colIdx)]`.
+  - Chaque formule utilise `cr(COL_LITRES)` au lieu de `Tableau2[Nb. Litres]` → s'adapte à n'importe quelle convention de nommage tant que l'ordre des colonnes est respecté.
+- **Logging** : `CreerTableauDeBord` affiche désormais le mapping détecté dans Immediate Window au démarrage pour validation visuelle.
+
+### Changed
+- **`vba/modDashboard.bas`** : version commentaire passée à `v2.4.0.3`.
+- **`js/config.js`** : `APP_VERSION` passée à `2.4.0.3`.
+
+---
+
+## [2.4.0.2] — 2026-05-24
+
+### Fixed
+- **`vba/modDashboard.bas` — erreur d'exécution 1004** : `CreerTableauDeBord` plantait sur certains classeurs car le nom de tableau `Tableau2` était codé en dur. Désormais :
+  - Détection **dynamique** du nom de ListObject (`dataWs.ListObjects(1).Name`) → fonctionne quel que soit le nom (Tableau1, Tableau3, etc.).
+  - Pré-checks explicites : feuille `GS_Pleins` présente, au moins un ListObject existe — sinon MsgBox guidé.
+  - Chaque appel `AjouterKPI` est wrappé en `On Error GoTo` → un KPI qui plante n'interrompt plus toute la macro, son erreur est loggée dans Immediate Window (Ctrl+G) avec libellé + formule.
+  - Les ranges merge (`A1:B1`, `A2:B2`) sont eux aussi en `On Error Resume Next` (échec silencieux si déjà fusionnés).
+  - Compteurs OK/KO + rapport final dans MsgBox + Immediate.
+
+### Added
+- **`DiagnoseDashboard()`** : sub publique qui liste dans Immediate Window toutes les feuilles du classeur, le nom du ListObject de `GS_Pleins`, et les en-têtes de chaque colonne (avec leur index). À lancer en premier si CreerTableauDeBord renvoie des erreurs.
+
+### Changed
+- **`vba/modDashboard.bas`** : version commentaire passée à `v2.4.0.2`.
+- **`js/config.js`** : `APP_VERSION` passée à `2.4.0.2`.
+
+---
+
 ## [2.4.0.1] — 2026-05-24
 
 ### Added
