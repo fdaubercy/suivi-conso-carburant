@@ -34,9 +34,38 @@ Bouton **"🧾 Scanner le ticket"** dans le formulaire : sélection d'une photo 
 Champs détectés : **date, km compteur, litres, prix/L, montant total, type de carburant, nom de la station**.
 
 **Configuration requise :** ajouter la clé API Gemini dans Google Apps Script :
-> Extensions → Apps Script → Paramètres du projet → Propriétés de script → `GEMINI_API_KEY`
 
-Obtenir une clé gratuite sur [Google AI Studio](https://aistudio.google.com/app/apikey).
+<details>
+<summary>📋 Tuto : obtenir et configurer la clé API Gemini (gratuite)</summary>
+
+**1. Créer la clé sur Google AI Studio**
+
+1. Aller sur [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) (compte Google requis)
+2. Accepter les conditions d'utilisation si c'est la première visite
+3. Cliquer sur **"Créer une clé API"**
+4. Donner un nom (ex. `suivi-e85-scan-ticket`) → **"Créer une clé"**
+5. Copier la clé générée (format `AIzaSy...`)
+
+> La clé est **gratuite** pour un usage personnel (quota : 15 req/min, 1 500 req/jour sur `gemini-1.5-flash`).
+
+**2. Ajouter la clé dans Google Apps Script**
+
+1. Ouvrir le Google Sheet → **Extensions → Apps Script**
+2. Dans l'éditeur GAS, cliquer sur l'icône ⚙️ **Paramètres du projet** (barre gauche)
+3. Faire défiler jusqu'à la section **"Propriétés de script"**
+4. Cliquer sur **"Ajouter une propriété de script"**
+5. Remplir :
+   - **Propriété** : `GEMINI_API_KEY`
+   - **Valeur** : coller la clé copiée à l'étape 1
+6. Cliquer sur **"Enregistrer les propriétés de script"**
+
+**3. Redéployer le GAS**
+
+Après l'ajout de la clé, redéployer le web app pour qu'elle soit prise en compte :
+1. Cliquer sur **"Déployer"** → **"Gérer les déploiements"**
+2. Cliquer sur le crayon ✏️ → **"Nouvelle version"** → **"Déployer"**
+
+</details>
 
 ### Récupération automatique des prix — tous carburants
 Dès la sélection d'une station, l'API gouvernementale `data.economie.gouv.fr` est interrogée
