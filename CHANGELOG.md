@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.3.1.1] — 2026-05-24
+
+### Added
+- **Prix affichés dans les boutons E85 et SP98** : la rangée primaire affiche désormais le prix `€/L` sous le libellé, comme la rangée secondaire (SP95/E10/Gazole/GPLc). Les 6 boutons ont une présentation strictement identique.
+
+### Changed
+- **`js/carburant.js` — `_buildTypeToggle`** : la boucle `primaryKeys` ajoute maintenant `dimmed` (si station sélectionnée sans ce carburant) et la balise `<span class="type-price">` quand le prix est disponible.
+- **`style.css` — `.type-btn`** : `flex-direction: column` (au lieu de `row`) + `gap: 2px` pour empiler libellé et prix. Ajout de `.type-btn.dimmed` (opacité 0.38) et `.type-btn.active .type-price` (couleur `blue-mid`) pour cohérence avec les boutons secondaires.
+- **`js/carburant.js` — `_updateHeaderBadges`** : la fonction vide simplement `#headerOtherFuels` au lieu de générer les mini-badges. Seul le carburant sélectionné (`#headerBadge`) reste visible dans le bandeau.
+- **`index.html`** : suppression du conteneur `<div id="headerOtherFuels"></div>` (devenu inutile).
+- **`js/config.js`** : `APP_VERSION` passée à `2.3.1.1`.
+
+---
+
 ## [2.3.1.0] — 2026-05-24
 
 ### Changed

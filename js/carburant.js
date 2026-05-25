@@ -27,8 +27,11 @@ export function _buildTypeToggle(prices) {
 
   let html = '<div class="type-row-primary">';
   primaryKeys.forEach(k => {
-    const cfg = FUEL_CONFIG[k], active = state.currentType === k ? ' active' : '';
-    html += `<button class="type-btn${active}" onclick="setType('${k}')">${cfg.icon} ${cfg.label}</button>`;
+    const cfg    = FUEL_CONFIG[k];
+    const active = state.currentType === k ? ' active' : '';
+    const dimmed = hasPrices && !prices[k] ? ' dimmed' : '';
+    const prix   = prices[k] ? `<span class="type-price">${parseFloat(prices[k]).toFixed(3)} €/L</span>` : '';
+    html += `<button class="type-btn${active}${dimmed}" onclick="setType('${k}')">${cfg.icon} ${cfg.label}${prix}</button>`;
   });
   html += '</div><div class="type-row-secondary">';
   secondaryKeys.forEach(k => {
@@ -42,14 +45,10 @@ export function _buildTypeToggle(prices) {
   wrap.innerHTML = html;
 }
 
-/** Mini-badges cliquables dans le bandeau (carburants dispo ≠ type courant). */
+/** Bandeau : seul le carburant sélectionné est affiché (via #headerBadge dans setType). */
 export function _updateHeaderBadges() {
   const el = document.getElementById('headerOtherFuels');
-  if (!el) return;
-  const others = FUEL_KEYS.filter(k => k !== state.currentType && state._stationPrices[k] != null);
-  el.innerHTML = others.map(k =>
-    `<span class="badge-sm" onclick="setType('${k}')">${FUEL_CONFIG[k].icon} ${FUEL_CONFIG[k].short}</span>`
-  ).join('');
+  if (el) el.innerHTML = '';
 }
 
 export function setType(type) {
