@@ -4,8 +4,8 @@
     {
       "name": "suivi-e85",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "3456"],
-      "port": 3456
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173
     }
   ]
 }

@@ -440,6 +440,7 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
   background: #e8e0d8;
   position: relative;
   overflow: hidden;
+  isolation: isolate;
   user-select: none;
 }
 
@@ -813,6 +814,7 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
   height: 160px;
   background: #e8e0d8;
   overflow: hidden;
+  isolation: isolate;
   border-radius: 8px;
   margin-bottom: 12px;
 }
