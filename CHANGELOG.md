@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.9.0.1] — 2026-05-26
+
+### Fixed
+- **`Google Drive/.../Code.gs`** : modèle Gemini mis à jour `gemini-1.5-flash` (déprécié en `v1beta`) → `gemini-2.0-flash` via endpoint `v1`. Corrige l'erreur *"models/gemini-1.5-flash is not found for API version v1beta"* lors du scan de ticket.
+
+---
+
 ## [2.9.0.0] — 2026-05-26
 
 ### Added
