@@ -51,9 +51,16 @@ export function _renderMap(uLat, uLon) {
   const nw = tileXY(Math.max(...allLats)+mg, Math.min(...allLons)-mg, z);
   const se = tileXY(Math.min(...allLats)-mg, Math.max(...allLons)+mg, z);
   const gridW = (se.x - nw.x + 1) * TILE_SZ, gridH = (se.y - nw.y + 1) * TILE_SZ;
-  const offX  = Math.round((W - gridW) / 2), offY = Math.round((H - gridH) / 2);
+  const offX  = Math.round((W - gridW) / 2);
+  let   offY  = Math.round((H - gridH) / 2);
 
-  let html = `<div style="position:absolute;left:${offX}px;top:${offY}px;width:${gridW}px;height:${gridH}px">`;
+  // Empêche les marqueurs du bord nord de déborder au-dessus du conteneur :
+  // le haut d'un marqueur = offY + p.y - PIN_H ; doit être >= 0.
+  const PIN_H = 32; // hauteur du pin au-dessus du point d'ancrage (px)
+  const minPy = Math.min(...state._mapStations.map(s => latLonToPx(s.lat, s.lon, z, nw.x, nw.y).y));
+  offY = Math.max(offY, PIN_H - minPy);
+
+  let html = `<div style="position:absolute;left:${offX}px;top:${offY}px;width:${gridW}px;height:${gridH}px;overflow:hidden">`;
   for (let ty = nw.y; ty <= se.y; ty++) for (let tx = nw.x; tx <= se.x; tx++) {
     html += `<img src="https://tile.openstreetmap.org/${z}/${tx}/${ty}.png" `
           + `style="position:absolute;left:${(tx-nw.x)*TILE_SZ}px;top:${(ty-nw.y)*TILE_SZ}px;width:${TILE_SZ}px;height:${TILE_SZ}px" `
