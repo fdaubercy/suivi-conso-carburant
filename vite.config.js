@@ -9,8 +9,8 @@ export default defineConfig(({ command }) => ({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false,
-    // Pas de minification agressive pour garder la lisibilité en debug
-    minify: 'esbuild',
+    // Minification via OXC (défaut Vite 8.x/rolldown — esbuild déprécié)
+    minify: true,
   },
 
   // ─── Vitest (W14) ───────────────────────────────────────────
