@@ -34,25 +34,21 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| X1 | **Bouton "Synchroniser"** sur la feuille `GS_Pleins` qui appelle `SyncManuel` | Pas besoin d'Alt+F11 pour debug |
-| X2 | **Génération auto du `sync_id`** dans le formulaire Excel à la saisie (pas seulement au sync) | Cohérence immédiate des UUID |
-| X3 | **Validation kilométrage** dans le formulaire VBA (warning si < dernier km) | Saisie propre |
-| X4 | **Mise en forme conditionnelle** sur colonne "Prix €/L" : vert si < moyenne 30 j, rouge si > | Visuel rentabilité |
+| X1 | **Bouton "Synchroniser"** sur la feuille `GS_Pleins` qui appelle `SyncManuel` | Pas besoin d'Alt+F11 pour lancer le sync |
+| X4 | **Mise en forme conditionnelle** sur colonne "Prix €/L" : vert si < moyenne 30 j, rouge si > | Visuel rentabilité immédiat |
 
 ### 🎯 Onglet "Tableau de bord"
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| X9 | **Économies cumulées E85 vs SP98** (calcul rétroactif depuis colonne J SP98 station) | Le ROI E85 |
-| X10 | **Carte stations** (image statique) avec moyenne prix | Visualisation géographique |
+| X9 | **Économies cumulées E85 vs SP98** (calcul rétroactif depuis colonne J SP98 station) | Le ROI E85 chiffré |
 
 ### 🛠️ Robustesse
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| X11 | **Onglet `_SyncLog`** : chaque sync ajoute une ligne (date, ←N, →N, durée) | Debug, historique |
+| X11 | **Onglet `_SyncLog`** : chaque sync ajoute une ligne (date, ←N, →N, durée) | Debug, historique des syncs |
 | X12 | **Backup auto** dans `Google Drive/Sauvegardes/Suivi conso E85_YYYYMMDD.xlsm` avant chaque sync majeure | Filet de sécurité |
-| X13 | **Détection doublons** : warning si date + km + litres identiques | Saisie en double |
 | X14 | **Onglet "Suivi des pleins" reconstruit depuis `_ImportGS`** : la table de suivi devient une vue dérivée du tableau de données (Power Query ou formules dynamiques sur `Tableau2`) au lieu d'être saisie manuellement | Source unique de vérité ; plus de double saisie ni de désynchronisation entre l'app web et le tableau Excel |
 
 ---
@@ -64,10 +60,9 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi |
 |---|---|---|
 | S1 | **Sync différentielle** : `?since=lastSyncTimestamp` côté GAS pour ne renvoyer que les nouveaux/modifiés | Plus rapide quand l'historique grandit |
-| S2 | **Édition bidirectionnelle** (pas que création) : si une ligne est modifiée d'un côté, la propager | Aujourd'hui on ne fait que ADD |
 | S3 | **Suppression bidirectionnelle** : flag `_deleted` au lieu de hard delete, sync efface l'autre côté | Cohérence si on corrige une erreur |
 | S4 | **Bouton "Force resync"** : vide `GS_Pleins`, ré-importe tout depuis GS | Reset si désalignement |
-| S5 | **Conflict resolution** : si même `sync_id` modifié des 2 côtés, garder le plus récent (timestamp) | Édition simultanée web/Excel |
+| S5 | **Conflict resolution avancée** : si même `sync_id` modifié des 2 côtés, garder le plus récent (timestamp) plutôt qu'Excel-wins systématique | Édition simultanée web/Excel sans perte |
 
 ### 🛡️ Sécurité
 
@@ -83,7 +78,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Rang | Item | Effort | Bénéfice |
 |---|---|---|---|
-| 1 | **X1** — Bouton "Synchroniser" sur la feuille Excel | 15 min | Ergonomie immédiate |
+| 1 | **X1** — Bouton "Synchroniser" sur la feuille GS_Pleins | 15 min | Ergonomie immédiate, plus besoin d'ouvrir l'IDE |
 | 2 | **S6** — Token secret sur les endpoints GAS | 30 min | Sécurité minimale, données aujourd'hui publiques |
 | 3 | **W15** — Auto-save brouillon localStorage | 1 h | UX : zéro perte de saisie |
 
@@ -105,7 +100,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.4.0.0 | **Tableau de bord Excel (X6)** — 10 KPIs + **format date français forcé (X5)** à l'ouverture |
 | v2.4.0.3 | Fix `CreerTableauDeBord` — détection dynamique nom table + colonnes par position |
 | v2.4.1.0 | **Dupliquer dernier plein (W2)** — bouton 📋 dans la carte historique, pré-remplit véhicule/type/station |
-| v2.4.2.0 | **Validation km rétrograde (W3)** — warning live + confirm au submit, filtré par véhicule |
+| v2.4.2.0 | **Validation km rétrograde (W3)** — warning live + confirm au submit, filtré par véhicule (web app) |
 | v2.4.3.0 | **Badge rentabilité E85 (W5)** — vert/orange sous le toggle, seuil 66% du SP98 |
 | v2.4.4.0 | **Stats live (W7)** — carte 4 KPIs (conso, €/100km, total 6 mois, éco E85) filtrée par véhicule |
 | v2.4.5.0 | **Stats par carburant + station "Nom - Ville"** — conso/€/100km filtrés sur type courant + format station avec ville en proper case |
@@ -116,6 +111,12 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.6.0.0 | **PWA install prompt (W4)** — `manifest.json` + icône SVG ⛽ + bannière "Installer" Android/Chrome + bannière instruction iOS Safari + `theme-color` |
 | v2.7.0.0 | **Vite bundler (W12)** — `vite.config.js`, `public/icons/`, workflow `deploy.yml` GitHub Actions → GitHub Pages, scripts `dev`/`build`/`preview` |
 | v2.7.0.0 | **Tests unitaires Vitest (W14)** — `tests/utils.test.js` (30 cas) + `tests/prix.test.js` (8 cas, fetch mocké) ; job `test` ajouté dans `ci.yml` |
+| v2.8.0.0 | **Carte statique stations habituelles + prix moyens (X10)** — card `#stationsMapCard` + mini-carte OSM non-interactive + liste triée par prix E85 moyen (`stationsmap.js`) ; coordonnées persistées en localStorage au fur et à mesure des sélections |
+| v2.8.0.0 | **Détection doublons formulaire web** — warning inline `#dupeWarn` si date + km + litres identiques à un plein existant ; confirm supplémentaire à la soumission |
+| v2.9.0.0 | **Auto sync_id à la saisie (X2)** — `Worksheet_Change` [F1] : UUID généré en col O dès la saisie, sans attendre le prochain `SyncManuel()` |
+| v2.9.0.0 | **Validation kilométrage VBA (X3)** — `Worksheet_Change` [F3] : warning si km saisi < max km enregistré pour le même véhicule |
+| v2.9.0.0 | **Détection doublons VBA (X13)** — `Worksheet_Change` [F4] : warning si Date + Km + Litres (au centilitre) correspondent à une ligne existante |
+| v2.9.0.0 | **Édition bidirectionnelle complète (S2)** — col P dirty flag posé à la saisie + `ExportModificationsToGS` (bulkUpdate Excel→GS) + `UpdateRowFromGS` (GS→Excel si non dirty) ; résolution de conflit : Excel gagne si col P renseignée |
 
 ---
 
