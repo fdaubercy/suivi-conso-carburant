@@ -342,20 +342,46 @@ stationSubLabel(r)
 
 **Cause** : le scope `script.external_request` (accès réseau externe) n'a pas été autorisé lors du déploiement initial — typiquement après avoir ajouté `UrlFetchApp.fetch` à un script déjà déployé.
 
-**Correction** :
+**Correction — étape 1 : déclarer le scope dans le manifeste**
 
 1. Ouvrir le Google Sheet → **Extensions → Apps Script**
-2. Ajouter cette fonction temporaire et l'**exécuter** (▶) :
-```javascript
-function authoriserFetch() {
-  UrlFetchApp.fetch('https://www.google.com');
+2. **⚙️ Paramètres du projet** → cocher **"Afficher le fichier manifeste appsscript.json"**
+3. Ouvrir `appsscript.json` et ajouter le bloc `oauthScopes` :
+```json
+{
+  "timeZone": "Europe/Paris",
+  "dependencies": {},
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "webapp": { "executeAs": "USER_DEPLOYING", "access": "ANYONE_ANONYMOUS" },
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/script.external_request"
+  ]
 }
 ```
-3. Valider la fenêtre **"Autorisation requise"** → choisir son compte → **Autoriser**
-4. Supprimer la fonction temporaire
-5. **Déployer → Gérer les déploiements** → crayon ✏️ → **Nouvelle version → Déployer**
+4. Sauvegarder (`Ctrl+S`)
 
-> Le GAS s'exécute sous l'identité du propriétaire du script (« Execute as: Me »). Chaque nouveau scope doit être explicitement consenti par le propriétaire avant d'être utilisable par le déploiement.
+**Correction — étape 2 : autoriser**
+
+Exécuter n'importe quelle fonction dans l'éditeur (ex. `migrateSyncId`) :
+- **Une fenêtre "Autorisation requise" s'ouvre** → Examiner les autorisations → choisir son compte → **Autoriser** → passer à l'étape 3.
+- **Aucune fenêtre** → le scope est déjà autorisé pour ce compte (c'est normal). Passer directement à l'étape 3.
+
+**Correction — étape 3 : redéployer**
+
+**Déployer → Gérer les déploiements** → crayon ✏️ → **Nouvelle version → Déployer**
+
+---
+
+**Si l'erreur persiste après le redéploiement** — révoquer et réautoriser depuis zéro :
+
+1. Aller sur [myaccount.google.com/permissions](https://myaccount.google.com/permissions)
+2. Trouver **"Google Apps Script"** (ou le nom du script) → **Supprimer l'accès**
+3. Retourner dans l'éditeur GAS → exécuter une fonction → la fenêtre réapparaît avec **tous** les scopes → **Autoriser**
+4. Redéployer (nouvelle version)
+
+> Le GAS s'exécute sous l'identité du propriétaire du script (« Execute as: Me »). Chaque scope doit être consenti par le propriétaire. Un déploiement n'hérite que des scopes autorisés au moment de sa création — d'où la nécessité de redéployer après toute nouvelle autorisation.
 
 ---
 
