@@ -1,5 +1,5 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend                v2.5.0.0
+//  SUIVI CONSO E85 — Web App Backend                v2.9.0.0
 //
 //  ⚠️  BREAKING CHANGE v2.3.0.0 : suppression colonne G "Prix S98 jour"
 //  La colonne K "SP98 station (€/L)" est désormais la seule source SP98.
@@ -8,6 +8,12 @@
 //  W17 — Scan ticket de caisse :
 //  Configurer la clé Gemini dans : Extensions → Apps Script
 //  → Paramètres du projet → Propriétés de script → GEMINI_API_KEY
+//
+//  v2.9.0.0 — Sync bidirectionnel complet (Excel ↔ GS)
+//  Nouveau : action=bulkUpdate — upsert par sync_id depuis Excel VBA
+//    • Ligne trouvée par sync_id → MAJ cols B–N (préserve col A horodatage)
+//    • Ligne absente du GS      → ajout (upsert)
+//    • Retourne { status:'ok', updated:N, added:M }
 // ============================================================
 const SPREADSHEET_ID  = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const SHEET_NAME      = '_ImportGS';
@@ -16,7 +22,7 @@ const VEHICULES_SHEET = 'Vehicules';
 
 const HEADERS = [
   'Horodatage', 'Date', 'Type', 'Km compteur',         // A B C D
-  'Nb. Litres', 'Prix €/L', 'Station essence',         // E F G  (G était "Prix S98 jour" — supprimé)
+  'Nb. Litres', 'Prix €/L', 'Station essence',         // E F G
   'Véhicule',                                           // H
   'E85 station (€/L)', 'SP98 station (€/L)',           // I J
   'SP95 station (€/L)', 'E10 station (€/L)',           // K L
@@ -24,12 +30,12 @@ const HEADERS = [
   'sync_id'                                             // O — identifiant unique
 ];
 
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 //  doGet
 //  • ?action=export  → JSON de tous les enregistrements (sync Excel)
 //  • ?v=mobile       → page HTML mobile
 //  • (aucun param)   → page HTML index
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 function doGet(e) {
   if (e.parameter.action === 'export') {
     return handleExport();
@@ -42,9 +48,9 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 //  handleExport — retourne tous les enreg. de _ImportGS en JSON
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 function handleExport() {
   const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = getOrCreateSheet(ss);
@@ -68,9 +74,9 @@ function handleExport() {
   return jsonResponse({ records });
 }
 
-// ────────────────────────────────────────────────────────────
-//  doPost
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+//  doPost — dispatcher principal
+// ─────────────────────────────────────────────────────────────
 function doPost(e) {
   const payload = JSON.parse(e.postData.contents);
   const ss      = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -112,6 +118,11 @@ function doPost(e) {
     return handleBulkAdd(ss, payload.rows || []);
   }
 
+  // ── v2.9.0.0 — Sync bidir. : MAJ de lignes existantes depuis Excel ──
+  if (payload.action === 'bulkUpdate') {
+    return handleBulkUpdate(ss, payload.rows || []);
+  }
+
   // ── W17 — Scan ticket de caisse via Gemini Vision ──
   if (payload.action === 'scanTicket') {
     return handleScanTicket(payload.imageBase64, payload.mimeType);
@@ -143,15 +154,10 @@ function doPost(e) {
   return jsonResponse({ success: true, sync_id: syncId });
 }
 
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 //  handleScanTicket — W17
 //  Analyse une photo de ticket de caisse via l'API Gemini Vision
-//  et retourne les champs du plein extraits en JSON.
-//
-//  Pré-requis : clé API Gemini dans les propriétés de script
-//    Extensions → Apps Script → Paramètres → Propriétés de script
-//    → Ajouter : GEMINI_API_KEY = <votre clé>
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 function handleScanTicket(imageBase64, mimeType) {
   const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
 
@@ -204,7 +210,6 @@ function handleScanTicket(imageBase64, mimeType) {
 
     const text = (result.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
 
-    // Extrait le premier objet JSON de la réponse (robuste si l'IA ajoute du texte)
     const jsonMatch = text.match(/\{[\s\S]*?\}/);
     if (!jsonMatch) {
       return jsonResponse({ success: false, error: 'Réponse non parseable.', raw: text });
@@ -218,10 +223,10 @@ function handleScanTicket(imageBase64, mimeType) {
   }
 }
 
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 //  handleBulkAdd — insère des lignes envoyées par Excel
-//  Déduplique par sync_id (colonne O = index 14)
-// ────────────────────────────────────────────────────────────
+//  Déduplique par sync_id (col O = index 14)
+// ─────────────────────────────────────────────────────────────
 function handleBulkAdd(ss, rows) {
   const sheet = getOrCreateSheet(ss);
   const data  = sheet.getDataRange().getValues();
@@ -260,9 +265,84 @@ function handleBulkAdd(ss, rows) {
   return jsonResponse({ success: true, added, skipped: rows.length - added });
 }
 
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+//  handleBulkUpdate — v2.9.0.0
+//  Propage les modifications Excel → GS (sync bidirectionnel).
+//  Appelé par VBA ExportModificationsToGS (action=bulkUpdate).
+//
+//  Comportement par ligne :
+//    • sync_id trouvé dans GS → MAJ cols B–N (préserve col A horodatage)
+//    • sync_id absent du GS  → upsert (appendRow, cas bord de désync)
+//
+//  Retourne : { status:'ok', updated:N, added:M }
+//  Le VBA efface la col P (last_modified) si status === 'ok'.
+// ─────────────────────────────────────────────────────────────
+function handleBulkUpdate(ss, rows) {
+  if (!rows || rows.length === 0) {
+    return jsonResponse({ status: 'ok', updated: 0, added: 0 });
+  }
+
+  const sheet = getOrCreateSheet(ss);
+  const data  = sheet.getDataRange().getValues();
+
+  // Construire la map sync_id → numéro de ligne dans le sheet (1-based)
+  // data[0] = en-têtes, data[1] = ligne 2 du sheet, etc.
+  const idToSheetRow = {};
+  for (let i = 1; i < data.length; i++) {
+    const sid = String(data[i][14] || '').trim();
+    if (sid) idToSheetRow[sid] = i + 1;  // +1 : ligne 1 du sheet = data[0] (en-têtes)
+  }
+
+  let updated = 0;
+  let added   = 0;
+
+  rows.forEach(row => {
+    if (!row.sync_id) return;
+
+    const sp = row.stationPrices || {};
+
+    // Valeurs cols B–O (indices 1–14 du schema, cols 2–15 du sheet)
+    const colsBtoO = [
+      row.date ? new Date(row.date) : '',           // B — Date
+      row.type || '',                                // C — Type
+      Number(row.km)     || 0,                       // D — Km compteur
+      Number(row.litres) || 0,                       // E — Nb. Litres
+      Number(row.prix)   || 0,                       // F — Prix €/L
+      row.station   || '',                           // G — Station essence
+      row.vehicule  || '',                           // H — Véhicule
+      sp.E85    ? Number(sp.E85)    : '',            // I — E85 station
+      sp.SP98   ? Number(sp.SP98)   : '',            // J — SP98 station
+      sp.SP95   ? Number(sp.SP95)   : '',            // K — SP95 station
+      sp.E10    ? Number(sp.E10)    : '',            // L — E10 station
+      sp.GAZOLE ? Number(sp.GAZOLE) : '',            // M — Gazole station
+      sp.GPLC   ? Number(sp.GPLC)   : '',            // N — GPLc station
+      row.sync_id,                                   // O — sync_id (inchangé)
+    ];
+
+    if (idToSheetRow.hasOwnProperty(row.sync_id)) {
+      // ── Ligne existante : MAJ cols B–O, col A (horodatage) preservee ──
+      const sheetRow = idToSheetRow[row.sync_id];
+      sheet.getRange(sheetRow, 2, 1, colsBtoO.length)
+           .setValues([colsBtoO]);
+      updated++;
+
+    } else {
+      // ── Ligne absente (desync edge case) : upsert ──
+      sheet.appendRow([
+        row.horodatage ? new Date(row.horodatage) : new Date(),  // A
+        ...colsBtoO
+      ]);
+      idToSheetRow[row.sync_id] = sheet.getLastRow();
+      added++;
+    }
+  });
+
+  return jsonResponse({ status: 'ok', updated, added });
+}
+
+// ─────────────────────────────────────────────────────────────
 //  migrateRemoveS98 — À exécuter UNE SEULE FOIS manuellement
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 function migrateRemoveS98() {
   const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = getOrCreateSheet(ss);
@@ -277,9 +357,9 @@ function migrateRemoveS98() {
   Logger.log('✅ migrateRemoveS98 — colonne G supprimée, schéma réduit à 15 colonnes (A→O).');
 }
 
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 //  migrateSyncId — À exécuter UNE SEULE FOIS (legacy)
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 function migrateSyncId() {
   const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = getOrCreateSheet(ss);
@@ -307,9 +387,9 @@ function migrateSyncId() {
   Logger.log(`✅ migrateSyncId — ${count} UUID générés sur ${last - 1} lignes.`);
 }
 
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 //  migrateHeaders — Réécrit les 15 en-têtes A→O
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 function migrateHeaders() {
   const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = getOrCreateSheet(ss);
@@ -328,9 +408,9 @@ function migrateHeaders() {
   Logger.log('✅ migrateHeaders — ' + HEADERS.length + ' colonnes en ligne 1.');
 }
 
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 //  Helpers
-// ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 function getOrCreateSheet(ss) {
   let sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
