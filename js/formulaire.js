@@ -5,8 +5,45 @@ import { setAutreStatus, hideCpSearch, setSubmitState, showFeedback, updateCout 
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
 import { fetchPricesNearUser, fetchNearestE85Price, evalRentabiliteE85 } from './prix.js';
 import { syncStationSiNouvelle } from './stations.js';
-import { chargerHistorique, getMaxKmForVehicule } from './historique.js';
+import { chargerHistorique, getMaxKmForVehicule, getAllRecords } from './historique.js';
 import { updateRentabilite } from './rentabilite.js';
+
+/**
+ * Détection de doublon : warning si date + km + litres identiques à un enregistrement existant.
+ * Appelée sur oninput de fDate, fKm, fLitres.
+ */
+export function checkDuplicate() {
+  const warn   = document.getElementById('dupeWarn');
+  if (!warn) return;
+
+  const date   = document.getElementById('fDate').value;
+  const km     = document.getElementById('fKm').value.trim();
+  const litres = document.getElementById('fLitres').value.trim();
+
+  if (!date || !km || !litres) { warn.hidden = true; return; }
+
+  const kmN  = Number(km);
+  const litN = Math.round(Number(litres) * 100); // compare en centilitres (évite les flottants)
+
+  const found = getAllRecords().find(r => {
+    const rDate = String(r.Date || r.Horodatage || '').slice(0, 10);
+    const rKm   = Number(r['Km compteur'] || 0);
+    const rLit  = Math.round(Number(r['Nb. Litres'] || 0) * 100);
+    return rDate === date && rKm === kmN && rLit === litN;
+  });
+
+  if (found) {
+    const d = new Date(date);
+    const label = isNaN(d) ? date
+      : String(d.getDate()).padStart(2,'0') + '/'
+      + String(d.getMonth()+1).padStart(2,'0') + '/'
+      + d.getFullYear();
+    warn.textContent = `⚠️ Doublon probable — un plein de ${Number(litres).toFixed(2)} L à ${km} km existe déjà le ${label}.`;
+    warn.hidden = false;
+  } else {
+    warn.hidden = true;
+  }
+}
 
 /** Validation live du km saisi par rapport au dernier plein du véhicule courant. */
 export function onKmInput() {
@@ -56,6 +93,23 @@ export async function submitForm() {
   if (station === '__autre') station = document.getElementById('fAutre').value.trim();
   if (!date || !km || !litres || !prix) { showFeedback('error', 'Champs manquants', 'Date, km, litres et prix sont obligatoires.'); return; }
   if (!station) { showFeedback('error', 'Station manquante', 'Sélectionnez ou saisissez le nom de la station.'); return; }
+
+  // Détection doublon (date + km + litres identiques)
+  const kmN2  = Number(km);
+  const litN2 = Math.round(Number(litres) * 100);
+  const dupeFound = getAllRecords().find(r => {
+    const rDate = String(r.Date || r.Horodatage || '').slice(0, 10);
+    return rDate === date && Number(r['Km compteur']||0) === kmN2
+        && Math.round(Number(r['Nb. Litres']||0)*100) === litN2;
+  });
+  if (dupeFound) {
+    const ok = confirm(
+      '⚠️ Doublon détecté\n\n' +
+      'Un plein de ' + litres + ' L à ' + km + ' km existe déjà pour cette date.\n\n' +
+      'Continuer quand même ?'
+    );
+    if (!ok) return;
+  }
 
   // Validation km rétrograde : confirme si km < dernier_km du véhicule courant
   const lastKm = getMaxKmForVehicule(vehicule);

@@ -12,7 +12,7 @@ import { _buildTypeToggle, setType, registerPriceCallback } from './carburant.js
 import { fetchPricesNearUser, fetchPricesByCP } from './prix.js';
 import { geolocate, pickStation, highlightNearbyItem } from './geo.js';
 import { onAutreInput, setRadius } from './recherche.js';
-import { onStationChange, onKmInput, submitForm, resetForm } from './formulaire.js';
+import { onStationChange, onKmInput, submitForm, resetForm, checkDuplicate } from './formulaire.js';
 import { chargerStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
 import { chargerHistorique, dupliquerDernier } from './historique.js';
@@ -55,6 +55,7 @@ Object.assign(window, {
   setRadius,
   onStationChange,
   onKmInput,
+  checkDuplicate,
   onVehiculeChange,
   confirmerAjoutVehicule,
   fetchPricesByCP,

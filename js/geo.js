@@ -3,6 +3,7 @@ import { FUEL_CONFIG, FUEL_KEYS, FUEL_SELECT } from './config.js';
 import { state } from './state.js';
 import { haversine, escHtml, getCoords, stationLabel, stationSubLabel, composeStationName } from './utils.js';
 import { setGeoStatus } from './ui.js';
+import { cacheStationCoords } from './stationsmap.js';
 import { enrichWithOsmSerial } from './osm.js';
 import { showMap } from './carte.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
@@ -96,6 +97,7 @@ export function pickStation(name, lat, lon) {
   document.getElementById('nearbyList').style.display = 'none';
   document.getElementById('autreField').classList.add('hidden');
   setGeoStatus('', '');
+  cacheStationCoords(name, lat, lon);
   state._selectedLat = lat; state._selectedLon = lon;
   state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
   fetchPricesAtCoords(lat, lon, true);

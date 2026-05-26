@@ -803,3 +803,98 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
 }
 .pwa-install-btn:active { background: rgba(255,255,255,.3); }
 .pwa-install-btn[hidden] { display: none; }
+
+/* ═══════════════════════════════════════
+   Carte statique Stations habituelles
+   ═══════════════════════════════════════ */
+.static-map {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  background: #e8e0d8;
+  overflow: hidden;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+[data-theme="dark"] .static-map { background: #1e293b; }
+
+/* Pin prix sur la carte */
+.smap-pin {
+  display: inline-block;
+  background: var(--blue-dark);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 5px;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0,0,0,.35);
+  line-height: 1.5;
+}
+.smap-pin-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--blue-dark);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  margin: 2px auto 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+
+/* Liste des stations */
+.smap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.smap-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  min-width: 0;
+}
+.smap-name {
+  flex: 1;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.smap-prix {
+  font-weight: 700;
+  color: var(--blue-mid);
+  white-space: nowrap;
+}
+.smap-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.smap-best {
+  font-size: 10px;
+  background: var(--green-light);
+  color: #085041;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+[data-theme="dark"] .smap-best { color: #6ee7b7; }
+
+/* ═══════════════════════════════════════
+   Avertissement doublon formulaire
+   ═══════════════════════════════════════ */
+.dupe-warn {
+  margin-top: 8px;
+  padding: 9px 13px;
+  background: rgba(234, 179, 8, .1);
+  border: 1px solid rgba(234, 179, 8, .45);
+  border-radius: 8px;
+  color: #92400e;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.dupe-warn[hidden] { display: none; }
+[data-theme="dark"] .dupe-warn { color: #fbbf24; background: rgba(234,179,8,.08); border-color: rgba(234,179,8,.3); }

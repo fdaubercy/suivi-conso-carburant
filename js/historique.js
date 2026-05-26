@@ -2,6 +2,7 @@
 import { GAS_URL, FUEL_CONFIG } from './config.js';
 import { showFeedback } from './ui.js';
 import { renderStats } from './stats.js';
+import { renderStationsCard } from './stationsmap.js';
 
 let _lastRecord  = null;   // memorise le plein le plus recent pour dupliquerDernier()
 let _allRecords  = [];     // memorise TOUS les enregistrements pour validation km retrograde
@@ -36,6 +37,7 @@ export async function chargerHistorique() {
     _lastRecord = recent[0];   // pour dupliquerDernier()
     el.innerHTML = recent.map(renderItem).join('');
     renderStats();             // recalcule les stats avec les nouvelles donnees
+    renderStationsCard();      // met à jour la carte statique des stations habituelles
   } catch (e) {
     el.innerHTML = '<div class="hist-msg err">Erreur — ' + (e.message || 'réseau') + '</div>';
     _lastRecord = null;
