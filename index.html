@@ -14,14 +14,7 @@
 </head>
 <body>
 
-<!-- PWA : banniere install Android/Chrome -->
-<div id="installBanner" class="pwa-banner" hidden>
-  <span>📲 Installer l'app sur votre écran d'accueil</span>
-  <button onclick="window._pwaInstall()" class="pwa-btn">Installer</button>
-  <button onclick="window._pwaDismiss('installBanner')" class="pwa-close">✕</button>
-</div>
-
-<!-- PWA : banniere install iOS Safari -->
+<!-- PWA : banniere install iOS Safari (instruction manuelle) -->
 <div id="iosBanner" class="pwa-banner pwa-banner--ios" hidden>
   <span>📲 Safari → <strong>Partager</strong> → <strong>Sur l'écran d'accueil</strong></span>
   <button onclick="window._pwaDismiss('iosBanner')" class="pwa-close">✕</button>
@@ -33,6 +26,9 @@
     <h1>Saisie d'un plein</h1>
     <span id="appVersion" class="version-tag"></span>
   </div>
+  <!-- PWA : bouton install Android/Chrome (visible uniquement si beforeinstallprompt) -->
+  <button id="pwaInstallBtn" class="pwa-install-btn" hidden
+          onclick="window._pwaInstall()" title="Installer l'app sur l'écran d'accueil">📲</button>
   <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Changer de thème">🌙</button>
   <div class="header-right">
     <span class="badge" id="headerBadge">🌿 E85</span>

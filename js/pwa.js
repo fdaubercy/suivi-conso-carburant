@@ -1,11 +1,11 @@
 // ============================================================
 //  PWA — Install prompt   W4
-//  Android/Chrome : beforeinstallprompt -> bouton "Installer"
+//  Android/Chrome : beforeinstallprompt -> bouton 📲 dans le header
 //  iOS Safari     : banner instruction manuelle (apres 4 s)
 // ============================================================
 
 let _deferred = null;
-const BANNER_DISMISSED_KEY = 'pwa_banner_dismissed';
+const IOS_DISMISSED_KEY = 'pwa_ios_dismissed';
 
 export function initPWA() {
   // Deja installee en mode standalone -> rien a faire
@@ -14,32 +14,29 @@ export function initPWA() {
     window.navigator.standalone === true;
   if (isStandalone) return;
 
-  // Deja dismissed par l'utilisateur
-  if (sessionStorage.getItem(BANNER_DISMISSED_KEY)) return;
-
-  // --- Android / Chrome ---
+  // --- Android / Chrome : bouton 📲 dans le header ---
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     _deferred = e;
-    _show('installBanner');
+    _show('pwaInstallBtn');
   });
 
   window.addEventListener('appinstalled', () => {
-    _hide('installBanner');
+    _hide('pwaInstallBtn');
     _deferred = null;
   });
 
-  // --- iOS Safari ---
+  // --- iOS Safari : banner instruction manuelle ---
   const ua = navigator.userAgent.toLowerCase();
   const isIOS    = /iphone|ipad|ipod/.test(ua);
   const isSafari = /safari/.test(ua) && !/chrome|crios|fxios/.test(ua);
-  if (isIOS && isSafari) {
+  if (isIOS && isSafari && !sessionStorage.getItem(IOS_DISMISSED_KEY)) {
     setTimeout(() => _show('iosBanner'), 4000);
   }
 
   // Expose pour les onclick HTML
-  window._pwaInstall  = triggerInstall;
-  window._pwaDismiss  = dismiss;
+  window._pwaInstall = triggerInstall;
+  window._pwaDismiss = dismiss;
 }
 
 export function triggerInstall() {
@@ -47,13 +44,14 @@ export function triggerInstall() {
   _deferred.prompt();
   _deferred.userChoice.then(() => {
     _deferred = null;
-    _hide('installBanner');
+    _hide('pwaInstallBtn');
   });
 }
 
 export function dismiss(id) {
   _hide(id);
-  sessionStorage.setItem(BANNER_DISMISSED_KEY, '1');
+  // Seul le banner iOS est dismissed en session (bouton header n'a pas besoin)
+  if (id === 'iosBanner') sessionStorage.setItem(IOS_DISMISSED_KEY, '1');
 }
 
 function _show(id) {
