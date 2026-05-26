@@ -333,6 +333,32 @@ stationSubLabel(r)
 
 ---
 
+## 🔧 Dépannage GAS
+
+### "Vous n'êtes pas autorisé à appeler UrlFetchApp.fetch"
+
+**Symptôme** : le scan de ticket (ou toute action GAS utilisant `UrlFetchApp`) retourne l'erreur :
+> `Vous n'êtes pas autorisé à appeler UrlFetchApp.fetch. Autorisations requises : https://www.googleapis.com/auth/script.external_request`
+
+**Cause** : le scope `script.external_request` (accès réseau externe) n'a pas été autorisé lors du déploiement initial — typiquement après avoir ajouté `UrlFetchApp.fetch` à un script déjà déployé.
+
+**Correction** :
+
+1. Ouvrir le Google Sheet → **Extensions → Apps Script**
+2. Ajouter cette fonction temporaire et l'**exécuter** (▶) :
+```javascript
+function authoriserFetch() {
+  UrlFetchApp.fetch('https://www.google.com');
+}
+```
+3. Valider la fenêtre **"Autorisation requise"** → choisir son compte → **Autoriser**
+4. Supprimer la fonction temporaire
+5. **Déployer → Gérer les déploiements** → crayon ✏️ → **Nouvelle version → Déployer**
+
+> Le GAS s'exécute sous l'identité du propriétaire du script (« Execute as: Me »). Chaque nouveau scope doit être explicitement consenti par le propriétaire avant d'être utilisable par le déploiement.
+
+---
+
 ## 📦 Technologies
 
 - HTML / CSS / JavaScript vanilla (ES Modules)
