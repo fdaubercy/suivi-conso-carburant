@@ -8,23 +8,34 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ### Added
 
-#### 🔄 Sync bidirectionnel Excel ↔ Google Sheets (VBA)
-- **`vba/GS_Pleins_snippet.bas`** (nouveau) : module feuille `GS_Pleins` — à coller dans le module VBA de la feuille.
-  - **[F1] Auto sync_id à la saisie** : `Worksheet_Change` génère un UUID en col O dès qu'une cellule de données (A:N) est modifiée sur une ligne active (Date ou Km renseigné). Le sync_id n'attend plus le prochain `SyncManuel()`.
-  - **[F2] Marquage modification locale** : toute modification sur A:N inscrit `Now()` en col P (`last_modified`). Flag consommé par `ExportModificationsToGS`.
-  - **[F3] Validation kilométrage** : warning `vbExclamation` si le km saisi est inférieur au max km enregistré pour le même véhicule. Comparaison par véhicule si renseigné, global sinon.
-  - **[F4] Détection doublons** : warning si Date + Km + Litres (au centilitre) correspondent à une ligne existante. Déclenché sur modification de col B, D ou E.
-- **`vba/modSyncGS.bas`** — mise à jour v2.9.0.0 :
-  - **Col P `Modifie_local`** : nouvelle colonne 16 (`COL_MODIFIED`). Initialisée automatiquement par `EnsureModifiedColHeader` (appelée à chaque `SyncCore` et `ForceFormatDates`).
-  - **`ExportModificationsToGS`** : collecte les lignes avec sync_id déjà dans GS + col P renseignée → POST `action=bulkUpdate`. Efface col P après succès HTTP 200. Tolère l'absence du handler GAS (conserve col P si réponse vide ou erreur).
-  - **`ImportGSToExcel`** — MAJ bidirectionnelle : pour les lignes existantes (sync_id connu), si col P vide (pas de modif locale) et valeurs GS différentes (Date/Km/Litres) → `UpdateRowFromGS` met à jour les cols 2–14. Si col P renseignée → Excel gagne, skip GS.
-  - **`BuildLocalRowMap`** : dictionnaire `sync_id → numéro de ligne` pour les MAJ GS→Excel.
-  - **`RowMatchesGS`** : compare Date (yyyy-mm-dd), Km (±0.5), Litres (±0.01) local vs GS.
-  - **`UpdateRowFromGS`** : écrase cols 2–14 depuis le record GS (préserve col 1 horodatage, col 15 sync_id, col 16 modified).
-  - **`SyncDiagnose`** : affiche le nombre de lignes dirty (col P set) dans le rapport.
-  - **`SyncCore`** : statut détaillé — `<-N nouv. +M MAJ / ->N nouv. +M MAJ`.
+#### 🔄 Sync bidirectionnel Excel ↔ Google Sheets — complet
 
-> **Note GAS** : `ExportModificationsToGS` envoie `action=bulkUpdate`. Ajouter le handler correspondant dans le Apps Script (upsert par `sync_id`) pour propager les modifications Excel→GS. Sans ce handler, col P est conservée et les modifs seront renvoyées au prochain sync.
+**VBA — `vba/GS_Pleins_snippet.bas`** (nouveau module feuille) :
+- **[F1] Auto sync_id à la saisie** : `Worksheet_Change` génère un UUID en col O dès qu'une cellule de données (A:N) est modifiée sur une ligne active (Date ou Km renseigné). Le sync_id n'attend plus le prochain `SyncManuel()`.
+- **[F2] Marquage modification locale** : toute modification sur A:N inscrit `Now()` en col P (`last_modified`). Flag consommé par `ExportModificationsToGS`.
+- **[F3] Validation kilométrage** : warning `vbExclamation` si le km saisi est inférieur au max km enregistré pour le même véhicule. Comparaison par véhicule si renseigné, global sinon.
+- **[F4] Détection doublons** : warning si Date + Km + Litres (au centilitre) correspondent à une ligne existante. Déclenché sur modification de col B, D ou E.
+
+**VBA — `vba/modSyncGS.bas`** — mise à jour v2.9.0.0 :
+- **Col P `Modifie_local`** : nouvelle colonne 16 (`COL_MODIFIED`). Initialisée automatiquement par `EnsureModifiedColHeader` (appelée à chaque `SyncCore` et `ForceFormatDates`).
+- **`ExportModificationsToGS`** : collecte les lignes avec sync_id déjà dans GS + col P renseignée → POST `action=bulkUpdate`. Efface col P après succès HTTP 200. Tolère l'absence du handler GAS (conserve col P si réponse vide ou erreur).
+- **`ImportGSToExcel`** — MAJ bidirectionnelle : pour les lignes existantes (sync_id connu), si col P vide (pas de modif locale) et valeurs GS différentes (Date/Km/Litres) → `UpdateRowFromGS` met à jour les cols 2–14. Si col P renseignée → Excel gagne, skip GS.
+- **`BuildLocalRowMap`** : dictionnaire `sync_id → numéro de ligne` pour les MAJ GS→Excel.
+- **`RowMatchesGS`** : compare Date (yyyy-mm-dd), Km (±0.5), Litres (±0.01) local vs GS.
+- **`UpdateRowFromGS`** : écrase cols 2–14 depuis le record GS (préserve col 1 horodatage, col 15 sync_id, col 16 modified).
+- **`SyncDiagnose`** : affiche le nombre de lignes dirty (col P set) dans le rapport.
+- **`SyncCore`** : statut détaillé — `<-N nouv. +M MAJ / ->N nouv. +M MAJ`.
+
+**GAS — `Google Drive/.../Code.gs`** — mise à jour v2.9.0.0 :
+- **`handleBulkUpdate(ss, rows)`** : upsert par `sync_id` — ligne trouvée → MAJ cols B–N (préserve col A Horodatage) ; ligne absente → `appendRow` (cas de désync). Retourne `{ status:'ok', updated:N, added:M }`.
+- Dispatch `action === 'bulkUpdate'` dans `doPost`.
+
+**GAS — `Google Drive/.../GAS_UPDATE.md`** :
+- Réécrit entièrement (était v2.1.3.0). Documente désormais toutes les actions `doGet`/`doPost` (`export`, `addStation`, `syncStations`, `addVehicule`, `removeVehicule`, `bulkAdd`, `bulkUpdate`, `scanTicket`), le schéma complet A→O, les fonctions de migration et l'historique des versions GAS.
+
+### Changed
+- **`excel/Suivi conso E85.xlsm`** : modules VBA mis à jour — `modSyncGS` (v2.9.0.0, sync bidir. complet) + module feuille `GS_Pleins` (F1–F4 : auto sync_id, dirty flag, validation km, doublons).
+- **`package.json`** : `version` → `2.9.0.0`.
 
 ---
 
