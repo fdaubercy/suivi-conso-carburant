@@ -385,6 +385,24 @@ Exécuter n'importe quelle fonction dans l'éditeur (ex. `migrateSyncId`) :
 
 ---
 
+### "API key not valid. Please pass a valid API key."
+
+**Symptôme** : le scan de ticket retourne :
+> `Scan échoué — API key not valid. Please pass a valid API key.`
+
+**Cause** : la propriété de script `GEMINI_API_KEY` est absente, vide ou la clé a expiré/été révoquée.
+
+**Correction** :
+
+1. Obtenir une clé valide sur **[aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)** → **Créer une clé API** → copier la clé (format `AIzaSy...`)
+2. Dans l'éditeur GAS → **⚙️ Paramètres du projet** → section **"Propriétés de script"** → **Modifier les propriétés**
+3. Vérifier qu'une ligne `GEMINI_API_KEY` existe avec la clé en valeur — si absente, **Ajouter une propriété**
+4. **Enregistrer**
+
+> Pas besoin de redéployer : les propriétés de script sont lues à chaque exécution, pas au déploiement.
+
+---
+
 ## 📦 Technologies
 
 - HTML / CSS / JavaScript vanilla (ES Modules)
