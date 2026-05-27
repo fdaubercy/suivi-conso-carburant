@@ -12,7 +12,8 @@
    Support :
      Android Chrome/Edge : full (foreground + standalone)
      iOS Safari ≥ 16.4   : standalone PWA uniquement (installée via "Sur l'écran d'accueil")
-     iOS Safari (browser): non supporté (désactivé côté JS pour UX claire)
+     iOS Safari (browser): non supporté — toggle répond visuellement mais revient à off
+                           + message d'installation mis en évidence
      Firefox Desktop     : supporté
 ═══════════════════════════════════════════════════════════════════════ */
 
@@ -40,7 +41,7 @@ export const isIOSBrowser = (() => {
 /** L'API Notification est utilisable dans ce contexte. */
 export const isSupported = () => !isIOSBrowser && 'Notification' in window;
 
-export const isEnabled   = () => isSupported() && localStorage.getItem(KEY_ENABLED) === '1';
+export const isEnabled     = () => isSupported() && localStorage.getItem(KEY_ENABLED) === '1';
 export const getPermission = () => isSupported() ? Notification.permission : 'unsupported';
 
 export function getSeuil() {
@@ -78,7 +79,7 @@ export async function toggleNotifications(enable) {
 
   if (Notification.permission === 'denied') {
     updateNotifUI();
-    return false;     // l'utilisateur a bloqué dans les réglages OS
+    return false;
   }
 
   /* default → demander (peut lever une exception sur certains navigateurs) */
@@ -94,7 +95,6 @@ export async function toggleNotifications(enable) {
   if (perm === 'granted') {
     localStorage.setItem(KEY_ENABLED, '1');
     updateNotifUI();
-    /* Notification de confirmation */
     new Notification('✓ Alertes E85 activées', {
       body: `Vous serez alerté quand l'E85 passe sous ${getSeuil().toFixed(3)} €/L.`,
       icon: 'icons/icon.svg',
@@ -110,11 +110,6 @@ export async function toggleNotifications(enable) {
 
 /* ─── Vérification prix ──────────────────────────────────────────────── */
 
-/**
- * Émet une notification si le prix E85 est sous le seuil.
- * @param {number|string} prixE85   Prix E85 en €/L
- * @param {string}        [station] Nom de la station (optionnel)
- */
 export function checkPrixE85Alert(prixE85, station) {
   if (!isEnabled()) return;
   if (Notification.permission !== 'granted') return;
@@ -133,10 +128,26 @@ export function checkPrixE85Alert(prixE85, station) {
     new Notification('🌿 Prix E85 avantageux !', {
       body,
       icon: 'icons/icon.svg',
-      tag:  'e85-price-alert',    // remplace la précédente (pas de spam)
+      tag:  'e85-price-alert',
       badge: 'icons/icon.svg',
     });
   }
+}
+
+/* ─── UI helpers ─────────────────────────────────────────────────────── */
+
+/**
+ * Met en évidence le message iOS (#notifIOS) avec une animation ambre.
+ * Appelé quand l'utilisateur tape le toggle sur iOS browser.
+ */
+function _highlightIOSBanner() {
+  const el = document.getElementById('notifIOS');
+  if (!el) return;
+  el.hidden = false;
+  /* Force un reflow pour relancer l'animation si déjà présente */
+  el.classList.remove('notif-flash');
+  void el.offsetWidth;
+  el.classList.add('notif-flash');
 }
 
 /* ─── UI ─────────────────────────────────────────────────────────────── */
@@ -163,7 +174,9 @@ export function updateNotifUI() {
 
   if (toggle) {
     toggle.checked  = enabled;
-    toggle.disabled = !supported || perm === 'denied';
+    /* iOS browser : toggle NON désactivé → garde le retour visuel au tap,
+       géré dans initNotifications() pour afficher le message d'installation. */
+    toggle.disabled = !isIOSBrowser && (!supported || perm === 'denied');
   }
   if (seuilRow) seuilRow.hidden = !enabled;
 }
@@ -171,25 +184,38 @@ export function updateNotifUI() {
 /* ─── Init ───────────────────────────────────────────────────────────── */
 
 export function initNotifications() {
-  updateNotifUI();                    // affiche l'état initial (iOS, non supporté, etc.)
-  if (!isSupported()) return;         // rien à câbler si non disponible
+  updateNotifUI();
 
-  /* Seuil input */
+  /* Le toggle est toujours câblé, même sur iOS browser, pour fournir
+     un retour visuel (bref flash vert → retour à off) + message animé. */
+  const toggle = document.getElementById('notifToggle');
+  if (toggle) {
+    toggle.addEventListener('change', async () => {
+      if (isIOSBrowser) {
+        /* iOS browser : réinitialiser immédiatement + mettre en évidence
+           le message d'installation */
+        toggle.checked = false;
+        _highlightIOSBanner();
+        return;
+      }
+      if (!isSupported()) {
+        toggle.checked = false;
+        return;
+      }
+      const ok = await toggleNotifications(toggle.checked);
+      if (!ok) toggle.checked = false;
+    });
+  }
+
+  /* Seuil input — seulement si l'API est disponible */
+  if (!isSupported()) return;
+
   const inp = document.getElementById('notifSeuil');
   if (inp) {
     inp.value = getSeuil().toFixed(3);
     inp.addEventListener('change', () => {
       setSeuil(inp.value);
-      inp.value = getSeuil().toFixed(3); // normalise
-    });
-  }
-
-  /* Toggle */
-  const toggle = document.getElementById('notifToggle');
-  if (toggle) {
-    toggle.addEventListener('change', async () => {
-      const ok = await toggleNotifications(toggle.checked);
-      if (!ok) toggle.checked = false;  // permission refusée → décocher
+      inp.value = getSeuil().toFixed(3);
     });
   }
 }

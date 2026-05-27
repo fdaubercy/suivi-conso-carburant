@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.12.3.0] — 2026-05-27
+
+### Fixed
+- **`js/notifications.js`** — Toggle iOS browser : suppression du `disabled` sur le toggle. Le bouton répond désormais visuellement au tap (bref flash vert → retour à off) au lieu d'être silencieux. Le message d'installation `#notifIOS` s'anime en ambre pour attirer l'attention. `initNotifications()` câble toujours l'écouteur `change`, même sur iOS browser.
+- **`css/style.css`** — Ajout de l'animation `.notif-flash` / `@keyframes notif-highlight` (fond ambre transitoire 1.4 s) pour mettre en évidence le message iOS quand l'utilisateur tape le toggle.
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `2.12.3.0`
+
 ## [2.12.2.0] — 2026-05-27
 
 ### Fixed

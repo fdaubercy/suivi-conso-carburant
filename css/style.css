@@ -813,6 +813,16 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
 .switch input:checked + .switch-track::after { transform: translateX(18px); }
 .switch input:disabled + .switch-track { opacity: .45; cursor: not-allowed; }
 
+/* Animation d'attention sur le message iOS quand l'utilisateur tape le toggle */
+.notif-flash {
+  animation: notif-highlight 1.4s ease forwards;
+}
+@keyframes notif-highlight {
+  0%   { background: rgba(240,165,0,.30); border-radius: 6px; padding: 3px 4px; }
+  60%  { background: rgba(240,165,0,.12); }
+  100% { background: transparent; padding: 0; }
+}
+
 /* ── Seuil input ── */
 .seuil-row {
   display: flex;
