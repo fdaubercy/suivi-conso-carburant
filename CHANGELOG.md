@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.10.0.2] — 2026-05-27
+
+### Fixed
+- **`js/ticket.js`** — Extraction du prix/L améliorée (5 niveaux de fallback).
+  - **Plage étendue** : `[01]` → `[0-3]` — couvre désormais SP98 (~2,09 €/L), GPLc (~0,85 €/L) et tout carburant jusqu'à 3,5 €/L.
+  - **Artefacts OCR** : le séparateur `/L` toléré sous ses formes déformées `|L`, `\L`, `Il`, `lL` (erreurs Tesseract courantes sur les petits caractères).
+  - **Nouveaux libellés** : `Prix au litre`, `Prix/l`, `prixlitre` ajoutés au pattern libellé.
+  - **Fallback ⑤ — `montant_total ÷ litres`** : si le prix/L n'a pas été trouvé directement mais que le montant et le volume sont connus, le prix est calculé par division (arrondi à 3 décimales). Les grands nombres (ex. `36,23 €`, `20,14 L`) sont bien mieux reconnus par l'OCR que `1,799 €/L` — ce fallback est donc très fiable.
+
 ## [2.10.0.1] — 2026-05-27
 
 ### Fixed

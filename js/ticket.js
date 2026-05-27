@@ -163,26 +163,44 @@ export function parseOCRText(rawText) {
     result.litres = null;
   }
 
-  /* ── Prix unitaire (€/L) ──────────────────────────────────────────── */
+  /* ── Prix unitaire (€/L) ──────────────────────────────────────────────
+   *
+   *  Plage réaliste : 0,3 €/L (GPLc min) – 3,5 €/L (SP98 max)
+   *  → préfixe [0-3] au lieu de [01] pour couvrir SP98 (~2,09 €/L).
+   *
+   *  L'OCR peut déformer le séparateur "/L" en "|L", "lL", "\L" ou "IL" ;
+   *  on tolère tous ces artefacts avec [\/\\|Ill] suivi de L.
+   *
+   *  Fallbacks (du plus fiable au moins) :
+   *    1. Pattern explicit €/L ou /L
+   *    2. Libellé (Prix unitaire, P.U., Tarif, Prix au litre…)
+   *    3. Multiplication prix × litres : "1,799 × 20,14"
+   *    4. Déduction litres × prix en ordre inverse : "20,14 × 1,799"
+   *    5. Calcul  montant_total ÷ litres  (très fiable si les deux sont connus)
+   *
+   * ─────────────────────────────────────────────────────────────────── */
   const prixPatterns = [
-    /* "0,798 €/L", "0.798€/l", "1,789 / L" */
-    /([01][,\.]\d{3})\s*€?\s*\/\s*l\b/i,
-    /* "0,798 × 16,25" (prix×litres) */
-    /([01][,\.]\d{3})\s*(?:x|×)\s*\d{1,3}[,\.]\d{2}/i,
-    /* "Prix/L : 0.798" */
-    /(?:prix|p\.u\.|pu|tarif)[^\d]*([01][,\.]\d{3})/i,
-    /* "0,798 EUR/L" */
-    /([01][,\.]\d{3})\s*eur?\s*\/\s*l\b/i,
+    /* ① "1,799 €/L", "0.798€/l", "1,799 / L", "2,091 €/L" — "/" peut être "|","\" */
+    /([0-3][,\.]\d{3})\s*€?\s*[\/\\|Il]\s*l\b/i,
+    /* ② "1,799 EUR/L" */
+    /([0-3][,\.]\d{3})\s*eur?\s*[\/\\|Il]\s*l\b/i,
+    /* ③ Libellé + prix : "Prix unitaire : 1,799" / "P.U. 0,798" / "Prix au litre 1,799"
+          "Tarif/L 1,799" / "Prix/l : 1,799" / "prixlitre 1,799" */
+    /(?:prix\s*(?:au\s*)?(?:litre|l\b|\/\s*l\b)|p\.?\s*u\.?|pu\b|tarif)[^\d]*([0-3][,\.]\d{3})/i,
+    /* ④ "1,799 × 20,14"  (prix × litres) */
+    /([0-3][,\.]\d{3})\s*(?:x|×)\s*\d{1,3}[,\.]\d{2}/i,
+    /* ⑤ Prix avec seulement 2 décimales : "1,80 €/L" */
+    /([0-3][,\.]\d{2})\s*€?\s*[\/\\|Il]\s*l\b/i,
   ];
   for (const pat of prixPatterns) {
     const m = text.match(pat);
     if (m) { result.prix_litre = toFloat(m[1]); break; }
   }
 
-  /* Fallback : si litres trouvé sans prix, chercher   16,25 x 0,798 */
-  if (result.litres !== null && result.prix_litre === null) {
+  /* Fallback ④ : "Volume × Prix" (ordre inverse) — ex. "20,14 × 1,799" */
+  if (result.prix_litre === null && result.litres !== null) {
     const litStr = String(result.litres).replace('.', '[,.]');
-    const mCalc  = text.match(new RegExp(litStr + '\\s*(?:x|×)\\s*([01][,\\.][0-9]{3})'));
+    const mCalc  = text.match(new RegExp(litStr + '\\s*(?:x|×)\\s*([0-3][,\\.][0-9]{2,3})'));
     if (mCalc) result.prix_litre = toFloat(mCalc[1]);
   }
 
@@ -200,9 +218,18 @@ export function parseOCRText(rawText) {
     const m = text.match(pat);
     if (m) { result.montant_total = toFloat(m[1]); break; }
   }
-  /* Calcul de secours */
+  /* Calcul de secours — total depuis litres × prix */
   if (result.montant_total === null && result.litres && result.prix_litre) {
     result.montant_total = Math.round(result.litres * result.prix_litre * 100) / 100;
+  }
+
+  /* Fallback ⑤ — prix depuis total ÷ litres (très fiable : les grands nombres
+   * sont mieux reconnus par l'OCR que "0,798 €/L" qui peut être déformé) */
+  if (result.prix_litre === null && result.litres && result.montant_total) {
+    const computed = result.montant_total / result.litres;
+    if (computed >= 0.3 && computed <= 3.5) {
+      result.prix_litre = Math.round(computed * 1000) / 1000;
+    }
   }
 
   /* ── Type de carburant ────────────────────────────────────────────── */
