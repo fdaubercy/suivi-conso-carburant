@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.9.0.2] — 2026-05-27
+
+### Fixed
+- **`Google Drive/.../Code.gs`** : `gemini-2.0-flash` non disponible sur le plan gratuit (quota `limit: 0`) → retour à `gemini-1.5-flash`, endpoint `v1` conservé (le problème précédent était `v1beta`, pas le nom du modèle).
+
+---
+
 ## [2.9.0.1] — 2026-05-26
 
 ### Fixed

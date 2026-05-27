@@ -1,5 +1,5 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend                v2.9.0.1
+//  SUIVI CONSO E85 — Web App Backend                v2.9.0.2
 //
 //  ⚠️  BREAKING CHANGE v2.3.0.0 : suppression colonne G "Prix S98 jour"
 //  La colonne K "SP98 station (€/L)" est désormais la seule source SP98.
@@ -184,7 +184,7 @@ function handleScanTicket(imageBase64, mimeType) {
     '}\n' +
     'Si une information est absente ou illisible, mets null. Ne mets que le JSON.';
 
-  const url = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=' + apiKey;
+  const url = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=' + apiKey;
 
   try {
     const resp = UrlFetchApp.fetch(url, {
