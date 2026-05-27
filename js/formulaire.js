@@ -161,6 +161,7 @@ export async function submitForm() {
       await syncStationSiNouvelle(station);
       resetForm();
       chargerHistorique();
+      window.scrollTo({ top: 0, behavior: 'smooth' }); // W24
     } else {
       showFeedback('error', 'Erreur serveur', json.error || 'Veuillez réessayer.');
     }
@@ -176,6 +177,7 @@ export async function submitForm() {
       );
       resetForm();
       updateOfflineBadge();
+      window.scrollTo({ top: 0, behavior: 'smooth' }); // W24
     } else {
       showFeedback('error', 'Connexion impossible', 'Vérifiez votre accès internet.');
     }

@@ -4,6 +4,21 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.12.0.0] — 2026-05-27
+
+### Added
+- **`index.html`** — `<div id="swUpdateBanner">` : bannière "🔄 Mise à jour disponible" (W23), masquée par défaut, avec bouton "Actualiser". Placée avant le header pour apparaître en premier plan sans JavaScript d'affichage.
+- **`js/pwa.js`** — `_showUpdateBanner(reg)` : détecte `reg.installing` (via `statechange`) et `reg.waiting` (SW déjà en attente au chargement). Câble le bouton "Actualiser" → `reg.waiting.postMessage({ type: 'SKIP_WAITING' })`. Reload automatique via `controllerchange`.
+- **`public/sw.js`** — handler `message` pour `SKIP_WAITING` : déclenche `self.skipWaiting()`, ce qui active le nouveau SW immédiatement → `controllerchange` → `window.location.reload()`.
+- **`js/stats.js`** — `buildE85Sparkline()` : courbe SVG inline des 10 derniers prix E85 payés (`getAllRecords()`). Tri chronologique, `polyline` SVG, cercle sur le dernier point, couleur selon tendance (baisse=vert, hausse=rouge, stable=bleu). Affiché sous la grille 2×2 dans la carte Statistiques.
+
+### Changed
+- **`js/formulaire.js`** — `submitForm()` : `window.scrollTo({ top: 0, behavior: 'smooth' })` ajouté après enregistrement réussi **et** après mise en file hors-ligne (W24). Le formulaire repasse automatiquement en vue, sans geste manuel.
+- **`js/stats.js`** — `renderStats()` : appel `buildE85Sparkline()` intégré à la fin du HTML généré.
+- **`js/pwa.js`** — `initPWA()` : appel SW registration refactorisé pour intégrer la détection de mise à jour W23 + listener `controllerchange`.
+- **`css/style.css`** — ajout des styles `.update-banner`, `.update-apply-btn` (W23) et `.e85-sparkline`, `.spark-*` (W28) avec variantes dark mode et couleur dynamique selon tendance.
+- **`js/config.js`** — `APP_VERSION` → `2.12.0.0`.
+
 ## [2.11.0.0] — 2026-05-27
 
 ### Added

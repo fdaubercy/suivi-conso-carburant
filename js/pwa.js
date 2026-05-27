@@ -2,7 +2,7 @@
 //  PWA — Install prompt   W4
 //  Android/Chrome : beforeinstallprompt -> bouton 📲 dans le header
 //  iOS Safari     : banner instruction manuelle (apres 4 s)
-//  Service Worker : enregistrement + gestion des mises à jour
+//  Service Worker : enregistrement + gestion des mises à jour (W23)
 // ============================================================
 
 let _deferred = null;
@@ -19,8 +19,36 @@ export function initPWA() {
       .then(reg => {
         /* Vérification de mise à jour silencieuse toutes les 60 min */
         setInterval(() => reg.update(), 60 * 60 * 1000);
+
+        /* W23 — Détection mise à jour disponible ──────────────────────
+         * 1) Nouveau SW en cours d'installation → attendre "installed"
+         * 2) SW déjà en attente au chargement (refresh manuel entre versions)
+         * ───────────────────────────────────────────────────────────── */
+        const trackInstalling = (worker) => {
+          worker.addEventListener('statechange', () => {
+            if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+              _showUpdateBanner(reg);
+            }
+          });
+        };
+
+        if (reg.installing) trackInstalling(reg.installing);
+
+        reg.addEventListener('updatefound', () => {
+          if (reg.installing) trackInstalling(reg.installing);
+        });
+
+        /* Cas : une MàJ est déjà en attente dès le chargement */
+        if (reg.waiting && navigator.serviceWorker.controller) {
+          _showUpdateBanner(reg);
+        }
       })
       .catch(err => console.warn('[SW] Enregistrement échoué :', err));
+
+    /* Rechargement automatique quand le nouveau SW prend le contrôle */
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
   }
 
   /* Deja installee en mode standalone -> pas de banniere install */
@@ -52,6 +80,23 @@ export function initPWA() {
   /* Expose pour les onclick HTML */
   window._pwaInstall = triggerInstall;
   window._pwaDismiss = dismiss;
+}
+
+/**
+ * W23 — Affiche la bannière "Mise à jour disponible" et câble le bouton "Actualiser".
+ * Envoie SKIP_WAITING au SW en attente, qui prend le contrôle → controllerchange → reload.
+ */
+function _showUpdateBanner(reg) {
+  const banner = document.getElementById('swUpdateBanner');
+  if (!banner || !banner.hidden) return;
+  banner.hidden = false;
+  const btn = banner.querySelector('.update-apply-btn');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      banner.hidden = true;
+    });
+  }
 }
 
 export function triggerInstall() {

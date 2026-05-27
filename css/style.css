@@ -872,6 +872,100 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
 [data-theme="dark"] .type-btn.active .type-price,
 [data-theme="dark"] .type-btn-sm.active .type-price { color: var(--blue-mid); }
 
+/* ─── W23 — Bannière "Mise à jour disponible" SW ─── */
+.update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--green);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+}
+.update-banner span { line-height: 1.4; }
+.update-banner[hidden] { display: none; }
+.update-apply-btn {
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 12px;
+  border: 1.5px solid rgba(255,255,255,.7);
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s;
+}
+.update-apply-btn:active { background: rgba(255,255,255,.2); }
+[data-theme="dark"] .update-banner { background: #059669; }
+
+/* ═══════════════════════════════════════
+   W28 — Mini-graphique prix E85 (sparkline SVG inline)
+   ═══════════════════════════════════════ */
+.e85-sparkline {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.spark-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  gap: 8px;
+}
+.spark-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+}
+.spark-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.spark-range {
+  font-size: 9px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.spark-last {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Couleur selon tendance (baisse = vert, hausse = rouge, stable = bleu) */
+.e85-sparkline.spark--down .spark-line { stroke: var(--green); }
+.e85-sparkline.spark--down .spark-dot  { fill:   var(--green); }
+.e85-sparkline.spark--down .spark-last { color:  var(--green); }
+.e85-sparkline.spark--up   .spark-line { stroke: var(--red); }
+.e85-sparkline.spark--up   .spark-dot  { fill:   var(--red); }
+.e85-sparkline.spark--up   .spark-last { color:  var(--red); }
+.e85-sparkline.spark--flat .spark-line { stroke: var(--blue-mid); }
+.e85-sparkline.spark--flat .spark-dot  { fill:   var(--blue-mid); }
+.e85-sparkline.spark--flat .spark-last { color:  var(--blue-mid); }
+
+.spark-svg { display: block; }
+.spark-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+/* spark-dot : couleur via classe parente */
+
 /* ─── PWA Install Banner — iOS Safari uniquement (W4) ─── */
 .pwa-banner {
   display: flex;

@@ -11,8 +11,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| W23 | **Bannière "Mise à jour disponible"** : détecter `navigator.serviceWorker.waiting` et afficher un bouton "Actualiser" dans le header | Évite que l'utilisateur utilise une vieille version sans le savoir · effort 30 min |
-| W24 | **Scroll-to-top après submit** : après enregistrement réussi, `window.scrollTo({ top:0, behavior:'smooth' })` | UX : le formulaire repasse en vue sans geste manuel · effort 15 min |
 | W25 | **Export CSV de l'historique** : bouton "📥 Exporter" dans la carte historique → télécharge tous les enregistrements en `.csv` (via `?action=export` + `Blob` + `URL.createObjectURL`) | Justificatif remboursement employeur / fiscalité · zéro backend · effort 1 h |
 | W26 | **Web Share API** : icône "Partager" sur chaque entrée historique → partage les détails d'un plein (litres, prix, station) via le menu natif iOS/Android | Envoi rapide par WhatsApp/SMS/mail · effort 1 h |
 
@@ -23,7 +21,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | W9 | **Photo du ticket** uploadée avec le plein (Drive ou base64 dans GS) | Justificatif · effort 2-3 h + breaking schema (col supplémentaire dans GS) |
 | W15 | **Auto-save brouillon** : à chaque frappe, sauve le formulaire dans localStorage. Restauré au prochain chargement si la page est fermée sans enregistrer | UX : pas de perte si on quitte par erreur |
 | W27 | **Pagination/filtre historique** : bouton "Voir tout" qui charge et affiche tous les pleins (pas seulement les 5 derniers), avec filtre par véhicule et par type de carburant | Visibilité de l'historique complet sans passer par Google Sheets · effort ½ j |
-| W28 | **Mini-graphique prix E85 inline** : courbe SVG des 10 derniers prix E85 payés (canvas ou SVG inline depuis `_allRecords`) dans la carte stats | Visualisation de la tendance prix · aucune lib externe · effort ½ j |
 | W29 | **Prédiction prochain plein** : basée sur conso moyenne et km actuel, affiche "Prochain plein estimé dans ~X km / ~Y jours" dans la carte stats | Anticipation, pas de panne sèche · pur calcul · effort ½ j |
 | W30 | **Comparateur multi-stations** : lors d'une géoloc, mémoriser les prix de toutes les stations vues et afficher un tableau trié par prix E85 | Choisir la moins chère parmi les stations trouvées · effort ½-1 j |
 | W31 | **Géoloc mémorisée** : si l'utilisateur a autorisé la géoloc, pré-remplir les stations depuis la dernière position connue (localStorage) pendant que la géoloc actualise | Chargement perçu plus rapide · effort ½ j |
@@ -96,9 +93,9 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|---|
 | 1 | **X1** — Bouton "Synchroniser" sur la feuille GS_Pleins | 15 min | Ergonomie immédiate, plus besoin d'ouvrir l'IDE |
 | 2 | **S6** — Token secret sur les endpoints GAS | 30 min | Sécurité minimale, données aujourd'hui publiques |
-| 3 | **W24** — Scroll-to-top après submit | 15 min | UX : formulaire repasse en vue sans geste |
-| 4 | **W23** — Bannière "Mise à jour disponible" SW | 30 min | L'utilisateur sait qu'une MàJ est prête |
-| 5 | **W15** — Auto-save brouillon localStorage | 1 h | UX : zéro perte de saisie |
+| 3 | **W15** — Auto-save brouillon localStorage | 1 h | UX : zéro perte de saisie |
+| 4 | **W25** — Export CSV de l'historique | 1 h | Justificatif employeur/fiscalité · zéro backend |
+| 5 | **T2** — Refactoring onclick → addEventListener | 1 j | Supprime surface XSS, permet une CSP stricte |
 
 ---
 
@@ -138,6 +135,9 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.10.0.0 | **Scan ticket OCR client-side (W17 refonte)** — Tesseract.js remplace Gemini Vision ; multi-candidats prix/L + `Math.max()` ; détection SP95-E10 ; km séparateur espace ; ordre `setType` avant `fPrix` |
 | v2.11.0.0 | **Mode hors-ligne (W8)** — Service Worker (Cache-First shell + Network-First dynamique) + file d'attente localStorage + badge `📵` + Background Sync + sync automatique au retour réseau |
 | v2.11.0.0 | **Alertes prix E85 (W11)** — toggle + seuil configurable (défaut 0,850 €/L) + `new Notification()` avec `tag` anti-spam + carte Paramètres dans l'UI |
+| v2.12.0.0 | **Scroll-to-top après submit (W24)** — `window.scrollTo({ top:0, behavior:'smooth' })` après enregistrement réussi et après mise en file hors-ligne ; le formulaire repasse en vue sans geste manuel |
+| v2.12.0.0 | **Mini-graphique prix E85 inline (W28)** — `buildE85Sparkline()` dans `stats.js` : courbe SVG des 10 derniers prix E85, couleur selon tendance (↘ vert / ↗ rouge / → bleu), min/max + dernier prix affichés ; aucune lib externe |
+| v2.12.0.0 | **Bannière "Mise à jour disponible" SW (W23)** — `_showUpdateBanner(reg)` dans `pwa.js` + handler `SKIP_WAITING` dans `sw.js` ; bouton "Actualiser" → `reg.waiting.postMessage` → `skipWaiting()` → `controllerchange` → reload automatique |
 
 ---
 

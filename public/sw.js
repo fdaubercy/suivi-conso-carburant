@@ -76,3 +76,10 @@ self.addEventListener('sync', event => {
     );
   }
 });
+
+/* ── Message : SKIP_WAITING (W23 — mise à jour disponible) ────────────── *
+ *  Reçu depuis pwa.js quand l'utilisateur clique "Actualiser".           *
+ *  Déclenche la prise de contrôle immédiate → controllerchange → reload. */
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});

@@ -105,6 +105,20 @@ Si OSM ne retourne pas de résultat, l'adresse de l'API gouvernementale est util
 - Envoi vers Google Sheets via Google Apps Script
 - Validation des champs obligatoires avant envoi
 - Feedback visuel succès / erreur ; remise à zéro automatique du formulaire
+- **Scroll-to-top automatique (W24)** après enregistrement réussi ou mise en file hors-ligne — le formulaire repasse en vue sans geste manuel
+
+### 📈 Mini-graphique prix E85 (W28)
+Courbe **SVG inline** des 10 derniers prix E85 payés, affichée sous la grille de statistiques :
+- Tracé `<polyline>` + cercle sur le dernier point, sans librairie externe
+- **Couleur dynamique selon tendance** : ↘ vert (baisse) · ↗ rouge (hausse) · → bleu (stable)
+- Affiche le min, le max et le dernier prix payé
+- Filtré sur le véhicule courant, trié chronologiquement
+
+### 🔄 Bannière "Mise à jour disponible" (W23)
+Détecte automatiquement quand un nouveau Service Worker est en attente d'activation :
+- Bannière verte en haut de page avec bouton **"Actualiser"**
+- Clic → `reg.waiting.postMessage({ type: 'SKIP_WAITING' })` → SW prend le contrôle immédiatement → rechargement automatique
+- Détecte aussi les SW déjà en attente au chargement de la page
 
 ### 🔁 CI — GitHub Actions (W13)
 Deux jobs automatiques sur chaque `push` / `pull_request` :

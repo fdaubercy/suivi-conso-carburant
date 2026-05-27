@@ -1,4 +1,4 @@
-/* ─── Stats live : conso, coût, économies E85 vs SP98 ─── */
+/* ─── Stats live : conso, coût, économies E85 vs SP98 + sparkline prix ─── */
 import { state } from './state.js';
 import { FUEL_CONFIG } from './config.js';
 import { getAllRecords } from './historique.js';
@@ -83,6 +83,66 @@ function computeStats() {
   };
 }
 
+/**
+ * W28 — Génère un SVG sparkline des 10 derniers prix E85 payés.
+ * Renvoie une chaîne HTML vide si moins de 2 données disponibles.
+ */
+function buildE85Sparkline() {
+  const all = getAllRecords();
+  const veh = state.currentVehiculeNom;
+
+  const e85 = all
+    .filter(r => {
+      if (veh && (r['Véhicule'] || r['Vehicule'] || '') !== veh) return false;
+      const t = String(r.Type || '').toLowerCase();
+      return t.includes('e85') || t.includes('ethanol');
+    })
+    .filter(r => Number(r['Prix €/L']) > 0)
+    .sort((a, b) => {
+      const da = new Date(String(a.Date || a.Horodatage || '').replace(' ', 'T'));
+      const db = new Date(String(b.Date || b.Horodatage || '').replace(' ', 'T'));
+      return da - db;
+    })
+    .slice(-10);
+
+  if (e85.length < 2) return '';
+
+  const prices = e85.map(r => Number(r['Prix €/L']));
+  const minP = Math.min(...prices);
+  const maxP = Math.max(...prices);
+  const range = maxP - minP || 0.01;
+
+  // Coordonnées SVG
+  const W = 200, H = 44, padX = 4, padY = 5;
+  const n  = prices.length;
+  const toX = i => padX + (i / (n - 1)) * (W - 2 * padX);
+  const toY = p => H - padY - ((p - minP) / range) * (H - 2 * padY);
+
+  const pts = prices.map((p, i) => `${toX(i).toFixed(1)},${toY(p).toFixed(1)}`).join(' ');
+  const lx  = toX(n - 1).toFixed(1);
+  const ly  = toY(prices[n - 1]).toFixed(1);
+
+  // Tendance : baisse = vert, hausse = rouge, stable = bleu
+  const diff   = prices[n - 1] - prices[0];
+  const tClass = diff < -0.003 ? 'spark--down' : diff > 0.003 ? 'spark--up' : 'spark--flat';
+  const tArrow = diff < -0.003 ? '↘' : diff > 0.003 ? '↗' : '→';
+
+  return `
+    <div class="e85-sparkline ${tClass}">
+      <div class="spark-header">
+        <span class="spark-label">Prix E85 (${n} pleins) ${tArrow}</span>
+        <div class="spark-meta">
+          <span class="spark-range">${minP.toFixed(3)} – ${maxP.toFixed(3)} €/L</span>
+          <span class="spark-last">${prices[n - 1].toFixed(3)} €/L</span>
+        </div>
+      </div>
+      <svg class="spark-svg" viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">
+        <polyline class="spark-line" points="${pts}"/>
+        <circle class="spark-dot" cx="${lx}" cy="${ly}" r="3.5"/>
+      </svg>
+    </div>`;
+}
+
 /** Affiche les stats dans #statsBox. */
 export function renderStats() {
   const el = document.getElementById('statsBox');
@@ -125,5 +185,6 @@ export function renderStats() {
       </div>
     </div>
     <div class="stats-sub">${s.nbPleins} plein(s) · ${s.vehiculeName} · ${MONTHS_WINDOW} derniers mois</div>
+    ${buildE85Sparkline()}
   `;
 }
