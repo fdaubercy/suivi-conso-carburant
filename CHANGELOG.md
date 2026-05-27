@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.10.0.4] — 2026-05-27
+
+### Fixed
+- **`js/ticket.js`** — Extraction prix/L refondée pour robustesse maximale.
+  - **Collecte multi-candidats** : au lieu de s'arrêter au premier match, tous les candidats prix/L valides ([0,3–3,5]) sont collectés puis le **maximum** est retenu — élimine automatiquement TICPE (0,691 €/L) et autres taxes inférieures au prix carburant réel.
+  - **Pattern ① élargi** : `€?` → `[€e£é]?` — gère l'artefact OCR "€" → "e"/"E"/"£" (fréquent avec Tesseract sur texte imprimé).
+  - **`.matchAll()`** remplace `.match()` — permet de trouver tous les candidats dans le texte, pas seulement le premier.
+  - **Km — séparateur milliers espace** : "87 450 km" (format français) désormais reconnu → 87450. 4 niveaux de fallback km (contigu, espace, libellé+contigu, libellé+espace).
+  - **Station** : "totalenergies" ajouté à la liste des mots-clés.
+  - **Log diagnostic** : `console.group('[OCR]…')` affiche le texte brut et les candidats prix dans la console DevTools pour faciliter le débogage.
+
 ## [2.10.0.3] — 2026-05-27
 
 ### Fixed
