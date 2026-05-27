@@ -11,6 +11,19 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "statusMessage": "Git push automatique…",
+            "command": "$raw = [Console]::In.ReadToEnd(); try { $j = $raw | ConvertFrom-Json; if ($j.tool_input.command -match 'git\\s+commit') { Push-Location 'C:\\Users\\fdaub\\Documents\\Github\\suivi-e85'; git push 2>&1; Pop-Location } } catch {}"
+          }
+        ]
+      }
     ]
   }
 }

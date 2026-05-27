@@ -146,11 +146,11 @@ export function parseOCRText(rawText) {
 
   /* ── Volume (litres) ──────────────────────────────────────────────── */
   const litresPatterns = [
-    /* "16,25 L", "16.25 l", "16,25 litre(s)" */
+    /* "16,25 L", "16.25 l", "16,25 litre(s)", "25,000 L" (3 décimales) */
     /(\d{1,3}[,\.]\d{2,3})\s*(?:litres?|liters?|l\b)/i,
     /* "Qté : 16,25" / "Volume : 16.25" */
     /(?:qté|quantité|volume|vol)[^\d]*(\d{1,3}[,\.]\d{2,3})/i,
-    /* "16,25 × 0,798" — volumexprix */
+    /* "16,25 × 0,798" — volume × prix */
     /(\d{1,3}[,\.]\d{2,3})\s*(?:x|×)\s*[01][,\.]\d{3}/i,
   ];
   for (const pat of litresPatterns) {
@@ -168,27 +168,37 @@ export function parseOCRText(rawText) {
    *  Plage réaliste : 0,3 €/L (GPLc min) – 3,5 €/L (SP98 max)
    *  → préfixe [0-3] au lieu de [01] pour couvrir SP98 (~2,09 €/L).
    *
-   *  L'OCR peut déformer le séparateur "/L" en "|L", "lL", "\L" ou "IL" ;
-   *  on tolère tous ces artefacts avec [\/\\|Ill] suivi de L.
+   *  L'OCR peut déformer :
+   *   • le séparateur "/L" en "|L", "lL", "\L" ou "IL" → [\/\\|Ill]
+   *   • "€" en "E" ou le supprimer → €? optionnel
+   *   • "euros" mal parsé → eur(?:os?)? couvre "eur", "euro", "euros"
    *
    *  Fallbacks (du plus fiable au moins) :
-   *    1. Pattern explicit €/L ou /L
-   *    2. Libellé (Prix unitaire, P.U., Tarif, Prix au litre…)
-   *    3. Multiplication prix × litres : "1,799 × 20,14"
-   *    4. Déduction litres × prix en ordre inverse : "20,14 × 1,799"
-   *    5. Calcul  montant_total ÷ litres  (très fiable si les deux sont connus)
+   *    ① Pattern explicit €/L ou /L
+   *    ② Unité "euro/L", "euros/L", "eur/l"
+   *    ③ Libellé (Prix unitaire, Prix/litre, P.U., Tarif, Prix au litre…)
+   *    ④ Multiplication prix × litres : "1,799 × 20,14"
+   *    ⑤ Prix avec seulement 2 décimales : "1,80 €/L"
+   *    ⑥ Calcul  montant_total ÷ litres  (fiable si les deux sont connus)
    *
    * ─────────────────────────────────────────────────────────────────── */
   const prixPatterns = [
     /* ① "1,799 €/L", "0.798€/l", "1,799 / L", "2,091 €/L" — "/" peut être "|","\" */
     /([0-3][,\.]\d{3})\s*€?\s*[\/\\|Il]\s*l\b/i,
-    /* ② "1,799 EUR/L" */
-    /([0-3][,\.]\d{3})\s*eur?\s*[\/\\|Il]\s*l\b/i,
-    /* ③ Libellé + prix : "Prix unitaire : 1,799" / "P.U. 0,798" / "Prix au litre 1,799"
-          "Tarif/L 1,799" / "Prix/l : 1,799" / "prixlitre 1,799" */
-    /(?:prix\s*(?:au\s*)?(?:litre|l\b|\/\s*l\b)|p\.?\s*u\.?|pu\b|tarif)[^\d]*([0-3][,\.]\d{3})/i,
-    /* ④ "1,799 × 20,14"  (prix × litres) */
-    /([0-3][,\.]\d{3})\s*(?:x|×)\s*\d{1,3}[,\.]\d{2}/i,
+
+    /* ② "1,799 euros/L", "1,799 euro/L", "1,799 eur/L", "1,799 EUR/l"
+     *   eur(?:os?)? couvre : "eur" | "euro" | "euros" (insensible à la casse) */
+    /([0-3][,\.]\d{3})\s*eur(?:os?)?\s*[\/\\|Il]\s*l\b/i,
+
+    /* ③ Libellé + prix :
+     *   "Prix unitaire : 1,799"   "Prix/litre : 1,799"   "Prix au litre 1,799"
+     *   "P.U. 0,798"              "PU : 0,798"           "Tarif 1,799"
+     *   "Prix litre : 1,799"      "Prix/L : 1,799" */
+    /(?:prix\s*(?:au\s*)?(?:litres?|\/\s*litres?|\/\s*l\b|l\b)|prix\s+unitaire|p\.?\s*u\.?|pu\b|tarif)[^\d]*([0-3][,\.]\d{3})/i,
+
+    /* ④ "1,799 × 20,14"  (prix × litres) — quantité 2 ou 3 décimales */
+    /([0-3][,\.]\d{3})\s*(?:x|×)\s*\d{1,3}[,\.]\d{2,3}/i,
+
     /* ⑤ Prix avec seulement 2 décimales : "1,80 €/L" */
     /([0-3][,\.]\d{2})\s*€?\s*[\/\\|Il]\s*l\b/i,
   ];
@@ -197,7 +207,7 @@ export function parseOCRText(rawText) {
     if (m) { result.prix_litre = toFloat(m[1]); break; }
   }
 
-  /* Fallback ④ : "Volume × Prix" (ordre inverse) — ex. "20,14 × 1,799" */
+  /* Fallback ordre inverse : "Volume × Prix" — ex. "25,000 × 1,799" */
   if (result.prix_litre === null && result.litres !== null) {
     const litStr = String(result.litres).replace('.', '[,.]');
     const mCalc  = text.match(new RegExp(litStr + '\\s*(?:x|×)\\s*([0-3][,\\.][0-9]{2,3})'));
@@ -209,10 +219,15 @@ export function parseOCRText(rawText) {
     result.prix_litre = null;
   }
 
-  /* ── Montant total ────────────────────────────────────────────────── */
+  /* ── Montant total ────────────────────────────────────────────────────
+   *
+   *  Les tickets français affichent souvent 3 décimales (ex. 44,975 €)
+   *  → \d{2,3} pour capturer aussi bien 44,97 que 44,975.
+   *
+   * ─────────────────────────────────────────────────────────────────── */
   const totalPatterns = [
-    /(?:total|montant|à payer|payé|net\s*à\s*payer|ttc)[^\d]*(\d{1,3}[,\.]\d{2})\s*€?/i,
-    /(\d{1,3}[,\.]\d{2})\s*€\s*(?:ttc|net)?(?:\s|$)/i,
+    /(?:total|montant|à payer|payé|net\s*à\s*payer|ttc)[^\d]*(\d{1,3}[,\.]\d{2,3})\s*€?/i,
+    /(\d{1,3}[,\.]\d{2,3})\s*€\s*(?:ttc|net)?(?:\s|$)/i,
   ];
   for (const pat of totalPatterns) {
     const m = text.match(pat);
@@ -223,7 +238,7 @@ export function parseOCRText(rawText) {
     result.montant_total = Math.round(result.litres * result.prix_litre * 100) / 100;
   }
 
-  /* Fallback ⑤ — prix depuis total ÷ litres (très fiable : les grands nombres
+  /* Fallback ⑥ — prix depuis total ÷ litres (très fiable : les grands nombres
    * sont mieux reconnus par l'OCR que "0,798 €/L" qui peut être déformé) */
   if (result.prix_litre === null && result.litres && result.montant_total) {
     const computed = result.montant_total / result.litres;

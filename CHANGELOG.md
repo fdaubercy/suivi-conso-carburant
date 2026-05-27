@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.10.0.3] — 2026-05-27
+
+### Fixed
+- **`js/ticket.js`** — Extraction du prix/L robustifiée pour les formats tickets courants.
+  - **Pattern ② (EUR/L)** : `eur?` → `eur(?:os?)?` — couvre désormais "eur", "euro" et "euros" (avec `s` final). Exemple : `1,799 Euros/L` désormais reconnu.
+  - **Pattern ③ (libellé)** : ajout de `prix unitaire` et `prix/litre(s)` — corrige la non-détection du libellé le plus courant sur les tickets de station (Total, Leclerc, Carrefour…).
+  - **Pattern ④ (multiplication)** : `\d{2}` → `\d{2,3}` — quantité avec 3 décimales (ex. `25,000 L`) désormais prise en charge.
+  - **Totaux** : `\d{2}` → `\d{2,3}` dans les deux patterns — capture les montants à 3 décimales (ex. `44,975 €`), ce qui rend le fallback `total ÷ litres` fonctionnel même lorsque le prix/L n'est pas lisible directement.
+
 ## [2.10.0.2] — 2026-05-27
 
 ### Fixed
