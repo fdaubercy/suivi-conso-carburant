@@ -4,6 +4,25 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.10.0.0] — 2026-05-27
+
+### Changed
+- **`js/ticket.js`** — Suppression complète de la dépendance Gemini/GAS pour le scan de ticket.
+  - Remplacé par **Tesseract.js** (OCR 100 % côté client, aucune clé API, fonctionne hors-ligne après premier chargement).
+  - Nouveau flux : photo → redimensionnement canvas (max 1 200 px) → `Tesseract.recognize()` langue `fra` → `parseOCRText()` → champs auto-remplis.
+  - `parseOCRText()` : extraction par regex heuristiques (date, litres, prix/L, montant, type carburant, station, km).
+  - Barre de progression : affichage du % pendant la reconnaissance (`recognizing text`).
+  - Validations : litres 0,5–200 L, prix 0,3–3,5 €/L pour rejeter les faux positifs OCR.
+
+### Added
+- **`package.json`** : dépendance `tesseract.js` (OCR navigateur, multi-langues).
+
+### Removed
+- Appel `fetch(GAS_URL, { action: 'scanTicket', imageBase64, … })` dans `ticket.js`.
+- Fonction `compressImage()` remplacée par `resizeImage()` (même logique, renvoie Blob pour Tesseract).
+- Import `GAS_URL` dans `ticket.js` (plus nécessaire pour le scan).
+- Fonction `handleScanTicket` dans `Code.gs` : inopérante (`gemini-1.5-flash` non supporté sur endpoint `/v1/`), conservée dans GAS mais plus jamais appelée par l'app web.
+
 ## [2.9.0.2] — 2026-05-27
 
 ### Fixed

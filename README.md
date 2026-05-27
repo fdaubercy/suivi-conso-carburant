@@ -29,44 +29,29 @@ Ajouter à l'écran d'accueil iPhone : Safari → Partager → « Sur l'écran d
 - **Détection de doublons** : warning inline si date + km + litres correspondent à un plein existant
 - Version de l'application affichée dans le bandeau
 
-### 🧾 Scan ticket de caisse (W17)
-Bouton **"🧾 Scanner le ticket"** dans le formulaire : sélection d'une photo (galerie ou caméra) → compression automatique (canvas, max 1 200 px, JPEG ≤ 800 Ko) → envoi GAS → **API Gemini Vision** → extraction des données du ticket → pré-remplissage automatique de tous les champs.
+### 🧾 Scan ticket de caisse (W17) — OCR client-side
+
+Bouton **"🧾 Scanner le ticket"** dans le formulaire : sélection d'une photo (galerie ou caméra) →
+redimensionnement automatique (canvas, max 1 200 px) → **OCR [Tesseract.js](https://tesseract.projectnaptha.com/) 100 % navigateur** →
+extraction par heuristiques → pré-remplissage automatique des champs.
 
 Champs détectés : **date, km compteur, litres, prix/L, montant total, type de carburant, nom de la station**.
 
-**Configuration requise :** ajouter la clé API Gemini dans Google Apps Script :
+**Aucune clé API requise.** Tout le traitement se fait localement dans le navigateur.
 
-<details>
-<summary>📋 Tuto : obtenir et configurer la clé API Gemini (gratuite)</summary>
+> 💡 **Premier scan** : Tesseract.js télécharge ~4 Mo de données linguistiques françaises (CDN jsDelivr)
+> puis les met en cache (IndexedDB). Les scans suivants sont instantanés.
 
-**1. Créer la clé sur Google AI Studio**
+Extraction heuristique par regex :
 
-1. Aller sur [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) (compte Google requis)
-2. Accepter les conditions d'utilisation si c'est la première visite
-3. Cliquer sur **"Créer une clé API"**
-4. Donner un nom (ex. `suivi-e85-scan-ticket`) → **"Créer une clé"**
-5. Copier la clé générée (format `AIzaSy...`)
-
-> La clé est **gratuite** pour un usage personnel (quota : 15 req/min, 1 500 req/jour sur `gemini-1.5-flash`).
-
-**2. Ajouter la clé dans Google Apps Script**
-
-1. Ouvrir le Google Sheet → **Extensions → Apps Script**
-2. Dans l'éditeur GAS, cliquer sur l'icône ⚙️ **Paramètres du projet** (barre gauche)
-3. Faire défiler jusqu'à la section **"Propriétés de script"**
-4. Cliquer sur **"Ajouter une propriété de script"**
-5. Remplir :
-   - **Propriété** : `GEMINI_API_KEY`
-   - **Valeur** : coller la clé copiée à l'étape 1
-6. Cliquer sur **"Enregistrer les propriétés de script"**
-
-**3. Redéployer le GAS**
-
-Après l'ajout de la clé, redéployer le web app pour qu'elle soit prise en compte :
-1. Cliquer sur **"Déployer"** → **"Gérer les déploiements"**
-2. Cliquer sur le crayon ✏️ → **"Nouvelle version"** → **"Déployer"**
-
-</details>
+| Champ | Patterns détectés |
+|---|---|
+| Date | `DD/MM/YYYY`, `DD-MM-YYYY`, `YYYY-MM-DD` |
+| Litres | `16,25 L`, `16.25 litres`, `Qté : 16,25`, `16,25 × 0,798` |
+| Prix/L | `0,798 €/L`, `0.798€/l`, `Prix : 0,798`, `0,798 × 16,25` |
+| Carburant | `SuperEthanol E85`, `SP98`, `Gazole`, codes courts |
+| Station | Enseigne reconnue (Leclerc, Carrefour, Total, BP, Intermarché…) |
+| Km | `11831 km`, `Km : 11831`, `compteur 11831` |
 
 ### Récupération automatique des prix — tous carburants
 Dès la sélection d'une station, l'API gouvernementale `data.economie.gouv.fr` est interrogée
@@ -161,7 +146,7 @@ suivi-e85/
 │   ├── stats.js                     # Stats live 4 KPIs filtrés par véhicule (W7)
 │   ├── stationsmap.js               # Carte statique stations habituelles + prix moyens
 │   ├── pwa.js                       # Installation PWA Android/iOS (W4)
-│   └── ticket.js                    # Scan ticket de caisse → auto-fill (W17)
+│   └── ticket.js                    # Scan ticket → OCR Tesseract.js client-side (W17)
 │
 ├── vba/                             # ── Sync Excel ↔ Google Sheets ──────
 │   ├── modSyncGS.bas                # Module sync bidir. (sync_id, bulkAdd/Update, WinHttp)
@@ -175,7 +160,7 @@ suivi-e85/
 │       ├── ci.yml                   # W13 : ESLint + vérification APP_VERSION
 │       └── deploy.yml               # W12 : build Vite → GitHub Pages
 │
-├── package.json                     # Config npm (Vite + ESLint + Vitest)
+├── package.json                     # Config npm (Vite + ESLint + Vitest + Tesseract.js)
 ├── vite.config.js                   # Config Vite + Vitest
 ├── eslint.config.js                 # Flat config ESLint 9
 │
@@ -183,7 +168,7 @@ suivi-e85/
 │   ├── Réponses - Suivi E85.xlsx
 │   └── Sauvegarde & Geolocalisation - Suivi conso SuperEthanol/
 │       └── Google Apps Script/
-│           ├── Code.gs              # Backend GAS v2.9.0.0 (15 col + sync bidir.)
+│           ├── Code.gs              # Backend GAS v2.9.0.2 (15 col + sync bidir.)
 │           ├── index.html           # Page HTML servie par GAS (standalone)
 │           └── GAS_UPDATE.md        # Doc : actions doPost, schéma, migrations
 │
@@ -220,14 +205,14 @@ Actions `doPost` disponibles :
 | `removeVehicule` | App web | Suppression d'un véhicule |
 | `bulkAdd` | VBA Excel | Import initial Excel → GS (dédupliqué par `sync_id`) |
 | `bulkUpdate` | VBA Excel | MAJ bidirectionnelle : lignes modifiées Excel → GS |
-| `scanTicket` | App web | Analyse photo ticket via Gemini Vision |
+| `scanTicket` | ~~App web~~ | ⚠️ Déprécié — le scan utilise désormais Tesseract.js côté navigateur (plus d'appel GAS) |
 
 ### 2. Connecter le formulaire
 
 Dans `js/config.js` :
 
 ```javascript
-export const APP_VERSION = '2.9.0.0';
+export const APP_VERSION = '2.10.0.0';
 export const GAS_URL     = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
 export const GS_SHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
 ```
@@ -337,10 +322,10 @@ stationSubLabel(r)
 
 ### "Vous n'êtes pas autorisé à appeler UrlFetchApp.fetch"
 
-**Symptôme** : le scan de ticket (ou toute action GAS utilisant `UrlFetchApp`) retourne l'erreur :
+**Symptôme** : une action GAS utilisant `UrlFetchApp` retourne l'erreur :
 > `Vous n'êtes pas autorisé à appeler UrlFetchApp.fetch. Autorisations requises : https://www.googleapis.com/auth/script.external_request`
 
-**Cause** : le scope `script.external_request` (accès réseau externe) n'a pas été autorisé lors du déploiement initial — typiquement après avoir ajouté `UrlFetchApp.fetch` à un script déjà déployé.
+**Cause** : le scope `script.external_request` (accès réseau externe) n'a pas été autorisé lors du déploiement initial.
 
 **Correction — étape 1 : déclarer le scope dans le manifeste**
 
@@ -385,32 +370,15 @@ Exécuter n'importe quelle fonction dans l'éditeur (ex. `migrateSyncId`) :
 
 ---
 
-### "API key not valid. Please pass a valid API key."
-
-**Symptôme** : le scan de ticket retourne :
-> `Scan échoué — API key not valid. Please pass a valid API key.`
-
-**Cause** : la propriété de script `GEMINI_API_KEY` est absente, vide ou la clé a expiré/été révoquée.
-
-**Correction** :
-
-1. Obtenir une clé valide sur **[aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)** → **Créer une clé API** → copier la clé (format `AIzaSy...`)
-2. Dans l'éditeur GAS → **⚙️ Paramètres du projet** → section **"Propriétés de script"** → **Modifier les propriétés**
-3. Vérifier qu'une ligne `GEMINI_API_KEY` existe avec la clé en valeur — si absente, **Ajouter une propriété**
-4. **Enregistrer**
-
-> Pas besoin de redéployer : les propriétés de script sont lues à chaque exécution, pas au déploiement.
-
----
-
 ## 📦 Technologies
 
 - HTML / CSS / JavaScript vanilla (ES Modules)
 - [Vite](https://vitejs.dev/) — bundler + dev server + build GitHub Pages
 - [Vitest](https://vitest.dev/) — tests unitaires
+- [Tesseract.js](https://tesseract.projectnaptha.com/) — OCR client-side (scan ticket, langue `fra`)
 - [API Prix des Carburants v2](https://data.economie.gouv.fr/explore/dataset/prix-des-carburants-en-france-flux-instantane-v2/) — stations et prix (géoloc + recherche)
 - [OpenStreetMap](https://www.openstreetmap.org/) — tuiles cartographiques + Overpass (enseignes)
-- Google Apps Script — backend (enregistrement pleins, gestion stations/véhicules, export JSON, bulkAdd, bulkUpdate, scan ticket Gemini)
+- Google Apps Script — backend (enregistrement pleins, gestion stations/véhicules, export JSON, bulkAdd, bulkUpdate)
 - Google Sheets — stockage des données + onglets `Stations` / `vehicules`
 - GitHub Pages — hébergement de l'app mobile
 - Excel + VBA — formulaire local + sync bidirectionnelle (`WinHttp`, `Scripting.Dictionary`, `Worksheet_Change`)
