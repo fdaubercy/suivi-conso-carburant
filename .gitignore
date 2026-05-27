@@ -9,3 +9,7 @@ dist/
 
 # Cache Vite
 .vite/
+
+# Playwright
+playwright-report/
+test-results/

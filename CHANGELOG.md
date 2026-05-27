@@ -4,6 +4,23 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.12.1.0] — 2026-05-27
+
+### Added
+- **`tests/e2e.spec.js`** — Suite Playwright E2E (5 scénarios, mode mock GAS) :
+  - **TC-01** E85 complet → feedback succès + formulaire réinitialisé + historique rechargé (2ème GET GAS renvoie `HIST_RECORD` via flag `submissionDone`)
+  - **TC-02** SP98 complet → feedback succès + formulaire réinitialisé
+  - **TC-03** Champs obligatoires manquants → feedback `error` "Champs manquants", formulaire conservé
+  - **TC-04** Station non sélectionnée → feedback `error` "Station manquante"
+  - **TC-05** Erreur GAS (`success: false`) → feedback `error` "Erreur serveur", champs conservés
+  - Mocks réseau : GAS (`script.google.com/**`), API prix (`data.economie.gouv.fr/**`), Google Sheets stations (`docs.google.com/**` → abort → fallback), Overpass (`overpass-api.de/**`)
+- **`playwright.config.js`** — Configuration Playwright : serveur Vite (`npm run dev`), 1 worker séquentiel, Chromium headless, `testMatch: '**/*.spec.js'` (séparé de Vitest)
+- **`package.json`** — `@playwright/test ^1.44.0` en devDependency + scripts `test:e2e`, `test:e2e:ui`, `test:e2e:headed`, `test:e2e:report`
+- **`.gitignore`** — Entrées `playwright-report/` et `test-results/`
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `2.12.1.0`
+
 ## [2.12.0.0] — 2026-05-27
 
 ### Added

@@ -29,7 +29,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| T1 | **Tests E2E Playwright** : scénario complet (remplir formulaire → soumettre → vérifier feedback + historique rechargé) en mode mock GAS | Évite les régressions UI que Vitest ne couvre pas · effort 1 j |
 | T2 | **Refactoring onclick HTML → addEventListener** : 20+ handlers `onclick="fn()"` inline dans `index.html` → déplacer dans les modules JS | Supprime la surface XSS, rend possible une Content Security Policy stricte, améliore la maintenabilité · effort 1 j |
 | T3 | **Versioning dynamique du cache SW** : injecter `APP_VERSION` dans le nom du cache (`suivi-e85-shell-v2.11.0.0`) via le plugin Vite `vite-plugin-pwa` ou un remplacement de chaîne dans `vite.config.js` | Évite de servir des assets périmés après déploiement · effort ½ j |
 | T4 | **Cache mémoire API ODS** : mémoriser les résultats prix par clé `(lat, lon, rayon)` en `Map` avec TTL 5 min pour éviter les appels redondants quand l'utilisateur change de type de carburant | Réduit les appels API gouvernementale, accélère les changements de type · effort ½ j |
@@ -138,6 +137,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.12.0.0 | **Scroll-to-top après submit (W24)** — `window.scrollTo({ top:0, behavior:'smooth' })` après enregistrement réussi et après mise en file hors-ligne ; le formulaire repasse en vue sans geste manuel |
 | v2.12.0.0 | **Mini-graphique prix E85 inline (W28)** — `buildE85Sparkline()` dans `stats.js` : courbe SVG des 10 derniers prix E85, couleur selon tendance (↘ vert / ↗ rouge / → bleu), min/max + dernier prix affichés ; aucune lib externe |
 | v2.12.0.0 | **Bannière "Mise à jour disponible" SW (W23)** — `_showUpdateBanner(reg)` dans `pwa.js` + handler `SKIP_WAITING` dans `sw.js` ; bouton "Actualiser" → `reg.waiting.postMessage` → `skipWaiting()` → `controllerchange` → reload automatique |
+| v2.12.1.0 | **Tests E2E Playwright (T1)** — `tests/e2e.spec.js` : 5 scénarios (TC-01→TC-05) en mode mock GAS via `page.route()` ; `playwright.config.js` + `@playwright/test` ; scripts `test:e2e / test:e2e:ui / test:e2e:headed / test:e2e:report` |
 
 ---
 

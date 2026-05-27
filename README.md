@@ -120,6 +120,24 @@ Détecte automatiquement quand un nouveau Service Worker est en attente d'activa
 - Clic → `reg.waiting.postMessage({ type: 'SKIP_WAITING' })` → SW prend le contrôle immédiatement → rechargement automatique
 - Détecte aussi les SW déjà en attente au chargement de la page
 
+### 🧪 Tests E2E Playwright (T1)
+
+Suite de 5 scénarios Playwright exécutés sur le serveur Vite local, en mode **mock GAS** (toutes les requêtes réseau sont interceptées via `page.route()`) :
+
+| Cas | Scénario | Vérification |
+|---|---|---|
+| TC-01 | E85 complet → soumission succès | Feedback vert + formulaire réinitialisé + historique rechargé |
+| TC-02 | SP98 complet → soumission succès | Feedback vert + formulaire réinitialisé |
+| TC-03 | Champs obligatoires manquants | Feedback rouge "Champs manquants", valeurs conservées |
+| TC-04 | Station non sélectionnée | Feedback rouge "Station manquante" |
+| TC-05 | Erreur renvoyée par GAS | Feedback rouge "Erreur serveur" + message d'erreur + champs conservés |
+
+```bash
+npm run test:e2e          # headless Chromium
+npm run test:e2e:headed   # navigateur visible
+npm run test:e2e:report   # ouvre le rapport HTML
+```
+
 ### 🔁 CI — GitHub Actions (W13)
 Deux jobs automatiques sur chaque `push` / `pull_request` :
 - **ESLint** : lint de tous les fichiers `js/` (règles `no-var`, `no-unused-vars`, `no-undef`…)
@@ -174,8 +192,13 @@ suivi-e85/
 │       ├── ci.yml                   # W13 : ESLint + vérification APP_VERSION
 │       └── deploy.yml               # W12 : build Vite → GitHub Pages
 │
-├── package.json                     # Config npm (Vite + ESLint + Vitest + Tesseract.js)
+├── tests/
+│   ├── e2e.spec.js                  # Tests E2E Playwright (TC-01 → TC-05, mock GAS)
+│   └── *.test.js                    # Tests unitaires Vitest (utils, prix…)
+│
+├── package.json                     # Config npm (Vite + ESLint + Vitest + Playwright + Tesseract.js)
 ├── vite.config.js                   # Config Vite + Vitest
+├── playwright.config.js             # Config Playwright (Chromium headless, webServer Vite)
 ├── eslint.config.js                 # Flat config ESLint 9
 │
 ├── Google Drive/                    # ── Sauvegardes et exports externes ─
@@ -389,6 +412,7 @@ Exécuter n'importe quelle fonction dans l'éditeur (ex. `migrateSyncId`) :
 - HTML / CSS / JavaScript vanilla (ES Modules)
 - [Vite](https://vitejs.dev/) — bundler + dev server + build GitHub Pages
 - [Vitest](https://vitest.dev/) — tests unitaires
+- [Playwright](https://playwright.dev/) — tests E2E (mock réseau, Chromium headless)
 - [Tesseract.js](https://tesseract.projectnaptha.com/) — OCR client-side (scan ticket, langue `fra`)
 - [API Prix des Carburants v2](https://data.economie.gouv.fr/explore/dataset/prix-des-carburants-en-france-flux-instantane-v2/) — stations et prix (géoloc + recherche)
 - [OpenStreetMap](https://www.openstreetmap.org/) — tuiles cartographiques + Overpass (enseignes)
