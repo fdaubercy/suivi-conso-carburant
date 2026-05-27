@@ -194,9 +194,17 @@ export function parseOCRText(rawText) {
   }
 
   /* ── Montant total ────────────────────────────────────────────────────
-   *  \d{2,3} : montants à 2 ou 3 décimales (44,975 € = 3 décimales)    */
+   *  \d{2,3} : montants à 2 ou 3 décimales (44,975 € = 3 décimales)
+   *
+   *  ⚠️  "ttc" seul NE DOIT PAS être trigger : "Prix unitaire TTC 1,799"
+   *  contient "TTC" mais ce n'est pas un montant total → on l'exclut de
+   *  la première alternance et on ne le garde que comme qualificatif après
+   *  le mot "total" (ex. "TOTAL TTC 76,61").
+   * ─────────────────────────────────────────────────────────────────── */
   const totalPatterns = [
-    /(?:total|montant|à payer|payé|net\s*à\s*payer|ttc)[^\d]*(\d{1,3}[,\.]\d{2,3})\s*€?/i,
+    /* "TOTAL TTC 76,61", "TOTAL 76,61", "MONTANT 76,61", "À PAYER 76,61" */
+    /(?:total(?:\s*ttc)?|montant(?:\s*ttc)?|à payer|payé|net\s*à\s*payer)[^\d]*(\d{1,3}[,\.]\d{2,3})\s*€?/i,
+    /* "76,61 €" seul (sans label), optionnellement suivi de "TTC" ou "net" */
     /(\d{1,3}[,\.]\d{2,3})\s*€\s*(?:ttc|net)?(?:\s|$)/i,
   ];
   for (const pat of totalPatterns) {
@@ -296,11 +304,30 @@ export function parseOCRText(rawText) {
 function fillFormFromTicket(data) {
   let filled = 0;
 
+  /* ── 1. Type de carburant EN PREMIER ────────────────────────────────
+   *
+   *  ⚠️  setType() efface fPrix (fp.value = '') et retire 'autofilled'.
+   *  Il DOIT être appelé avant de remplir les champs numériques,
+   *  sinon le prix saisi depuis le ticket est immédiatement effacé.
+   *
+   * ─────────────────────────────────────────────────────────────────── */
+  if (data.type_carburant) {
+    const norm    = data.type_carburant.toLowerCase().trim();
+    const fuelKey = FUEL_LABEL_MAP[norm]
+      || Object.keys(FUEL_CONFIG).find(k => norm.includes(k.toLowerCase()));
+    if (fuelKey && typeof window.setType === 'function') {
+      window.setType(fuelKey);   /* réinitialise fPrix → on le remplit ensuite */
+      filled++;
+    }
+  }
+
+  /* ── 2. Date ─────────────────────────────────────────────────────── */
   if (data.date) {
     const el = document.getElementById('fDate');
     if (el) { el.value = data.date; el.classList.add('autofilled'); filled++; }
   }
 
+  /* ── 3. Km ───────────────────────────────────────────────────────── */
   if (data.km && Number(data.km) > 0) {
     const el = document.getElementById('fKm');
     if (el) {
@@ -311,6 +338,7 @@ function fillFormFromTicket(data) {
     }
   }
 
+  /* ── 4. Litres ───────────────────────────────────────────────────── */
   if (data.litres && Number(data.litres) > 0) {
     const el = document.getElementById('fLitres');
     if (el) {
@@ -321,23 +349,13 @@ function fillFormFromTicket(data) {
     }
   }
 
+  /* ── 5. Prix/L — après setType() pour ne pas être effacé ────────── */
   if (data.prix_litre && Number(data.prix_litre) > 0) {
     const el = document.getElementById('fPrix');
     if (el) {
       el.value = Number(data.prix_litre).toFixed(3);
       el.classList.add('autofilled');
       el.dispatchEvent(new Event('input'));
-      filled++;
-    }
-  }
-
-  /* Type de carburant */
-  if (data.type_carburant) {
-    const norm    = data.type_carburant.toLowerCase().trim();
-    const fuelKey = FUEL_LABEL_MAP[norm]
-      || Object.keys(FUEL_CONFIG).find(k => norm.includes(k.toLowerCase()));
-    if (fuelKey && typeof window.setType === 'function') {
-      window.setType(fuelKey);
       filled++;
     }
   }

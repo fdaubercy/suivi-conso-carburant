@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.10.0.5] — 2026-05-27
+
+### Fixed
+- **`js/ticket.js`** — Deux bugs critiques dans le remplissage du formulaire post-scan.
+  - **Ordre `setType` → `fPrix`** : `setType()` efface `fPrix.value = ''` (ligne 66 de `carburant.js`). `fillFormFromTicket` appelait `setType` *après* avoir rempli `fPrix`, effaçant immédiatement le prix détecté. Correction : `setType` est désormais appelé **en premier**, avant tout remplissage de champ numérique.
+  - **`montant_total` faux** : le pattern `ttc` (seul) dans `totalPatterns` capturait "Prix unitaire **TTC** 1,799" → `montant_total = 1.799` au lieu de 76,61. Correction : `ttc` retiré de l'alternance principale ; seul `total ttc` et `montant ttc` restent valides comme déclencheurs.
+
 ## [2.10.0.4] — 2026-05-27
 
 ### Fixed
