@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.12.2.0] — 2026-05-27
+
+### Fixed
+- **`css/style.css`** — Règle globale `[hidden] { display: none !important; }` ajoutée en tête de fichier : les éléments utilisant `display: flex/grid` en CSS ne peuvent plus écraser l'attribut HTML `[hidden]`. Corrige l'affichage parasite des deux messages de notification (`#notifNoSupport`, `#notifDenied`) sur iOS Safari et le seuil d'alerte (`#notifSeuilRow`) toujours visible.
+- **`js/notifications.js`** — Détection iOS en mode navigateur (`isIOSBrowser`) : sur iPhone/iPad non installé en PWA, l'API est considérée non disponible → toggle désactivé dès le chargement, aucun appel à `requestPermission()`. Supprime le comportement incohérent (toggle sans réaction, messages contradictoires). Ajout d'un `try/catch` autour de `requestPermission()` pour les navigateurs qui lèvent une exception. Ordre d'initialisation corrigé : `updateNotifUI()` appelé en premier dans `initNotifications()`.
+- **`index.html`** — Nouveau `<div id="notifIOS">` : message spécifique iPhone "Sur iPhone, les alertes nécessitent l'app installée — Safari → Partager → Sur l'écran d'accueil (iOS ≥ 16.4)". Remplace les messages génériques "non supporté" / "bloqué" qui s'affichaient simultanément sur iOS.
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `2.12.2.0`
+
 ## [2.12.1.0] — 2026-05-27
 
 ### Added

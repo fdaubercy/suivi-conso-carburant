@@ -3,6 +3,8 @@
 ═══════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* Garantit que [hidden] est respecté même quand display:flex/grid est défini en CSS */
+[hidden] { display: none !important; }
 
 :root {
   --blue-dark:  #1B3A5C;
@@ -467,6 +469,8 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
   font-size: 12px; margin-top: 5px; min-height: 16px;
   display: flex; align-items: center; gap: 5px;
 }
+/* Sans cette règle, display:flex écrase l'attribut HTML [hidden] */
+.s98-status[hidden] { display: none; }
 .s98-status.ok   { color: var(--green); }
 .s98-status.err  { color: var(--red); }
 .s98-status.info { color: var(--text-muted); }

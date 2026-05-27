@@ -11,18 +11,35 @@
 
    Support :
      Android Chrome/Edge : full (foreground + standalone)
-     iOS Safari ≥ 16.4   : standalone PWA uniquement
-     iOS Safari (browser): non supporté (API absente)
+     iOS Safari ≥ 16.4   : standalone PWA uniquement (installée via "Sur l'écran d'accueil")
+     iOS Safari (browser): non supporté (désactivé côté JS pour UX claire)
      Firefox Desktop     : supporté
 ═══════════════════════════════════════════════════════════════════════ */
 
-const KEY_ENABLED = 'notif_e85_enabled';
-const KEY_SEUIL   = 'notif_e85_seuil';
+const KEY_ENABLED   = 'notif_e85_enabled';
+const KEY_SEUIL     = 'notif_e85_seuil';
 const DEFAULT_SEUIL = 0.850;
+
+/* ─── Détection contexte ─────────────────────────────────────────────── */
+
+/**
+ * Vrai si l'app tourne sur iOS dans Safari (navigateur) — PAS installée en PWA.
+ * Sur iOS en mode standalone (ajoutée à l'écran d'accueil), les notifications
+ * fonctionnent à partir de iOS 16.4 → ce cas est traité comme un navigateur normal.
+ */
+export const isIOSBrowser = (() => {
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (!ios) return false;
+  const standalone = window.matchMedia('(display-mode: standalone)').matches
+                  || !!window.navigator.standalone;
+  return !standalone;   // iOS browser = iOS ET non installée
+})();
 
 /* ─── Getters / setters ──────────────────────────────────────────────── */
 
-export const isSupported = () => 'Notification' in window;
+/** L'API Notification est utilisable dans ce contexte. */
+export const isSupported = () => !isIOSBrowser && 'Notification' in window;
+
 export const isEnabled   = () => isSupported() && localStorage.getItem(KEY_ENABLED) === '1';
 export const getPermission = () => isSupported() ? Notification.permission : 'unsupported';
 
@@ -64,8 +81,16 @@ export async function toggleNotifications(enable) {
     return false;     // l'utilisateur a bloqué dans les réglages OS
   }
 
-  /* default → demander */
-  const perm = await Notification.requestPermission();
+  /* default → demander (peut lever une exception sur certains navigateurs) */
+  let perm;
+  try {
+    perm = await Notification.requestPermission();
+  } catch {
+    localStorage.removeItem(KEY_ENABLED);
+    updateNotifUI();
+    return false;
+  }
+
   if (perm === 'granted') {
     localStorage.setItem(KEY_ENABLED, '1');
     updateNotifUI();
@@ -121,13 +146,20 @@ export function updateNotifUI() {
   const seuilRow  = document.getElementById('notifSeuilRow');
   const denied    = document.getElementById('notifDenied');
   const noSupport = document.getElementById('notifNoSupport');
+  const iosBanner = document.getElementById('notifIOS');
 
   const supported = isSupported();
   const enabled   = isEnabled();
   const perm      = getPermission();
 
-  if (noSupport) noSupport.hidden = supported;        // affiché si API absente
-  if (denied)    denied.hidden    = perm !== 'denied'; // affiché si bloqué
+  /* Message iOS browser : prioritaire sur "non supporté" et "bloqué" */
+  if (iosBanner)  iosBanner.hidden  = !isIOSBrowser;
+
+  /* Message "non supporté" — caché sur iOS (a son propre message) */
+  if (noSupport)  noSupport.hidden  = isIOSBrowser || supported;
+
+  /* Message "bloqué" — caché sur iOS (message iOS est plus pertinent) */
+  if (denied)     denied.hidden     = isIOSBrowser || perm !== 'denied';
 
   if (toggle) {
     toggle.checked  = enabled;
@@ -139,7 +171,8 @@ export function updateNotifUI() {
 /* ─── Init ───────────────────────────────────────────────────────────── */
 
 export function initNotifications() {
-  if (!isSupported()) { updateNotifUI(); return; }
+  updateNotifUI();                    // affiche l'état initial (iOS, non supporté, etc.)
+  if (!isSupported()) return;         // rien à câbler si non disponible
 
   /* Seuil input */
   const inp = document.getElementById('notifSeuil');
@@ -159,6 +192,4 @@ export function initNotifications() {
       if (!ok) toggle.checked = false;  // permission refusée → décocher
     });
   }
-
-  updateNotifUI();
 }
