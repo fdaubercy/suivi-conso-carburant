@@ -7,10 +7,14 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 ## 🌐 Web app
 
-### 🔥 Quick wins (1-3 h chacun)
+### 🔥 Quick wins (< 2 h chacun)
 
 | # | Idée | Pourquoi |
 |---|---|---|
+| W23 | **Bannière "Mise à jour disponible"** : détecter `navigator.serviceWorker.waiting` et afficher un bouton "Actualiser" dans le header | Évite que l'utilisateur utilise une vieille version sans le savoir · effort 30 min |
+| W24 | **Scroll-to-top après submit** : après enregistrement réussi, `window.scrollTo({ top:0, behavior:'smooth' })` | UX : le formulaire repasse en vue sans geste manuel · effort 15 min |
+| W25 | **Export CSV de l'historique** : bouton "📥 Exporter" dans la carte historique → télécharge tous les enregistrements en `.csv` (via `?action=export` + `Blob` + `URL.createObjectURL`) | Justificatif remboursement employeur / fiscalité · zéro backend · effort 1 h |
+| W26 | **Web Share API** : icône "Partager" sur chaque entrée historique → partage les détails d'un plein (litres, prix, station) via le menu natif iOS/Android | Envoi rapide par WhatsApp/SMS/mail · effort 1 h |
 
 ### 🎯 Features visibles (½-1 jour chacun)
 
@@ -18,11 +22,21 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|
 | W9 | **Photo du ticket** uploadée avec le plein (Drive ou base64 dans GS) | Justificatif · effort 2-3 h + breaking schema (col supplémentaire dans GS) |
 | W15 | **Auto-save brouillon** : à chaque frappe, sauve le formulaire dans localStorage. Restauré au prochain chargement si la page est fermée sans enregistrer | UX : pas de perte si on quitte par erreur |
+| W27 | **Pagination/filtre historique** : bouton "Voir tout" qui charge et affiche tous les pleins (pas seulement les 5 derniers), avec filtre par véhicule et par type de carburant | Visibilité de l'historique complet sans passer par Google Sheets · effort ½ j |
+| W28 | **Mini-graphique prix E85 inline** : courbe SVG des 10 derniers prix E85 payés (canvas ou SVG inline depuis `_allRecords`) dans la carte stats | Visualisation de la tendance prix · aucune lib externe · effort ½ j |
+| W29 | **Prédiction prochain plein** : basée sur conso moyenne et km actuel, affiche "Prochain plein estimé dans ~X km / ~Y jours" dans la carte stats | Anticipation, pas de panne sèche · pur calcul · effort ½ j |
+| W30 | **Comparateur multi-stations** : lors d'une géoloc, mémoriser les prix de toutes les stations vues et afficher un tableau trié par prix E85 | Choisir la moins chère parmi les stations trouvées · effort ½-1 j |
+| W31 | **Géoloc mémorisée** : si l'utilisateur a autorisé la géoloc, pré-remplir les stations depuis la dernière position connue (localStorage) pendant que la géoloc actualise | Chargement perçu plus rapide · effort ½ j |
 
 ### 🛠️ Tech debt
 
 | # | Idée | Pourquoi |
 |---|---|---|
+| T1 | **Tests E2E Playwright** : scénario complet (remplir formulaire → soumettre → vérifier feedback + historique rechargé) en mode mock GAS | Évite les régressions UI que Vitest ne couvre pas · effort 1 j |
+| T2 | **Refactoring onclick HTML → addEventListener** : 20+ handlers `onclick="fn()"` inline dans `index.html` → déplacer dans les modules JS | Supprime la surface XSS, rend possible une Content Security Policy stricte, améliore la maintenabilité · effort 1 j |
+| T3 | **Versioning dynamique du cache SW** : injecter `APP_VERSION` dans le nom du cache (`suivi-e85-shell-v2.11.0.0`) via le plugin Vite `vite-plugin-pwa` ou un remplacement de chaîne dans `vite.config.js` | Évite de servir des assets périmés après déploiement · effort ½ j |
+| T4 | **Cache mémoire API ODS** : mémoriser les résultats prix par clé `(lat, lon, rayon)` en `Map` avec TTL 5 min pour éviter les appels redondants quand l'utilisateur change de type de carburant | Réduit les appels API gouvernementale, accélère les changements de type · effort ½ j |
+| T5 | **Content Security Policy** : ajouter `_headers` (Netlify) ou `<meta http-equiv="Content-Security-Policy">` pour restreindre les origines autorisées | Sécurité navigateur · complément naturel du refactoring T2 · effort ½ j |
 
 ---
 
@@ -40,6 +54,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi |
 |---|---|---|
 | X9 | **Économies cumulées E85 vs SP98** (calcul rétroactif depuis colonne J SP98 station) | Le ROI E85 chiffré |
+| X15 | **Graphique scatter Prix E85/L vs L/100 km** : nuage de points pour voir si la conso augmente quand le prix baisse (comportemental) | Corrélation prix/comportement · effort ½ j · pure formule Excel |
 
 ### 🛠️ Robustesse
 
@@ -48,6 +63,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | X11 | **Onglet `_SyncLog`** : chaque sync ajoute une ligne (date, ←N, →N, durée) | Debug, historique des syncs |
 | X12 | **Backup auto** dans `Google Drive/Sauvegardes/Suivi conso E85_YYYYMMDD.xlsm` avant chaque sync majeure | Filet de sécurité |
 | X14 | **Onglet "Suivi des pleins" reconstruit depuis `_ImportGS`** : la table de suivi devient une vue dérivée du tableau de données (Power Query ou formules dynamiques sur `Tableau2`) au lieu d'être saisie manuellement | Source unique de vérité ; plus de double saisie ni de désynchronisation entre l'app web et le tableau Excel |
+| X16 | **Rapport mensuel automatique** : trigger GAS (1er du mois) → `MailApp.sendEmail()` avec résumé nb pleins, total €, conso moy, éco E85 vs SP98 | Bilan mensuel passif, zéro action requise · effort 1 j |
 
 ---
 
@@ -61,6 +77,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | S3 | **Suppression bidirectionnelle** : flag `_deleted` au lieu de hard delete, sync efface l'autre côté | Cohérence si on corrige une erreur |
 | S4 | **Bouton "Force resync"** : vide `GS_Pleins`, ré-importe tout depuis GS | Reset si désalignement |
 | S5 | **Conflict resolution avancée** : si même `sync_id` modifié des 2 côtés, garder le plus récent (timestamp) plutôt qu'Excel-wins systématique | Édition simultanée web/Excel sans perte |
+| S8 | **Refresh quotidien des prix carburants** : trigger temporel GAS (`ScriptApp.newTrigger().timeBased().everyDays(1)`) qui parcourt l'onglet `Stations`, fetch le prix actuel via l'API gov, et logue chaque résultat dans un nouvel onglet `_PrixHistory` (station, date, type, prix) | Permet de tracer l'évolution prix par station dans le temps → graphiques Excel + détection des baisses |
+| S10 | **Notification push depuis GAS** : couplé à S8, envoyer une Web Push (VAPID) quand un prix E85 très bas est détecté lors du refresh quotidien — sans que l'app soit ouverte | Alerte passive · complément naturel de S8 + W11 déjà implémenté · effort 2 j (VAPID complexe) |
 
 ### 🛡️ Sécurité
 
@@ -68,17 +86,19 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|
 | S6 | **Token secret** sur les endpoints GAS (`?token=XXX`) partagé avec VBA et web app | L'URL GAS étant publique, tout le monde peut lire l'historique aujourd'hui |
 | S7 | **Rate limiting** côté GAS (max 10 requêtes/min par client) | Évite abus accidentels |
-| S8 | **Refresh quotidien des prix carburants** : trigger temporel GAS (`ScriptApp.newTrigger().timeBased().everyDays(1)`) qui parcourt l'onglet `Stations`, fetch le prix actuel via l'API gov, et logue chaque résultat dans un nouvel onglet `_PrixHistory` (station, date, type, prix) | Permet de tracer l'évolution prix par station dans le temps → graphiques Excel + détection des baisses |
+| S9 | **Audit des dépendances npm** : `npm audit` en CI + `Dependabot` activé sur GitHub pour les mises à jour Tesseract.js / Vite / Vitest | Surface d'attaque chaîne d'approvisionnement · effort 30 min de config |
 
 ---
 
-## 🏆 Top 3 recommandés en priorité
+## 🏆 Top 5 recommandés en priorité
 
 | Rang | Item | Effort | Bénéfice |
 |---|---|---|---|
 | 1 | **X1** — Bouton "Synchroniser" sur la feuille GS_Pleins | 15 min | Ergonomie immédiate, plus besoin d'ouvrir l'IDE |
 | 2 | **S6** — Token secret sur les endpoints GAS | 30 min | Sécurité minimale, données aujourd'hui publiques |
-| 3 | **W15** — Auto-save brouillon localStorage | 1 h | UX : zéro perte de saisie |
+| 3 | **W24** — Scroll-to-top après submit | 15 min | UX : formulaire repasse en vue sans geste |
+| 4 | **W23** — Bannière "Mise à jour disponible" SW | 30 min | L'utilisateur sait qu'une MàJ est prête |
+| 5 | **W15** — Auto-save brouillon localStorage | 1 h | UX : zéro perte de saisie |
 
 ---
 
