@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.10.0.1] — 2026-05-27
+
+### Fixed
+- **`js/ticket.js`** — Détection du carburant "SP 95-E10" (E10) corrigée.
+  - **`FUEL_LABEL_MAP`** : patterns composés (`sp95-e10`, `sp 95-e10`, `95-e10`, `sp95 e10`, `sp 95 e10`, `sans plomb 95-e10`…) positionnés **avant** `sp95` et `e10` séparément — ordre critique car `"sp95-e10".includes("sp95")` est vrai et causait un match prématuré sur `SP95`.
+  - **Regex fallback** (codes courts) : pattern dédié `\bSP\s?95[\s-]E10\b|\b95[\s-]E10\b` testé avant l'alternance simple `SP95|E10` pour éviter que "SP95-E10" soit capturé par `SP95`.
+
 ## [2.10.0.0] — 2026-05-27
 
 ### Changed

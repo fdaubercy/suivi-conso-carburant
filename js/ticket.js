@@ -15,20 +15,48 @@ import Tesseract from 'tesseract.js';
 import { FUEL_CONFIG } from './config.js';
 import { showFeedback } from './ui.js';
 
-/* ─── Table de correspondance libellés OCR → clés FUEL_CONFIG ─── */
+/* ─── Table de correspondance libellés OCR → clés FUEL_CONFIG ───────────
+ *
+ *  ⚠️  ORDRE CRITIQUE : les patterns composés (sp95-e10, sp 95-e10…) DOIVENT
+ *  précéder leurs composants simples (sp95, e10) car la recherche s'arrête
+ *  au premier match (includes).
+ *
+ *  Exemple de bug : "sp95-e10".includes("sp95") → vrai → matcherait SP95
+ *  si 'sp95' était positionné avant 'sp95-e10'.
+ *
+ * ─────────────────────────────────────────────────────────────────────── */
 const FUEL_LABEL_MAP = {
-  'e85':              'E85',    'superethanol': 'E85',
-  'superéthanol':     'E85',    'ethanol':      'E85',
-  'sp98':             'SP98',   'super 98':     'SP98',
-  'super98':          'SP98',   'sans plomb 98':'SP98',
+  /* ── E85 ── */
+  'e85':              'E85',  'superethanol':  'E85',
+  'superéthanol':     'E85',  'ethanol':       'E85',
+
+  /* ── SP98 (E5) — avant SP95 pour éviter le sous-match "sp98" dans "sp98-e5" ── */
+  'sp98-e5':          'SP98', 'sp 98-e5':      'SP98',
+  'sans plomb 98-e5': 'SP98', '98-e5':         'SP98',
+  'sp98':             'SP98', 'super 98':      'SP98',
+  'super98':          'SP98', 'sans plomb 98': 'SP98',
   'sans-plomb 98':    'SP98',
-  'sp95':             'SP95',   'sans plomb 95':'SP95',
+
+  /* ── SP95-E10 (E10) — AVANT sp95 et e10 pris séparément ── */
+  'sp95-e10':          'E10', 'sp 95-e10':      'E10',
+  'sp95 e10':          'E10', 'sp 95 e10':      'E10',
+  'sans plomb 95-e10': 'E10', 'sans plomb 95 e10': 'E10',
+  '95-e10':            'E10', '95 e10':          'E10',
+
+  /* ── SP95 simple (E5) ── */
+  'sp95':             'SP95', 'sans plomb 95': 'SP95',
   'sans-plomb 95':    'SP95',
-  'e10':              'E10',    'sans plomb e10':'E10',
+
+  /* ── E10 simple ── */
+  'e10':              'E10',  'sans plomb e10': 'E10',
   'sans-plomb e10':   'E10',
-  'gazole':           'GAZOLE', 'diesel':       'GAZOLE',
-  'b7':               'GAZOLE', 'gasoil':       'GAZOLE',
-  'gplc':             'GPLC',   'gpl':          'GPLC',
+
+  /* ── Gazole ── */
+  'gazole':           'GAZOLE', 'diesel':  'GAZOLE',
+  'b7':               'GAZOLE', 'gasoil':  'GAZOLE',
+
+  /* ── GPLc ── */
+  'gplc':             'GPLC', 'gpl':      'GPLC',
 };
 
 /* ─── Helpers ─── */
@@ -178,18 +206,29 @@ export function parseOCRText(rawText) {
   }
 
   /* ── Type de carburant ────────────────────────────────────────────── */
-  /* 1) Libellés longs */
+
+  /* 1) Libellés longs (FUEL_LABEL_MAP) — ordre critique : composés avant simples */
   for (const [key, val] of Object.entries(FUEL_LABEL_MAP)) {
     if (lower.includes(key)) { result.type_carburant = val; break; }
   }
-  /* 2) Codes courts (E85, SP98, …) si rien trouvé */
+
+  /* 2) Codes courts si rien trouvé — composés (SP95-E10) testés en premier
+   *    ⚠️  L'alternance regex matche le PREMIER token trouvé dans la chaîne ;
+   *    "SP95-E10" renverrait SP95 si l'ordre était SP98|SP95|E10.
+   *    Solution : pattern composé dédié testé avant les codes simples.        */
   if (!result.type_carburant) {
-    const mFuel = text.match(/\b(E85|SP98|SP95|E10|Gazole|GPLc|B7)\b/i);
-    if (mFuel) {
-      const k = mFuel[1].toUpperCase();
-      result.type_carburant = FUEL_LABEL_MAP[k.toLowerCase()]
-        || Object.keys(FUEL_CONFIG).find(fk => fk === k)
-        || null;
+    /* Patterns composés : SP95-E10 / SP 95-E10 / 95-E10 / SP 95 E10 … */
+    const mCompo = text.match(/\bSP\s?95[\s-]E10\b|\b95[\s-]E10\b/i);
+    if (mCompo) {
+      result.type_carburant = 'E10';
+    } else {
+      const mFuel = text.match(/\b(E85|SP98|SP95|E10|Gazole|GPLc|B7)\b/i);
+      if (mFuel) {
+        const k = mFuel[1].toUpperCase();
+        result.type_carburant = FUEL_LABEL_MAP[k.toLowerCase()]
+          || Object.keys(FUEL_CONFIG).find(fk => fk === k)
+          || null;
+      }
     }
   }
 
