@@ -4,6 +4,7 @@ import { state } from './state.js';
 import { haversine, odsUrl } from './utils.js';
 import { setS98Status, showCpSearch, hideCpSearch, setFieldPrice, updateCout } from './ui.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
+import { checkPrixE85Alert } from './notifications.js';
 
 /** Évalue la rentabilité E85 vs SP98 à partir des prix station chargés. */
 export function evalRentabiliteE85() {
@@ -61,6 +62,17 @@ export function applyPricesResult(data) {
   }
 
   updateRentabilite();
+
+  /* ── Alerte notification prix E85 ──────────────────────────────────
+   * Vérifie si le prix E85 de la station est sous le seuil configuré.
+   * La station sélectionnée est récupérée depuis le select.             */
+  if (state._stationPrices.E85) {
+    const stationEl = document.getElementById('stationSel');
+    const station   = stationEl?.value && stationEl.value !== '__autre'
+      ? stationEl.value
+      : (document.getElementById('fAutre')?.value || '');
+    checkPrixE85Alert(state._stationPrices.E85, station);
+  }
 }
 
 /** Cherche les prix autour de (lat, lon) par cercles croissants (500 m → 2 km → 5 km). */

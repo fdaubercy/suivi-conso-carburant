@@ -29,6 +29,8 @@
   <!-- PWA : bouton install Android/Chrome (visible uniquement si beforeinstallprompt) -->
   <button id="pwaInstallBtn" class="pwa-install-btn" hidden
           onclick="window._pwaInstall()" title="Installer l'app sur l'écran d'accueil">📲</button>
+  <!-- Badge hors-ligne : visible quand des pleins sont en file d'attente -->
+  <span id="offlineBadge" class="offline-badge" hidden></span>
   <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Changer de thème">🌙</button>
   <div class="header-right">
     <span class="badge" id="headerBadge">🌿 E85</span>
@@ -179,6 +181,48 @@
     </div>
   </div>
   <div id="historiqueList"><div class="hist-msg">Chargement…</div></div>
+</div>
+
+<!-- ─── Paramètres : Notifications & Mode hors-ligne ─── -->
+<div class="card notif-card">
+  <p class="section-title">⚙️ Paramètres</p>
+
+  <!-- Hors-ligne -->
+  <div class="notif-row">
+    <div>
+      <span class="notif-label">📵 Mode hors-ligne</span>
+      <span class="notif-sub">Les pleins saisis sans connexion sont mis en file d'attente et envoyés automatiquement au retour du réseau.</span>
+    </div>
+  </div>
+
+  <!-- Notifications prix E85 -->
+  <div id="notifNoSupport" class="s98-status" hidden>
+    ⚠️ Les notifications ne sont pas supportées par ce navigateur.
+  </div>
+  <div id="notifDenied" class="s98-status" hidden>
+    🚫 Notifications bloquées — autorisez-les dans les paramètres du navigateur, puis rechargez la page.
+  </div>
+
+  <div class="notif-row">
+    <div>
+      <span class="notif-label">🔔 Alertes prix E85</span>
+      <span class="notif-sub">Notification quand le prix E85 passe sous votre seuil</span>
+    </div>
+    <label class="switch" title="Activer les alertes prix E85">
+      <input type="checkbox" id="notifToggle">
+      <span class="switch-track"></span>
+    </label>
+  </div>
+
+  <div class="seuil-row" id="notifSeuilRow" hidden>
+    <label for="notifSeuil" class="notif-label">Seuil d'alerte</label>
+    <div style="display:flex;align-items:center;gap:6px">
+      <input type="number" id="notifSeuil" class="seuil-input"
+             step="0.001" min="0.5" max="2.0" value="0.850"
+             inputmode="decimal">
+      <span class="seuil-unit">€/L</span>
+    </div>
+  </div>
 </div>
 
 <div class="feedback" id="feedback"></div>

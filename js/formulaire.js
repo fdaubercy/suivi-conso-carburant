@@ -7,6 +7,7 @@ import { fetchPricesNearUser, fetchNearestE85Price, evalRentabiliteE85 } from '.
 import { syncStationSiNouvelle } from './stations.js';
 import { chargerHistorique, getMaxKmForVehicule, getAllRecords } from './historique.js';
 import { updateRentabilite } from './rentabilite.js';
+import { queuePlein, updateOfflineBadge } from './offline.js';
 
 /**
  * Détection de doublon : warning si date + km + litres identiques à un enregistrement existant.
@@ -23,7 +24,7 @@ export function checkDuplicate() {
   if (!date || !km || !litres) { warn.hidden = true; return; }
 
   const kmN  = Number(km);
-  const litN = Math.round(Number(litres) * 100); // compare en centilitres (évite les flottants)
+  const litN = Math.round(Number(litres) * 100);
 
   const found = getAllRecords().find(r => {
     const rDate = String(r.Date || r.Horodatage || '').slice(0, 10);
@@ -78,7 +79,7 @@ export function onStationChange() {
   }
   if (sel.value && !isManual) {
     state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
-    evalRentabiliteE85();   // reset le badge en attendant les nouveaux prix
+    evalRentabiliteE85();
     fetchPricesNearUser();
   }
 }
@@ -111,7 +112,7 @@ export async function submitForm() {
     if (!ok) return;
   }
 
-  // Validation km rétrograde : confirme si km < dernier_km du véhicule courant
+  // Validation km rétrograde
   const lastKm = getMaxKmForVehicule(vehicule);
   if (lastKm && Number(km) < lastKm) {
     const fmt = lastKm.toLocaleString('fr-FR');
@@ -131,7 +132,7 @@ export async function submitForm() {
     ? Object.fromEntries(FUEL_KEYS.map(k => [k, state._stationPrices[k] || '']))
     : {};
 
-  // Garantir le prix E85 même pour les pleins non-E85 (référence de comparaison)
+  // Garantir le prix E85 même pour les pleins non-E85
   if (!stationPrices.E85) {
     const lat = state._selectedLat || state.userLat;
     const lon = state._selectedLon || state.userLon;
@@ -141,21 +142,46 @@ export async function submitForm() {
     }
   }
 
+  const payload = {
+    date, type: FUEL_CONFIG[state.currentType].label,
+    km, litres, prix, station, vehicule, stationPrices,
+  };
+
+  /* ── Envoi réseau ────────────────────────────────────────────────────
+   * Hors-ligne (NetworkError / TypeError) → file d'attente localStorage
+   * ─────────────────────────────────────────────────────────────────── */
   try {
     const json = await fetch(GAS_URL, {
       method: 'POST', redirect: 'follow',
-      body: JSON.stringify({ date, type: FUEL_CONFIG[state.currentType].label, km, litres, prix, station, vehicule, stationPrices })
+      body: JSON.stringify(payload),
     }).then(r => r.json());
+
     if (json.success) {
       showFeedback('success', 'Plein enregistré ✓', json.message || litres + ' L à ' + prix + ' €/L — ' + station);
       await syncStationSiNouvelle(station);
       resetForm();
-      chargerHistorique();   // refresh la liste pour voir le plein qui vient d'etre ajoute
+      chargerHistorique();
     } else {
       showFeedback('error', 'Erreur serveur', json.error || 'Veuillez réessayer.');
     }
-  } catch(e) { showFeedback('error', 'Connexion impossible', 'Vérifiez votre accès internet.'); }
-  finally { setSubmitState(false); }
+
+  } catch (e) {
+    /* Détection hors-ligne : NetworkError ou pas de connexion */
+    if (!navigator.onLine || e instanceof TypeError) {
+      queuePlein(payload);
+      showFeedback(
+        'info',
+        '📵 Enregistré hors-ligne',
+        `Le plein de ${litres} L sera synchronisé au retour de la connexion.`
+      );
+      resetForm();
+      updateOfflineBadge();
+    } else {
+      showFeedback('error', 'Connexion impossible', 'Vérifiez votre accès internet.');
+    }
+  } finally {
+    setSubmitState(false);
+  }
 }
 
 export function resetForm() {
@@ -171,6 +197,6 @@ export function resetForm() {
   document.getElementById('s98Status').textContent = '';
   setAutreStatus('', ''); hideCpSearch();
   state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
-  evalRentabiliteE85();   // efface le badge
+  evalRentabiliteE85();
   updateCout();
 }

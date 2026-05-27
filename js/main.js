@@ -17,8 +17,10 @@ import { chargerStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
 import { chargerHistorique, dupliquerDernier } from './historique.js';
 import { renderStats } from './stats.js';
-import { initScanner } from './ticket.js';
-import { initPWA }    from './pwa.js';
+import { initScanner }       from './ticket.js';
+import { initPWA }           from './pwa.js';
+import { initOffline, syncQueue } from './offline.js';
+import { initNotifications } from './notifications.js';
 
 /* ─── Init synchrone ─── */
 initTheme();
@@ -40,8 +42,17 @@ chargerHistorique();
 /* ─── Scanner ticket de caisse (W17) ─── */
 initScanner();
 
-/* ─── PWA install prompt (W4) ─── */
+/* ─── PWA : Service Worker + install prompt ─── */
 initPWA();
+
+/* ─── Mode hors-ligne : queue + sync ─── */
+initOffline();
+
+/* ─── Notifications prix E85 ─── */
+initNotifications();
+
+/* Sync au démarrage si des pleins sont en attente et qu'on est en ligne */
+if (navigator.onLine) syncQueue();
 
 /* ─── Exposition globale pour les handlers HTML inline ─── */
 Object.assign(window, {

@@ -4,6 +4,42 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.11.0.0] — 2026-05-27
+
+### Added
+- **`public/sw.js`** — Service Worker (Cache-First shell + Network-First dynamique).
+  - Cache statique de la coquille applicative (HTML/CSS/JS/icônes) pour démarrage hors-ligne.
+  - Stratégie Network-First pour les requêtes GET du même domaine ; fallback vers le cache si hors réseau.
+  - Skip des ressources externes (GAS, ODS API, CDN) pour ne pas interférer avec la logique métier.
+  - Fallback navigation : sert `index.html` depuis le cache pour toutes les routes SPA.
+  - Background Sync : sur tag `sync-pleins`, notifie les clients `window` via `postMessage` pour déclencher la synchronisation.
+- **`js/offline.js`** — Gestion de la file d'attente hors-ligne.
+  - `queuePlein(payload)` : sauvegarde un plein dans `localStorage` quand la soumission échoue (hors réseau).
+  - `syncQueue()` : envoie chaque entrée à GAS au retour de la connexion ; retire les succès, arrête sur erreur réseau persistante.
+  - `updateOfflineBadge()` : met à jour le badge `📵 N hors-ligne` dans le header.
+  - `initOffline()` : écoute `window.online`, messages Service Worker (`SYNC_PLEINS`), et enregistre un Background Sync.
+- **`js/notifications.js`** — Alertes prix E85 via Web Notifications API.
+  - `toggleNotifications(enable)` : demande la permission, enregistre l'état et envoie une notification de confirmation.
+  - `checkPrixE85Alert(prix, station)` : émet une notification `tag: 'e85-price-alert'` (anti-spam) si le prix E85 est sous le seuil configuré.
+  - `getSeuil() / setSeuil()` : seuil persisté en localStorage (`notif_e85_seuil`), défaut 0,850 €/L.
+  - `updateNotifUI()` : synchronise le toggle, la ligne seuil, et les messages permission denied / not supported.
+  - `initNotifications()` : câble le toggle et l'input seuil au chargement.
+- **`index.html`** — Éléments UI pour les nouvelles fonctionnalités.
+  - Badge `#offlineBadge` dans le header (visible si des pleins sont en attente de sync).
+  - Carte « Paramètres » avec section hors-ligne (informatif) et section alertes prix E85 (toggle + seuil + messages denied/no-support).
+- **`js/pwa.js`** — Enregistrement du Service Worker dans `initPWA()` (portée `import.meta.env.BASE_URL`).
+- **`css/style.css`** — Styles pour les nouvelles fonctionnalités.
+  - `.offline-badge` : badge ambre pulsant (`@keyframes pulse-badge`) dans le header.
+  - `.notif-card`, `.notif-row`, `.notif-label`, `.notif-sub` : carte paramètres et ses composants.
+  - `.switch`, `.switch-track` : toggle iOS-style (checked/disabled variants).
+  - `.seuil-row`, `.seuil-input`, `.seuil-unit` : ligne saisie du seuil d'alerte.
+  - `.feedback.info` : variante bleue du feedback (manquait pour les messages hors-ligne).
+
+### Changed
+- **`js/formulaire.js`** — `submitForm()` : en cas d'erreur réseau (`NetworkError` / `!navigator.onLine`), appelle `queuePlein(payload)` au lieu d'afficher une simple erreur, puis `resetForm()` et `updateOfflineBadge()`.
+- **`js/prix.js`** — `applyPricesResult()` : appelle `checkPrixE85Alert()` après chaque chargement de prix station.
+- **`js/main.js`** — Appels `initOffline()`, `initNotifications()`, `syncQueue()` au démarrage.
+
 ## [2.10.0.5] — 2026-05-27
 
 ### Fixed
