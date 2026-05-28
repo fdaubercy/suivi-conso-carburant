@@ -138,6 +138,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.0.0.2 | **Prédiction prochain plein dynamique** — `buildPrediction()` calcule le km et les jours **restants depuis aujourd'hui** (`daysLeft = avgDay − daysElapsed` · `kmLeft = avgKm − daysElapsed × avgKm/avgDay`) au lieu de l'intervalle moyen figé ; trois états : "Prochain plein dans ~X km · ~Y j" / "· aujourd'hui" / "Plein prévu il y a Y j" ; km cible absolu conservé en sous-titre |
 | v3.1.0.0 | **Gemini Vision moteur principal de scan (W17)** — `scanWithGemini()` appelle le backend GAS (`action:scanTicket` → Gemini 2.0 Flash) en priorité quand en ligne ; fallback automatique vers Tesseract.js local si échec ou hors-ligne ; prompt GAS enrichi pour tickets abîmés (Quantite/Prix unit., années 2 chiffres, exclusion TVA, contrôle cohérence litres × prix ≈ total) ; parsing JSON robuste (fences ```` ```json ````) |
 | v3.1.0.1 | **Bascule modèle Gemini 2.5 Flash** — `gemini-2.0-flash` renvoyait `RESOURCE_EXHAUSTED` / `limit: 0` (free tier non attribué sur certains projets) → `gemini-2.5-flash` dans `Code.gs`, quota gratuit séparé |
+| v3.1.0.2 | **Fix « Réponse non parseable » Gemini 2.5** — modèle thinking : `thinkingConfig.thinkingBudget = 0` + `maxOutputTokens` 512 → 1024 pour que le JSON ne soit plus vidé par les jetons de réflexion |
 
 ---
 

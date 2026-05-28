@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.1.0.2] — 2026-05-29
+
+### Fixed
+- **`Code.gs`** — scan Gemini renvoyait « Réponse non parseable » avec `gemini-2.5-flash` : ce modèle « thinking » consommait tout `maxOutputTokens: 512` en jetons de réflexion, laissant le texte de réponse vide. Correction : `thinkingConfig.thinkingBudget = 0` (désactive le thinking) + `maxOutputTokens` porté à `1024`. Version backend → `v3.1.0.2`.
+- **`js/config.js`** — `APP_VERSION` → `3.1.0.2`.
+
 ## [3.1.0.1] — 2026-05-29
 
 ### Changed
