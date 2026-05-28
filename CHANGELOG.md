@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.0.0.4] — 2026-05-28
+
+### Fixed
+- **CSP `script-src` — WebAssembly bloqué** : `WebAssembly.instantiate()` de Tesseract.js était rejeté par la CSP car `'wasm-unsafe-eval'` était absent de `script-src`. Ajouté dans `index.html` et `_headers`.
+
+### Changed
+- **`index.html`** + **`_headers`** — `script-src` : ajout de `'wasm-unsafe-eval'`.
+- **`js/config.js`** — `APP_VERSION` → `3.0.0.4`.
+
 ## [3.0.0.3] — 2026-05-28
 
 ### Fixed
