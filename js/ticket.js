@@ -5,11 +5,12 @@
  *                                                                        *
  *  Flux :                                                                *
  *    1. L'utilisateur sélectionne une photo du ticket                    *
- *    2. Redimensionnement canvas → max 1 200 px                          *
+ *    2. Redimensionnement (couleur) pour Drive + prétraitement OCR        *
+ *       (niveaux de gris + contraste, max 1 600 px)                      *
  *    3. Tesseract.js (langue "fra") → texte brut                         *
  *    4. parseOCRText() → objet structuré {date, km, litres, …}           *
  *    5. fillFormFromTicket() → champs du formulaire pré-remplis           *
- *    6. W9 : base64 de l'image stockée dans state._ticketPhoto           *
+ *    6. W9 : base64 de l'image (couleur) stockée dans state._ticketPhoto *
  * ─────────────────────────────────────────────────────────────────────  */
 
 import Tesseract from 'tesseract.js';
@@ -27,7 +28,8 @@ import { showFeedback } from './ui.js';
 const FUEL_LABEL_MAP = {
   /* ── E85 ── */
   'e85':              'E85',  'superethanol':  'E85',
-  'superéthanol':     'E85',  'ethanol':       'E85',
+  'superéthanol':     'E85',  'super ethanol': 'E85',
+  'se-b5':            'E85',  'ethanol':       'E85',
 
   /* ── SP98 (E5) ── */
   'sp98-e5':          'SP98', 'sp 98-e5':      'SP98',
@@ -54,9 +56,27 @@ const FUEL_LABEL_MAP = {
   /* ── Gazole ── */
   'gazole':           'GAZOLE', 'diesel':  'GAZOLE',
   'b7':               'GAZOLE', 'gasoil':  'GAZOLE',
+  'b10':              'GAZOLE', 'hvo':     'GAZOLE',
 
   /* ── GPLc ── */
   'gplc':             'GPLC', 'gpl':      'GPLC',
+};
+
+/* ─── Mois français → numéro MM (pour dates textuelles) ──────────────── */
+const FRENCH_MONTHS = {
+  'jan': '01', 'janv': '01', 'janvier': '01',
+  'fev': '02', 'fevr': '02', 'fevrier': '02',
+  'fév': '02', 'févr': '02', 'février': '02',
+  'mar': '03', 'mars': '03',
+  'avr': '04', 'avril': '04',
+  'mai': '05',
+  'juin': '06',
+  'jul': '07', 'juil': '07', 'juillet': '07',
+  'aou': '08', 'aout': '08', 'août': '08',
+  'sep': '09', 'sept': '09', 'septembre': '09',
+  'oct': '10', 'octobre': '10',
+  'nov': '11', 'novembre': '11',
+  'dec': '12', 'déc': '12', 'decembre': '12', 'décembre': '12',
 };
 
 /* ─── Helpers ─── */
@@ -65,6 +85,15 @@ function toFloat(str) {
   return parseFloat(String(str).replace(',', '.'));
 }
 
+/** Corrige les substitutions OCR les plus fréquentes dans les séquences numériques.
+ *  N'affecte que les chiffres encadrés par d'autres chiffres → sans risque sur le texte. */
+function normalizeNumericText(text) {
+  return text
+    .replace(/(\d)[Oo](\d)/g, (_, a, b) => `${a}0${b}`)   /* O entre chiffres → 0 */
+    .replace(/(\d)[Ss](\d)/g, (_, a, b) => `${a}5${b}`);   /* S entre chiffres → 5 */
+}
+
+/** Redimensionne l'image sans traitement chromatique — pour le stockage Drive (couleur conservée). */
 async function resizeImage(file) {
   return new Promise((resolve) => {
     const MAX_PX    = 1200;
@@ -83,6 +112,50 @@ async function resizeImage(file) {
       canvas.height = height;
       canvas.getContext('2d').drawImage(img, 0, 0, width, height);
       canvas.toBlob(blob => resolve(blob ?? file), 'image/jpeg', 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };
+    img.src     = objectUrl;
+  });
+}
+
+/** Prétraite l'image pour l'OCR : niveaux de gris + rehaussement contraste + max 1 600 px.
+ *  Résolution plus élevée et contraste renforcé améliorent significativement
+ *  la lecture du texte sur papier thermique par Tesseract. */
+async function preprocessImage(file) {
+  return new Promise((resolve) => {
+    const MAX_PX    = 1600;
+    const img       = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+
+      /* Réduction uniquement — upscaler dégraderait la qualité OCR */
+      const ratio = Math.min(MAX_PX / width, MAX_PX / height);
+      if (ratio < 1) {
+        width  = Math.round(width  * ratio);
+        height = Math.round(height * ratio);
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width  = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      /* Conversion niveaux de gris + courbe S de contraste centrée sur 128.
+       * Facteur 1,4 : renforce le contraste texte sombre / fond clair (papier thermique). */
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const d = imageData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const gray = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+        const c    = Math.min(255, Math.max(0, (gray - 128) * 1.4 + 128));
+        d[i] = d[i + 1] = d[i + 2] = c;
+        /* canal alpha inchangé */
+      }
+      ctx.putImageData(imageData, 0, 0);
+      canvas.toBlob(blob => resolve(blob ?? file), 'image/jpeg', 0.92);
     };
     img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };
     img.src     = objectUrl;
@@ -108,9 +181,11 @@ async function blobToBase64(blob) {
 
 export function parseOCRText(rawText) {
   /* Nettoyage minimal */
-  const text  = rawText.replace(/\r/g, '').replace(/[ \t]{2,}/g, ' ');
-  const lower = text.toLowerCase();
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 1);
+  const text     = rawText.replace(/\r/g, '').replace(/[ \t]{2,}/g, ' ');
+  /* Copie avec corrections de chiffres — utilisée pour les extractions numériques */
+  const normText = normalizeNumericText(text);
+  const lower    = text.toLowerCase();
+  const lines    = text.split('\n').map(l => l.trim()).filter(l => l.length > 1);
 
   const result = {
     date: null, km: null, litres: null,
@@ -119,22 +194,53 @@ export function parseOCRText(rawText) {
   };
 
   /* ── Date ─────────────────────────────────────────────────────────── */
-  const mDate = text.match(/\b(\d{2})[\/\-](\d{2})[\/\-](20\d{2})\b/);
+  /* Priorité 1 : DD/MM/YYYY ou DD-MM-YYYY */
+  const mDate = normText.match(/\b(\d{2})[\/\-](\d{2})[\/\-](20\d{2})\b/);
   if (mDate) {
     result.date = `${mDate[3]}-${mDate[2]}-${mDate[1]}`;
   } else {
-    const mDate2 = text.match(/\b(20\d{2})[\/\-](\d{2})[\/\-](\d{2})\b/);
-    if (mDate2) result.date = `${mDate2[1]}-${mDate2[2]}-${mDate2[3]}`;
+    /* Priorité 2 : YYYY-MM-DD ou YYYY/MM/DD */
+    const mDate2 = normText.match(/\b(20\d{2})[\/\-](\d{2})[\/\-](\d{2})\b/);
+    if (mDate2) {
+      result.date = `${mDate2[1]}-${mDate2[2]}-${mDate2[3]}`;
+    } else {
+      /* Priorité 3 : DD/MM/YY (année à 2 chiffres → préfixe 20xx) */
+      const mDate3 = normText.match(/\b(\d{2})[\/\-](\d{2})[\/\-](\d{2})\b/);
+      if (mDate3) {
+        result.date = `20${mDate3[3]}-${mDate3[2]}-${mDate3[1]}`;
+      } else {
+        /* Priorité 4 : "15 janvier 2024" / "15 jan 2024" / "15 janv. 2024" */
+        const monthAlts = Object.keys(FRENCH_MONTHS)
+          .sort((a, b) => b.length - a.length)   /* plus long d'abord */
+          .join('|');
+        const mDate4 = lower.match(
+          new RegExp(`\\b(\\d{1,2})\\s+(${monthAlts})\\.?\\s+(20\\d{2})\\b`)
+        );
+        if (mDate4) {
+          const mm = FRENCH_MONTHS[mDate4[2].replace(/\.$/, '')];
+          if (mm) {
+            result.date = `${mDate4[3]}-${mm}-${String(parseInt(mDate4[1], 10)).padStart(2, '0')}`;
+          }
+        }
+      }
+    }
   }
 
   /* ── Volume (litres) ──────────────────────────────────────────────── */
   const litresPatterns = [
+    /* "42,580 L", "42,58 L", "42,58L" — avec ou sans espace, 2-3 décimales */
     /(\d{1,3}[,\.]\d{2,3})\s*(?:litres?|liters?|l\b)/i,
-    /(?:qté|quantité|volume|vol)[^\d]*(\d{1,3}[,\.]\d{2,3})/i,
+    /* "LITRES 42,580" — libellé avant le nombre */
+    /(?:litres?|liters?)\s+(\d{1,3}[,\.]\d{2,3})/i,
+    /* "Qté : 42,58" / "Quantité 42,58" / "Volume 42,58" / "QTE 42,58" */
+    /(?:qté|quantité|volume|vol|qt(?:y|é)?)[^\d]*(\d{1,3}[,\.]\d{2,3})/i,
+    /* "42,58 × 1,799" (litres × prix) */
     /(\d{1,3}[,\.]\d{2,3})\s*(?:x|×)\s*[01][,\.]\d{3}/i,
+    /* Ligne débutant par un nombre suivi d'un opérateur × (tickets 2 colonnes) */
+    /^(\d{1,3}[,\.]\d{2,3})\s*(?:x|×)/m,
   ];
   for (const pat of litresPatterns) {
-    const m = text.match(pat);
+    const m = normText.match(pat);
     if (m) { result.litres = toFloat(m[1]); break; }
   }
   if (result.litres !== null && (result.litres < 0.5 || result.litres > 200)) {
@@ -159,7 +265,8 @@ export function parseOCRText(rawText) {
    *   ③  Libellé (Prix unitaire, P.U., Prix/litre…) + X,XXX
    *   ④  X,XXX × litres  (multiplication)
    *   ⑤  X,XX [€e]? /L  (2 décimales)
-   *   ⑥  total ÷ litres
+   *   ⑥  Libellé carburant + X,XXX sur même ligne
+   *   ⑦  total ÷ litres
    *
    * ─────────────────────────────────────────────────────────────────── */
 
@@ -182,11 +289,15 @@ export function parseOCRText(rawText) {
 
     /* ⑤ 2 décimales "1,80 €/L" */
     /([0-3][,\.]\d{2})\s*[€e£é]?\s*[\/\\|Il]\s*l\b/i,
+
+    /* ⑥ Libellé carburant suivi du prix sur la même ligne
+     *   Ex : "SuperEthanol E85 0,798"  "Gazole B7 1,749" */
+    /(?:e85|superethanol|superéthanol|sp98|sp95|e10|gazole|diesel|gplc)[^\d]{0,20}([0-3][,\.]\d{3})/i,
   ];
 
   for (const pat of prixPatterns) {
     /* .matchAll() pour trouver tous les candidats, pas seulement le premier */
-    for (const m of text.matchAll(new RegExp(pat.source, pat.flags + 'g'))) {
+    for (const m of normText.matchAll(new RegExp(pat.source, pat.flags + 'g'))) {
       const v = toFloat(m[1] ?? m[m.length - 1]);
       if (v >= 0.3 && v <= 3.5) prixCandidates.push(v);
     }
@@ -195,7 +306,7 @@ export function parseOCRText(rawText) {
   /* Fallback inverse "litres × prix" */
   if (result.litres !== null) {
     const litStr = String(result.litres).replace('.', '[,.]');
-    const mCalc  = text.match(new RegExp(litStr + '\\s*(?:x|×)\\s*([0-3][,\\.][0-9]{2,3})'));
+    const mCalc  = normText.match(new RegExp(litStr + '\\s*(?:x|×)\\s*([0-3][,\\.][0-9]{2,3})'));
     if (mCalc) {
       const v = toFloat(mCalc[1]);
       if (v >= 0.3 && v <= 3.5) prixCandidates.push(v);
@@ -221,16 +332,18 @@ export function parseOCRText(rawText) {
     /(?:total(?:\s*ttc)?|montant(?:\s*ttc)?|à payer|payé|net\s*à\s*payer)[^\d]*(\d{1,3}[,\.]\d{2,3})\s*€?/i,
     /* "76,61 €" seul (sans label), optionnellement suivi de "TTC" ou "net" */
     /(\d{1,3}[,\.]\d{2,3})\s*€\s*(?:ttc|net)?(?:\s|$)/i,
+    /* "RÈGLEMENT 76,61" / "SOLDE 76,61" / "TICKET 76,61" (certains TPE) */
+    /(?:règlement|reglement|solde)[^\d]*(\d{1,3}[,\.]\d{2,3})\s*€?/i,
   ];
   for (const pat of totalPatterns) {
-    const m = text.match(pat);
+    const m = normText.match(pat);
     if (m) { result.montant_total = toFloat(m[1]); break; }
   }
   if (result.montant_total === null && result.litres && result.prix_litre) {
     result.montant_total = Math.round(result.litres * result.prix_litre * 100) / 100;
   }
 
-  /* Fallback ⑥ — total ÷ litres */
+  /* Fallback ⑦ — total ÷ litres */
   if (result.prix_litre === null && result.litres && result.montant_total) {
     const computed = result.montant_total / result.litres;
     if (computed >= 0.3 && computed <= 3.5) {
@@ -259,43 +372,65 @@ export function parseOCRText(rawText) {
 
   /* ── Station ──────────────────────────────────────────────────────── */
   const stationKw = [
-    'totalenergies', 'total energies', 'leclerc', 'carrefour', 'total',
-    'bp ', 'intermarché', 'intermarch', 'auchan', 'super u', 'casino',
-    'shell', 'esso', 'nf e-store', 'cora', 'lidl', 'franprix',
-    'système u', 'systeme u',
+    /* Marques longues d'abord pour éviter le court-circuit par "total" */
+    'totalenergies', 'total energies', 'total access',
+    'leclerc', 'e.leclerc', 'e. leclerc',
+    'carrefour', 'intermarché', 'intermarch',
+    'auchan', 'géant casino', 'geant casino',
+    'super u', 'systeme u', 'système u',
+    'casino', 'shell', 'esso',
+    'bp ',                      /* espace intentionnel → évite "cbp", "mbp", etc. */
+    'avia', 'netto', 'agip', 'gulf',
+    'nf e-store', 'cora', 'lidl', 'franprix',
+    'total',                    /* en dernier : court-circuiterait les noms ci-dessus */
   ];
+
+  /* Rejette les lignes qui ressemblent à une ligne de prix/montant
+   * pour éviter que "TOTAL TTC 76,61" soit capturé comme nom de station. */
+  const isPriceLine = /\d{1,3}[,\.]\d{2}\s*[€e]?\s*(?:ttc|ht|net)?$/i;
+
   for (const kw of stationKw) {
     if (lower.includes(kw)) {
       const line = lines.find(l => l.toLowerCase().includes(kw));
-      if (line) { result.station = line; break; }
+      if (line && !isPriceLine.test(line)) {
+        result.station = line;
+        break;
+      }
     }
   }
 
   /* ── Km compteur ──────────────────────────────────────────────────────
    *
    *  Tickets français : séparateur milliers = espace → "87 450 km"
-   *  → les deux groupes sont concaténés : "87" + "450" = 87450
+   *  Certains terminaux utilisent le point    → "87.450 km"
+   *  Libellés reconnus : km, kilométrage, compteur, odom, index compteur
    *
    * ─────────────────────────────────────────────────────────────────── */
 
   /* Tentative 1 : chiffres contigus + "km" */
-  const mKm1 = text.match(/\b(\d{4,6})\s*km\b/i);
+  const mKm1 = normText.match(/\b(\d{4,6})\s*km\b/i);
   if (mKm1) {
     result.km = parseInt(mKm1[1], 10);
   } else {
     /* Tentative 2 : "87 450 km" — séparateur milliers espace */
-    const mKm2 = text.match(/\b(\d{2,3})\s(\d{3})\s*km\b/i);
+    const mKm2 = normText.match(/\b(\d{2,3})\s(\d{3})\s*km\b/i);
     if (mKm2) {
       result.km = parseInt(mKm2[1] + mKm2[2], 10);
     } else {
-      /* Tentative 3 : libellé + chiffres contigus */
-      const mKm3 = text.match(/(?:kilom(?:étrage|ètres?)?|compteur|odom)[^\d]*(\d{4,6})/i);
+      /* Tentative 3 : "87.450 km" — séparateur milliers point */
+      const mKm3 = normText.match(/\b(\d{2,3})\.(\d{3})\s*km\b/i);
       if (mKm3) {
-        result.km = parseInt(mKm3[1], 10);
+        result.km = parseInt(mKm3[1] + mKm3[2], 10);
       } else {
-        /* Tentative 4 : libellé + "87 450" (séparateur espace) */
-        const mKm4 = text.match(/(?:kilom(?:étrage|ètres?)?|compteur|odom)[^\d]*(\d{2,3})\s(\d{3})/i);
-        if (mKm4) result.km = parseInt(mKm4[1] + mKm4[2], 10);
+        /* Tentative 4 : libellé + chiffres contigus */
+        const mKm4 = normText.match(/(?:kilom(?:étrage|ètres?)?|compteur|odom|index)[^\d]*(\d{4,6})/i);
+        if (mKm4) {
+          result.km = parseInt(mKm4[1], 10);
+        } else {
+          /* Tentative 5 : libellé + "87 450" (séparateur milliers espace) */
+          const mKm5 = normText.match(/(?:kilom(?:étrage|ètres?)?|compteur|odom|index)[^\d]*(\d{2,3})\s(\d{3})/i);
+          if (mKm5) result.km = parseInt(mKm5[1] + mKm5[2], 10);
+        }
       }
     }
   }
@@ -426,9 +561,10 @@ export function initScanner() {
     btn.innerHTML  = '⏳ Préparation…';
 
     try {
+      /* Photo couleur redimensionnée pour Drive (W9) */
       const blob = await resizeImage(file);
 
-      /* W9 — stocker la photo redimensionnée pour l'envoi avec le plein */
+      /* W9 — stocker la photo couleur pour l'envoi avec le plein */
       try {
         const b64 = await blobToBase64(blob);
         if (b64) {
@@ -438,7 +574,11 @@ export function initScanner() {
         }
       } catch { /* non bloquant */ }
 
-      const { data: { text } } = await Tesseract.recognize(blob, 'fra', {
+      /* Image prétraitée (niveaux de gris + contraste) pour l'OCR */
+      btn.innerHTML = '⏳ Prétraitement…';
+      const ocrBlob = await preprocessImage(file);
+
+      const { data: { text } } = await Tesseract.recognize(ocrBlob, 'fra', {
         logger: ({ status, progress }) => {
           if (status === 'loading tesseract core') {
             btn.innerHTML = '⏳ Chargement moteur OCR…';

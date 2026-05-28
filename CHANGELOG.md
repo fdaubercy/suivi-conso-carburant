@@ -4,6 +4,29 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.0.1.0] — 2026-05-28
+
+### Added
+- **`FRENCH_MONTHS`** — table de correspondance noms de mois français → MM, utilisée pour détecter les dates textuelles (ex. "15 janvier 2024", "15 jan. 2024").
+- **`preprocessImage()`** — nouvelle fonction de prétraitement OCR : conversion en niveaux de gris + courbe S de contraste (facteur 1,4) + résolution max portée à 1 600 px (vs 1 200 px auparavant). La photo couleur pour Drive passe toujours par `resizeImage()` (inchangée).
+- **`normalizeNumericText()`** — corrige les substitutions Tesseract les plus fréquentes dans les séquences numériques : O → 0 et S → 5 (uniquement entre chiffres, sans risque de corrompre le texte).
+
+### Changed
+- **`js/ticket.js`** — `parseOCRText()` amélioré :
+  - **Date** : 4 niveaux de fallback (DD/MM/YYYY → YYYY-MM-DD → DD/MM/YY 2 chiffres → mois français littéral).
+  - **Litres** : 5 patterns (ajout "LITRES 42,58" label avant nombre + ligne débutant par quantité × prix).
+  - **Prix/L** : ajout pattern ⑥ — libellé carburant suivi du prix sur la même ligne (ex. "SuperEthanol E85 0,798").
+  - **Total** : ajout pattern "RÈGLEMENT / SOLDE" (certains TPE).
+  - **Station** : ajout AVIA, Netto, Agip, Gulf, Total Access, E.Leclerc, Géant Casino ; filtre `isPriceLine` pour rejeter les lignes "TOTAL TTC 76,61" qui ne sont pas des noms de station.
+  - **Km** : ajout tentative 3 — séparateur milliers point (ex. "87.450 km") ; libellé "index" reconnu.
+  - Toutes les extractions numériques utilisent `normText` (texte après correction O/S).
+- **`js/ticket.js`** — `initScanner()` : OCR sur `ocrBlob` (prétraité) ; photo Drive stockée séparément depuis `blob` couleur.
+- **`js/config.js`** — `APP_VERSION` → `3.0.1.0`.
+
+### Fixed
+- **Station "TOTAL TTC"** : la ligne de total du ticket n'est plus confondue avec le nom de la station TotalEnergies grâce au filtre `isPriceLine`.
+- **FUEL_LABEL_MAP** : ajout `'b10'`, `'hvo'` → GAZOLE ; `'super ethanol'`, `'se-b5'` → E85.
+
 ## [3.0.0.4] — 2026-05-28
 
 ### Fixed
