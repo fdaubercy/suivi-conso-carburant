@@ -1,9 +1,30 @@
-/* ─── Stats live : conso, coût, économies E85 vs SP98 + sparkline prix + prédiction ─── */
+/* ─── Stats live : conso, coût, économies E85 vs SP98 + sparkline prix multi-carburant + prédiction ─── */
 import { state } from './state.js';
 import { FUEL_CONFIG } from './config.js';
 import { getAllRecords } from './historique.js';
 
 const MONTHS_WINDOW = 6;
+const SPARK_KEY = 'suivi_e85_spark_fuels';
+
+/* ─── W34 — Couleurs des courbes par carburant ─── */
+const SPARK_COLORS = {
+  E85:    '#1D9E75',
+  SP98:   '#2E75B6',
+  SP95:   '#60a5fa',
+  E10:    '#10b981',
+  GAZOLE: '#94a3b8',
+  GPLC:   '#f59e0b',
+};
+
+/* ─── Colonnes GS pour les prix station ─── */
+const FUEL_PRICE_COL = {
+  E85:    'E85 station (€/L)',
+  SP98:   'SP98 station (€/L)',
+  SP95:   'SP95 station (€/L)',
+  E10:    'E10 station (€/L)',
+  GAZOLE: 'Gazole station (€/L)',
+  GPLC:   'GPLc station (€/L)',
+};
 
 /** Matche un Type GS (label complet "SuperEthanol E85") avec une cle FUEL_CONFIG (E85). */
 function matchType(rType, fuelKey) {
@@ -14,6 +35,156 @@ function matchType(rType, fuelKey) {
   return t === cfg.label.toLowerCase()
       || t.includes(cfg.short.toLowerCase())
       || (fuelKey === 'E85' && t.includes('ethanol'));
+}
+
+/* ─── LocalStorage : carburants actifs sur le sparkline ─── */
+function _loadSparkFuels(availFuels) {
+  try {
+    const raw = localStorage.getItem(SPARK_KEY);
+    if (!raw) return availFuels.includes('E85') ? ['E85'] : [availFuels[0]];
+    const saved = JSON.parse(raw);
+    const valid = saved.filter(k => availFuels.includes(k));
+    return valid.length ? valid : (availFuels.includes('E85') ? ['E85'] : [availFuels[0]]);
+  } catch { return availFuels.includes('E85') ? ['E85'] : [availFuels[0]]; }
+}
+
+function _saveSparkFuels(fuels) {
+  try { localStorage.setItem(SPARK_KEY, JSON.stringify(fuels)); } catch {}
+}
+
+/* ─── Construction des séries de prix par carburant ─── */
+function buildFuelSeries(records, veh) {
+  const filtered = veh
+    ? records.filter(r => (r['Véhicule'] || r['Vehicule'] || '') === veh)
+    : records;
+
+  const series = {};
+
+  filtered.forEach(r => {
+    const dateStr = String(r.Date || r.Horodatage || '').replace(' ', 'T');
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return;
+
+    const isE85Plein = matchType(r.Type, 'E85');
+
+    // E85 : Prix €/L pour les pleins E85, colonne station pour les autres
+    const e85Price = isE85Plein
+      ? Number(r['Prix €/L'] || 0)
+      : Number(r[FUEL_PRICE_COL.E85] || 0);
+    if (e85Price > 0) {
+      if (!series.E85) series.E85 = [];
+      series.E85.push({ date, price: e85Price });
+    }
+
+    // Autres carburants : colonnes station uniquement
+    ['SP98', 'SP95', 'E10', 'GAZOLE', 'GPLC'].forEach(key => {
+      const p = Number(r[FUEL_PRICE_COL[key]] || 0);
+      if (p > 0) {
+        if (!series[key]) series[key] = [];
+        series[key].push({ date, price: p });
+      }
+    });
+  });
+
+  // Tri chronologique + déduplication (dernier prix par jour) + 20 points max
+  Object.keys(series).forEach(key => {
+    const sorted = series[key].sort((a, b) => a.date - b.date);
+    const byDay = new Map();
+    sorted.forEach(pt => byDay.set(pt.date.toISOString().slice(0, 10), pt));
+    series[key] = Array.from(byDay.values()).slice(-20);
+  });
+
+  return series;
+}
+
+/* ─── Rendu SVG multi-courbes sur axe temporel partagé ─── */
+function buildSparklineSVG(activeSeries) {
+  const allPts   = activeSeries.flatMap(s => s.points);
+  if (!allPts.length) return '';
+
+  const allPrices = allPts.map(p => p.price);
+  const allTimes  = allPts.map(p => p.date.getTime());
+
+  const minP = Math.min(...allPrices);
+  const maxP = Math.max(...allPrices);
+  const minT = Math.min(...allTimes);
+  const maxT = Math.max(...allTimes);
+
+  const priceRange = maxP - minP || 0.01;
+  const timeRange  = maxT - minT || 1;
+
+  const W = 220, H = 52, padX = 6, padY = 6;
+  const toX = t => padX + ((t  - minT) / timeRange)  * (W - 2 * padX);
+  const toY = p => H - padY - ((p - minP) / priceRange) * (H - 2 * padY);
+
+  const elements = activeSeries.map(({ points, color }) => {
+    if (!points.length) return '';
+    if (points.length === 1) {
+      const x = toX(points[0].date.getTime()).toFixed(1);
+      const y = toY(points[0].price).toFixed(1);
+      return `<circle cx="${x}" cy="${y}" r="3" fill="${color}"/>`;
+    }
+    const pts = points.map(pt =>
+      `${toX(pt.date.getTime()).toFixed(1)},${toY(pt.price).toFixed(1)}`
+    ).join(' ');
+    const lx = toX(points[points.length - 1].date.getTime()).toFixed(1);
+    const ly = toY(points[points.length - 1].price).toFixed(1);
+    return `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>`
+         + `<circle cx="${lx}" cy="${ly}" r="2.5" fill="${color}"/>`;
+  }).join('');
+
+  return `<svg class="spark-svg" viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">${elements}</svg>`;
+}
+
+/**
+ * W34 — Sparkline multi-carburant avec filtres cliquables.
+ * Sources : Prix €/L (pleins) + colonnes station (€/L) du Google Sheet.
+ */
+function buildPrixSparkline() {
+  const all = getAllRecords();
+  const veh = state.currentVehiculeNom;
+
+  const series     = buildFuelSeries(all, veh);
+  const availFuels = Object.keys(SPARK_COLORS).filter(k => (series[k] || []).length >= 2);
+
+  if (!availFuels.length) return '';
+
+  const activeFuels = _loadSparkFuels(availFuels);
+
+  const togglesHtml = availFuels.map(k => {
+    const cfg     = FUEL_CONFIG[k];
+    const isActive = activeFuels.includes(k);
+    const color   = SPARK_COLORS[k];
+    return `<button class="spark-toggle${isActive ? ' active' : ''}" data-spark-fuel="${k}" style="--spark-color:${color}" title="${cfg.label}">${cfg.icon} ${cfg.short}</button>`;
+  }).join('');
+
+  const activeSeries = activeFuels
+    .filter(k => series[k]?.length >= 1)
+    .map(k => ({ key: k, points: series[k], color: SPARK_COLORS[k] }));
+
+  const svgHtml = activeSeries.length
+    ? buildSparklineSVG(activeSeries)
+    : '<div class="spark-empty">Sélectionnez un carburant ci-dessus</div>';
+
+  const footerParts = activeSeries
+    .filter(s => s.points.length)
+    .map(({ key, points, color }) => {
+      const last = points[points.length - 1].price;
+      return `<span class="spark-price-tag" style="color:${color}">${FUEL_CONFIG[key].icon} ${last.toFixed(3)} €/L</span>`;
+    });
+  const footerHtml = footerParts.length
+    ? `<div class="spark-footer">${footerParts.join('')}</div>`
+    : '';
+
+  return `
+    <div class="e85-sparkline">
+      <div class="spark-header">
+        <span class="spark-label">Prix carburants</span>
+      </div>
+      <div class="spark-toggles">${togglesHtml}</div>
+      ${svgHtml}
+      ${footerHtml}
+    </div>`;
 }
 
 /** Calcule les KPIs filtrés sur le véhicule courant + fenêtre N derniers mois. */
@@ -80,63 +251,6 @@ function computeStats() {
 }
 
 /**
- * W28 — Génère un SVG sparkline des 10 derniers prix E85 payés.
- */
-function buildE85Sparkline() {
-  const all = getAllRecords();
-  const veh = state.currentVehiculeNom;
-
-  const e85 = all
-    .filter(r => {
-      if (veh && (r['Véhicule'] || r['Vehicule'] || '') !== veh) return false;
-      const t = String(r.Type || '').toLowerCase();
-      return t.includes('e85') || t.includes('ethanol');
-    })
-    .filter(r => Number(r['Prix €/L']) > 0)
-    .sort((a, b) => {
-      const da = new Date(String(a.Date || a.Horodatage || '').replace(' ', 'T'));
-      const db = new Date(String(b.Date || b.Horodatage || '').replace(' ', 'T'));
-      return da - db;
-    })
-    .slice(-10);
-
-  if (e85.length < 2) return '';
-
-  const prices = e85.map(r => Number(r['Prix €/L']));
-  const minP = Math.min(...prices);
-  const maxP = Math.max(...prices);
-  const range = maxP - minP || 0.01;
-
-  const W = 200, H = 44, padX = 4, padY = 5;
-  const n  = prices.length;
-  const toX = i => padX + (i / (n - 1)) * (W - 2 * padX);
-  const toY = p => H - padY - ((p - minP) / range) * (H - 2 * padY);
-
-  const pts = prices.map((p, i) => `${toX(i).toFixed(1)},${toY(p).toFixed(1)}`).join(' ');
-  const lx  = toX(n - 1).toFixed(1);
-  const ly  = toY(prices[n - 1]).toFixed(1);
-
-  const diff   = prices[n - 1] - prices[0];
-  const tClass = diff < -0.003 ? 'spark--down' : diff > 0.003 ? 'spark--up' : 'spark--flat';
-  const tArrow = diff < -0.003 ? '↘' : diff > 0.003 ? '↗' : '→';
-
-  return `
-    <div class="e85-sparkline ${tClass}">
-      <div class="spark-header">
-        <span class="spark-label">Prix E85 (${n} pleins) ${tArrow}</span>
-        <div class="spark-meta">
-          <span class="spark-range">${minP.toFixed(3)} – ${maxP.toFixed(3)} €/L</span>
-          <span class="spark-last">${prices[n - 1].toFixed(3)} €/L</span>
-        </div>
-      </div>
-      <svg class="spark-svg" viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">
-        <polyline class="spark-line" points="${pts}"/>
-        <circle class="spark-dot" cx="${lx}" cy="${ly}" r="3.5"/>
-      </svg>
-    </div>`;
-}
-
-/**
  * W33 — Prédiction prochain plein basée sur l'intervalle moyen entre pleins.
  * Renvoie '' si moins de 3 pleins disponibles.
  */
@@ -183,14 +297,14 @@ function buildPrediction() {
   const lastKm = Number(records[records.length - 1]['Km compteur']);
   const nextKm = lastKm + avgKm;
 
-  const daysStr = avgDay ? ` · ~${avgDay} j` : '';
+  const daysStr = avgDay ? ` · ~${avgDay} j` : '';
 
   return `
     <div class="prediction-box">
       <span class="pred-icon">🔮</span>
       <div class="pred-content">
-        <div class="pred-main">Prochain plein dans <strong>~${avgKm.toLocaleString('fr-FR')} km</strong>${daysStr}</div>
-        <div class="pred-sub">vers ${nextKm.toLocaleString('fr-FR')} km · basé sur ${kmDeltas.length} plein${kmDeltas.length > 1 ? 's' : ''}</div>
+        <div class="pred-main">Prochain plein dans <strong>~${avgKm.toLocaleString('fr-FR')} km</strong>${daysStr}</div>
+        <div class="pred-sub">vers ${nextKm.toLocaleString('fr-FR')} km · basé sur ${kmDeltas.length} plein${kmDeltas.length > 1 ? 's' : ''}</div>
       </div>
     </div>`;
 }
@@ -236,7 +350,33 @@ export function renderStats() {
       </div>
     </div>
     <div class="stats-sub">${s.nbPleins} plein(s) · ${s.vehiculeName} · ${MONTHS_WINDOW} derniers mois</div>
-    ${buildE85Sparkline()}
+    ${buildPrixSparkline()}
     ${buildPrediction()}
   `;
+}
+
+/**
+ * W34 — Câble les boutons de filtre du sparkline multi-carburant.
+ * Délégation sur #statsBox — à appeler une seule fois depuis main.js.
+ */
+export function initSparkToggles() {
+  document.getElementById('statsBox')?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-spark-fuel]');
+    if (!btn) return;
+
+    const fuel = btn.dataset.sparkFuel;
+    const series = buildFuelSeries(getAllRecords(), state.currentVehiculeNom);
+    const availFuels = Object.keys(SPARK_COLORS).filter(k => (series[k] || []).length >= 2);
+
+    let active = _loadSparkFuels(availFuels);
+    if (active.includes(fuel)) {
+      active = active.filter(k => k !== fuel);
+    } else {
+      active = [...active, fuel];
+    }
+    if (!active.length) return;
+
+    _saveSparkFuels(active);
+    renderStats();
+  });
 }

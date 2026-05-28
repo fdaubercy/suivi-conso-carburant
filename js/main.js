@@ -16,7 +16,7 @@ import { onStationChange, onKmInput, submitForm, resetForm, checkDuplicate, save
 import { chargerStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
 import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters, initHistoireShare } from './historique.js';
-import { renderStats } from './stats.js';
+import { renderStats, initSparkToggles } from './stats.js';
 import { initScanner }       from './ticket.js';
 import { initPWA }           from './pwa.js';
 import { initOffline, syncQueue } from './offline.js';
@@ -116,6 +116,7 @@ initNearbyList();      // geo.js — délégation sur #nearbyList
 initMapInteractions(); // carte.js — délégation sur #stationMap
 initHistoireFilters(); // historique.js — filtres historique complet (W32)
 initHistoireShare();   // historique.js — W26 Web Share API
+initSparkToggles();    // stats.js — W34 filtres sparkline multi-carburant
 
 /* ─── Exposition globale minimale (requise par modules non-importants) ─── */
 Object.assign(window, {

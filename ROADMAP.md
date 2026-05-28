@@ -128,6 +128,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.16.0.0 | **Auto-save brouillon (W15)** — `saveDraft()` sur chaque input formulaire ; `restoreDraft()` au démarrage avec délai 800 ms ; toast "📝 Brouillon restauré" ; `clearDraft()` après soumission/reset |
 | v2.16.0.0 | **Rate limiting côté GAS (S7)** — `rateLimit(cid)` via `CacheService`, max 10 req/min par client UUID ; `_getClientId()` `crypto.randomUUID()` côté app, transmis dans chaque payload |
 | v2.16.0.0 | **Audit dépendances npm + Dependabot (S9)** — job `audit` dans `ci.yml` (`npm audit --audit-level=moderate`, non-bloquant) ; `.github/dependabot.yml` npm hebdo + github-actions mensuel |
+| v2.17.0.0 | **Sparkline multi-carburant + filtres (W34)** — `buildPrixSparkline()` remplace `buildE85Sparkline()` ; 6 carburants simultanés (E85/SP98/SP95/E10/Gazole/GPLc) sur axe temporel partagé ; toggles par carburant avec couleur `--spark-color` ; persistance localStorage `suivi_e85_spark_fuels` ; déduplication journalière, 20 points max par série |
 
 ---
 

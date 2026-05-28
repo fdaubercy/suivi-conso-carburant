@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v2.16.0.0**
+> 🔖 Version courante : **v2.17.0.0**
 
 ## 🌐 Accès
 
@@ -140,12 +140,15 @@ et l'estimation du prochain compteur.
 - Filtre les valeurs aberrantes (Δkm < 50 ou > 5 000, Δjours > 120)
 - Filtré sur le véhicule courant — nécessite ≥ 3 pleins avec kilométrage renseigné
 
-### 📈 Mini-graphique prix E85 (W28)
-Courbe **SVG inline** des 10 derniers prix E85 payés, affichée sous la grille de statistiques :
-- Tracé `<polyline>` + cercle sur le dernier point, sans librairie externe
-- **Couleur dynamique selon tendance** : ↘ vert (baisse) · ↗ rouge (hausse) · → bleu (stable)
-- Affiche le min, le max et le dernier prix payé
-- Filtré sur le véhicule courant, trié chronologiquement
+### 📈 Graphique multi-carburant avec filtres (W28 + W34)
+Courbe **SVG inline** affichée sous la grille de statistiques, avec **filtres par carburant** :
+- **6 carburants** simultanés : E85, SP98, SP95, E10, Gazole, GPLc — chacun avec sa couleur dédiée
+- **Toggles de filtre** : boutons par carburant activables/désactivables (persistés en localStorage `suivi_e85_spark_fuels`) — seuls les carburants avec ≥ 2 points de données s'affichent
+- Axe temporel partagé (`date.getTime()`) pour aligner toutes les courbes sur une même échelle
+- Tracé `<polyline>` + cercle sur le dernier point par carburant actif, sans librairie externe
+- **E85** : utilise le prix payé (`Prix €/L`) sur les pleins E85 + le prix station sur les autres pleins — densité maximale
+- **Autres carburants** : prix station enregistrés à chaque plein (colonnes I→N du Sheet)
+- Filtré sur le véhicule courant, trié chronologiquement, 20 points max par carburant (déduplication journalière)
 
 ### 🔄 Bannière "Mise à jour disponible" (W23)
 Détecte automatiquement quand un nouveau Service Worker est en attente d'activation :
@@ -212,7 +215,7 @@ suivi-e85/
 │   ├── stations.js                  # Chargement liste stations Google Sheets
 │   ├── theme.js                     # Dark mode (toggle + persist localStorage)
 │   ├── historique.js                # 5 derniers pleins + W32 historique complet + filtres + W26 Web Share
-│   ├── stats.js                     # Stats live 4 KPIs + sparkline W28 + prédiction W33
+│   ├── stats.js                     # Stats live 4 KPIs + sparkline multi-carburant W28+W34 + prédiction W33
 │   ├── stationsmap.js               # Carte statique stations habituelles + prix moyens
 │   ├── pwa.js                       # Installation PWA Android/iOS + bannière update W23 (W4)
 │   └── ticket.js                    # Scan ticket OCR Tesseract.js + photo base64 W9 (W17)
@@ -288,7 +291,7 @@ Actions `doPost` disponibles :
 Dans `js/config.js` :
 
 ```javascript
-export const APP_VERSION    = '2.16.0.0';
+export const APP_VERSION    = '2.17.0.0';
 export const GAS_URL        = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
 export const GS_SHEET_ID    = 'VOTRE_ID_GOOGLE_SHEET';
 export const HIST_CACHE_KEY = 'suivi_e85_hist_cache';   // cache localStorage historique

@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.17.0.0] — 2026-05-28
+
+### Added
+- **W34 — Sparkline multi-carburant avec filtres** : le mini-graphique SVG des prix évolue d'une courbe E85 unique vers un graphique multi-séries affichant simultanément jusqu'à 6 carburants (E85, SP98, SP95, E10, Gazole, GPLc). Nouvelle fonction `buildPrixSparkline()` (remplace `buildE85Sparkline()`), `buildFuelSeries()` pour extraire et dédupliquer les séries par carburant, et `initSparkToggles()` (délégation sur `#statsBox`) pour activer/désactiver les carburants. Axe temporel partagé (`date.getTime()`) pour aligner toutes les courbes. Chaque carburant a sa couleur via la propriété CSS `--spark-color`. Les fuels actifs sont persistés en localStorage (`suivi_e85_spark_fuels`). Seuls les carburants avec ≥ 2 points de données affichent un toggle. La sélection vide est impossible (au moins un carburant reste actif).
+
+### Changed
+- **`js/stats.js`** — `buildE85Sparkline()` remplacée par `buildPrixSparkline()` + `buildFuelSeries()` ; ajout constantes `SPARK_KEY`, `SPARK_COLORS`, `FUEL_PRICE_COL` ; export `initSparkToggles()`.
+- **`js/main.js`** — Import `initSparkToggles` depuis `stats.js` ; appel `initSparkToggles()` dans la séquence d'init.
+- **`js/config.js`** — `APP_VERSION` → `2.17.0.0`.
+- **`css/style.css`** — Ajout styles `.spark-toggles`, `.spark-toggle`, `.spark-toggle.active`, `.spark-footer`, `.spark-price-tag`, `.spark-empty`.
+
 ## [2.16.0.0] — 2026-05-28
 
 ### Added
