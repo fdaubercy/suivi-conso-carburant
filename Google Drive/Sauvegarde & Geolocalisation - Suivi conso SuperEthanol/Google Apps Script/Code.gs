@@ -1,12 +1,12 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend               v3.1.0.0
+//  SUIVI CONSO E85 — Web App Backend               v3.1.0.1
 //
 //  ⚠️  BREAKING CHANGE v2.3.0.0 : suppression colonne G "Prix S98 jour"
 //  La colonne K "SP98 station (€/L)" est désormais la seule source SP98.
 //  → exécuter migrateRemoveS98() une fois pour migrer les données.
 //
-//  W17 — Scan ticket de caisse (v3.1.0.0 : Gemini réactivé) :
-//  Moteur principal = Gemini 2.0 Flash (vision) via action=scanTicket.
+//  W17 — Scan ticket de caisse (v3.1.0.1 : modèle Gemini 2.5 Flash) :
+//  Moteur principal = Gemini 2.5 Flash (vision) via action=scanTicket.
 //  Fallback côté client = Tesseract.js (hors-ligne ou si Gemini échoue).
 //  Configurer la clé Gemini dans : Extensions → Apps Script
 //  → Paramètres du projet → Propriétés de script → GEMINI_API_KEY
@@ -264,7 +264,7 @@ function handleScanTicket(imageBase64, mimeType) {
     '  "station": "texte" ou null\n' +
     '}';
 
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey;
 
   try {
     const resp = UrlFetchApp.fetch(url, {

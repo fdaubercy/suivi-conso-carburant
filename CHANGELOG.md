@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.1.0.1] — 2026-05-29
+
+### Changed
+- **`Code.gs`** — `handleScanTicket()` : modèle Gemini `gemini-2.0-flash` → **`gemini-2.5-flash`**. Le free tier de `gemini-2.0-flash` renvoyait `RESOURCE_EXHAUSTED` avec `limit: 0` sur certains projets ; bascule vers le modèle 2.5 dont le quota gratuit est attribué séparément. Version backend → `v3.1.0.1`.
+- **`js/config.js`** — `APP_VERSION` → `3.1.0.1`.
+
 ## [3.1.0.0] — 2026-05-29
 
 ### Added
