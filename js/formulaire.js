@@ -147,6 +147,9 @@ export async function submitForm() {
     km, litres, prix, station, vehicule, stationPrices,
   };
 
+  // W9 — joindre la photo du ticket si disponible
+  if (state._ticketPhoto) payload.ticketPhoto = state._ticketPhoto;
+
   /* ── Envoi réseau ────────────────────────────────────────────────────
    * Hors-ligne (NetworkError / TypeError) → file d'attente localStorage
    * ─────────────────────────────────────────────────────────────────── */
@@ -201,4 +204,9 @@ export function resetForm() {
   state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
   evalRentabiliteE85();
   updateCout();
+
+  // W9 — effacer la photo du ticket
+  state._ticketPhoto = null;
+  const photoIndicator = document.getElementById('ticketPhotoIndicator');
+  if (photoIndicator) photoIndicator.hidden = true;
 }

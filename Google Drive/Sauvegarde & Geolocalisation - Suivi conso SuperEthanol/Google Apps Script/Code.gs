@@ -1,5 +1,5 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend                v2.9.0.2
+//  SUIVI CONSO E85 — Web App Backend               v2.13.0.0
 //
 //  ⚠️  BREAKING CHANGE v2.3.0.0 : suppression colonne G "Prix S98 jour"
 //  La colonne K "SP98 station (€/L)" est désormais la seule source SP98.
@@ -15,10 +15,11 @@
 //    • Ligne absente du GS      → ajout (upsert)
 //    • Retourne { status:'ok', updated:N, added:M }
 // ============================================================
-const SPREADSHEET_ID  = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
-const SHEET_NAME      = '_ImportGS';
-const STATIONS_SHEET  = 'Stations';
-const VEHICULES_SHEET = 'Vehicules';
+const SPREADSHEET_ID    = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
+const SHEET_NAME        = '_ImportGS';
+const STATIONS_SHEET    = 'Stations';
+const VEHICULES_SHEET   = 'Vehicules';
+const TICKET_FOLDER_NAME = 'Suivi E85 - Tickets';
 
 const HEADERS = [
   'Horodatage', 'Date', 'Type', 'Km compteur',         // A B C D
@@ -27,7 +28,8 @@ const HEADERS = [
   'E85 station (€/L)', 'SP98 station (€/L)',           // I J
   'SP95 station (€/L)', 'E10 station (€/L)',           // K L
   'Gazole station (€/L)', 'GPLc station (€/L)',        // M N
-  'sync_id'                                             // O — identifiant unique
+  'sync_id',                                            // O — identifiant unique
+  'Photo ticket'                                        // P — URL Drive photo ticket
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -128,10 +130,26 @@ function doPost(e) {
     return handleScanTicket(payload.imageBase64, payload.mimeType);
   }
 
-  // ── Enregistrement d'un plein depuis l'app web (A→O, 15 col) ──
+  // ── Enregistrement d'un plein depuis l'app web (A→P, 16 col) ──
   const sp     = payload.stationPrices || {};
   const syncId = payload.sync_id || Utilities.getUuid();
   const sheet  = getOrCreateSheet(ss);
+
+  // W9 — Upload photo ticket vers Drive si fournie
+  let photoUrl = '';
+  if (payload.ticketPhoto) {
+    try {
+      const folder   = getOrCreateTicketFolder();
+      const bytes    = Utilities.base64Decode(payload.ticketPhoto);
+      const blob     = Utilities.newBlob(bytes, 'image/jpeg',
+        'ticket_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmmss') + '.jpg');
+      const file     = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      photoUrl = 'https://drive.google.com/file/d/' + file.getId() + '/view';
+    } catch (photoErr) {
+      Logger.log('W9 photo upload error: ' + photoErr.message);
+    }
+  }
 
   sheet.appendRow([
     new Date(),                                         // A — Horodatage
@@ -149,6 +167,7 @@ function doPost(e) {
     sp.GAZOLE ? Number(sp.GAZOLE) : '',                 // M — Gazole station
     sp.GPLC   ? Number(sp.GPLC)   : '',                 // N — GPLc station
     syncId,                                             // O — sync_id
+    photoUrl,                                           // P — URL Drive photo ticket
   ]);
 
   return jsonResponse({ success: true, sync_id: syncId });
@@ -411,6 +430,14 @@ function migrateHeaders() {
 // ─────────────────────────────────────────────────────────────
 //  Helpers
 // ─────────────────────────────────────────────────────────────
+
+// W9 — Retourne (ou crée) le dossier Drive pour les photos de tickets
+function getOrCreateTicketFolder() {
+  const folders = DriveApp.getFoldersByName(TICKET_FOLDER_NAME);
+  if (folders.hasNext()) return folders.next();
+  return DriveApp.createFolder(TICKET_FOLDER_NAME);
+}
+
 function getOrCreateSheet(ss) {
   let sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
@@ -421,6 +448,16 @@ function getOrCreateSheet(ss) {
       .setBackground('#1B3A5C')
       .setFontColor('#FFFFFF');
     sheet.setFrozenRows(1);
+  } else {
+    // W9 — Migration : ajouter col P "Photo ticket" si absente
+    const headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    if (headerRow.length < 16 || !headerRow[15]) {
+      sheet.getRange(1, 16).setValue('Photo ticket')
+        .setFontWeight('bold')
+        .setBackground('#1B3A5C')
+        .setFontColor('#FFFFFF');
+      sheet.setColumnWidth(16, 200);
+    }
   }
   return sheet;
 }

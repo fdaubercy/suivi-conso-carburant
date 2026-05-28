@@ -23,7 +23,7 @@
 <!-- PWA : banniere install iOS Safari (instruction manuelle) -->
 <div id="iosBanner" class="pwa-banner pwa-banner--ios" hidden>
   <span>📲 Safari → <strong>Partager</strong> → <strong>Sur l'écran d'accueil</strong></span>
-  <button onclick="window._pwaDismiss('iosBanner')" class="pwa-close">✕</button>
+  <button class="pwa-close">✕</button>
 </div>
 
 <header>
@@ -34,10 +34,10 @@
   </div>
   <!-- PWA : bouton install Android/Chrome (visible uniquement si beforeinstallprompt) -->
   <button id="pwaInstallBtn" class="pwa-install-btn" hidden
-          onclick="window._pwaInstall()" title="Installer l'app sur l'écran d'accueil">📲</button>
+          title="Installer l'app sur l'écran d'accueil">📲</button>
   <!-- Badge hors-ligne : visible quand des pleins sont en file d'attente -->
   <span id="offlineBadge" class="offline-badge" hidden></span>
-  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Changer de thème">🌙</button>
+  <button class="theme-toggle" id="themeToggle" title="Changer de thème">🌙</button>
   <div class="header-right">
     <span class="badge" id="headerBadge">🌿 E85</span>
   </div>
@@ -48,7 +48,7 @@
   <!-- Véhicule -->
   <p class="section-title">Véhicule</p>
   <div class="field">
-    <select id="vehiculeSel" onchange="onVehiculeChange()">
+    <select id="vehiculeSel">
       <option value="">— Choisir un véhicule —</option>
       <optgroup label="Mes véhicules" id="vehiculeGroup">
         <option value="__ajouter">＋ Ajouter un véhicule</option>
@@ -59,9 +59,8 @@
     <div id="vehiculeAddField" class="hidden">
       <div class="cp-row" style="margin-top:8px">
         <input type="text" id="fNouveauVehicule" class="cp-input"
-               placeholder="Ex : Moto Honda CBR600" autocomplete="off"
-               onkeydown="if(event.key==='Enter') confirmerAjoutVehicule()">
-        <button class="cp-btn" onclick="confirmerAjoutVehicule()">Ajouter</button>
+               placeholder="Ex : Moto Honda CBR600" autocomplete="off">
+        <button id="vehiculeAjouterBtn" class="cp-btn">Ajouter</button>
       </div>
     </div>
   </div>
@@ -79,29 +78,33 @@
     <button id="scanTicketBtn" class="scan-btn" type="button" title="Scanner un ticket de caisse pour pré-remplir le formulaire">
       🧾 Scanner le ticket
     </button>
-    <span class="scan-hint">Photo du ticket → champs auto-remplis</span>
+    <div class="scan-info">
+      <span class="scan-hint">Photo du ticket → champs auto-remplis</span>
+      <!-- W9 — indicateur photo jointe -->
+      <span id="ticketPhotoIndicator" class="ticket-photo-badge" hidden>📷 Photo jointe</span>
+    </div>
   </div>
 
   <p class="section-title" style="margin-top:14px">Informations du plein</p>
   <div class="row2">
     <div class="field">
       <label for="fDate">Date</label>
-      <input type="date" id="fDate" onchange="checkDuplicate()">
+      <input type="date" id="fDate">
     </div>
     <div class="field">
       <label for="fKm">Km compteur</label>
-      <input type="number" id="fKm" placeholder="11 596" inputmode="numeric" oninput="onKmInput();checkDuplicate()">
+      <input type="number" id="fKm" placeholder="11 596" inputmode="numeric">
       <div class="km-warn" id="kmWarn"></div>
     </div>
   </div>
   <div class="row2">
     <div class="field">
       <label for="fLitres">Litres</label>
-      <input type="number" id="fLitres" step="0.01" placeholder="14.90" inputmode="decimal" oninput="updateCout();checkDuplicate()">
+      <input type="number" id="fLitres" step="0.01" placeholder="14.90" inputmode="decimal">
     </div>
     <div class="field">
       <label id="prixLabel" for="fPrix">Prix E85 (€/L)</label>
-      <input type="number" id="fPrix" step="0.001" placeholder="0.798" inputmode="decimal" oninput="updateCout()">
+      <input type="number" id="fPrix" step="0.001" placeholder="0.798" inputmode="decimal">
     </div>
   </div>
 
@@ -112,8 +115,8 @@
   <div class="s98-status" id="s98Status"></div>
   <div class="cp-row hidden" id="cpSearch">
     <input type="text" id="fCp" class="cp-input" placeholder="Code postal (ex. 69620)"
-           inputmode="numeric" maxlength="5" onkeydown="if(event.key==='Enter') fetchPricesByCP()">
-    <button class="cp-btn" onclick="fetchPricesByCP()">Chercher</button>
+           inputmode="numeric" maxlength="5">
+    <button id="cpSearchBtn" class="cp-btn">Chercher</button>
   </div>
 
   <div class="cout-box" id="coutBox">
@@ -129,13 +132,13 @@
   <div class="field">
     <label for="stationSel">Station</label>
     <div class="station-wrap">
-      <select id="stationSel" onchange="onStationChange()">
+      <select id="stationSel">
         <option value="">— Choisir —</option>
         <optgroup label="Stations habituelles" id="knownGroup">
           <option value="__autre">+ Saisie manuelle</option>
         </optgroup>
       </select>
-      <button class="geo-btn" id="geoBtn" onclick="geolocate()">📍</button>
+      <button class="geo-btn" id="geoBtn">📍</button>
     </div>
     <div class="geo-status info" id="geoStatus"></div>
   </div>
@@ -145,14 +148,13 @@
     <label for="fAutre">Ville de la station</label>
     <input type="text" id="fAutre"
            placeholder="ex. Villefranche, Mâcon, Douai…"
-           autocomplete="off" autocorrect="off" spellcheck="false"
-           oninput="onAutreInput()">
+           autocomplete="off" autocorrect="off" spellcheck="false">
     <div class="radius-row">
       <span class="radius-label">Rayon autour de la ville :</span>
-      <button class="radius-btn active" data-m="20000"  onclick="setRadius(this, 20000)">20 km</button>
-      <button class="radius-btn"        data-m="50000"  onclick="setRadius(this, 50000)">50 km</button>
-      <button class="radius-btn"        data-m="100000" onclick="setRadius(this, 100000)">100 km</button>
-      <button class="radius-btn"        data-m="null"   onclick="setRadius(this, null)">Ville seule</button>
+      <button class="radius-btn active" data-m="20000">20 km</button>
+      <button class="radius-btn"        data-m="50000">50 km</button>
+      <button class="radius-btn"        data-m="100000">100 km</button>
+      <button class="radius-btn"        data-m="null">Ville seule</button>
     </div>
     <div class="s98-status" id="autreStatus"></div>
   </div>
@@ -162,11 +164,14 @@
   <div id="stationMapWrap" class="hidden">
     <div class="map-header">
       <span class="map-title">🗺️ Carte des stations</span>
-      <button class="map-close-btn" onclick="hideMap()">✕</button>
+      <button class="map-close-btn">✕</button>
     </div>
     <div id="stationMap"></div>
   </div>
 </div>
+
+<!-- ─── W30 Comparateur multi-stations ─── -->
+<div class="card" id="comparateurCard" hidden></div>
 
 <!-- ─── Stats live (W7) ─── -->
 <div class="card stats-card">
@@ -182,8 +187,8 @@
   <div class="hist-header">
     <p class="section-title" style="margin-bottom:0">5 derniers pleins</p>
     <div class="hist-actions">
-      <button class="hist-btn" onclick="dupliquerDernier()" title="Dupliquer le dernier plein dans le formulaire">📋</button>
-      <button class="hist-btn hist-refresh" onclick="chargerHistorique()" title="Actualiser">↻</button>
+      <button class="hist-btn" data-action="dupliquerDernier" title="Dupliquer le dernier plein dans le formulaire">📋</button>
+      <button class="hist-btn hist-refresh" data-action="chargerHistorique" title="Actualiser">↻</button>
     </div>
   </div>
   <div id="historiqueList"><div class="hist-msg">Chargement…</div></div>
@@ -237,7 +242,7 @@
 <div class="feedback" id="feedback"></div>
 
 <div class="submit-wrap">
-  <button class="submit-btn" id="submitBtn" onclick="submitForm()">
+  <button class="submit-btn" id="submitBtn">
     <span id="submitIcon">✓</span>
     <span id="submitText">Enregistrer le plein</span>
   </button>

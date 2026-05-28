@@ -66,9 +66,10 @@ export function _renderMap(uLat, uLon) {
           + `style="position:absolute;left:${(tx-nw.x)*TILE_SZ}px;top:${(ty-nw.y)*TILE_SZ}px;width:${TILE_SZ}px;height:${TILE_SZ}px" `
           + `loading="lazy" onerror="this.style.background='#ddd'">`;
   }
+  /* T2 : data-map-pin-idx remplace onclick/onmouseenter/ontouchstart inline */
   state._mapStations.forEach((s, i) => {
     const p = latLonToPx(s.lat, s.lon, z, nw.x, nw.y);
-    html += `<div id="mapPin${i}" onclick="selectStationFromMap(${i})" onmouseenter="showPinLabel(${i})" ontouchstart="showPinLabel(${i})"
+    html += `<div id="mapPin${i}" data-map-pin-idx="${i}"
       style="position:absolute;left:${p.x-12}px;top:${p.y-30}px;z-index:10;cursor:pointer;-webkit-tap-highlight-color:transparent">
       <div class="map-pin" id="mapPinDot${i}" style="background:#2E75B6"><span style="transform:rotate(45deg)">⛽</span></div>
       <div class="map-pin-label" id="mapPinLbl${i}">${escHtml(s.name)}</div></div>`;
@@ -92,4 +93,33 @@ export function showPinLabel(idx) {
 
 export function hideMap() {
   document.getElementById('stationMapWrap').classList.add('hidden');
+}
+
+/**
+ * T2 — Délégation d'événements sur #stationMap.
+ * Remplace onclick/onmouseenter/ontouchstart inline sur les marqueurs.
+ * Appelée une seule fois depuis main.js au démarrage.
+ */
+export function initMapInteractions() {
+  const container = document.getElementById('stationMap');
+  if (!container) return;
+
+  container.addEventListener('click', e => {
+    const pin = e.target.closest('[data-map-pin-idx]');
+    if (!pin) return;
+    const idx = parseInt(pin.dataset.mapPinIdx, 10);
+    if (typeof window.selectStationFromMap === 'function') window.selectStationFromMap(idx);
+  });
+
+  container.addEventListener('mouseover', e => {
+    const pin = e.target.closest('[data-map-pin-idx]');
+    if (!pin) return;
+    showPinLabel(parseInt(pin.dataset.mapPinIdx, 10));
+  });
+
+  container.addEventListener('touchstart', e => {
+    const pin = e.target.closest('[data-map-pin-idx]');
+    if (!pin) return;
+    showPinLabel(parseInt(pin.dataset.mapPinIdx, 10));
+  }, { passive: true });
 }

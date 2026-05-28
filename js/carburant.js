@@ -17,6 +17,9 @@ export function registerPriceCallback(fn) { _fetchPricesNearUser = fn; }
  *   • Prix disponible  → affiché en vert
  *   • Pas de prix mais station sélectionnée → bouton grisé (dimmed)
  *   • Aucune station sélectionnée → bouton normal sans prix
+ *
+ * T2 : les boutons utilisent data-fuel-key au lieu d'onclick inline.
+ *      La délégation d'événements est dans initTypeToggle().
  */
 export function _buildTypeToggle(prices) {
   const wrap = document.getElementById('typeToggle');
@@ -31,7 +34,7 @@ export function _buildTypeToggle(prices) {
     const active = state.currentType === k ? ' active' : '';
     const dimmed = hasPrices && !prices[k] ? ' dimmed' : '';
     const prix   = prices[k] ? `<span class="type-price">${parseFloat(prices[k]).toFixed(3)} €/L</span>` : '';
-    html += `<button class="type-btn${active}${dimmed}" onclick="setType('${k}')">${cfg.icon} ${cfg.label}${prix}</button>`;
+    html += `<button class="type-btn${active}${dimmed}" data-fuel-key="${k}">${cfg.icon} ${cfg.label}${prix}</button>`;
   });
   html += '</div><div class="type-row-secondary">';
   secondaryKeys.forEach(k => {
@@ -39,7 +42,7 @@ export function _buildTypeToggle(prices) {
     const active = state.currentType === k ? ' active' : '';
     const dimmed = hasPrices && !prices[k] ? ' dimmed' : '';
     const prix   = prices[k] ? `<span class="type-price">${parseFloat(prices[k]).toFixed(3)} €/L</span>` : '';
-    html += `<button class="type-btn-sm${active}${dimmed}" onclick="setType('${k}')">${cfg.icon} ${cfg.short}${prix}</button>`;
+    html += `<button class="type-btn-sm${active}${dimmed}" data-fuel-key="${k}">${cfg.icon} ${cfg.short}${prix}</button>`;
   });
   html += '</div>';
   wrap.innerHTML = html;
@@ -68,11 +71,22 @@ export function setType(type) {
 
   if (Object.keys(state._stationPrices).length > 0) {
     // Prix déjà chargés — application immédiate depuis le cache
-    // (les prix sont déjà visibles dans les boutons, pas besoin de répéter dans le statut)
     setFieldPrice('fPrix', state._stationPrices[type] || null, cfg.ph);
     updateCout();
   } else {
     const sel = document.getElementById('stationSel').value;
     if (sel && sel !== '__autre') _fetchPricesNearUser();
   }
+}
+
+/**
+ * T2 — Délégation d'événements sur #typeToggle.
+ * Appelée une seule fois depuis main.js au démarrage.
+ */
+export function initTypeToggle() {
+  document.getElementById('typeToggle')?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-fuel-key]');
+    if (!btn) return;
+    setType(btn.dataset.fuelKey);
+  });
 }

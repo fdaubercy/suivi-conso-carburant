@@ -5,7 +5,7 @@
    lors du premier chargement réseau réussi.
 ═══════════════════════════════════════════════════════════════════════ */
 
-const CACHE = 'suivi-e85-shell-v1';
+const CACHE = 'suivi-e85-shell-v__SW_VERSION__';
 
 /* ── Install : prendre la main immédiatement ─────────────────────────── */
 self.addEventListener('install', event => {

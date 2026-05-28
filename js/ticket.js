@@ -9,10 +9,12 @@
  *    3. Tesseract.js (langue "fra") → texte brut                         *
  *    4. parseOCRText() → objet structuré {date, km, litres, …}           *
  *    5. fillFormFromTicket() → champs du formulaire pré-remplis           *
+ *    6. W9 : base64 de l'image stockée dans state._ticketPhoto           *
  * ─────────────────────────────────────────────────────────────────────  */
 
 import Tesseract from 'tesseract.js';
 import { FUEL_CONFIG } from './config.js';
+import { state } from './state.js';
 import { showFeedback } from './ui.js';
 
 /* ─── Table de correspondance libellés OCR → clés FUEL_CONFIG ───────────
@@ -84,6 +86,19 @@ async function resizeImage(file) {
     };
     img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };
     img.src     = objectUrl;
+  });
+}
+
+/** W9 — Convertit un Blob/File en chaîne base64 (sans le préfixe data:...) */
+async function blobToBase64(blob) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      resolve(result.includes(',') ? result.split(',')[1] : result);
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(blob);
   });
 }
 
@@ -412,6 +427,16 @@ export function initScanner() {
 
     try {
       const blob = await resizeImage(file);
+
+      /* W9 — stocker la photo redimensionnée pour l'envoi avec le plein */
+      try {
+        const b64 = await blobToBase64(blob);
+        if (b64) {
+          state._ticketPhoto = b64;
+          const indicator = document.getElementById('ticketPhotoIndicator');
+          if (indicator) indicator.hidden = false;
+        }
+      } catch { /* non bloquant */ }
 
       const { data: { text } } = await Tesseract.recognize(blob, 'fra', {
         logger: ({ status, progress }) => {

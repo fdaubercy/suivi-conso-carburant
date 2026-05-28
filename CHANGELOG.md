@@ -4,6 +4,26 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.13.0.0] — 2026-05-27
+
+### Added
+- **W9 — Photo du ticket uploadée avec le plein** : lors du scan du ticket de caisse, l'image redimensionnée est encodée en base64 et transmise au GAS. Le GAS la sauvegarde dans un dossier Drive `Suivi E85 - Tickets`, rend le fichier public en lecture, et enregistre l'URL dans une nouvelle colonne P `Photo ticket` de la feuille `_ImportGS`. Indicateur `📷 Photo jointe` visible dans le formulaire après scan.
+- **W30 — Comparateur multi-stations** : après une géolocalisation, toutes les stations ayant un prix E85 (jusqu'à 40) sont affichées dans une carte dédiée `#comparateurCard`, triées par prix E85 croissant. La station la moins chère est mise en évidence (fond vert). Les données sont conservées dans `state._geoStations`.
+- **W31 — Géoloc mémorisée (localStorage)** : la dernière position et la liste des stations sont persistées en localStorage (`suivi_e85_last_geo`, TTL 1 h). Au prochain clic 📍, les stations précédentes s'affichent immédiatement pendant que la géolocalisation GPS se met à jour en arrière-plan.
+- **T3 — Versioning dynamique du cache SW** : le nom du cache Service Worker (`suivi-e85-shell-v__SW_VERSION__`) est injecté avec `APP_VERSION` via un plugin Vite (`swVersionPlugin`) — en dev par middleware, en build par remplacement de chaîne dans `dist/sw.js`. Garantit l'invalidation automatique du cache à chaque version.
+
+### Changed
+- **T2 — Refactoring onclick HTML → addEventListener** : suppression de tous les `onclick=`, `oninput=`, `onchange=`, `onkeydown=` inline dans `index.html` (~20 handlers). Câblage déplacé dans les modules JS via `initStaticHandlers()`, `initTypeToggle()`, `initNearbyList()`, `initMapInteractions()`. Sélecteur CSS `[onclick]` → `[data-map-pin-idx]` dans `style.css`.
+- **`js/geo.js`** — `renderNearby()` : attribut `data-nearby-idx` remplace `onclick` inline ; `renderComparateur()` génère la table `.comp-table` dans `#comparateurCard`.
+- **`js/carburant.js`** — `_buildTypeToggle()` : attribut `data-fuel-key` remplace `onclick="setType(...)"` ; `initTypeToggle()` ajoute la délégation sur `#typeToggle`.
+- **`js/carte.js`** — `showMap()` : `data-map-pin-idx` remplace les attributs `onclick`/`onmouseenter`/`ontouchstart` ; `initMapInteractions()` gère la délégation sur `#stationMap`.
+- **`js/ticket.js`** — `blobToBase64()` helper ; après OCR, l'image base64 (sans préfixe `data:`) est stockée dans `state._ticketPhoto` et l'indicateur `#ticketPhotoIndicator` est affiché.
+- **`js/formulaire.js`** — `submitForm()` : joint `payload.ticketPhoto` si disponible. `resetForm()` : efface `state._ticketPhoto` et masque `#ticketPhotoIndicator`.
+- **`css/style.css`** — Ajout `.scan-info`, `.ticket-photo-badge` (W9) et styles `.comp-table` / `.comp-best` (W30) avec variantes dark mode.
+- **`Code.gs`** — `HEADERS` étendu à 16 colonnes (col P `Photo ticket`) ; `getOrCreateTicketFolder()` ; upload photo base64 → Drive dans le handler plein par défaut ; `getOrCreateSheet()` migre les feuilles existantes à 15 colonnes vers 16.
+- **`vite.config.js`** — Plugin `swVersionPlugin` (T3).
+- **`js/config.js`** — `APP_VERSION` → `2.13.0.0`.
+
 ## [2.12.3.0] — 2026-05-27
 
 ### Fixed
