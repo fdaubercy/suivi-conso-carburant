@@ -70,6 +70,7 @@ export function restoreDraft() {
       }
     }
     updateCout();
+    onKmInput();    // déclenche le warning rétrograde si le km du brouillon est invalide
     checkDuplicate();
     return d;
   } catch { return null; }

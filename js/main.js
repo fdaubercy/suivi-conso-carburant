@@ -15,7 +15,7 @@ import { onAutreInput, setRadius } from './recherche.js';
 import { onStationChange, onKmInput, submitForm, resetForm, checkDuplicate, saveDraft, restoreDraft, initVoiceKm } from './formulaire.js';
 import { chargerStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
-import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters, initHistoireShare } from './historique.js';
+import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters, initHistoireShare, getMaxKmForVehicule } from './historique.js';
 import { renderStats, initSparkToggles, getNextKmPrediction } from './stats.js';
 import { initScanner }       from './ticket.js';
 import { initPWA }           from './pwa.js';
@@ -46,11 +46,15 @@ setTimeout(() => {
     if (d.type && typeof window.setType === 'function') window.setType(d.type);
     showFeedback('info', '📝 Brouillon restauré', 'Vos données précédentes ont été récupérées.');
   }
-  // W35 — pré-remplir fKm si vide (pas de brouillon avec km)
+  // W35 — placeholder dynamique + pré-remplissage km depuis la prédiction
   const fKm = document.getElementById('fKm');
-  if (fKm && !fKm.value) {
-    const predicted = getNextKmPrediction();
-    if (predicted) { fKm.value = predicted; onKmInput(); }
+  if (fKm) {
+    const lastKm = getMaxKmForVehicule(state.currentVehiculeNom);
+    if (lastKm) fKm.placeholder = '≥ ' + lastKm.toLocaleString('fr-FR') + ' km';
+    if (!fKm.value) {
+      const predicted = getNextKmPrediction();
+      if (predicted) { fKm.value = predicted; onKmInput(); }
+    }
   }
 }, 800);
 

@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.0.0.1] — 2026-05-28
+
+### Fixed
+- **Placeholder km obsolète** : le placeholder statique `"11 596"` (valeur figée dans le HTML) était confondu avec une prédiction. Remplacé par `"km compteur"` (neutre) + injection dynamique `≥ X km` après chargement de l'historique, où X est le dernier km connu du véhicule courant.
+- **Warning rétrograde absent à la restauration du brouillon** : `onKmInput()` n'était pas appelé dans `restoreDraft()`, donc si un brouillon contenait un km inférieur au dernier plein, aucun avertissement n'était affiché. Corrigé.
+
+### Changed
+- **`index.html`** — `placeholder="11 596"` → `placeholder="km compteur"`.
+- **`js/main.js`** — Import `getMaxKmForVehicule` depuis `historique.js` ; placeholder `fKm` mis à jour dynamiquement à `≥ X km` dans le `setTimeout` 800 ms.
+- **`js/formulaire.js`** — `restoreDraft()` appelle `onKmInput()` après restauration du km.
+- **`js/config.js`** — `APP_VERSION` → `3.0.0.1`.
+
 ## [3.0.0.0] — 2026-05-28
 
 ### Added
