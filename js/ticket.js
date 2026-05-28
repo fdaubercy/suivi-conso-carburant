@@ -18,9 +18,12 @@
  * ─────────────────────────────────────────────────────────────────────  */
 
 import Tesseract from 'tesseract.js';
-import { FUEL_CONFIG, GAS_URL } from './config.js';
+import { FUEL_CONFIG, FUEL_SELECT, GAS_URL, PRIX_API } from './config.js';
 import { state } from './state.js';
 import { showFeedback } from './ui.js';
+import { composeStationName, formatVille, getCoords, stationLabel } from './utils.js';
+import { fetchPricesAtCoords, fetchPricesNearUser } from './prix.js';
+import { cacheStationCoords } from './stationsmap.js';
 
 /* ─── Table de correspondance libellés OCR → clés FUEL_CONFIG ───────────
  *
@@ -212,6 +215,8 @@ async function scanWithGemini(imageBase64, mimeType) {
     prix_litre:     num(d.prix_litre),
     montant_total:  num(d.montant_total),
     type_carburant: d.type_carburant || null,
+    enseigne:       d.enseigne || null,
+    ville:          d.ville || null,
     station:        d.station || null,
   };
 }
@@ -489,10 +494,106 @@ export function parseOCRText(rawText) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   Station reconnue → sélection + recherche des prix carburant
+═══════════════════════════════════════════════════════════════════════ */
+
+/** Interroge l'API ODS pour trouver la station de la commune correspondant
+ *  à l'enseigne. Retourne ses coordonnées, ou null si aucune station. */
+async function _findStationInCommune(enseigne, ville) {
+  const cfg = FUEL_CONFIG[state.currentType] || FUEL_CONFIG.E85;
+  const q   = String(ville).replace(/['\\]/g, ' ').trim();
+  if (!q) return null;
+
+  const resp = await fetch(PRIX_API + '?' + new URLSearchParams({
+    where:  `search(ville, '${q}') and ${cfg.apiField} is not null`,
+    select: FUEL_SELECT,
+    limit:  15,
+  }));
+  if (!resp.ok) return null;
+
+  const data    = await resp.json();
+  const results = (data.results || []).filter(r => getCoords(r));
+  if (!results.length) return null;
+
+  const eNeedle = (enseigne || '').toLowerCase();
+  const pick = (eNeedle && results.find(r => stationLabel(r).toLowerCase().includes(eNeedle))) || results[0];
+  const c = getCoords(pick);
+  return { lat: c.lat, lon: c.lon };
+}
+
+/** Reporte la station lue dans le formulaire et déclenche les prix carburant.
+ *  Ordre de résolution :
+ *    1. station déjà présente dans la liste déroulante → sélection + prix GPS
+ *    2. enseigne + ville → recherche ODS de la commune → prix de la station
+ *    3. sinon → saisie manuelle avec le nom composé "Enseigne - Ville"
+ *  Retourne true si un nom de station a été renseigné. */
+async function applyTicketStation(data) {
+  const sel = document.getElementById('stationSel');
+  if (!sel) return false;
+
+  const enseigne = data.enseigne || null;
+  const ville    = data.ville || null;
+  const station  = data.station || null;
+
+  const display = (enseigne && ville)
+    ? composeStationName(enseigne, ville)
+    : (station || enseigne || ville || '').trim();
+  if (!display) return false;
+
+  const autreField = document.getElementById('autreField');
+  const nearbyList = document.getElementById('nearbyList');
+  const autre      = document.getElementById('fAutre');
+
+  const dNeedle = display.toLowerCase();
+  const eNeedle = (enseigne || station || '').toLowerCase();
+  const vNeedle = (formatVille(ville) || '').toLowerCase();
+
+  /* 1. Station déjà connue dans la liste déroulante */
+  const match = Array.from(sel.options).find(o => {
+    if (!o.value || o.value === '__autre') return false;
+    const ov = o.value.toLowerCase();
+    return ov.includes(dNeedle) || (eNeedle && ov.includes(eNeedle)) || (vNeedle && ov.includes(vNeedle));
+  });
+  if (match) {
+    sel.value = match.value;
+    if (autreField) autreField.classList.add('hidden');
+    if (nearbyList) nearbyList.style.display = 'none';
+    await fetchPricesNearUser();          /* prix sur les boutons (position GPS) */
+    return true;
+  }
+
+  /* 2. Recherche ODS de la commune → prix de la station reconnue */
+  if (ville) {
+    try {
+      const hit = await _findStationInCommune(enseigne, ville);
+      if (hit) {
+        if (!Array.from(sel.options).some(o => o.value === display))
+          document.getElementById('knownGroup').appendChild(new Option(display, display));
+        sel.value = display;
+        if (autreField) autreField.classList.add('hidden');
+        if (nearbyList) nearbyList.style.display = 'none';
+        cacheStationCoords(display, hit.lat, hit.lon);
+        state._selectedLat = hit.lat;
+        state._selectedLon = hit.lon;
+        await fetchPricesAtCoords(hit.lat, hit.lon, true);   /* prix sur les boutons */
+        return true;
+      }
+    } catch { /* tombe en saisie manuelle */ }
+  }
+
+  /* 3. Saisie manuelle avec le nom composé (sans recherche commune sur le nom complet) */
+  sel.value = '__autre';
+  if (autreField) autreField.classList.remove('hidden');
+  if (nearbyList) nearbyList.style.display = 'none';
+  if (autre) { autre.value = display; autre.classList.add('autofilled'); }
+  return true;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    fillFormFromTicket — Injecter les données dans le formulaire
 ═══════════════════════════════════════════════════════════════════════ */
 
-function fillFormFromTicket(data) {
+async function fillFormFromTicket(data) {
   let filled = 0;
 
   /* ── 1. Type de carburant EN PREMIER ────────────────────────────────
@@ -540,7 +641,13 @@ function fillFormFromTicket(data) {
     }
   }
 
-  /* ── 5. Prix/L — après setType() pour ne pas être effacé ────────── */
+  /* ── 5. Station — AVANT le prix : la recherche de prix station écrase
+   *  fPrix (applyPricesResult), donc on résout la station d'abord puis on
+   *  réinjecte le prix payé du ticket juste après pour qu'il l'emporte. ── */
+  if (await applyTicketStation(data)) filled++;
+
+  /* ── 6. Prix/L EN DERNIER — après setType() ET après la station, pour
+   *  ne pas être effacé par l'un ni l'autre. C'est le prix réellement payé. */
   if (data.prix_litre && Number(data.prix_litre) > 0) {
     const el = document.getElementById('fPrix');
     if (el) {
@@ -548,34 +655,6 @@ function fillFormFromTicket(data) {
       el.classList.add('autofilled');
       el.dispatchEvent(new Event('input'));
       filled++;
-    }
-  }
-
-  /* Station — correspondance dans le dropdown, sinon saisie manuelle */
-  if (data.station) {
-    const sel    = document.getElementById('stationSel');
-    const needle = data.station.toLowerCase();
-    if (sel) {
-      const match = Array.from(sel.options).find(o =>
-        o.value && o.value !== '__autre' &&
-        (o.value.toLowerCase().includes(needle) || needle.includes(o.value.toLowerCase()))
-      );
-      if (match) {
-        sel.value = match.value;
-        sel.dispatchEvent(new Event('change'));
-        filled++;
-      } else {
-        /* Station inconnue → bascule en saisie manuelle et reporte le nom lu */
-        sel.value = '__autre';
-        sel.dispatchEvent(new Event('change'));
-        const autre = document.getElementById('fAutre');
-        if (autre) {
-          autre.value = data.station.trim();
-          autre.classList.add('autofilled');
-          autre.dispatchEvent(new Event('input'));
-          filled++;
-        }
-      }
     }
   }
 
@@ -666,7 +745,7 @@ export function initScanner() {
         parsed = parseOCRText(text);
       }
 
-      fillFormFromTicket(parsed);
+      await fillFormFromTicket(parsed);
 
     } catch (err) {
       showFeedback('error', 'Erreur scan',

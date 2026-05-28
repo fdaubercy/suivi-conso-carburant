@@ -1,5 +1,5 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend               v3.1.0.2
+//  SUIVI CONSO E85 — Web App Backend               v3.1.0.4
 //
 //  ⚠️  BREAKING CHANGE v2.3.0.0 : suppression colonne G "Prix S98 jour"
 //  La colonne K "SP98 station (€/L)" est désormais la seule source SP98.
@@ -251,7 +251,9 @@ function handleScanTicket(imageBase64, mimeType) {
     '- Carburant possible : E85 (SuperEthanol), SP98, SP95, E10 (SP95-E10), Gazole (Diesel, B7), GPLc\n' +
     '- Le kilométrage est presque toujours ABSENT sur ces tickets → null si non visible\n' +
     '- Date au format YYYY-MM-DD. ATTENTION années à 2 chiffres : "26" = 2026, "25" = 2025\n' +
-    '- station : nom de l\'enseigne + ville si présents (ex. "Carrefour Flers-en-Escrebieux")\n' +
+    '- enseigne : nom commercial de la station SEUL, sans la ville (ex. "Carrefour", "Total", "Leclerc", "Intermarché", "Avia", "Esso", "Système U"). null si illisible.\n' +
+    '- ville : commune de la station SEULE, sans l\'enseigne (ex. "Flers-en-Escrebieux", "Douai"). Souvent dans l\'adresse ou l\'en-tête. null si absente.\n' +
+    '- station : enseigne + ville réunies si présentes (ex. "Carrefour Flers-en-Escrebieux")\n' +
     '- Cohérence : litres × prix_litre ≈ montant_total. Si un champ est douteux, recalcule-le.\n\n' +
     'Réponds UNIQUEMENT avec cet objet JSON (aucun markdown, aucun backtick, aucun texte autour) :\n' +
     '{\n' +
@@ -261,6 +263,8 @@ function handleScanTicket(imageBase64, mimeType) {
     '  "prix_litre": décimal ou null,\n' +
     '  "montant_total": décimal ou null,\n' +
     '  "type_carburant": "E85"|"SP98"|"SP95"|"E10"|"Gazole"|"GPLc" ou null,\n' +
+    '  "enseigne": "texte" ou null,\n' +
+    '  "ville": "texte" ou null,\n' +
     '  "station": "texte" ou null\n' +
     '}';
 

@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.1.0.4] — 2026-05-29
+
+### Added
+- **Station reconnue → recherche automatique des prix carburant + format "Enseigne - Ville"** : Gemini renvoie désormais `enseigne` et `ville` séparément. `fillFormFromTicket()` résout la station en 3 temps : (1) si elle existe dans la liste déroulante → sélection + prix GPS ; (2) sinon recherche ODS de la commune (`_findStationInCommune`) → coordonnées de la station → `fetchPricesAtCoords()` peuple les prix sur les boutons carburant ; (3) sinon saisie manuelle avec le nom composé via `composeStationName()` (ex. « Carrefour - Flers »). Fini le message « Aucune commune trouvée » déclenché par l'envoi du nom complet dans le champ de recherche.
+- Le prix payé lu sur le ticket est désormais réinjecté **après** la recherche des prix station, pour qu'il ne soit pas écrasé par le prix ODS courant (qui sert, lui, à alimenter les boutons).
+
+### Changed
+- **`Code.gs`** — prompt Gemini : ajout des champs `enseigne` (enseigne seule) et `ville` (commune seule) dans le JSON, en plus de `station`. Version backend → `v3.1.0.4`.
+- **`js/ticket.js`** — `fillFormFromTicket()` devient asynchrone ; nouvelles fonctions `applyTicketStation()` et `_findStationInCommune()` ; ordre des champs réagencé (station avant prix).
+- **`js/config.js`** — `APP_VERSION` → `3.1.0.4`.
+
 ## [3.1.0.3] — 2026-05-29
 
 ### Added
