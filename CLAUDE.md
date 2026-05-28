@@ -214,6 +214,19 @@ Toujours dans cet ordre :
 
 ---
 
+# 🗺️ ROADMAP.md — OBLIGATOIRE
+
+À chaque fonctionnalité implémentée ou bug corrigé :
+
+- Ajouter une ligne dans le tableau "✅ Idées déjà implémentées" (bas du fichier)
+- Format : `| vX.Y.Z.W | **Titre (Wxx)** — description courte |`
+- Si l'item était dans un tableau "à faire" (Quick wins, Features, etc.), le supprimer de là
+- Mettre à jour le "Top 5 recommandés" si un item du top a été réalisé
+
+⚠️ Ne jamais oublier cette étape. Le ROADMAP est la mémoire du projet.
+
+---
+
 # 🧪 VALIDATION AVANT FIN
 
 Avant de terminer :
@@ -223,6 +236,7 @@ Avant de terminer :
 - vérifier version X.Y.Z.W cohérente entre app.js et CHANGELOG
 - vérifier README.md si l'architecture a changé
 - vérifier CHANGELOG.md
+- **vérifier ROADMAP.md — ajouter les items réalisés**
 - préparer le bloc commit
 
 ---
