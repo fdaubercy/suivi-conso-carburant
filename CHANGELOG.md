@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.0.0.3] — 2026-05-28
+
+### Fixed
+- **CSP `script-src` / `worker-src` — scan ticket bloqué** : `importScripts()` du worker Tesseract.js était bloqué par la CSP car `https://cdn.jsdelivr.net` était absent de `script-src` (et `worker-src`). Ajouté dans les deux directives dans `index.html` et `_headers`.
+
+### Changed
+- **`index.html`** + **`_headers`** — `script-src` et `worker-src` : ajout de `https://cdn.jsdelivr.net`.
+- **`js/config.js`** — `APP_VERSION` → `3.0.0.3`.
+
 ## [3.0.0.2] — 2026-05-28
 
 ### Changed
