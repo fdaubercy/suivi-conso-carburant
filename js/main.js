@@ -37,26 +37,27 @@ registerPriceCallback(fetchPricesNearUser);
 /* ─── Chargement asynchrone des données ─── */
 chargerStations();
 chargerVehicules();
-chargerHistorique();
 
-/* ─── W15 + W35 — Restaurer brouillon + pré-remplir km depuis la prédiction ─── */
+/* ─── W15 — Restaurer le brouillon après init async des véhicules/stations ─── */
 setTimeout(() => {
   const d = restoreDraft();
   if (d) {
     if (d.type && typeof window.setType === 'function') window.setType(d.type);
     showFeedback('info', '📝 Brouillon restauré', 'Vos données précédentes ont été récupérées.');
   }
-  // W35 — placeholder dynamique + pré-remplissage km depuis la prédiction
-  const fKm = document.getElementById('fKm');
-  if (fKm) {
-    const lastKm = getMaxKmForVehicule(state.currentVehiculeNom);
-    if (lastKm) fKm.placeholder = '≥ ' + lastKm.toLocaleString('fr-FR') + ' km';
-    if (!fKm.value) {
-      const predicted = getNextKmPrediction();
-      if (predicted) { fKm.value = predicted; onKmInput(); }
-    }
-  }
 }, 800);
+
+/* ─── W35 — Pré-remplir km dès que l'historique est chargé (données disponibles) ─── */
+chargerHistorique().then(() => {
+  const fKm = document.getElementById('fKm');
+  if (!fKm) return;
+  const lastKm = getMaxKmForVehicule(state.currentVehiculeNom);
+  if (lastKm) fKm.placeholder = '≥ ' + lastKm.toLocaleString('fr-FR') + ' km';
+  if (!fKm.value) {
+    const predicted = getNextKmPrediction();
+    if (predicted) { fKm.value = predicted; onKmInput(); }
+  }
+});
 
 /* ─── Scanner ticket de caisse (W17) ─── */
 initScanner();
