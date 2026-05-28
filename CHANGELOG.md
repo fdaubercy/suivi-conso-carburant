@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.0.0.2] — 2026-05-28
+
+### Changed
+- **W33 — Prédiction prochain plein dynamique** : la carte "Prochain plein" affiche désormais le **km et le nombre de jours restants calculés depuis aujourd'hui**, et non plus l'intervalle moyen figé depuis le dernier plein. Formules : `daysLeft = avgDay − (today − lastFillUpDate)` · `kmLeft = avgKm − daysElapsed × avgKm/avgDay`. Trois états possibles : "Prochain plein dans ~X km · ~Y j" / "... · aujourd'hui" / "Plein prévu il y a Y j" (si dépassé). Le km cible absolu reste toujours visible en sous-titre.
+- **`js/stats.js`** — `_computePrediction()` retourne désormais `lastDate` (date du dernier plein) ; `buildPrediction()` recalcule le restant dynamiquement à l'ouverture de l'app.
+- **`js/config.js`** — `APP_VERSION` → `3.0.0.2`.
+
 ## [3.0.0.1] — 2026-05-28
 
 ### Fixed

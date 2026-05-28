@@ -290,8 +290,16 @@ function _computePrediction(veh) {
     ? Math.round(dayDeltas.reduce((s, v) => s + v, 0) / dayDeltas.length)
     : null;
 
-  const lastKm = Number(records[records.length - 1]['Km compteur']);
-  return { avgKm, avgDay, lastKm, nextKm: lastKm + avgKm, count: kmDeltas.length };
+  const lastRecord = records[records.length - 1];
+  const lastKm   = Number(lastRecord['Km compteur']);
+  const lastDateRaw = String(lastRecord.Date || lastRecord.Horodatage || '').replace(' ', 'T');
+  const lastDate = new Date(lastDateRaw);
+  return {
+    avgKm, avgDay, lastKm,
+    nextKm: lastKm + avgKm,
+    count: kmDeltas.length,
+    lastDate: isNaN(lastDate.getTime()) ? null : lastDate,
+  };
 }
 
 /**
@@ -311,15 +319,31 @@ function buildPrediction() {
   const data = _computePrediction(state.currentVehiculeNom);
   if (!data) return '';
 
-  const { avgKm, avgDay, nextKm, count } = data;
+  const { avgKm, avgDay, nextKm, count, lastDate } = data;
 
-  const daysStr = avgDay ? ` · ~${avgDay} j` : '';
+  let mainText;
+  if (avgDay && lastDate) {
+    const daysElapsed  = (Date.now() - lastDate.getTime()) / 86400000;
+    const daysLeft     = avgDay - daysElapsed;
+    const kmLeft       = avgKm  - daysElapsed * (avgKm / avgDay);
+
+    if (daysLeft > 1) {
+      mainText = `Prochain plein dans <strong>~${Math.round(kmLeft).toLocaleString('fr-FR')} km</strong> · ~${Math.round(daysLeft)} j`;
+    } else if (daysLeft > 0) {
+      mainText = `Prochain plein dans <strong>~${Math.round(kmLeft).toLocaleString('fr-FR')} km</strong> · aujourd'hui`;
+    } else {
+      const overdue = Math.round(-daysLeft);
+      mainText = `Plein prévu <strong>il y a ${overdue} j</strong>`;
+    }
+  } else {
+    mainText = `Prochain plein dans <strong>~${avgKm.toLocaleString('fr-FR')} km</strong>`;
+  }
 
   return `
     <div class="prediction-box">
       <span class="pred-icon">🔮</span>
       <div class="pred-content">
-        <div class="pred-main">Prochain plein dans <strong>~${avgKm.toLocaleString('fr-FR')} km</strong>${daysStr}</div>
+        <div class="pred-main">${mainText}</div>
         <div class="pred-sub">vers ${nextKm.toLocaleString('fr-FR')} km · basé sur ${count} plein${count > 1 ? 's' : ''}</div>
       </div>
     </div>`;

@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v3.0.0.1**
+> 🔖 Version courante : **v3.0.0.2**
 
 ## 🌐 Accès
 
@@ -147,6 +147,7 @@ et l'estimation du prochain compteur.
 - Calcul basé sur les **intervalles moyens** entre pleins consécutifs (Δkm et Δjours)
 - Filtre les valeurs aberrantes (Δkm < 50 ou > 5 000, Δjours > 120)
 - Filtré sur le véhicule courant — nécessite ≥ 3 pleins avec kilométrage renseigné
+- **Dynamique à l'ouverture** : affiche le km et les jours restants depuis aujourd'hui, pas l'intervalle figé. Si la date prévue est dépassée : "Plein prévu il y a X j"
 
 ### 📈 Graphique multi-carburant avec filtres (W28 + W34)
 Courbe **SVG inline** affichée sous la grille de statistiques, avec **filtres par carburant** :
@@ -299,7 +300,7 @@ Actions `doPost` disponibles :
 Dans `js/config.js` :
 
 ```javascript
-export const APP_VERSION    = '3.0.0.1';
+export const APP_VERSION    = '3.0.0.2';
 export const GAS_URL        = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
 export const GS_SHEET_ID    = 'VOTRE_ID_GOOGLE_SHEET';
 export const HIST_CACHE_KEY = 'suivi_e85_hist_cache';   // cache localStorage historique
