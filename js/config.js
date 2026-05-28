@@ -1,10 +1,12 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '2.14.0.0';
+export const APP_VERSION       = '2.15.0.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 export const GS_SHEET_ID       = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 export const PRIX_API          = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
 export const VEHICULES_KEY     = 'suivi_e85_vehicules';
 export const LAST_VEHICULE_KEY = 'suivi_e85_last_vehicule';
+export const HIST_CACHE_KEY    = 'suivi_e85_hist_cache';
+export const HIST_SINCE_KEY    = 'suivi_e85_hist_since';
 
 export const FUEL_CONFIG = {
   E85:    { apiField: 'e85_prix',    label: 'SuperEthanol E85', short: 'E85',    icon: '🌿', ph: '0.798' },

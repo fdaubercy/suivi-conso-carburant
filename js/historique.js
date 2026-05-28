@@ -1,5 +1,5 @@
 /* ─── Historique des 5 derniers pleins (via GET ?action=export) ─── */
-import { GAS_URL, FUEL_CONFIG } from './config.js';
+import { GAS_URL, FUEL_CONFIG, HIST_CACHE_KEY, HIST_SINCE_KEY } from './config.js';
 import { state } from './state.js';
 import { showFeedback } from './ui.js';
 import { renderStats } from './stats.js';
@@ -8,7 +8,23 @@ import { renderStationsCard } from './stationsmap.js';
 let _lastRecord  = null;   // memorise le plein le plus recent pour dupliquerDernier()
 let _allRecords  = [];     // memorise TOUS les enregistrements pour validation km retrograde
 
-/** Charge et affiche les 5 derniers pleins dans #historiqueList. */
+/* ─── Cache localStorage ─── */
+function _loadCache() {
+  try { return JSON.parse(localStorage.getItem(HIST_CACHE_KEY) || '[]'); } catch { return []; }
+}
+function _saveCache(records) {
+  try { localStorage.setItem(HIST_CACHE_KEY, JSON.stringify(records)); } catch { /* quota / private */ }
+}
+function _loadSince() {
+  try { return localStorage.getItem(HIST_SINCE_KEY) || null; } catch { return null; }
+}
+function _saveSince(ts) {
+  try { localStorage.setItem(HIST_SINCE_KEY, ts); } catch { /* quota / private */ }
+}
+
+/** Charge et affiche les 5 derniers pleins dans #historiqueList.
+ *  Utilise un cache localStorage + sync différentielle (?since=) pour
+ *  limiter les données téléchargées sur les chargements successifs. */
 export async function chargerHistorique() {
   const el = document.getElementById('historiqueList');
   if (!el) return;
@@ -16,21 +32,50 @@ export async function chargerHistorique() {
   el.innerHTML = '<div class="hist-msg">Chargement…</div>';
 
   try {
-    const resp = await fetch(GAS_URL + '?action=export', { redirect: 'follow' });
+    const cachedRecords = _loadCache();
+    const since         = _loadSince();
+
+    // Mode différentiel si on a déjà un cache : n'envoyer que les nouveaux
+    const url = GAS_URL + '?action=export'
+      + (since && cachedRecords.length ? '&since=' + encodeURIComponent(since) : '');
+
+    const resp = await fetch(url, { redirect: 'follow' });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
-    if (!data.records?.length) {
+    const incoming = data.records || [];
+    let allRecords;
+
+    if (since && cachedRecords.length) {
+      // Fusion différentielle : ajouter uniquement les sync_id absents du cache
+      const existingIds = new Set(
+        cachedRecords.map(r => String(r.sync_id || r['sync_id'] || '')).filter(Boolean)
+      );
+      const newRecords = incoming.filter(r => {
+        const sid = String(r.sync_id || r['sync_id'] || '');
+        return !sid || !existingIds.has(sid);
+      });
+      allRecords = newRecords.length ? [...cachedRecords, ...newRecords] : cachedRecords;
+    } else {
+      // Chargement complet (premier démarrage ou cache absent)
+      allRecords = incoming;
+    }
+
+    // Mettre à jour le cache et le timestamp de dernière sync
+    _saveCache(allRecords);
+    _saveSince(new Date().toISOString());
+
+    if (!allRecords.length) {
       el.innerHTML = '<div class="hist-msg">Aucun plein enregistré.</div>';
       _lastRecord = null;
       _allRecords = [];
       return;
     }
 
-    _allRecords = data.records;
+    _allRecords = allRecords;
 
     // Tri descendant par Horodatage, puis 5 premiers
-    const recent = data.records
+    const recent = allRecords
       .slice()
       .sort((a, b) => (b.Horodatage || '').localeCompare(a.Horodatage || ''))
       .slice(0, 5);
@@ -49,9 +94,23 @@ export async function chargerHistorique() {
       );
     }
   } catch (e) {
-    el.innerHTML = '<div class="hist-msg err">Erreur — ' + (e.message || 'réseau') + '</div>';
-    _lastRecord = null;
-    _allRecords = [];
+    // Fallback : afficher le cache local en cas d'erreur réseau
+    const cached = _loadCache();
+    if (cached.length) {
+      _allRecords = cached;
+      const recent = cached
+        .slice()
+        .sort((a, b) => (b.Horodatage || '').localeCompare(a.Horodatage || ''))
+        .slice(0, 5);
+      _lastRecord = recent[0];
+      el.innerHTML = recent.map(renderItem).join('');
+      renderStats();
+      renderStationsCard();
+    } else {
+      el.innerHTML = '<div class="hist-msg err">Erreur — ' + (e.message || 'réseau') + '</div>';
+      _lastRecord = null;
+      _allRecords = [];
+    }
   }
 }
 

@@ -1,5 +1,5 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend               v2.13.0.0
+//  SUIVI CONSO E85 — Web App Backend               v2.15.0.0
 //
 //  ⚠️  BREAKING CHANGE v2.3.0.0 : suppression colonne G "Prix S98 jour"
 //  La colonne K "SP98 station (€/L)" est désormais la seule source SP98.
@@ -14,6 +14,10 @@
 //    • Ligne trouvée par sync_id → MAJ cols B–N (préserve col A horodatage)
 //    • Ligne absente du GS      → ajout (upsert)
 //    • Retourne { status:'ok', updated:N, added:M }
+//
+//  v2.15.0.0 — Sync différentielle
+//  ?action=export&since=ISO_TIMESTAMP → retourne uniquement les lignes
+//  dont l'Horodatage (col A) est >= since ; null si since absent.
 // ============================================================
 const SPREADSHEET_ID    = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const SHEET_NAME        = '_ImportGS';
@@ -34,13 +38,14 @@ const HEADERS = [
 
 // ─────────────────────────────────────────────────────────────
 //  doGet
-//  • ?action=export  → JSON de tous les enregistrements (sync Excel)
-//  • ?v=mobile       → page HTML mobile
-//  • (aucun param)   → page HTML index
+//  • ?action=export              → JSON de tous les enregistrements
+//  • ?action=export&since=ISO    → JSON des enreg. après le timestamp
+//  • ?v=mobile                   → page HTML mobile
+//  • (aucun param)               → page HTML index
 // ─────────────────────────────────────────────────────────────
 function doGet(e) {
   if (e.parameter.action === 'export') {
-    return handleExport();
+    return handleExport(e);
   }
 
   const isMobile = (e.parameter.v === 'mobile');
@@ -51,29 +56,44 @@ function doGet(e) {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  handleExport — retourne tous les enreg. de _ImportGS en JSON
+//  handleExport — retourne les enreg. de _ImportGS en JSON
+//  Filtre par Horodatage >= since si le paramètre ?since= est fourni.
 // ─────────────────────────────────────────────────────────────
-function handleExport() {
+function handleExport(e) {
   const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = getOrCreateSheet(ss);
   const data  = sheet.getDataRange().getValues();
   const tz    = ss.getSpreadsheetTimeZone();
 
-  if (data.length <= 1) return jsonResponse({ records: [] });
+  // Paramètre optionnel ?since=ISO_TIMESTAMP
+  const sinceParam = e && e.parameter && e.parameter.since ? e.parameter.since : null;
+  const sinceDate  = sinceParam ? new Date(sinceParam) : null;
+  const hasSince   = sinceDate && !isNaN(sinceDate.getTime());
+
+  if (data.length <= 1) return jsonResponse({ records: [], since: sinceParam || null });
 
   const headers = data[0].map(String);
-  const records = data.slice(1).map(row => {
-    const obj = {};
-    headers.forEach((h, i) => {
-      const v = row[i];
-      obj[h] = (v instanceof Date)
-        ? Utilities.formatDate(v, tz, "yyyy-MM-dd HH:mm:ss")
-        : v;
-    });
-    return obj;
-  });
+  const horoIdx = headers.indexOf('Horodatage');
 
-  return jsonResponse({ records });
+  const records = data.slice(1)
+    .filter(row => {
+      if (!hasSince || horoIdx < 0) return true;
+      const v = row[horoIdx];
+      const d = v instanceof Date ? v : new Date(String(v));
+      return !isNaN(d.getTime()) && d >= sinceDate;
+    })
+    .map(row => {
+      const obj = {};
+      headers.forEach((h, i) => {
+        const v = row[i];
+        obj[h] = (v instanceof Date)
+          ? Utilities.formatDate(v, tz, "yyyy-MM-dd HH:mm:ss")
+          : v;
+      });
+      return obj;
+    });
+
+  return jsonResponse({ records, since: sinceParam || null });
 }
 
 // ─────────────────────────────────────────────────────────────

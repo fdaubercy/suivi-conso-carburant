@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v2.14.0.0**
+> 🔖 Version courante : **v2.15.0.0**
 
 ## 🌐 Accès
 
@@ -65,7 +65,7 @@ pour récupérer **tous les prix disponibles** (E85, SP98, SP95, E10, Gazole, GP
 - Prix trouvé → champ pré-rempli en vert pendant 6 secondes
 - Prix non trouvé → placeholder `--`, saisie manuelle disponible
 - Stratégie progressive : rayon 500 m → 2 km → 5 km → fallback GPS → code postal
-- Les prix chargés sont mis en cache (`_stationPrices`) — aucun appel supplémentaire lors du changement de type
+- **Cache API ODS (TTL 5 min)** : les résultats sont mis en cache par clé `(lat, lon, rayon)` dans une `Map`. Aucun appel réseau redondant lors du changement de type de carburant — la réponse est réutilisée immédiatement depuis la mémoire.
 
 ### Identification des stations
 Les stations sont enrichies via **OpenStreetMap (Overpass API)** pour afficher le nom d'enseigne réel (`brand` / `name` / `operator`) — aussi bien en géolocalisation qu'en recherche manuelle.
@@ -122,6 +122,7 @@ Bouton **📜** dans la carte "Derniers pleins" → carte `#histoireFullCard` af
 - Compteur "(N pleins)" en temps réel
 - Scroll interne (max 420 px), bouton ✕ pour refermer
 - Auto-rafraîchi à chaque rechargement de l'historique
+- **Sync différentielle** : l'historique est mis en cache en localStorage (`suivi_e85_hist_cache`). Seuls les enregistrements postérieurs à la dernière sync (`suivi_e85_hist_since`) sont téléchargés — les sessions suivantes sont quasi-instantanées. En cas d'erreur réseau, le cache local est utilisé en fallback.
 
 ### 🔮 Prédiction prochain plein (W33)
 Affiché dans la carte Statistiques sous la sparkline : **"Prochain plein dans ~X km · ~Y j"**
@@ -228,10 +229,11 @@ suivi-e85/
 │   ├── Réponses - Suivi E85.xlsx
 │   └── Sauvegarde & Geolocalisation - Suivi conso SuperEthanol/
 │       └── Google Apps Script/
-│           ├── Code.gs              # Backend GAS v2.9.0.2 (15 col + sync bidir.)
+│           ├── Code.gs              # Backend GAS v2.15.0.0 (16 col + sync bidir. + ?since=)
 │           ├── index.html           # Page HTML servie par GAS (standalone)
 │           └── GAS_UPDATE.md        # Doc : actions doPost, schéma 16 cols, migrations
 │
+├── _headers                         # Headers Netlify (CSP, X-Frame-Options, Referrer-Policy…)
 ├── README.md
 ├── CHANGELOG.md
 ├── ROADMAP.md                       # Propositions d'amélioration (web/Excel/sync)
@@ -272,9 +274,11 @@ Actions `doPost` disponibles :
 Dans `js/config.js` :
 
 ```javascript
-export const APP_VERSION = '2.14.0.0';
-export const GAS_URL     = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
-export const GS_SHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
+export const APP_VERSION    = '2.15.0.0';
+export const GAS_URL        = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
+export const GS_SHEET_ID    = 'VOTRE_ID_GOOGLE_SHEET';
+export const HIST_CACHE_KEY = 'suivi_e85_hist_cache';   // cache localStorage historique
+export const HIST_SINCE_KEY = 'suivi_e85_hist_since';   // timestamp dernière sync
 ```
 
 ### 3. Google Sheet cible
@@ -429,6 +433,31 @@ Exécuter n'importe quelle fonction dans l'éditeur (ex. `migrateSyncId`) :
 4. Redéployer (nouvelle version)
 
 > Le GAS s'exécute sous l'identité du propriétaire du script (« Execute as: Me »). Chaque scope doit être consenti par le propriétaire. Un déploiement n'hérite que des scopes autorisés au moment de sa création — d'où la nécessité de redéployer après toute nouvelle autorisation.
+
+---
+
+## 🔒 Sécurité — Content Security Policy
+
+Une CSP est appliquée via deux mécanismes complémentaires :
+
+| Mécanisme | Fichier | Usage |
+|---|---|---|
+| `<meta http-equiv="Content-Security-Policy">` | `index.html` | Tous hébergeurs (GitHub Pages, etc.) |
+| `Content-Security-Policy:` header HTTP | `_headers` | Netlify |
+
+**Origines autorisées (`connect-src`)** :
+
+| Domaine | Usage |
+|---|---|
+| `data.economie.gouv.fr` | API prix carburants ODS |
+| `script.google.com` | Google Apps Script (POST pleins) |
+| `docs.google.com` | Export CSV stations / véhicules |
+| `overpass-api.de` | OSM Overpass (enrichissement enseignes) |
+| `cdn.jsdelivr.net` / `unpkg.com` | Tesseract.js traineddata (OCR) |
+
+**Autres directives** : `img-src` autorise `tile.openstreetmap.org` (tuiles carte) + `data:` + `blob:` ; `script-src` et `worker-src` autorisent `blob:` pour les workers Tesseract.js ; `style-src` inclut `'unsafe-inline'` (styles dynamiques JS).
+
+**En-têtes complémentaires** (`_headers`) : `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: geolocation=(self), camera=(self)`.
 
 ---
 

@@ -1,0 +1,6 @@
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://data.economie.gouv.fr https://script.google.com https://docs.google.com https://overpass-api.de https://cdn.jsdelivr.net https://unpkg.com; img-src 'self' data: blob: https://tile.openstreetmap.org; worker-src 'self' blob:; manifest-src 'self'; font-src 'self'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(self), camera=(self)

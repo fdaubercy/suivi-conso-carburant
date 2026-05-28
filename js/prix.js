@@ -6,6 +6,19 @@ import { setS98Status, showCpSearch, hideCpSearch, setFieldPrice, updateCout } f
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
 import { checkPrixE85Alert } from './notifications.js';
 
+/* ─── Cache requêtes ODS (clé lat,lon,rayon — TTL 5 min) ─── */
+const _odsCache = new Map();
+const _ODS_TTL  = 5 * 60 * 1000;
+
+function _ck(lat, lon, r)      { return `${lat.toFixed(5)},${lon.toFixed(5)},${r}`; }
+function _cget(lat, lon, r) {
+  const e = _odsCache.get(_ck(lat, lon, r));
+  if (e && Date.now() < e.exp) return e.data;
+  _odsCache.delete(_ck(lat, lon, r));
+  return null;
+}
+function _cset(lat, lon, r, d) { _odsCache.set(_ck(lat, lon, r), { data: d, exp: Date.now() + _ODS_TTL }); }
+
 /** Évalue la rentabilité E85 vs SP98 à partir des prix station chargés. */
 export function evalRentabiliteE85() {
   const el = document.getElementById('rentaBadge');
@@ -75,11 +88,15 @@ export function applyPricesResult(data) {
   }
 }
 
-/** Cherche les prix autour de (lat, lon) par cercles croissants (500 m → 2 km → 5 km). */
+/** Cherche les prix autour de (lat, lon) par cercles croissants (500 m → 2 km → 5 km).
+ *  Les résultats sont mis en cache par (lat, lon, rayon) pendant 5 minutes. */
 export async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
   setS98Status('spin', 'Recherche des prix…'); hideCpSearch();
   for (const r of [500, 2000, 5000]) {
     try {
+      const cached = _cget(lat, lon, r);
+      if (cached) { applyPricesResult(cached); return; }
+
       const resp = await fetch(odsUrl({
         where:  `${FUEL_ANY} and distance(geom, geom'POINT(${lon} ${lat})', ${r}m)`,
         select: FUEL_SELECT,
@@ -87,7 +104,7 @@ export async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
       }));
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const data = await resp.json();
-      if (data.results?.length) { applyPricesResult(data); return; }
+      if (data.results?.length) { _cset(lat, lon, r, data); applyPricesResult(data); return; }
     } catch(e) { setS98Status('err', 'Erreur API (' + e.message + ') — saisie manuelle.'); return; }
   }
   if (fallbackToUser && state.userLat && state.userLon && haversine(lat, lon, state.userLat, state.userLon) > 100) {

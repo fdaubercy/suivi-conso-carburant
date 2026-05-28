@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.15.0.0] — 2026-05-28
+
+### Added
+- **Cache mémoire API ODS (TTL 5 min)** : les résultats de l'API prix carburants sont mis en cache dans une `Map` par clé `(lat, lon, rayon)` avec expiration 5 minutes. Élimine les appels réseau redondants quand l'utilisateur change de type de carburant sans changer de station ni de position — la réponse mise en cache est réutilisée immédiatement.
+- **Content Security Policy** : en-têtes CSP ajoutés via `<meta http-equiv="Content-Security-Policy">` dans `index.html` ET via le fichier `_headers` (Netlify). Origines autorisées : `data.economie.gouv.fr`, `script.google.com`, `docs.google.com`, `overpass-api.de`, `cdn.jsdelivr.net`, `unpkg.com`, `tile.openstreetmap.org`. Règles complémentaires : `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: geolocation=(self), camera=(self)`.
+- **Sync différentielle `?since=`** : le GAS accepte désormais `?action=export&since=ISO_TIMESTAMP` et ne retourne que les enregistrements dont l'`Horodatage` (col A) est postérieur à `since`. L'app web stocke le timestamp de la dernière sync en localStorage (`suivi_e85_hist_since`) et passe ce paramètre à chaque chargement d'historique, évitant de retélécharger l'intégralité des données à chaque session.
+- **Cache localStorage historique** : `chargerHistorique()` conserve l'ensemble des enregistrements en localStorage (`suivi_e85_hist_cache`). En cas d'erreur réseau, l'historique en cache est affiché en fallback plutôt qu'un message d'erreur vide.
+
+### Changed
+- **`js/prix.js`** — Ajout de `_odsCache` (Map), `_ODS_TTL = 5 min`, fonctions `_ck / _cget / _cset`. `fetchPricesAtCoords()` vérifie le cache avant chaque appel fetch et l'alimente en cas de succès.
+- **`js/historique.js`** — Import de `HIST_CACHE_KEY` / `HIST_SINCE_KEY` depuis `config.js` ; `chargerHistorique()` refactorisé avec helpers `_loadCache / _saveCache / _loadSince / _saveSince` ; fusion différentielle des enregistrements entrants avec le cache (déduplication par `sync_id`) ; fallback cache en cas d'erreur réseau.
+- **`js/config.js`** — Ajout de `HIST_CACHE_KEY = 'suivi_e85_hist_cache'` et `HIST_SINCE_KEY = 'suivi_e85_hist_since'` ; `APP_VERSION` → `2.15.0.0`.
+- **`index.html`** — Meta `Content-Security-Policy` ajoutée juste après `<meta charset>`.
+- **`_headers`** — Nouveau fichier de configuration Netlify avec CSP, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` et `Permissions-Policy`.
+- **`Code.gs`** — `doGet` passe maintenant `e` à `handleExport(e)` ; `handleExport` filtre les lignes par `Horodatage >= since` quand le paramètre `?since=` est fourni ; retourne `{ records, since }` ; version → `v2.15.0.0`.
+
 ## [2.14.0.0] — 2026-05-28
 
 ### Added
