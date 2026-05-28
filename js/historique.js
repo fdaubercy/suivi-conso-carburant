@@ -1,5 +1,6 @@
 /* ─── Historique des 5 derniers pleins (via GET ?action=export) ─── */
 import { GAS_URL, FUEL_CONFIG } from './config.js';
+import { state } from './state.js';
 import { showFeedback } from './ui.js';
 import { renderStats } from './stats.js';
 import { renderStationsCard } from './stationsmap.js';
@@ -26,18 +27,27 @@ export async function chargerHistorique() {
       return;
     }
 
-    _allRecords = data.records;   // pour validation km retrograde
+    _allRecords = data.records;
 
-    // Tri descendant par Horodatage (les plus récents en premier), puis 5 premiers
+    // Tri descendant par Horodatage, puis 5 premiers
     const recent = data.records
       .slice()
       .sort((a, b) => (b.Horodatage || '').localeCompare(a.Horodatage || ''))
       .slice(0, 5);
 
-    _lastRecord = recent[0];   // pour dupliquerDernier()
+    _lastRecord = recent[0];
     el.innerHTML = recent.map(renderItem).join('');
-    renderStats();             // recalcule les stats avec les nouvelles donnees
-    renderStationsCard();      // met à jour la carte statique des stations habituelles
+    renderStats();
+    renderStationsCard();
+
+    // W32 — Rafraîchir l'historique complet s'il est ouvert
+    const fullCard = document.getElementById('histoireFullCard');
+    if (fullCard && !fullCard.hidden) {
+      renderFullHistory(
+        document.getElementById('histVehFilter')?.value || '',
+        document.getElementById('histTypeFilter')?.value || ''
+      );
+    }
   } catch (e) {
     el.innerHTML = '<div class="hist-msg err">Erreur — ' + (e.message || 'réseau') + '</div>';
     _lastRecord = null;
@@ -45,12 +55,12 @@ export async function chargerHistorique() {
   }
 }
 
-/** Retourne tous les enregistrements GS (vide tant que chargerHistorique() n'a pas tourne). */
+/** Retourne tous les enregistrements GS. */
 export function getAllRecords() {
   return _allRecords;
 }
 
-/** Retourne le km maximum enregistre pour un vehicule donne (ou tous si vehicule vide). */
+/** Retourne le km maximum enregistré pour un véhicule donné. */
 export function getMaxKmForVehicule(vehiculeNom) {
   if (!_allRecords.length) return null;
   const filtered = vehiculeNom
@@ -72,22 +82,18 @@ export function dupliquerDernier() {
 
   const r = _lastRecord;
 
-  // Reset des champs variables (date reste a aujourd'hui)
   ['fKm', 'fLitres', 'fPrix'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.value = ''; el.classList.remove('autofilled'); }
   });
 
-  // 1. Vehicule (si present dans le select)
   const veh = r['Véhicule'] || r['Vehicule'] || '';
   if (veh) setSelectValue('vehiculeSel', veh);
 
-  // 2. Type carburant via window.setType (deja expose dans main.js)
   const label = r.Type;
   const typeKey = Object.keys(FUEL_CONFIG).find(k => FUEL_CONFIG[k].label === label);
   if (typeKey && typeof window.setType === 'function') window.setType(typeKey);
 
-  // 3. Station (option du dropdown OU saisie manuelle si absente)
   const station = r['Station essence'];
   if (station) {
     const sel = document.getElementById('stationSel');
@@ -108,6 +114,100 @@ export function dupliquerDernier() {
     'Vérifiez le véhicule, le type et la station — puis saisissez km / litres / prix.');
 }
 
+// ═══════════════════════════════════════
+//  W32 — Historique complet + filtres
+// ═══════════════════════════════════════
+
+/** Affiche ou masque la carte historique complet. */
+export function voirTout() {
+  const card = document.getElementById('histoireFullCard');
+  if (!card) return;
+
+  if (!card.hidden) {
+    card.hidden = true;
+    return;
+  }
+
+  // Peupler le filtre véhicules
+  const vehSel = document.getElementById('histVehFilter');
+  if (vehSel) {
+    const vehs = [...new Set(_allRecords
+      .map(r => r['Véhicule'] || r['Vehicule'] || '')
+      .filter(Boolean)
+    )].sort();
+    vehSel.innerHTML = '<option value="">Tous les véhicules</option>'
+      + vehs.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+    if (state.currentVehiculeNom) vehSel.value = state.currentVehiculeNom;
+  }
+
+  // Peupler le filtre type carburant
+  const typeSel = document.getElementById('histTypeFilter');
+  if (typeSel) {
+    const types = [...new Set(_allRecords.map(r => r.Type || '').filter(Boolean))].sort();
+    typeSel.innerHTML = '<option value="">Tous les carburants</option>'
+      + types.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+  }
+
+  renderFullHistory(vehSel?.value || '', typeSel?.value || '');
+
+  card.hidden = false;
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/** Génère la liste filtrée dans #histoireFullList. */
+export function renderFullHistory(vehFilter, typeFilter) {
+  const listEl  = document.getElementById('histoireFullList');
+  const countEl = document.getElementById('histFullCount');
+  if (!listEl) return;
+
+  if (!_allRecords.length) {
+    listEl.innerHTML = '<div class="hist-msg">Aucun plein enregistré.</div>';
+    if (countEl) countEl.textContent = '';
+    return;
+  }
+
+  let filtered = _allRecords
+    .slice()
+    .sort((a, b) => (b.Horodatage || '').localeCompare(a.Horodatage || ''));
+
+  if (vehFilter)
+    filtered = filtered.filter(r => (r['Véhicule'] || r['Vehicule'] || '') === vehFilter);
+  if (typeFilter)
+    filtered = filtered.filter(r => (r.Type || '') === typeFilter);
+
+  if (!filtered.length) {
+    listEl.innerHTML = '<div class="hist-msg">Aucun plein correspondant au filtre.</div>';
+    if (countEl) countEl.textContent = '';
+    return;
+  }
+
+  if (countEl) countEl.textContent = filtered.length + ' plein' + (filtered.length > 1 ? 's' : '');
+  listEl.innerHTML = filtered.map(renderItem).join('');
+}
+
+/**
+ * W32 — Câble les filtres et le bouton fermer de l'historique complet.
+ * Appelée une seule fois depuis main.js.
+ */
+export function initHistoireFilters() {
+  document.getElementById('histVehFilter')?.addEventListener('change', () => {
+    renderFullHistory(
+      document.getElementById('histVehFilter').value,
+      document.getElementById('histTypeFilter')?.value || ''
+    );
+  });
+  document.getElementById('histTypeFilter')?.addEventListener('change', () => {
+    renderFullHistory(
+      document.getElementById('histVehFilter')?.value || '',
+      document.getElementById('histTypeFilter').value
+    );
+  });
+  document.getElementById('histFullCloseBtn')?.addEventListener('click', () => {
+    const card = document.getElementById('histoireFullCard');
+    if (card) card.hidden = true;
+  });
+}
+
 /* ─── Helpers ─── */
 function setSelectValue(id, value) {
   const sel = document.getElementById(id);
@@ -119,7 +219,6 @@ function setSelectValue(id, value) {
   }
 }
 
-/** HTML d'une ligne. */
 function renderItem(r) {
   const icon    = iconForType(r.Type);
   const date    = fmtDate(r.Date || r.Horodatage);

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════
-   Suivi Conso E85 — Point d'entrée v2.13.0.0
+   Suivi Conso E85 — Point d'entrée v2.14.0.0
    ES Module : chargé en defer automatique
 ═══════════════════════════════════════ */
 import { APP_VERSION } from './config.js';
@@ -15,7 +15,7 @@ import { onAutreInput, setRadius } from './recherche.js';
 import { onStationChange, onKmInput, submitForm, resetForm, checkDuplicate } from './formulaire.js';
 import { chargerStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
-import { chargerHistorique, dupliquerDernier } from './historique.js';
+import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters } from './historique.js';
 import { renderStats } from './stats.js';
 import { initScanner }       from './ticket.js';
 import { initPWA }           from './pwa.js';
@@ -95,6 +95,7 @@ function initStaticHandlers() {
   // Historique
   document.querySelector('[data-action="dupliquerDernier"]')?.addEventListener('click', dupliquerDernier);
   document.querySelector('[data-action="chargerHistorique"]')?.addEventListener('click', chargerHistorique);
+  document.querySelector('[data-action="voirTout"]')?.addEventListener('click', voirTout);
 
   // Submit
   document.getElementById('submitBtn')?.addEventListener('click', submitForm);
@@ -104,6 +105,7 @@ initStaticHandlers();
 initTypeToggle();      // carburant.js — délégation sur #typeToggle
 initNearbyList();      // geo.js — délégation sur #nearbyList
 initMapInteractions(); // carte.js — délégation sur #stationMap
+initHistoireFilters(); // historique.js — filtres historique complet (W32)
 
 /* ─── Exposition globale minimale (requise par modules non-importants) ─── */
 Object.assign(window, {

@@ -1,4 +1,4 @@
-/* ─── Stats live : conso, coût, économies E85 vs SP98 + sparkline prix ─── */
+/* ─── Stats live : conso, coût, économies E85 vs SP98 + sparkline prix + prédiction ─── */
 import { state } from './state.js';
 import { FUEL_CONFIG } from './config.js';
 import { getAllRecords } from './historique.js';
@@ -9,7 +9,6 @@ const MONTHS_WINDOW = 6;
 function matchType(rType, fuelKey) {
   if (!rType || !fuelKey) return false;
   const t = String(rType).toLowerCase();
-  // Match par label complet (case insensitive) ou par short
   const cfg = FUEL_CONFIG[fuelKey];
   if (!cfg) return false;
   return t === cfg.label.toLowerCase()
@@ -37,7 +36,6 @@ function computeStats() {
     return !isNaN(d) && d >= cutoff;
   });
 
-  // ── Conso & coût par carburant courant ──────────────────────
   const fuelKey  = state.currentType;
   const fuelCfg  = FUEL_CONFIG[fuelKey];
   const byFuel   = byVeh.filter(r => matchType(r.Type, fuelKey));
@@ -45,22 +43,20 @@ function computeStats() {
   const kmsFuel = byFuel
     .map(r => Number(r['Km compteur'] || 0))
     .filter(n => isFinite(n) && n > 0);
-  const kmDeltaFuel    = kmsFuel.length > 1 ? Math.max(...kmsFuel) - Math.min(...kmsFuel) : 0;
+  const kmDeltaFuel     = kmsFuel.length > 1 ? Math.max(...kmsFuel) - Math.min(...kmsFuel) : 0;
   const totalLitresFuel = byFuel.reduce((s, r) => s + (Number(r['Nb. Litres']) || 0), 0);
   const consoFuel       = kmDeltaFuel > 0 ? (totalLitresFuel / kmDeltaFuel) * 100 : 0;
 
-  const recentFuel  = recent.filter(r => matchType(r.Type, fuelKey));
-  const prixMoyenF  = recentFuel.length
+  const recentFuel = recent.filter(r => matchType(r.Type, fuelKey));
+  const prixMoyenF = recentFuel.length
     ? recentFuel.reduce((s, r) => s + (Number(r['Prix €/L']) || 0), 0) / recentFuel.length
     : 0;
-  const coutPer100  = consoFuel * prixMoyenF;
+  const coutPer100 = consoFuel * prixMoyenF;
 
-  // ── KPIs globaux (tous carburants) ──────────────────────────
   const totalCout = recent.reduce(
     (s, r) => s + (Number(r['Nb. Litres']) || 0) * (Number(r['Prix €/L']) || 0), 0
   );
 
-  // Économies E85 vs SP98 : Σ (sp98_station - prix_payé) × litres, sur pleins E85 récents
   const econ = recent.reduce((s, r) => {
     if (!String(r.Type || '').toLowerCase().includes('e85')) return s;
     const sp98 = Number(r['SP98 station (€/L)']) || 0;
@@ -85,7 +81,6 @@ function computeStats() {
 
 /**
  * W28 — Génère un SVG sparkline des 10 derniers prix E85 payés.
- * Renvoie une chaîne HTML vide si moins de 2 données disponibles.
  */
 function buildE85Sparkline() {
   const all = getAllRecords();
@@ -112,7 +107,6 @@ function buildE85Sparkline() {
   const maxP = Math.max(...prices);
   const range = maxP - minP || 0.01;
 
-  // Coordonnées SVG
   const W = 200, H = 44, padX = 4, padY = 5;
   const n  = prices.length;
   const toX = i => padX + (i / (n - 1)) * (W - 2 * padX);
@@ -122,7 +116,6 @@ function buildE85Sparkline() {
   const lx  = toX(n - 1).toFixed(1);
   const ly  = toY(prices[n - 1]).toFixed(1);
 
-  // Tendance : baisse = vert, hausse = rouge, stable = bleu
   const diff   = prices[n - 1] - prices[0];
   const tClass = diff < -0.003 ? 'spark--down' : diff > 0.003 ? 'spark--up' : 'spark--flat';
   const tArrow = diff < -0.003 ? '↘' : diff > 0.003 ? '↗' : '→';
@@ -143,6 +136,65 @@ function buildE85Sparkline() {
     </div>`;
 }
 
+/**
+ * W33 — Prédiction prochain plein basée sur l'intervalle moyen entre pleins.
+ * Renvoie '' si moins de 3 pleins disponibles.
+ */
+function buildPrediction() {
+  const all = getAllRecords();
+  const veh = state.currentVehiculeNom;
+
+  const records = (veh
+    ? all.filter(r => (r['Véhicule'] || r['Vehicule'] || '') === veh)
+    : all
+  )
+  .filter(r => Number(r['Km compteur'] || 0) > 0)
+  .sort((a, b) => {
+    const da = new Date(String(a.Date || a.Horodatage || '').replace(' ', 'T'));
+    const db = new Date(String(b.Date || b.Horodatage || '').replace(' ', 'T'));
+    return da - db;
+  });
+
+  if (records.length < 3) return '';
+
+  const kmDeltas  = [];
+  const dayDeltas = [];
+
+  for (let i = 1; i < records.length; i++) {
+    const km0 = Number(records[i - 1]['Km compteur'] || 0);
+    const km1 = Number(records[i]['Km compteur']     || 0);
+    const dk  = km1 - km0;
+    if (dk > 50 && dk < 5000) {
+      kmDeltas.push(dk);
+      const d0 = new Date(String(records[i - 1].Date || records[i - 1].Horodatage || '').replace(' ', 'T'));
+      const d1 = new Date(String(records[i].Date     || records[i].Horodatage     || '').replace(' ', 'T'));
+      const dd = (d1 - d0) / 86400000;
+      if (dd > 0 && dd < 120) dayDeltas.push(dd);
+    }
+  }
+
+  if (kmDeltas.length < 2) return '';
+
+  const avgKm  = Math.round(kmDeltas.reduce((s, v) => s + v, 0) / kmDeltas.length);
+  const avgDay = dayDeltas.length
+    ? Math.round(dayDeltas.reduce((s, v) => s + v, 0) / dayDeltas.length)
+    : null;
+
+  const lastKm = Number(records[records.length - 1]['Km compteur']);
+  const nextKm = lastKm + avgKm;
+
+  const daysStr = avgDay ? ` · ~${avgDay} j` : '';
+
+  return `
+    <div class="prediction-box">
+      <span class="pred-icon">🔮</span>
+      <div class="pred-content">
+        <div class="pred-main">Prochain plein dans <strong>~${avgKm.toLocaleString('fr-FR')} km</strong>${daysStr}</div>
+        <div class="pred-sub">vers ${nextKm.toLocaleString('fr-FR')} km · basé sur ${kmDeltas.length} plein${kmDeltas.length > 1 ? 's' : ''}</div>
+      </div>
+    </div>`;
+}
+
 /** Affiche les stats dans #statsBox. */
 export function renderStats() {
   const el = document.getElementById('statsBox');
@@ -158,7 +210,6 @@ export function renderStats() {
   const econSign  = s.econ > 0 ? '+' : '';
   const fuelTag   = s.fuelShort ? '<span class="stat-tag">' + s.fuelShort + '</span>' : '';
 
-  // Conso/coût uniquement si des pleins du type courant existent
   const consoCell = s.nbPleinsFuel > 1
     ? `<div class="stat-val">${s.conso.toFixed(1)}</div>
        <div class="stat-unit">L / 100 km ${fuelTag}</div>`
@@ -186,5 +237,6 @@ export function renderStats() {
     </div>
     <div class="stats-sub">${s.nbPleins} plein(s) · ${s.vehiculeName} · ${MONTHS_WINDOW} derniers mois</div>
     ${buildE85Sparkline()}
+    ${buildPrediction()}
   `;
 }

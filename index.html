@@ -187,11 +187,31 @@
   <div class="hist-header">
     <p class="section-title" style="margin-bottom:0">5 derniers pleins</p>
     <div class="hist-actions">
+      <button class="hist-btn" data-action="voirTout" title="Voir tout l'historique avec filtres">📜</button>
       <button class="hist-btn" data-action="dupliquerDernier" title="Dupliquer le dernier plein dans le formulaire">📋</button>
       <button class="hist-btn hist-refresh" data-action="chargerHistorique" title="Actualiser">↻</button>
     </div>
   </div>
   <div id="historiqueList"><div class="hist-msg">Chargement…</div></div>
+</div>
+
+<!-- ─── W32 — Historique complet + filtres ─── -->
+<div class="card hist-full-card" id="histoireFullCard" hidden>
+  <div class="hist-full-header">
+    <p class="section-title" style="margin-bottom:0">
+      Tous les pleins <span id="histFullCount" class="hist-count"></span>
+    </p>
+    <button class="hist-btn" id="histFullCloseBtn" title="Fermer">✕</button>
+  </div>
+  <div class="hist-filters">
+    <select id="histVehFilter" class="hist-filter-sel">
+      <option value="">Tous les véhicules</option>
+    </select>
+    <select id="histTypeFilter" class="hist-filter-sel">
+      <option value="">Tous les carburants</option>
+    </select>
+  </div>
+  <div id="histoireFullList"><div class="hist-msg">Chargement…</div></div>
 </div>
 
 <!-- ─── Paramètres : Notifications & Mode hors-ligne ─── -->

@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.14.0.0] — 2026-05-28
+
+### Added
+- **W32 — Historique complet + filtres** : bouton 📜 dans la carte "Derniers pleins" ouvre une carte `#histoireFullCard` affichant tous les pleins triés du plus récent au plus ancien. Deux filtres dynamiques (véhicule et type de carburant) peuplés depuis les données réelles. Compteur "(N pleins)" affiché dans le titre. Bouton ✕ pour fermer. Auto-rafraîchi à chaque `chargerHistorique()`. Scroll interne (max 420 px).
+- **W33 — Prédiction prochain plein** : bloc `prediction-box` affiché dans la carte Statistiques sous la sparkline. Calcule l'intervalle moyen en km et en jours entre les pleins consécutifs du véhicule courant (valeurs aberrantes filtrées : Δkm < 50 ou > 5 000, Δjours > 120). Affiche "Prochain plein dans ~X km · ~Y j" et l'estimation du prochain compteur. Nécessite ≥ 3 pleins avec kilométrage.
+
+### Changed
+- **`js/historique.js`** — Import `state` ajouté ; exports `voirTout`, `renderFullHistory`, `initHistoireFilters` ; `chargerHistorique()` rafraîchit `#histoireFullCard` si ouvert.
+- **`js/stats.js`** — `buildPrediction()` ajouté ; appelé dans `renderStats()` après la sparkline.
+- **`js/main.js`** — Import `voirTout`, `initHistoireFilters` ; handler `data-action="voirTout"` ; appel `initHistoireFilters()`.
+- **`index.html`** — Bouton `data-action="voirTout"` dans `.hist-actions` ; carte `#histoireFullCard` avec filtres `#histVehFilter` / `#histTypeFilter`.
+- **`css/style.css`** — Styles `.hist-full-card`, `.hist-filters`, `.hist-filter-sel`, `.hist-count`, `#histoireFullList` (W32) et `.prediction-box`, `.pred-*` (W33) avec variantes dark mode.
+- **`js/config.js`** — `APP_VERSION` → `2.14.0.0`.
+
 ## [2.13.0.0] — 2026-05-27
 
 ### Added

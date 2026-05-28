@@ -1157,3 +1157,100 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
 .comp-table tr.comp-best .comp-prix { color: var(--green); }
 [data-theme="dark"] .comp-table tr.comp-best td { background: rgba(52,211,153,0.12); }
 [data-theme="dark"] .comp-table tr.comp-best .comp-prix { color: #34d399; }
+
+/* ═══════════════════════════════════════
+   W32 — Historique complet + filtres
+   ═══════════════════════════════════════ */
+.hist-full-card { padding: 14px 16px; }
+
+.hist-full-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.hist-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue-mid);
+  margin-left: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hist-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.hist-filter-sel {
+  height: 36px;
+  padding: 0 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--white);
+  color: var(--text);
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.hist-filter-sel:focus {
+  outline: none;
+  border-color: var(--blue-mid);
+  box-shadow: 0 0 0 3px rgba(46,117,182,.15);
+}
+
+#histoireFullList {
+  max-height: 420px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow-x: hidden;
+}
+
+/* ═══════════════════════════════════════
+   W33 — Prédiction prochain plein
+   ═══════════════════════════════════════ */
+.prediction-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--blue-light);
+  border-radius: 10px;
+  border-top: 1.5px solid var(--border);
+}
+.pred-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.pred-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pred-main {
+  font-size: 13px;
+  color: var(--blue-dark);
+  line-height: 1.3;
+}
+.pred-main strong {
+  color: var(--blue-mid);
+  font-weight: 700;
+}
+.pred-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+[data-theme="dark"] .prediction-box { background: var(--blue-light); }
+[data-theme="dark"] .pred-main       { color: var(--text); }
+[data-theme="dark"] .pred-main strong { color: var(--blue-mid); }
