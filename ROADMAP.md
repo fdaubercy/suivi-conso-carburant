@@ -18,21 +18,14 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| W9 | **Photo du ticket** uploadée avec le plein (Drive ou base64 dans GS) | Justificatif · effort 2-3 h + breaking schema (col supplémentaire dans GS) |
 | W15 | **Auto-save brouillon** : à chaque frappe, sauve le formulaire dans localStorage. Restauré au prochain chargement si la page est fermée sans enregistrer | UX : pas de perte si on quitte par erreur |
-| W27 | **Pagination/filtre historique** : bouton "Voir tout" qui charge et affiche tous les pleins (pas seulement les 5 derniers), avec filtre par véhicule et par type de carburant | Visibilité de l'historique complet sans passer par Google Sheets · effort ½ j |
-| W29 | **Prédiction prochain plein** : basée sur conso moyenne et km actuel, affiche "Prochain plein estimé dans ~X km / ~Y jours" dans la carte stats | Anticipation, pas de panne sèche · pur calcul · effort ½ j |
-| W30 | **Comparateur multi-stations** : lors d'une géoloc, mémoriser les prix de toutes les stations vues et afficher un tableau trié par prix E85 | Choisir la moins chère parmi les stations trouvées · effort ½-1 j |
-| W31 | **Géoloc mémorisée** : si l'utilisateur a autorisé la géoloc, pré-remplir les stations depuis la dernière position connue (localStorage) pendant que la géoloc actualise | Chargement perçu plus rapide · effort ½ j |
 
 ### 🛠️ Tech debt
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| T2 | **Refactoring onclick HTML → addEventListener** : 20+ handlers `onclick="fn()"` inline dans `index.html` → déplacer dans les modules JS | Supprime la surface XSS, rend possible une Content Security Policy stricte, améliore la maintenabilité · effort 1 j |
-| T3 | **Versioning dynamique du cache SW** : injecter `APP_VERSION` dans le nom du cache (`suivi-e85-shell-v2.11.0.0`) via le plugin Vite `vite-plugin-pwa` ou un remplacement de chaîne dans `vite.config.js` | Évite de servir des assets périmés après déploiement · effort ½ j |
 | T4 | **Cache mémoire API ODS** : mémoriser les résultats prix par clé `(lat, lon, rayon)` en `Map` avec TTL 5 min pour éviter les appels redondants quand l'utilisateur change de type de carburant | Réduit les appels API gouvernementale, accélère les changements de type · effort ½ j |
-| T5 | **Content Security Policy** : ajouter `_headers` (Netlify) ou `<meta http-equiv="Content-Security-Policy">` pour restreindre les origines autorisées | Sécurité navigateur · complément naturel du refactoring T2 · effort ½ j |
+| T5 | **Content Security Policy** : ajouter `_headers` (Netlify) ou `<meta http-equiv="Content-Security-Policy">` pour restreindre les origines autorisées | Sécurité navigateur · complément naturel du refactoring T2 (déjà fait) · effort ½ j |
 
 ---
 
@@ -94,7 +87,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | 2 | **S6** — Token secret sur les endpoints GAS | 30 min | Sécurité minimale, données aujourd'hui publiques |
 | 3 | **W15** — Auto-save brouillon localStorage | 1 h | UX : zéro perte de saisie |
 | 4 | **W25** — Export CSV de l'historique | 1 h | Justificatif employeur/fiscalité · zéro backend |
-| 5 | **T2** — Refactoring onclick → addEventListener | 1 j | Supprime surface XSS, permet une CSP stricte |
+| 5 | **T5** — Content Security Policy | ½ j | Sécurité navigateur · complément naturel de T2 (déjà fait) |
 
 ---
 
@@ -138,6 +131,13 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.12.0.0 | **Mini-graphique prix E85 inline (W28)** — `buildE85Sparkline()` dans `stats.js` : courbe SVG des 10 derniers prix E85, couleur selon tendance (↘ vert / ↗ rouge / → bleu), min/max + dernier prix affichés ; aucune lib externe |
 | v2.12.0.0 | **Bannière "Mise à jour disponible" SW (W23)** — `_showUpdateBanner(reg)` dans `pwa.js` + handler `SKIP_WAITING` dans `sw.js` ; bouton "Actualiser" → `reg.waiting.postMessage` → `skipWaiting()` → `controllerchange` → reload automatique |
 | v2.12.1.0 | **Tests E2E Playwright (T1)** — `tests/e2e.spec.js` : 5 scénarios (TC-01→TC-05) en mode mock GAS via `page.route()` ; `playwright.config.js` + `@playwright/test` ; scripts `test:e2e / test:e2e:ui / test:e2e:headed / test:e2e:report` |
+| v2.13.0.0 | **Photo ticket Drive (W9)** — scan → base64 → transmis avec le plein → GAS upload Drive "Suivi E85 - Tickets" → URL en col P ; badge 📷 dans formulaire ; migration automatique col P sur sheets existants |
+| v2.13.0.0 | **Comparateur multi-stations (W30)** — jusqu'à 40 stations retournées par l'API triées par prix E85 dans `#comparateurCard` ; station la moins chère mise en évidence (fond vert) ; `state._geoStations` |
+| v2.13.0.0 | **Géoloc mémorisée localStorage (W31)** — `suivi_e85_last_geo` (TTL 1 h) ; stations précédentes affichées immédiatement pendant la mise à jour GPS |
+| v2.13.0.0 | **Refactoring onclick → addEventListener (T2)** — suppression des ~20 handlers inline dans `index.html` ; `initStaticHandlers()`, `initTypeToggle()`, `initNearbyList()`, `initMapInteractions()` ; attributs `data-fuel-key`, `data-nearby-idx`, `data-map-pin-idx` |
+| v2.13.0.0 | **Versioning dynamique cache SW (T3)** — plugin `swVersionPlugin` dans `vite.config.js` : token `__SW_VERSION__` → `APP_VERSION` en dev (middleware) et en build (remplacement dans `dist/sw.js`) |
+| v2.14.0.0 | **Historique complet + filtres (W27→W32)** — bouton 📜 → carte `#histoireFullCard` ; filtres véhicule et carburant peuplés dynamiquement ; compteur ; scroll interne ; auto-refresh |
+| v2.14.0.0 | **Prédiction prochain plein (W29→W33)** — `buildPrediction()` dans `stats.js` ; intervalle moyen km/jours entre pleins consécutifs (aberrations filtrées) ; "Prochain plein dans ~X km · ~Y j / vers Z km" |
 
 ---
 
