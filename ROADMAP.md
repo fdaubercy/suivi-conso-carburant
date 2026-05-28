@@ -24,8 +24,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| T4 | **Cache mémoire API ODS** : mémoriser les résultats prix par clé `(lat, lon, rayon)` en `Map` avec TTL 5 min pour éviter les appels redondants quand l'utilisateur change de type de carburant | Réduit les appels API gouvernementale, accélère les changements de type · effort ½ j |
-| T5 | **Content Security Policy** : ajouter `_headers` (Netlify) ou `<meta http-equiv="Content-Security-Policy">` pour restreindre les origines autorisées | Sécurité navigateur · complément naturel du refactoring T2 (déjà fait) · effort ½ j |
+| S9 | **Audit des dépendances npm** : `npm audit` en CI + `Dependabot` activé sur GitHub pour les mises à jour Tesseract.js / Vite / Vitest | Surface d'attaque chaîne d'approvisionnement · effort 30 min de config |
 
 ---
 
@@ -62,7 +61,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| S1 | **Sync différentielle** : `?since=lastSyncTimestamp` côté GAS pour ne renvoyer que les nouveaux/modifiés | Plus rapide quand l'historique grandit |
 | S3 | **Suppression bidirectionnelle** : flag `_deleted` au lieu de hard delete, sync efface l'autre côté | Cohérence si on corrige une erreur |
 | S4 | **Bouton "Force resync"** : vide `GS_Pleins`, ré-importe tout depuis GS | Reset si désalignement |
 | S5 | **Conflict resolution avancée** : si même `sync_id` modifié des 2 côtés, garder le plus récent (timestamp) plutôt qu'Excel-wins systématique | Édition simultanée web/Excel sans perte |
@@ -87,7 +85,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | 2 | **S6** — Token secret sur les endpoints GAS | 30 min | Sécurité minimale, données aujourd'hui publiques |
 | 3 | **W15** — Auto-save brouillon localStorage | 1 h | UX : zéro perte de saisie |
 | 4 | **W25** — Export CSV de l'historique | 1 h | Justificatif employeur/fiscalité · zéro backend |
-| 5 | **T5** — Content Security Policy | ½ j | Sécurité navigateur · complément naturel de T2 (déjà fait) |
+| 5 | **S9** — Audit dépendances npm + Dependabot | 30 min | Sécurité chaîne d'approvisionnement · effort minimal |
 
 ---
 
@@ -138,6 +136,9 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.13.0.0 | **Versioning dynamique cache SW (T3)** — plugin `swVersionPlugin` dans `vite.config.js` : token `__SW_VERSION__` → `APP_VERSION` en dev (middleware) et en build (remplacement dans `dist/sw.js`) |
 | v2.14.0.0 | **Historique complet + filtres (W27→W32)** — bouton 📜 → carte `#histoireFullCard` ; filtres véhicule et carburant peuplés dynamiquement ; compteur ; scroll interne ; auto-refresh |
 | v2.14.0.0 | **Prédiction prochain plein (W29→W33)** — `buildPrediction()` dans `stats.js` ; intervalle moyen km/jours entre pleins consécutifs (aberrations filtrées) ; "Prochain plein dans ~X km · ~Y j / vers Z km" |
+| v2.15.0.0 | **Cache mémoire API ODS (T4)** — `Map _odsCache` clé `(lat,lon,rayon)` TTL 5 min dans `prix.js` ; zéro appel réseau redondant lors du changement de type de carburant |
+| v2.15.0.0 | **Content Security Policy (T5)** — `<meta http-equiv="Content-Security-Policy">` dans `index.html` + fichier `_headers` Netlify ; origines autorisées : ODS, GAS, Google Sheets, Overpass, jsDelivr/unpkg, OSM tiles ; en-têtes complémentaires : `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` |
+| v2.15.0.0 | **Sync différentielle (S1)** — `?action=export&since=ISO` dans GAS `handleExport` filtre par `Horodatage >= since` ; cache localStorage `suivi_e85_hist_cache` + `suivi_e85_hist_since` dans `historique.js` ; fusion différentielle par `sync_id` ; fallback cache hors-ligne |
 
 ---
 
