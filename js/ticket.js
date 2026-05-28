@@ -551,7 +551,7 @@ function fillFormFromTicket(data) {
     }
   }
 
-  /* Station — correspondance partielle dans le dropdown */
+  /* Station — correspondance dans le dropdown, sinon saisie manuelle */
   if (data.station) {
     const sel    = document.getElementById('stationSel');
     const needle = data.station.toLowerCase();
@@ -564,6 +564,17 @@ function fillFormFromTicket(data) {
         sel.value = match.value;
         sel.dispatchEvent(new Event('change'));
         filled++;
+      } else {
+        /* Station inconnue → bascule en saisie manuelle et reporte le nom lu */
+        sel.value = '__autre';
+        sel.dispatchEvent(new Event('change'));
+        const autre = document.getElementById('fAutre');
+        if (autre) {
+          autre.value = data.station.trim();
+          autre.classList.add('autofilled');
+          autre.dispatchEvent(new Event('input'));
+          filled++;
+        }
       }
     }
   }

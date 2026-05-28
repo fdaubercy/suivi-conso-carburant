@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.1.0.3] — 2026-05-29
+
+### Added
+- **Station reconnue toujours reportée dans le formulaire** : Gemini lit déjà l'enseigne (ex. « Carrefour Flers-en-Escrebieux »), mais `fillFormFromTicket()` ne remplissait le champ Station que si elle existait déjà dans la liste déroulante. Désormais, si la station lue n'y figure pas, le formulaire bascule automatiquement en **saisie manuelle** (`__autre`) et reporte le nom détecté dans le champ `fAutre`. Le nom n'est plus perdu.
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.1.0.3`.
+
 ## [3.1.0.2] — 2026-05-29
 
 ### Fixed
