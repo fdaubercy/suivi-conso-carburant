@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.0.1.1] — 2026-05-28
+
+### Fixed
+- **Litres — "Quantite" sans accent** : ajout de `quantite` et `qte` (variantes non accentuées fréquentes après OCR) dans le pattern de label volume. Permet de lire `Quantite = 13.23 L` sur les tickets Carrefour/TPE.
+- **Prix — "Prix unit." abrégé** : pattern ③ étendu à `prix\s+unit(?:aire)?\.?` pour capturer les formats `Prix unit. = 0,849 EUR` sans le mot "unitaire" complet.
+- **`js/config.js`** — `APP_VERSION` → `3.0.1.1`.
+
 ## [3.0.1.0] — 2026-05-28
 
 ### Added

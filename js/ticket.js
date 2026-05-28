@@ -232,8 +232,8 @@ export function parseOCRText(rawText) {
     /(\d{1,3}[,\.]\d{2,3})\s*(?:litres?|liters?|l\b)/i,
     /* "LITRES 42,580" — libellé avant le nombre */
     /(?:litres?|liters?)\s+(\d{1,3}[,\.]\d{2,3})/i,
-    /* "Qté : 42,58" / "Quantité 42,58" / "Volume 42,58" / "QTE 42,58" */
-    /(?:qté|quantité|volume|vol|qt(?:y|é)?)[^\d]*(\d{1,3}[,\.]\d{2,3})/i,
+    /* "Qté : 42,58" / "Quantité 42,58" / "Quantite 42,58" (sans accent OCR) / "Volume 42,58" */
+    /(?:qté|quantité|quantite|volume|vol|qt(?:y|é|e)?)[^\d]*(\d{1,3}[,\.]\d{2,3})/i,
     /* "42,58 × 1,799" (litres × prix) */
     /(\d{1,3}[,\.]\d{2,3})\s*(?:x|×)\s*[01][,\.]\d{3}/i,
     /* Ligne débutant par un nombre suivi d'un opérateur × (tickets 2 colonnes) */
@@ -281,8 +281,8 @@ export function parseOCRText(rawText) {
     /([0-3][,\.]\d{3})\s*eur(?:os?)?\s*[\/\\|Il]\s*l\b/i,
 
     /* ③ Libellé explicite :
-     *   "Prix unitaire TTC : 1,799"  "Prix/litre : 1,799"  "P.U. : 0,798"  "Tarif 1,799" */
-    /(?:prix\s*(?:au\s*)?(?:litres?|\/\s*litres?|\/\s*l\b|l\b)|prix\s+unitaire|p\.?\s*u\.?|pu\b|tarif)[^\d]*([0-3][,\.]\d{3})/i,
+     *   "Prix unitaire TTC : 1,799"  "Prix unit. = 0,849"  "P.U. : 0,798"  "Tarif 1,799" */
+    /(?:prix\s*(?:au\s*)?(?:litres?|\/\s*litres?|\/\s*l\b|l\b)|prix\s+unit(?:aire)?\.?|p\.?\s*u\.?|pu\b|tarif)[^\d]*([0-3][,\.]\d{3})/i,
 
     /* ④ "1,799 × 42,58" ou "1,799 x 42,58" (prix × litres) */
     /([0-3][,\.]\d{3})\s*(?:x|×)\s*\d{1,3}[,\.]\d{2,3}/i,

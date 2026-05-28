@@ -134,6 +134,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.0.0.3 | **Fix CSP scan ticket** — `https://cdn.jsdelivr.net` ajouté à `script-src` et `worker-src` dans `index.html` + `_headers` ; débloque `importScripts()` du worker Tesseract.js qui était rejeté par la Content Security Policy |
 | v3.0.0.4 | **Fix CSP WebAssembly** — `'wasm-unsafe-eval'` ajouté à `script-src` dans `index.html` + `_headers` ; débloque `WebAssembly.instantiate()` de Tesseract.js lors du scan de ticket |
 | v3.0.1.0 | **Amélioration OCR tickets** — prétraitement niveaux de gris + contraste + 1 600 px (`preprocessImage`) ; correction chiffres O→0, S→5 (`normalizeNumericText`) ; 4 formats de date dont mois français littéraux ; 5 patterns litres ; pattern prix après libellé carburant ; filtre station vs ligne montant ; km séparateur point ; marques AVIA, Netto, Agip, Gulf, Total Access |
+| v3.0.1.1 | **Fix tickets Carrefour/TPE** — `quantite` (sans accent OCR) reconnu comme label litres ; `Prix unit.` (abrégé sans "aire") reconnu comme label prix |
 | v3.0.0.2 | **Prédiction prochain plein dynamique** — `buildPrediction()` calcule le km et les jours **restants depuis aujourd'hui** (`daysLeft = avgDay − daysElapsed` · `kmLeft = avgKm − daysElapsed × avgKm/avgDay`) au lieu de l'intervalle moyen figé ; trois états : "Prochain plein dans ~X km · ~Y j" / "· aujourd'hui" / "Plein prévu il y a Y j" ; km cible absolu conservé en sous-titre |
 
 ---
