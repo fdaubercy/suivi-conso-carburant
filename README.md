@@ -33,12 +33,16 @@ Ajouter à l'écran d'accueil iPhone : Safari → Partager → « Sur l'écran d
 ### 🧾 Scan ticket de caisse (W17) + 📷 Photo jointe (W9)
 
 Bouton **"🧾 Scanner le ticket"** dans le formulaire : sélection d'une photo (galerie ou caméra) →
-redimensionnement automatique (canvas, max 1 200 px) → **OCR [Tesseract.js](https://tesseract.projectnaptha.com/) 100 % navigateur** →
-extraction par heuristiques → pré-remplissage automatique des champs.
+**analyse IA [Gemini 2.0 Flash](https://ai.google.dev/) via le backend GAS** (moteur principal, en ligne) →
+pré-remplissage automatique des champs. **Fallback automatique** : si Gemini est indisponible
+(hors-ligne ou erreur), bascule sur l'**OCR [Tesseract.js](https://tesseract.projectnaptha.com/) 100 % navigateur**
+(redimensionnement canvas max 1 200 px + prétraitement niveaux de gris/contraste + extraction par heuristiques).
 
 Champs détectés : **date, km compteur, litres, prix/L, montant total, type de carburant, nom de la station**.
 
-**Aucune clé API requise.** Tout le traitement se fait localement dans le navigateur.
+**Gemini** nécessite la clé `GEMINI_API_KEY` dans les Script Properties du projet GAS
+([Google AI Studio](https://aistudio.google.com/), gratuit 1500 req/jour). Sans clé, le scan utilise
+Tesseract.js localement, **sans aucune clé API**.
 
 **W9 — Photo jointe automatiquement** : après le scan, l'image redimensionnée est encodée en base64
 et transmise avec le plein lors de l'enregistrement. Le GAS la stocke dans un dossier Drive
@@ -293,7 +297,7 @@ Actions `doPost` disponibles :
 | `removeVehicule` | App web | Suppression d'un véhicule |
 | `bulkAdd` | VBA Excel | Import initial Excel → GS (dédupliqué par `sync_id`) |
 | `bulkUpdate` | VBA Excel | MAJ bidirectionnelle : lignes modifiées Excel → GS |
-| `scanTicket` | ~~App web~~ | ⚠️ Déprécié — le scan OCR utilise Tesseract.js côté navigateur ; la photo est transmise via le handler plein par défaut (col P) |
+| `scanTicket` | App web | Analyse IA du ticket via Gemini 2.0 Flash → JSON (date, km, litres, prix/L, total, type, station) ; moteur principal du scan, fallback Tesseract.js côté navigateur si indisponible |
 
 ### 2. Connecter le formulaire
 

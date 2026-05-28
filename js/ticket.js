@@ -1,20 +1,24 @@
-/* ─── W17 — Scan ticket de caisse → OCR client-side (Tesseract.js) ─── *
+/* ─── W17 — Scan ticket de caisse → Gemini Vision + fallback OCR ─────── *
  *                                                                        *
- *  Remplace l'appel GAS/Gemini par Tesseract.js — 100 % navigateur,     *
- *  aucune clé API, fonctionne hors-ligne après premier chargement.       *
+ *  Moteur principal : Gemini 2.0 Flash (vision) via GAS (action=         *
+ *  scanTicket) — lit même les tickets froissés/flous, comprend le        *
+ *  contexte, renvoie directement un JSON structuré.                      *
+ *                                                                        *
+ *  Fallback : Tesseract.js 100 % navigateur — utilisé hors-ligne ou      *
+ *  si Gemini échoue (clé absente, quota, réseau).                        *
  *                                                                        *
  *  Flux :                                                                *
  *    1. L'utilisateur sélectionne une photo du ticket                    *
- *    2. Redimensionnement (couleur) pour Drive + prétraitement OCR        *
- *       (niveaux de gris + contraste, max 1 600 px)                      *
- *    3. Tesseract.js (langue "fra") → texte brut                         *
- *    4. parseOCRText() → objet structuré {date, km, litres, …}           *
- *    5. fillFormFromTicket() → champs du formulaire pré-remplis           *
- *    6. W9 : base64 de l'image (couleur) stockée dans state._ticketPhoto *
+ *    2. Redimensionnement couleur → Drive (W9) + envoi Gemini            *
+ *    3a. En ligne  → scanWithGemini() → JSON                            *
+ *    3b. Échec/hors-ligne → preprocessImage() + Tesseract +              *
+ *        parseOCRText() → JSON                                           *
+ *    4. fillFormFromTicket() → champs du formulaire pré-remplis           *
+ *    5. W9 : base64 de l'image (couleur) stockée dans state._ticketPhoto *
  * ─────────────────────────────────────────────────────────────────────  */
 
 import Tesseract from 'tesseract.js';
-import { FUEL_CONFIG } from './config.js';
+import { FUEL_CONFIG, GAS_URL } from './config.js';
 import { state } from './state.js';
 import { showFeedback } from './ui.js';
 
@@ -173,6 +177,43 @@ async function blobToBase64(blob) {
     reader.onerror = () => resolve(null);
     reader.readAsDataURL(blob);
   });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   scanWithGemini — Moteur principal : Gemini 2.0 Flash via GAS
+   Envoie l'image base64 à action=scanTicket, normalise le JSON renvoyé
+   pour qu'il ait la même forme que parseOCRText().
+═══════════════════════════════════════════════════════════════════════ */
+
+async function scanWithGemini(imageBase64, mimeType) {
+  const resp = await fetch(GAS_URL, {
+    method:   'POST',
+    redirect: 'follow',
+    body: JSON.stringify({
+      action:      'scanTicket',
+      imageBase64,
+      mimeType:    mimeType || 'image/jpeg',
+    }),
+  });
+
+  const json = await resp.json();
+  if (!json || !json.success) {
+    throw new Error((json && json.error) || 'Réponse Gemini invalide');
+  }
+
+  /* Gemini peut renvoyer des nombres sous forme de chaînes → normalisation */
+  const d   = json.data || {};
+  const num = v => (v === null || v === undefined || v === '') ? null : Number(String(v).replace(',', '.'));
+
+  return {
+    date:           d.date || null,
+    km:             num(d.km),
+    litres:         num(d.litres),
+    prix_litre:     num(d.prix_litre),
+    montant_total:  num(d.montant_total),
+    type_carburant: d.type_carburant || null,
+    station:        d.station || null,
+  };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -561,12 +602,13 @@ export function initScanner() {
     btn.innerHTML  = '⏳ Préparation…';
 
     try {
-      /* Photo couleur redimensionnée pour Drive (W9) */
+      /* Photo couleur redimensionnée pour Drive (W9) + envoi Gemini */
       const blob = await resizeImage(file);
+      let   b64  = null;
 
       /* W9 — stocker la photo couleur pour l'envoi avec le plein */
       try {
-        const b64 = await blobToBase64(blob);
+        b64 = await blobToBase64(blob);
         if (b64) {
           state._ticketPhoto = b64;
           const indicator = document.getElementById('ticketPhotoIndicator');
@@ -574,33 +616,49 @@ export function initScanner() {
         }
       } catch { /* non bloquant */ }
 
-      /* Image prétraitée (niveaux de gris + contraste) pour l'OCR */
-      btn.innerHTML = '⏳ Prétraitement…';
-      const ocrBlob = await preprocessImage(file);
+      let parsed = null;
 
-      const { data: { text } } = await Tesseract.recognize(ocrBlob, 'fra', {
-        logger: ({ status, progress }) => {
-          if (status === 'loading tesseract core') {
-            btn.innerHTML = '⏳ Chargement moteur OCR…';
-          } else if (status === 'loading language traineddata') {
-            btn.innerHTML = '⏳ Chargement dictionnaire…';
-          } else if (status === 'recognizing text') {
-            btn.innerHTML = `⏳ Lecture ${Math.round(progress * 100)} %…`;
-          }
-        },
-      });
-
-      if (!text || text.trim().length < 8) {
-        showFeedback('error', 'Scan échoué',
-          'Image illisible — essayez une photo plus nette, bien éclairée et bien cadrée.');
-        return;
+      /* ── Moteur principal : Gemini Vision (si en ligne) ── */
+      if (navigator.onLine && b64) {
+        try {
+          btn.innerHTML = '⏳ Analyse IA…';
+          parsed = await scanWithGemini(b64, blob.type);
+        } catch (gemErr) {
+          console.warn('[Gemini] Échec → fallback Tesseract :', gemErr.message);
+          parsed = null;
+        }
       }
 
-      const parsed = parseOCRText(text);
+      /* ── Fallback : Tesseract.js local (hors-ligne ou échec Gemini) ── */
+      if (!parsed) {
+        btn.innerHTML = '⏳ Prétraitement…';
+        const ocrBlob = await preprocessImage(file);
+
+        const { data: { text } } = await Tesseract.recognize(ocrBlob, 'fra', {
+          logger: ({ status, progress }) => {
+            if (status === 'loading tesseract core') {
+              btn.innerHTML = '⏳ Chargement moteur OCR…';
+            } else if (status === 'loading language traineddata') {
+              btn.innerHTML = '⏳ Chargement dictionnaire…';
+            } else if (status === 'recognizing text') {
+              btn.innerHTML = `⏳ Lecture ${Math.round(progress * 100)} %…`;
+            }
+          },
+        });
+
+        if (!text || text.trim().length < 8) {
+          showFeedback('error', 'Scan échoué',
+            'Image illisible — essayez une photo plus nette, bien éclairée et bien cadrée.');
+          return;
+        }
+
+        parsed = parseOCRText(text);
+      }
+
       fillFormFromTicket(parsed);
 
     } catch (err) {
-      showFeedback('error', 'Erreur OCR',
+      showFeedback('error', 'Erreur scan',
         err.message || 'Impossible de lire l\'image — réessayez.');
     } finally {
       btn.innerHTML = origHTML;

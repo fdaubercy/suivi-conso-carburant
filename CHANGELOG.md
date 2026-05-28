@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.1.0.0] — 2026-05-29
+
+### Added
+- **W17 — Gemini 2.0 Flash réactivé comme moteur principal de scan** : le scan de ticket utilise désormais l'IA vision **Gemini 2.0 Flash** (via GAS `action=scanTicket`) en priorité, avec **Tesseract.js en fallback** automatique (hors-ligne ou si Gemini échoue : clé absente, quota, réseau). Gemini comprend le contexte du ticket et lit les tickets froissés, flous ou mal cadrés bien mieux que l'OCR par regex. Clé API gratuite sur [aistudio.google.com](https://aistudio.google.com) (1 500 req/jour), stockée côté GAS (`GEMINI_API_KEY`), jamais exposée au client.
+- **`scanWithGemini()`** dans `js/ticket.js` — POST vers `GAS_URL` (même pattern fetch que le reste de l'app, sans header pour éviter le preflight CORS) ; normalise le JSON renvoyé (nombres en chaînes → `Number`) pour qu'il ait la même forme que `parseOCRText()`.
+
+### Changed
+- **`js/ticket.js`** — `initScanner()` : nouvelle séquence Gemini → fallback Tesseract ; bouton affiche "⏳ Analyse IA…" pendant l'appel Gemini. La photo couleur (W9) est envoyée à la fois à Drive et à Gemini.
+- **`Code.gs`** — `handleScanTicket()` : modèle `gemini-1.5-flash` (`/v1/`) → **`gemini-2.0-flash`** (`/v1beta/`) ; prompt enrichi (tickets abîmés, libellés français Quantite/Prix unit., années 2 chiffres, exclusion TVA, contrôle de cohérence litres × prix ≈ total) ; parsing JSON robuste (retrait des clôtures markdown ```json). Version backend → `v3.1.0.0`.
+- **`js/config.js`** — `APP_VERSION` → `3.1.0.0`.
+
 ## [3.0.1.1] — 2026-05-28
 
 ### Fixed

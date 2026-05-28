@@ -1,13 +1,16 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend               v2.16.0.0
+//  SUIVI CONSO E85 — Web App Backend               v3.1.0.0
 //
 //  ⚠️  BREAKING CHANGE v2.3.0.0 : suppression colonne G "Prix S98 jour"
 //  La colonne K "SP98 station (€/L)" est désormais la seule source SP98.
 //  → exécuter migrateRemoveS98() une fois pour migrer les données.
 //
-//  W17 — Scan ticket de caisse :
+//  W17 — Scan ticket de caisse (v3.1.0.0 : Gemini réactivé) :
+//  Moteur principal = Gemini 2.0 Flash (vision) via action=scanTicket.
+//  Fallback côté client = Tesseract.js (hors-ligne ou si Gemini échoue).
 //  Configurer la clé Gemini dans : Extensions → Apps Script
 //  → Paramètres du projet → Propriétés de script → GEMINI_API_KEY
+//  Clé gratuite : https://aistudio.google.com (1 500 req/jour)
 //
 //  v2.9.0.0 — Sync bidirectionnel complet (Excel ↔ GS)
 //  Nouveau : action=bulkUpdate — upsert par sync_id depuis Excel VBA
@@ -238,21 +241,30 @@ function handleScanTicket(imageBase64, mimeType) {
   }
 
   const prompt =
-    'Tu es un assistant spécialisé dans la lecture de tickets de caisse de stations-service françaises.\n' +
-    'Analyse cette image et extrais les informations suivantes.\n' +
-    'Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks, sans texte autour) :\n' +
+    'Tu es un expert en lecture de tickets de caisse de stations-service françaises, ' +
+    'y compris froissés, flous, mal éclairés ou mal cadrés.\n' +
+    'Analyse l\'image et extrais les informations du plein de carburant.\n\n' +
+    'Règles d\'interprétation :\n' +
+    '- "Quantité" / "Quantite" / "Volume" en litres → litres\n' +
+    '- "Prix unitaire" / "Prix unit." / "Prix/L" / "P.U." → prix_litre (le prix AU LITRE, jamais la TVA ni une taxe)\n' +
+    '- "Montant" / "Montant réel" / "Total" / "Net à payer" → montant_total\n' +
+    '- Carburant possible : E85 (SuperEthanol), SP98, SP95, E10 (SP95-E10), Gazole (Diesel, B7), GPLc\n' +
+    '- Le kilométrage est presque toujours ABSENT sur ces tickets → null si non visible\n' +
+    '- Date au format YYYY-MM-DD. ATTENTION années à 2 chiffres : "26" = 2026, "25" = 2025\n' +
+    '- station : nom de l\'enseigne + ville si présents (ex. "Carrefour Flers-en-Escrebieux")\n' +
+    '- Cohérence : litres × prix_litre ≈ montant_total. Si un champ est douteux, recalcule-le.\n\n' +
+    'Réponds UNIQUEMENT avec cet objet JSON (aucun markdown, aucun backtick, aucun texte autour) :\n' +
     '{\n' +
-    '  "date": "YYYY-MM-DD ou null",\n' +
-    '  "km": nombre entier ou null,\n' +
-    '  "litres": nombre décimal ou null,\n' +
-    '  "prix_litre": nombre décimal ou null,\n' +
-    '  "montant_total": nombre décimal ou null,\n' +
-    '  "type_carburant": "E85|SP98|SP95|E10|Gazole|GPLc ou null",\n' +
-    '  "station": "nom de la station ou null"\n' +
-    '}\n' +
-    'Si une information est absente ou illisible, mets null. Ne mets que le JSON.';
+    '  "date": "YYYY-MM-DD" ou null,\n' +
+    '  "km": entier ou null,\n' +
+    '  "litres": décimal ou null,\n' +
+    '  "prix_litre": décimal ou null,\n' +
+    '  "montant_total": décimal ou null,\n' +
+    '  "type_carburant": "E85"|"SP98"|"SP95"|"E10"|"Gazole"|"GPLc" ou null,\n' +
+    '  "station": "texte" ou null\n' +
+    '}';
 
-  const url = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=' + apiKey;
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
 
   try {
     const resp = UrlFetchApp.fetch(url, {
@@ -276,9 +288,12 @@ function handleScanTicket(imageBase64, mimeType) {
       return jsonResponse({ success: false, error: result.error.message || 'Erreur API Gemini.' });
     }
 
-    const text = (result.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+    let text = (result.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
 
-    const jsonMatch = text.match(/\{[\s\S]*?\}/);
+    // Retire d'éventuelles clôtures markdown ```json ... ```
+    text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return jsonResponse({ success: false, error: 'Réponse non parseable.', raw: text });
     }
