@@ -4,6 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
+> 🔖 Version courante : **v2.14.0.0**
 
 ## 🌐 Accès
 
@@ -29,7 +30,7 @@ Ajouter à l'écran d'accueil iPhone : Safari → Partager → « Sur l'écran d
 - **Détection de doublons** : warning inline si date + km + litres correspondent à un plein existant
 - Version de l'application affichée dans le bandeau
 
-### 🧾 Scan ticket de caisse (W17) — OCR client-side
+### 🧾 Scan ticket de caisse (W17) + 📷 Photo jointe (W9)
 
 Bouton **"🧾 Scanner le ticket"** dans le formulaire : sélection d'une photo (galerie ou caméra) →
 redimensionnement automatique (canvas, max 1 200 px) → **OCR [Tesseract.js](https://tesseract.projectnaptha.com/) 100 % navigateur** →
@@ -38,6 +39,11 @@ extraction par heuristiques → pré-remplissage automatique des champs.
 Champs détectés : **date, km compteur, litres, prix/L, montant total, type de carburant, nom de la station**.
 
 **Aucune clé API requise.** Tout le traitement se fait localement dans le navigateur.
+
+**W9 — Photo jointe automatiquement** : après le scan, l'image redimensionnée est encodée en base64
+et transmise avec le plein lors de l'enregistrement. Le GAS la stocke dans un dossier Drive
+**"Suivi E85 - Tickets"**, la rend publique en lecture et enregistre l'URL dans la colonne P du Sheet.
+Un badge **📷 Photo jointe** confirme visuellement que l'image sera envoyée.
 
 > 💡 **Premier scan** : Tesseract.js télécharge ~4 Mo de données linguistiques françaises (CDN jsDelivr)
 > puis les met en cache (IndexedDB). Les scans suivants sont instantanés.
@@ -84,11 +90,13 @@ Si OSM ne retourne pas de résultat, l'adresse de l'API gouvernementale est util
 - Marqueur vert pour la position de l'utilisateur
 - Synchronisation bidirectionnelle liste ↔ carte
 
-### Géolocalisation
+### Géolocalisation (+ W30 + W31)
 - Bouton 📍 : détecte les stations E85 dans un rayon de **8 km**
-- Liste des 7 stations les plus proches, triées par distance
+- Liste des **7 stations les plus proches**, triées par distance, enrichies via OSM
 - Badge « connue » pour les stations déjà présentes dans le dropdown
 - Tap sur une station (liste ou carte) → sélection + récupération des prix
+- **W30 — Comparateur multi-stations** : jusqu'à 40 stations retournées par l'API sont triées par prix E85 croissant dans une carte dédiée. La station la moins chère est mise en évidence (fond vert).
+- **W31 — Géoloc mémorisée** : la dernière position GPS et la liste des stations sont persistées en localStorage (TTL 1 h). Au prochain tap 📍, les stations précédentes s'affichent immédiatement pendant que le GPS se met à jour — zéro attente perçue.
 
 ### Recherche manuelle avec suggestions
 - Dès 3 caractères saisis, recherche avec debounce 500 ms dans l'API gouvernementale
@@ -106,6 +114,21 @@ Si OSM ne retourne pas de résultat, l'adresse de l'API gouvernementale est util
 - Validation des champs obligatoires avant envoi
 - Feedback visuel succès / erreur ; remise à zéro automatique du formulaire
 - **Scroll-to-top automatique (W24)** après enregistrement réussi ou mise en file hors-ligne — le formulaire repasse en vue sans geste manuel
+
+### 📜 Historique complet + filtres (W32)
+Bouton **📜** dans la carte "Derniers pleins" → carte `#histoireFullCard` affichant **tous les pleins**
+(aucune limite), triés du plus récent au plus ancien, avec :
+- **Filtre véhicule** et **filtre type de carburant** peuplés dynamiquement depuis les données réelles
+- Compteur "(N pleins)" en temps réel
+- Scroll interne (max 420 px), bouton ✕ pour refermer
+- Auto-rafraîchi à chaque rechargement de l'historique
+
+### 🔮 Prédiction prochain plein (W33)
+Affiché dans la carte Statistiques sous la sparkline : **"Prochain plein dans ~X km · ~Y j"**
+et l'estimation du prochain compteur.
+- Calcul basé sur les **intervalles moyens** entre pleins consécutifs (Δkm et Δjours)
+- Filtre les valeurs aberrantes (Δkm < 50 ou > 5 000, Δjours > 120)
+- Filtré sur le véhicule courant — nécessite ≥ 3 pleins avec kilométrage renseigné
 
 ### 📈 Mini-graphique prix E85 (W28)
 Courbe **SVG inline** des 10 derniers prix E85 payés, affichée sous la grille de statistiques :
@@ -169,16 +192,16 @@ suivi-e85/
 │   ├── carburant.js                 # Toggle type de carburant + badges header
 │   ├── prix.js                      # API prix carburants + badge rentabilité E85
 │   ├── rentabilite.js               # Badge rentabilité E85 vs SP98 (W5)
-│   ├── geo.js                       # Géolocalisation + liste stations proches
+│   ├── geo.js                       # Géoloc + liste stations proches + W30 comparateur + W31 cache localStorage
 │   ├── recherche.js                 # Recherche manuelle par ville
 │   ├── formulaire.js                # Soumission, réinitialisation, détection doublons
 │   ├── stations.js                  # Chargement liste stations Google Sheets
 │   ├── theme.js                     # Dark mode (toggle + persist localStorage)
-│   ├── historique.js                # 5 derniers pleins (via GET ?action=export)
-│   ├── stats.js                     # Stats live 4 KPIs filtrés par véhicule (W7)
+│   ├── historique.js                # 5 derniers pleins + W32 historique complet + filtres
+│   ├── stats.js                     # Stats live 4 KPIs + sparkline W28 + prédiction W33
 │   ├── stationsmap.js               # Carte statique stations habituelles + prix moyens
-│   ├── pwa.js                       # Installation PWA Android/iOS (W4)
-│   └── ticket.js                    # Scan ticket → OCR Tesseract.js client-side (W17)
+│   ├── pwa.js                       # Installation PWA Android/iOS + bannière update W23 (W4)
+│   └── ticket.js                    # Scan ticket OCR Tesseract.js + photo base64 W9 (W17)
 │
 ├── vba/                             # ── Sync Excel ↔ Google Sheets ──────
 │   ├── modSyncGS.bas                # Module sync bidir. (sync_id, bulkAdd/Update, WinHttp)
@@ -207,7 +230,7 @@ suivi-e85/
 │       └── Google Apps Script/
 │           ├── Code.gs              # Backend GAS v2.9.0.2 (15 col + sync bidir.)
 │           ├── index.html           # Page HTML servie par GAS (standalone)
-│           └── GAS_UPDATE.md        # Doc : actions doPost, schéma, migrations
+│           └── GAS_UPDATE.md        # Doc : actions doPost, schéma 16 cols, migrations
 │
 ├── README.md
 ├── CHANGELOG.md
@@ -235,36 +258,38 @@ Actions `doPost` disponibles :
 
 | Action | Émetteur | Rôle |
 |---|---|---|
-| _(aucune)_ | App web | Enregistrement d'un plein (cols A→O) |
+| _(aucune)_ | App web | Enregistrement d'un plein (cols A→P) — col P = URL Drive photo ticket si scannée |
 | `addStation` | App web | Ajout d'une station dans l'onglet `Stations` |
 | `syncStations` | App web | Remplacement complet de l'onglet `Stations` |
 | `addVehicule` | App web | Ajout d'un véhicule dans l'onglet `Vehicules` |
 | `removeVehicule` | App web | Suppression d'un véhicule |
 | `bulkAdd` | VBA Excel | Import initial Excel → GS (dédupliqué par `sync_id`) |
 | `bulkUpdate` | VBA Excel | MAJ bidirectionnelle : lignes modifiées Excel → GS |
-| `scanTicket` | ~~App web~~ | ⚠️ Déprécié — le scan utilise désormais Tesseract.js côté navigateur (plus d'appel GAS) |
+| `scanTicket` | ~~App web~~ | ⚠️ Déprécié — le scan OCR utilise Tesseract.js côté navigateur ; la photo est transmise via le handler plein par défaut (col P) |
 
 ### 2. Connecter le formulaire
 
 Dans `js/config.js` :
 
 ```javascript
-export const APP_VERSION = '2.10.0.0';
+export const APP_VERSION = '2.14.0.0';
 export const GAS_URL     = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
 export const GS_SHEET_ID = 'VOTRE_ID_GOOGLE_SHEET';
 ```
 
 ### 3. Google Sheet cible
 
-**Onglet `_ImportGS`** (15 colonnes A→O) :
+**Onglet `_ImportGS`** (16 colonnes A→P) :
 
-| A | B | C | D | E | F | G | H | I | J | K | L | M | N | O |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Horodatage | Date | Type | Km | Litres | Prix €/L | Station | Véhicule | E85 st. | SP98 st. | SP95 st. | E10 st. | Gazole st. | GPLc st. | sync_id |
+| A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Horodatage | Date | Type | Km | Litres | Prix €/L | Station | Véhicule | E85 st. | SP98 st. | SP95 st. | E10 st. | Gazole st. | GPLc st. | sync_id | Photo ticket |
 
 > Les colonnes I→N sont remplies automatiquement par l'app via l'API prix carburants lors de la sélection d'une station.
 >
 > La colonne **O `sync_id`** est un UUID utilisé pour la déduplication et la synchronisation bidirectionnelle Excel ↔ Google Sheets.
+>
+> La colonne **P `Photo ticket`** (W9) contient l'URL Drive de la photo du ticket quand elle a été scannée avant l'enregistrement. Migration automatique : `getOrCreateSheet()` ajoute la colonne P si le Sheet existant n'en a que 15.
 
 **Onglet `Stations`** · **Onglet `Vehicules`** : une entrée par ligne, colonne A, sans en-tête obligatoire.
 
