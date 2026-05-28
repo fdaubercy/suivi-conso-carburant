@@ -1,10 +1,10 @@
-Prépare et exécute le commit Git pour le projet suivi-e85.
+Prépare et exécute le commit Git pour le projet suivi-e85, puis pousse vers le dépôt distant.
 
 Étapes à suivre :
 
 1. Lance `git -C "C:/Users/fdaub/Documents/Github/suivi-e85" status --porcelain` pour lister les fichiers modifiés
 2. Lance `git -C "C:/Users/fdaub/Documents/Github/suivi-e85" diff HEAD` pour lire le contenu des changements
-3. Lis la constante `APP_VERSION` dans `app.js` pour obtenir la version courante
+3. Lis la constante `APP_VERSION` dans `js/config.js` pour obtenir la version courante
 4. Détermine le message de commit au format Conventional Commits :
    - type : feat / fix / style / docs / refactor / perf / chore
    - scope : nom du fichier principal modifié (app, style, readme, changelog, config…)
@@ -15,8 +15,10 @@ Prépare et exécute le commit Git pour le projet suivi-e85.
 5. Stage tous les fichiers modifiés : `git -C "C:/Users/fdaub/Documents/Github/suivi-e85" add -A`
 6. Exécute le commit avec le message préparé
 7. Affiche le résultat du commit (hash + message)
+8. Pousse vers le dépôt distant : `git -C "C:/Users/fdaub/Documents/Github/suivi-e85" push`
+9. Affiche le résultat du push
 
 Règles :
-- Ne jamais pusher automatiquement
+- Toujours pusher automatiquement après le commit, sans demander confirmation
 - Si aucun fichier modifié, l'indiquer et ne rien commiter
 - Respecter le format CLAUDE.md : un seul commit groupant tous les fichiers
