@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.1.0.6] — 2026-05-29
+
+### Fixed
+- **Suppression d'un plein : « Plein introuvable (sync_id inconnu) »** — `handleDeletePlein()` retrouvait le `sync_id` via un index de colonne codé en dur (14). Or `handleExport()` (qui alimente le `sync_id` côté client) lit la colonne **par son en-tête**. Si la colonne `sync_id` n'est pas exactement en position O, la correspondance échouait. La suppression recherche désormais la colonne `sync_id` par en-tête (repli sur l'index 14) et compare les valeurs après `trim()`. Version backend → `v3.1.0.6`. ⚠️ Nécessite un **redéploiement** de l'application web.
+- **`js/config.js`** — `APP_VERSION` → `3.1.0.6`.
+
 ## [3.1.0.5] — 2026-05-29
 
 ### Added

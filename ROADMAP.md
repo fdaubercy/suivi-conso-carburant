@@ -142,6 +142,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.1.0.3 | **Station lue reportée même si inconnue** — `fillFormFromTicket()` : si l'enseigne détectée par Gemini n'est pas dans le menu déroulant, bascule auto en saisie manuelle (`__autre`) + remplit `fAutre` avec le nom lu, au lieu de l'ignorer |
 | v3.1.0.4 | **Station ticket → prix carburant auto + format "Enseigne - Ville"** — Gemini renvoie `enseigne`+`ville` séparés ; `applyTicketStation()` résout la station (liste connue / recherche ODS commune `_findStationInCommune` / saisie manuelle composée) et déclenche `fetchPricesAtCoords()` pour peupler les prix sur les boutons ; prix payé du ticket réinjecté après pour ne pas être écrasé ; corrige le « Aucune commune trouvée » |
 | v3.1.0.5 | **Suppression d'un plein** — bouton 🗑️ sur chaque entrée d'historique ; confirmation puis suppression dans le Google Sheet `_ImportGS` (action `deletePlein` par `sync_id`), du cache local et de l'affichage ; stats + carte rafraîchies (`initHistoireDelete`, `handleDeletePlein`) |
+| v3.1.0.6 | **Fix suppression « sync_id inconnu »** — `handleDeletePlein()` retrouve la colonne `sync_id` par en-tête (comme `handleExport`) au lieu d'un index codé en dur, comparaison après `trim()` |
 
 ---
 

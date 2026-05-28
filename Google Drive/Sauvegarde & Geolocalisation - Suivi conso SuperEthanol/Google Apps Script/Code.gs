@@ -1,5 +1,5 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend               v3.1.0.5
+//  SUIVI CONSO E85 — Web App Backend               v3.1.0.6
 //
 //  ⚠️  BREAKING CHANGE v2.3.0.0 : suppression colonne G "Prix S98 jour"
 //  La colonne K "SP98 station (€/L)" est désormais la seule source SP98.
@@ -330,10 +330,17 @@ function handleDeletePlein(ss, syncId) {
 
   const sheet = getOrCreateSheet(ss);
   const data  = sheet.getDataRange().getValues();
-  const target = String(syncId);
+  if (data.length <= 1) return jsonResponse({ success: false, error: 'Aucun plein enregistré' });
+
+  // Retrouve la colonne sync_id par en-tête (comme handleExport), repli sur O (index 14)
+  const headers  = data[0].map(String);
+  let   syncIdx  = headers.indexOf('sync_id');
+  if (syncIdx < 0) syncIdx = 14;
+
+  const target = String(syncId).trim();
 
   for (let i = data.length - 1; i >= 1; i--) {
-    if (String(data[i][14]) === target) {
+    if (String(data[i][syncIdx]).trim() === target) {
       sheet.deleteRow(i + 1);
       return jsonResponse({ success: true });
     }
