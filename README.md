@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v2.15.0.0**
+> 🔖 Version courante : **v2.16.0.0**
 
 ## 🌐 Accès
 
@@ -109,11 +109,20 @@ Si OSM ne retourne pas de résultat, l'adresse de l'API gouvernementale est util
 - **Synchronisation automatique** après chaque plein validé (nouvelles stations)
 - Fallback sur liste statique si l'onglet `Stations` est inaccessible
 
+### 📝 Auto-save brouillon (W15)
+À chaque frappe (km, litres, prix, station, date), le formulaire est sauvegardé en localStorage (`suivi_e85_draft`).
+Au prochain chargement, le brouillon est restauré automatiquement (après 800 ms pour laisser les stations se charger) avec un toast "📝 Brouillon restauré". Effacé après soumission réussie ou réinitialisation manuelle.
+
 ### Enregistrement
 - Envoi vers Google Sheets via Google Apps Script
 - Validation des champs obligatoires avant envoi
 - Feedback visuel succès / erreur ; remise à zéro automatique du formulaire
 - **Scroll-to-top automatique (W24)** après enregistrement réussi ou mise en file hors-ligne — le formulaire repasse en vue sans geste manuel
+
+### 📤 Web Share API (W26)
+Bouton **📤** sur chaque entrée de l'historique (recent et complet) → partage les détails d'un plein via le menu natif iOS/Android (WhatsApp, SMS, mail…).
+Texte partagé : `<type> · <litres> L à <prix> €/L — <station> (<date>)`.
+Si `navigator.share` n'est pas disponible (desktop Chrome, Firefox…), les boutons sont masqués automatiquement via la classe CSS `body.no-share`.
 
 ### 📜 Historique complet + filtres (W32)
 Bouton **📜** dans la carte "Derniers pleins" → carte `#histoireFullCard` affichant **tous les pleins**
@@ -162,10 +171,14 @@ npm run test:e2e:headed   # navigateur visible
 npm run test:e2e:report   # ouvre le rapport HTML
 ```
 
-### 🔁 CI — GitHub Actions (W13)
-Deux jobs automatiques sur chaque `push` / `pull_request` :
+### 🔁 CI — GitHub Actions (W13 + S9)
+Quatre jobs automatiques sur chaque `push` / `pull_request` :
 - **ESLint** : lint de tous les fichiers `js/` (règles `no-var`, `no-unused-vars`, `no-undef`…)
+- **Tests Vitest** : 38 cas unitaires (utils, prix)
+- **npm audit** (S9) : signale les vulnérabilités `moderate+` sur les dépendances — non-bloquant (`continue-on-error: true`)
 - **Version check** : compare `APP_VERSION` dans `config.js` au dernier tag Git — avertissement si divergence
+
+**Dependabot (S9)** : MAJ npm automatiques hebdomadaires (lundi 09h00 Europe/Paris) pour Tesseract.js, Vite, Vitest et les autres dépendances ; MAJ github-actions mensuellement.
 
 ---
 
@@ -195,10 +208,10 @@ suivi-e85/
 │   ├── rentabilite.js               # Badge rentabilité E85 vs SP98 (W5)
 │   ├── geo.js                       # Géoloc + liste stations proches + W30 comparateur + W31 cache localStorage
 │   ├── recherche.js                 # Recherche manuelle par ville
-│   ├── formulaire.js                # Soumission, réinitialisation, détection doublons
+│   ├── formulaire.js                # Soumission, réinitialisation, détection doublons, auto-save brouillon W15
 │   ├── stations.js                  # Chargement liste stations Google Sheets
 │   ├── theme.js                     # Dark mode (toggle + persist localStorage)
-│   ├── historique.js                # 5 derniers pleins + W32 historique complet + filtres
+│   ├── historique.js                # 5 derniers pleins + W32 historique complet + filtres + W26 Web Share
 │   ├── stats.js                     # Stats live 4 KPIs + sparkline W28 + prédiction W33
 │   ├── stationsmap.js               # Carte statique stations habituelles + prix moyens
 │   ├── pwa.js                       # Installation PWA Android/iOS + bannière update W23 (W4)
@@ -213,8 +226,9 @@ suivi-e85/
 │
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml                   # W13 : ESLint + vérification APP_VERSION
-│       └── deploy.yml               # W12 : build Vite → GitHub Pages
+│       ├── ci.yml                   # W13+S9 : ESLint + Tests + npm audit + APP_VERSION
+│       ├── deploy.yml               # W12 : build Vite → GitHub Pages
+│       └── dependabot.yml           # S9 : MAJ npm hebdo + github-actions mensuel
 │
 ├── tests/
 │   ├── e2e.spec.js                  # Tests E2E Playwright (TC-01 → TC-05, mock GAS)
@@ -229,7 +243,7 @@ suivi-e85/
 │   ├── Réponses - Suivi E85.xlsx
 │   └── Sauvegarde & Geolocalisation - Suivi conso SuperEthanol/
 │       └── Google Apps Script/
-│           ├── Code.gs              # Backend GAS v2.15.0.0 (16 col + sync bidir. + ?since=)
+│           ├── Code.gs              # Backend GAS v2.16.0.0 (16 col + sync bidir. + ?since= + rate limiting)
 │           ├── index.html           # Page HTML servie par GAS (standalone)
 │           └── GAS_UPDATE.md        # Doc : actions doPost, schéma 16 cols, migrations
 │
@@ -274,11 +288,13 @@ Actions `doPost` disponibles :
 Dans `js/config.js` :
 
 ```javascript
-export const APP_VERSION    = '2.15.0.0';
+export const APP_VERSION    = '2.16.0.0';
 export const GAS_URL        = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
 export const GS_SHEET_ID    = 'VOTRE_ID_GOOGLE_SHEET';
 export const HIST_CACHE_KEY = 'suivi_e85_hist_cache';   // cache localStorage historique
 export const HIST_SINCE_KEY = 'suivi_e85_hist_since';   // timestamp dernière sync
+export const DRAFT_KEY      = 'suivi_e85_draft';        // brouillon formulaire (W15)
+export const CLIENT_ID_KEY  = 'suivi_e85_client_id';    // UUID client rate limiting (S7)
 ```
 
 ### 3. Google Sheet cible

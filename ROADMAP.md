@@ -12,19 +12,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi |
 |---|---|---|
 | W25 | **Export CSV de l'historique** : bouton "📥 Exporter" dans la carte historique → télécharge tous les enregistrements en `.csv` (via `?action=export` + `Blob` + `URL.createObjectURL`) | Justificatif remboursement employeur / fiscalité · zéro backend · effort 1 h |
-| W26 | **Web Share API** : icône "Partager" sur chaque entrée historique → partage les détails d'un plein (litres, prix, station) via le menu natif iOS/Android | Envoi rapide par WhatsApp/SMS/mail · effort 1 h |
-
-### 🎯 Features visibles (½-1 jour chacun)
-
-| # | Idée | Pourquoi |
-|---|---|---|
-| W15 | **Auto-save brouillon** : à chaque frappe, sauve le formulaire dans localStorage. Restauré au prochain chargement si la page est fermée sans enregistrer | UX : pas de perte si on quitte par erreur |
-
-### 🛠️ Tech debt
-
-| # | Idée | Pourquoi |
-|---|---|---|
-| S9 | **Audit des dépendances npm** : `npm audit` en CI + `Dependabot` activé sur GitHub pour les mises à jour Tesseract.js / Vite / Vitest | Surface d'attaque chaîne d'approvisionnement · effort 30 min de config |
 
 ---
 
@@ -72,8 +59,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi |
 |---|---|---|
 | S6 | **Token secret** sur les endpoints GAS (`?token=XXX`) partagé avec VBA et web app | L'URL GAS étant publique, tout le monde peut lire l'historique aujourd'hui |
-| S7 | **Rate limiting** côté GAS (max 10 requêtes/min par client) | Évite abus accidentels |
-| S9 | **Audit des dépendances npm** : `npm audit` en CI + `Dependabot` activé sur GitHub pour les mises à jour Tesseract.js / Vite / Vitest | Surface d'attaque chaîne d'approvisionnement · effort 30 min de config |
 
 ---
 
@@ -83,9 +68,9 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|---|
 | 1 | **X1** — Bouton "Synchroniser" sur la feuille GS_Pleins | 15 min | Ergonomie immédiate, plus besoin d'ouvrir l'IDE |
 | 2 | **S6** — Token secret sur les endpoints GAS | 30 min | Sécurité minimale, données aujourd'hui publiques |
-| 3 | **W15** — Auto-save brouillon localStorage | 1 h | UX : zéro perte de saisie |
-| 4 | **W25** — Export CSV de l'historique | 1 h | Justificatif employeur/fiscalité · zéro backend |
-| 5 | **S9** — Audit dépendances npm + Dependabot | 30 min | Sécurité chaîne d'approvisionnement · effort minimal |
+| 3 | **W25** — Export CSV de l'historique | 1 h | Justificatif employeur/fiscalité · zéro backend |
+| 4 | **X9** — Économies cumulées E85 vs SP98 | ½ j | ROI E85 chiffré depuis les données existantes |
+| 5 | **S8** — Refresh quotidien prix par trigger GAS | 1 j | Historique prix par station + alerte passive |
 
 ---
 
@@ -139,6 +124,10 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v2.15.0.0 | **Cache mémoire API ODS (T4)** — `Map _odsCache` clé `(lat,lon,rayon)` TTL 5 min dans `prix.js` ; zéro appel réseau redondant lors du changement de type de carburant |
 | v2.15.0.0 | **Content Security Policy (T5)** — `<meta http-equiv="Content-Security-Policy">` dans `index.html` + fichier `_headers` Netlify ; origines autorisées : ODS, GAS, Google Sheets, Overpass, jsDelivr/unpkg, OSM tiles ; en-têtes complémentaires : `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` |
 | v2.15.0.0 | **Sync différentielle (S1)** — `?action=export&since=ISO` dans GAS `handleExport` filtre par `Horodatage >= since` ; cache localStorage `suivi_e85_hist_cache` + `suivi_e85_hist_since` dans `historique.js` ; fusion différentielle par `sync_id` ; fallback cache hors-ligne |
+| v2.16.0.0 | **Web Share API (W26)** — bouton 📤 sur chaque entrée historique ; partage natif iOS/Android ; masqué via `body.no-share` si `navigator.share` non disponible ; délégation sur `#historiqueList` + `#histoireFullList` |
+| v2.16.0.0 | **Auto-save brouillon (W15)** — `saveDraft()` sur chaque input formulaire ; `restoreDraft()` au démarrage avec délai 800 ms ; toast "📝 Brouillon restauré" ; `clearDraft()` après soumission/reset |
+| v2.16.0.0 | **Rate limiting côté GAS (S7)** — `rateLimit(cid)` via `CacheService`, max 10 req/min par client UUID ; `_getClientId()` `crypto.randomUUID()` côté app, transmis dans chaque payload |
+| v2.16.0.0 | **Audit dépendances npm + Dependabot (S9)** — job `audit` dans `ci.yml` (`npm audit --audit-level=moderate`, non-bloquant) ; `.github/dependabot.yml` npm hebdo + github-actions mensuel |
 
 ---
 

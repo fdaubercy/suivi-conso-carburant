@@ -267,6 +267,38 @@ export function initHistoireFilters() {
   });
 }
 
+/* ═══════════════════════════════════════
+   W26 — Web Share API
+   ═══════════════════════════════════════ */
+
+/**
+ * Câble le bouton "Partager" sur les entrées historique (délégation d'événements).
+ * Si l'API navigator.share n'est pas disponible, masque tous les boutons via CSS.
+ */
+export function initHistoireShare() {
+  if (!('share' in navigator)) {
+    document.body.classList.add('no-share');
+    return;
+  }
+
+  const handler = async (e) => {
+    const btn = e.target.closest('.hist-share');
+    if (!btn) return;
+    const { shareLitres, sharePrix, shareStation, shareDate, shareType } = btn.dataset;
+    try {
+      await navigator.share({
+        title: 'Plein carburant',
+        text:  `${shareType} · ${shareLitres} L à ${sharePrix} €/L — ${shareStation} (${shareDate})`,
+      });
+    } catch (err) {
+      if (err.name !== 'AbortError') console.warn('Share failed:', err);
+    }
+  };
+
+  document.getElementById('historiqueList')?.addEventListener('click', handler);
+  document.getElementById('histoireFullList')?.addEventListener('click', handler);
+}
+
 /* ─── Helpers ─── */
 function setSelectValue(id, value) {
   const sel = document.getElementById(id);
@@ -284,8 +316,9 @@ function renderItem(r) {
   const km      = fmtKm(r['Km compteur']);
   const litres  = Number(r['Nb. Litres'] || 0).toFixed(2);
   const prix    = Number(r['Prix €/L']   || 0).toFixed(3);
-  const total   = (litres * prix).toFixed(2);
+  const total   = (Number(litres) * Number(prix)).toFixed(2);
   const station = String(r['Station essence'] || '—').slice(0, 40);
+  const type    = escapeHtml(r.Type || '');
 
   return `
     <div class="hist-item">
@@ -293,6 +326,13 @@ function renderItem(r) {
         <span class="hist-icon">${icon}</span>
         <span class="hist-date">${date}</span>
         <span class="hist-total">${total} €</span>
+        <button class="hist-share" type="button"
+          data-share-litres="${litres}"
+          data-share-prix="${prix}"
+          data-share-station="${escapeHtml(station)}"
+          data-share-date="${date}"
+          data-share-type="${type}"
+          aria-label="Partager ce plein">📤</button>
       </div>
       <div class="hist-row2">
         <span>${litres} L · ${prix} €/L</span>

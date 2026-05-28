@@ -1,5 +1,5 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend               v2.15.0.0
+//  SUIVI CONSO E85 — Web App Backend               v2.16.0.0
 //
 //  ⚠️  BREAKING CHANGE v2.3.0.0 : suppression colonne G "Prix S98 jour"
 //  La colonne K "SP98 station (€/L)" est désormais la seule source SP98.
@@ -18,6 +18,10 @@
 //  v2.15.0.0 — Sync différentielle
 //  ?action=export&since=ISO_TIMESTAMP → retourne uniquement les lignes
 //  dont l'Horodatage (col A) est >= since ; null si since absent.
+//
+//  v2.16.0.0 — Rate limiting (S7)
+//  rateLimit(cid) : max 10 req/min par client (CacheService, TTL 90s).
+//  Appliqué sur l'enregistrement d'un plein (doPost principal).
 // ============================================================
 const SPREADSHEET_ID    = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const SHEET_NAME        = '_ImportGS';
@@ -35,6 +39,26 @@ const HEADERS = [
   'sync_id',                                            // O — identifiant unique
   'Photo ticket'                                        // P — URL Drive photo ticket
 ];
+
+// ─────────────────────────────────────────────────────────────
+//  S7 — Rate limiting : max 10 requêtes/min par client
+//  Clé CacheService : rl_<cid>_<minute> — TTL 90 s
+//  Retourne true si le client est bloqué, false sinon.
+// ─────────────────────────────────────────────────────────────
+function rateLimit(cid) {
+  if (!cid) return false;
+  try {
+    const cache = CacheService.getScriptCache();
+    const key   = 'rl_' + cid + '_' + Math.floor(Date.now() / 60000);
+    const count = Number(cache.get(key) || 0);
+    if (count >= 10) return true;
+    cache.put(key, String(count + 1), 90);
+    return false;
+  } catch (e) {
+    Logger.log('rateLimit error: ' + e.message);
+    return false;
+  }
+}
 
 // ─────────────────────────────────────────────────────────────
 //  doGet
@@ -148,6 +172,11 @@ function doPost(e) {
   // ── W17 — Scan ticket de caisse via Gemini Vision ──
   if (payload.action === 'scanTicket') {
     return handleScanTicket(payload.imageBase64, payload.mimeType);
+  }
+
+  // ── S7 — Rate limiting pour l'enregistrement d'un plein ──
+  if (rateLimit(payload.cid)) {
+    return jsonResponse({ success: false, error: 'Trop de requêtes. Réessayez dans une minute.' });
   }
 
   // ── Enregistrement d'un plein depuis l'app web (A→P, 16 col) ──

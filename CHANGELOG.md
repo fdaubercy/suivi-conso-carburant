@@ -4,6 +4,24 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.16.0.0] — 2026-05-28
+
+### Added
+- **W26 — Web Share API** : bouton 📤 sur chaque entrée historique → partage les détails d'un plein (type, litres, prix/L, station, date) via le menu natif iOS/Android. Détection de support : si `navigator.share` n'est pas disponible (desktop Chrome…), les boutons sont masqués via CSS (`body.no-share`). Délégation d'événements sur `#historiqueList` et `#histoireFullList` via `initHistoireShare()`.
+- **W15 — Auto-save brouillon** : à chaque frappe dans le formulaire (km, litres, prix, station, date, saisie manuelle), le brouillon est sauvegardé en localStorage (`suivi_e85_draft`). Au prochain chargement, il est restauré automatiquement après 800 ms (délai permettant aux stations de se charger) avec toast "📝 Brouillon restauré". Effacé après soumission réussie ou réinitialisation du formulaire via `clearDraft()`.
+- **S7 — Rate limiting côté GAS** : `rateLimit(cid)` dans `Code.gs` — max 10 requêtes/min par client via `CacheService.getScriptCache()`, clé `rl_<cid>_<minute>`, TTL 90 s. L'app génère et persiste un UUID client (`suivi_e85_client_id`) via `crypto.randomUUID()` et l'envoie dans chaque payload GAS (`cid`). GAS retourne `{ success: false, error: 'Trop de requêtes…' }` si le quota est dépassé.
+- **S9 — Audit dépendances npm** : job `audit` ajouté dans `.github/workflows/ci.yml` (`npm audit --audit-level=moderate`, non-bloquant `continue-on-error: true`). Nouveau fichier `.github/dependabot.yml` : MAJ npm hebdomadaires (lundi 09h00 Europe/Paris) + github-actions mensuellement.
+
+### Changed
+- **`js/config.js`** — Ajout de `DRAFT_KEY = 'suivi_e85_draft'` et `CLIENT_ID_KEY = 'suivi_e85_client_id'` ; `APP_VERSION` → `2.16.0.0`.
+- **`js/formulaire.js`** — Fonctions `saveDraft()`, `restoreDraft()`, `clearDraft()` exportées (W15) ; `_getClientId()` pour le rate limiting (S7) ; `submitForm()` inclut `cid` dans le payload ; `resetForm()` appelle `clearDraft()` et `updateRentabilite()`.
+- **`js/historique.js`** — `renderItem()` : ajout bouton `.hist-share` avec attributs `data-share-*` ; `initHistoireShare()` exportée (W26) avec détection `navigator.share` et délégation sur `#historiqueList` + `#histoireFullList`.
+- **`js/main.js`** — Imports `saveDraft`, `restoreDraft` depuis `formulaire.js` ; import `initHistoireShare` depuis `historique.js` ; import `showFeedback` depuis `ui.js` ; `setTimeout` 800 ms pour restauration du brouillon ; `saveDraft()` ajouté aux listeners `fDate`, `fKm`, `fLitres`, `fPrix`, `stationSel`, `fAutre` ; appel `initHistoireShare()`.
+- **`css/style.css`** — Styles `.hist-share` et `.hist-share:active` dans `.hist-row1` ; règle `body.no-share .hist-share { display: none }`.
+- **`Code.gs`** — Fonction `rateLimit(cid)` (S7) ; appel dans `doPost` avant l'enregistrement d'un plein ; version → `v2.16.0.0`.
+- **`.github/workflows/ci.yml`** — Ajout job `audit` (S9).
+- **`.github/dependabot.yml`** — Nouveau fichier Dependabot (S9).
+
 ## [2.15.0.1] — 2026-05-28
 
 ### Fixed

@@ -1,5 +1,5 @@
-/* ─── Formulaire — soumission et réinitialisation ─── */
-import { FUEL_CONFIG, FUEL_KEYS, GAS_URL } from './config.js';
+/* ─── Formulaire — soumission, réinitialisation et auto-save brouillon (W15) ─── */
+import { FUEL_CONFIG, FUEL_KEYS, GAS_URL, DRAFT_KEY, CLIENT_ID_KEY } from './config.js';
 import { state } from './state.js';
 import { setAutreStatus, hideCpSearch, setSubmitState, showFeedback, updateCout } from './ui.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
@@ -8,6 +8,81 @@ import { syncStationSiNouvelle } from './stations.js';
 import { chargerHistorique, getMaxKmForVehicule, getAllRecords } from './historique.js';
 import { updateRentabilite } from './rentabilite.js';
 import { queuePlein, updateOfflineBadge } from './offline.js';
+
+/* ─── Client ID persistant (S7 rate limiting) ─── */
+function _getClientId() {
+  try {
+    let id = localStorage.getItem(CLIENT_ID_KEY);
+    if (!id) {
+      id = crypto.randomUUID
+        ? crypto.randomUUID()
+        : (Date.now().toString(36) + Math.random().toString(36).slice(2));
+      localStorage.setItem(CLIENT_ID_KEY, id);
+    }
+    return id;
+  } catch { return ''; }
+}
+
+/* ═══════════════════════════════════════
+   W15 — Auto-save brouillon
+   ═══════════════════════════════════════ */
+
+/** Sauvegarde l'état courant du formulaire dans localStorage. */
+export function saveDraft() {
+  try {
+    const km     = document.getElementById('fKm')?.value     || '';
+    const litres = document.getElementById('fLitres')?.value || '';
+    const prix   = document.getElementById('fPrix')?.value   || '';
+    const autre  = document.getElementById('fAutre')?.value  || '';
+    // Ne sauvegarder que si au moins un champ rempli
+    if (!km && !litres && !prix && !autre) return;
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      date:    document.getElementById('fDate')?.value    || '',
+      km, litres, prix, autre,
+      station: document.getElementById('stationSel')?.value || '',
+      type:    state.currentType,
+    }));
+  } catch { /* quota / private mode */ }
+}
+
+/** Restaure le brouillon depuis localStorage. Retourne l'objet draft ou null. */
+export function restoreDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    if (!d.km && !d.litres && !d.prix && !d.autre) return null;
+
+    if (d.date)   document.getElementById('fDate').value   = d.date;
+    if (d.km)     document.getElementById('fKm').value     = d.km;
+    if (d.litres) document.getElementById('fLitres').value = d.litres;
+    if (d.prix)   { document.getElementById('fPrix').value = d.prix; }
+
+    if (d.autre) {
+      document.getElementById('fAutre').value = d.autre;
+      const sel = document.getElementById('stationSel');
+      if (sel) sel.value = '__autre';
+      document.getElementById('autreField')?.classList.remove('hidden');
+    } else if (d.station) {
+      const sel = document.getElementById('stationSel');
+      if (sel && Array.from(sel.options).some(o => o.value === d.station)) {
+        sel.value = d.station;
+      }
+    }
+    updateCout();
+    checkDuplicate();
+    return d;
+  } catch { return null; }
+}
+
+/** Efface le brouillon (appelé après soumission réussie ou reset). */
+export function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch { /* quota */ }
+}
+
+/* ═══════════════════════════════════════
+   Détection doublon + validation km
+   ═══════════════════════════════════════ */
 
 /**
  * Détection de doublon : warning si date + km + litres identiques à un enregistrement existant.
@@ -145,6 +220,7 @@ export async function submitForm() {
   const payload = {
     date, type: FUEL_CONFIG[state.currentType].label,
     km, litres, prix, station, vehicule, stationPrices,
+    cid: _getClientId(),   // S7 — rate limiting côté GAS
   };
 
   // W9 — joindre la photo du ticket si disponible
@@ -190,6 +266,7 @@ export async function submitForm() {
 }
 
 export function resetForm() {
+  clearDraft(); // W15 — effacer le brouillon après submit ou reset
   const n = new Date();
   document.getElementById('fDate').value = n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
   ['fKm', 'fLitres', 'fAutre'].forEach(id => document.getElementById(id).value = '');
@@ -204,6 +281,7 @@ export function resetForm() {
   state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
   evalRentabiliteE85();
   updateCout();
+  updateRentabilite();
 
   // W9 — effacer la photo du ticket
   state._ticketPhoto = null;

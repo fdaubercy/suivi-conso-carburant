@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
-   Suivi Conso E85 — Point d'entrée v2.14.0.0
+   Suivi Conso E85 — Point d'entrée v2.16.0.0
    ES Module : chargé en defer automatique
 ═══════════════════════════════════════ */
 import { APP_VERSION } from './config.js';
 import { state }       from './state.js';
-import { updateCout }  from './ui.js';
+import { updateCout, showFeedback }  from './ui.js';
 
 import { chargerVehicules, onVehiculeChange, confirmerAjoutVehicule } from './vehicules.js';
 import { showPinLabel, hideMap, initMapInteractions } from './carte.js';
@@ -12,10 +12,10 @@ import { _buildTypeToggle, setType, registerPriceCallback, initTypeToggle } from
 import { fetchPricesNearUser, fetchPricesByCP } from './prix.js';
 import { geolocate, pickStation, highlightNearbyItem, initNearbyList } from './geo.js';
 import { onAutreInput, setRadius } from './recherche.js';
-import { onStationChange, onKmInput, submitForm, resetForm, checkDuplicate } from './formulaire.js';
+import { onStationChange, onKmInput, submitForm, resetForm, checkDuplicate, saveDraft, restoreDraft } from './formulaire.js';
 import { chargerStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
-import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters } from './historique.js';
+import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters, initHistoireShare } from './historique.js';
 import { renderStats } from './stats.js';
 import { initScanner }       from './ticket.js';
 import { initPWA }           from './pwa.js';
@@ -38,6 +38,15 @@ registerPriceCallback(fetchPricesNearUser);
 chargerStations();
 chargerVehicules();
 chargerHistorique();
+
+/* ─── W15 — Restaurer le brouillon après init async des stations/véhicules ─── */
+setTimeout(() => {
+  const d = restoreDraft();
+  if (d) {
+    if (d.type && typeof window.setType === 'function') window.setType(d.type);
+    showFeedback('info', '📝 Brouillon restauré', 'Vos données précédentes ont été récupérées.');
+  }
+}, 800);
 
 /* ─── Scanner ticket de caisse (W17) ─── */
 initScanner();
@@ -68,18 +77,18 @@ function initStaticHandlers() {
   });
   document.getElementById('vehiculeAjouterBtn')?.addEventListener('click', confirmerAjoutVehicule);
 
-  // Formulaire
-  document.getElementById('fDate')?.addEventListener('change', checkDuplicate);
-  document.getElementById('fKm')?.addEventListener('input', () => { onKmInput(); checkDuplicate(); });
-  document.getElementById('fLitres')?.addEventListener('input', () => { updateCout(); checkDuplicate(); });
-  document.getElementById('fPrix')?.addEventListener('input', updateCout);
+  // Formulaire — W15 : saveDraft sur chaque modification
+  document.getElementById('fDate')?.addEventListener('change', () => { checkDuplicate(); saveDraft(); });
+  document.getElementById('fKm')?.addEventListener('input', () => { onKmInput(); checkDuplicate(); saveDraft(); });
+  document.getElementById('fLitres')?.addEventListener('input', () => { updateCout(); checkDuplicate(); saveDraft(); });
+  document.getElementById('fPrix')?.addEventListener('input', () => { updateCout(); saveDraft(); });
   document.getElementById('fCp')?.addEventListener('keydown', e => { if (e.key === 'Enter') fetchPricesByCP(); });
   document.getElementById('cpSearchBtn')?.addEventListener('click', fetchPricesByCP);
 
-  // Station
-  document.getElementById('stationSel')?.addEventListener('change', onStationChange);
+  // Station — W15 : saveDraft sur changement station/saisie manuelle
+  document.getElementById('stationSel')?.addEventListener('change', () => { onStationChange(); saveDraft(); });
   document.getElementById('geoBtn')?.addEventListener('click', geolocate);
-  document.getElementById('fAutre')?.addEventListener('input', onAutreInput);
+  document.getElementById('fAutre')?.addEventListener('input', () => { onAutreInput(); saveDraft(); });
 
   // Radius — délégation sur #autreField (les boutons ont déjà data-m)
   document.getElementById('autreField')?.addEventListener('click', e => {
@@ -106,6 +115,7 @@ initTypeToggle();      // carburant.js — délégation sur #typeToggle
 initNearbyList();      // geo.js — délégation sur #nearbyList
 initMapInteractions(); // carte.js — délégation sur #stationMap
 initHistoireFilters(); // historique.js — filtres historique complet (W32)
+initHistoireShare();   // historique.js — W26 Web Share API
 
 /* ─── Exposition globale minimale (requise par modules non-importants) ─── */
 Object.assign(window, {
