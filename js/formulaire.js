@@ -265,6 +265,95 @@ export async function submitForm() {
   }
 }
 
+/* ═══════════════════════════════════════
+   W35 — Saisie km par dictée vocale
+   ═══════════════════════════════════════ */
+
+/** Convertit une chaîne parlée en entier (gère chiffres + mots français courants). */
+function _parseSpeechToNumber(text) {
+  const t = text.trim().toLowerCase();
+  // Cas numérique direct : "12 430", "12.430", "12,430", "12430"
+  const stripped = t.replace(/[\s.,]/g, '');
+  if (/^\d+$/.test(stripped)) return parseInt(stripped, 10);
+  // Premier bloc de chiffres séparés par espaces/ponctuation
+  const m = t.match(/\d[\d\s.,]*/);
+  if (m) {
+    const n = parseInt(m[0].replace(/[\s.,]/g, ''), 10);
+    if (!isNaN(n) && n > 0) return n;
+  }
+  // Mots français (fallback)
+  const UNITS = {
+    'zéro':0,'zero':0,'un':1,'une':1,'deux':2,'trois':3,'quatre':4,
+    'cinq':5,'six':6,'sept':7,'huit':8,'neuf':9,'dix':10,'onze':11,
+    'douze':12,'treize':13,'quatorze':14,'quinze':15,'seize':16,
+    'dix-sept':17,'dix-huit':18,'dix-neuf':19,'vingt':20,'trente':30,
+    'quarante':40,'cinquante':50,'soixante':60,'soixante-dix':70,
+    'quatre-vingt':80,'quatre-vingt-dix':90,'cent':100,'cents':100,'mille':1000,
+  };
+  let total = 0, current = 0;
+  for (const w of t.split(/[\s-]+/)) {
+    const v = UNITS[w];
+    if (v === undefined) continue;
+    if (v === 1000) { current = current || 1; total += current * 1000; current = 0; }
+    else if (v === 100) { current = current || 1; current *= 100; }
+    else current += v;
+  }
+  total += current;
+  return total > 0 ? total : NaN;
+}
+
+/**
+ * W35 — Initialise le bouton 🎤 pour dicter le kilométrage.
+ * Masqué automatiquement si SpeechRecognition n'est pas disponible.
+ */
+export function initVoiceKm() {
+  const btn = document.getElementById('voiceKmBtn');
+  if (!btn) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { btn.style.display = 'none'; return; }
+
+  const rec = new SR();
+  rec.lang = 'fr-FR';
+  rec.continuous = false;
+  rec.interimResults = false;
+
+  let listening = false;
+
+  const stop = () => {
+    listening = false;
+    btn.classList.remove('mic-active');
+    btn.title = 'Dicter le kilométrage';
+  };
+
+  rec.onresult = e => {
+    const transcript = e.results[0][0].transcript;
+    const num = _parseSpeechToNumber(transcript);
+    if (num > 0) {
+      const inp = document.getElementById('fKm');
+      if (inp) {
+        inp.value = num;
+        onKmInput();
+        checkDuplicate();
+        saveDraft();
+      }
+    }
+    stop();
+  };
+  rec.onerror = stop;
+  rec.onend   = stop;
+
+  btn.addEventListener('click', () => {
+    if (listening) {
+      rec.stop();
+    } else {
+      listening = true;
+      btn.classList.add('mic-active');
+      btn.title = 'Écoute en cours…';
+      try { rec.start(); } catch { stop(); }
+    }
+  });
+}
+
 export function resetForm() {
   clearDraft(); // W15 — effacer le brouillon après submit ou reset
   const n = new Date();

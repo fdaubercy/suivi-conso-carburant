@@ -12,11 +12,11 @@ import { _buildTypeToggle, setType, registerPriceCallback, initTypeToggle } from
 import { fetchPricesNearUser, fetchPricesByCP } from './prix.js';
 import { geolocate, pickStation, highlightNearbyItem, initNearbyList } from './geo.js';
 import { onAutreInput, setRadius } from './recherche.js';
-import { onStationChange, onKmInput, submitForm, resetForm, checkDuplicate, saveDraft, restoreDraft } from './formulaire.js';
+import { onStationChange, onKmInput, submitForm, resetForm, checkDuplicate, saveDraft, restoreDraft, initVoiceKm } from './formulaire.js';
 import { chargerStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
 import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters, initHistoireShare } from './historique.js';
-import { renderStats, initSparkToggles } from './stats.js';
+import { renderStats, initSparkToggles, getNextKmPrediction } from './stats.js';
 import { initScanner }       from './ticket.js';
 import { initPWA }           from './pwa.js';
 import { initOffline, syncQueue } from './offline.js';
@@ -39,12 +39,18 @@ chargerStations();
 chargerVehicules();
 chargerHistorique();
 
-/* ─── W15 — Restaurer le brouillon après init async des stations/véhicules ─── */
+/* ─── W15 + W35 — Restaurer brouillon + pré-remplir km depuis la prédiction ─── */
 setTimeout(() => {
   const d = restoreDraft();
   if (d) {
     if (d.type && typeof window.setType === 'function') window.setType(d.type);
     showFeedback('info', '📝 Brouillon restauré', 'Vos données précédentes ont été récupérées.');
+  }
+  // W35 — pré-remplir fKm si vide (pas de brouillon avec km)
+  const fKm = document.getElementById('fKm');
+  if (fKm && !fKm.value) {
+    const predicted = getNextKmPrediction();
+    if (predicted) { fKm.value = predicted; onKmInput(); }
   }
 }, 800);
 
@@ -117,6 +123,7 @@ initMapInteractions(); // carte.js — délégation sur #stationMap
 initHistoireFilters(); // historique.js — filtres historique complet (W32)
 initHistoireShare();   // historique.js — W26 Web Share API
 initSparkToggles();    // stats.js — W34 filtres sparkline multi-carburant
+initVoiceKm();         // formulaire.js — W35 dictée vocale km
 
 /* ─── Exposition globale minimale (requise par modules non-importants) ─── */
 Object.assign(window, {

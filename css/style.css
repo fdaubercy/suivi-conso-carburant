@@ -328,6 +328,40 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
 /* ─── Statut prix (affiché pour tous carburants) ─── */
 #s98Status { margin-top: 6px; }
 
+/* ─── W35 — Saisie km : wrapper + bouton micro ─── */
+.km-input-wrap {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.km-input-wrap input { flex: 1; min-width: 0; }
+.voice-btn {
+  flex-shrink: 0;
+  width: 40px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color .15s, background .15s, color .15s;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
+  color: var(--text-muted);
+}
+.voice-btn:active { background: var(--hover); }
+.voice-btn.mic-active {
+  border-color: var(--red);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+  color: var(--red);
+  animation: mic-pulse 1s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--red) 35%, transparent); }
+  50%       { box-shadow: 0 0 0 5px transparent; }
+}
+
 /* ─── Validation km rétrograde ─── */
 .km-warn {
   font-size: 11px;

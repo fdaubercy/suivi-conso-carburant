@@ -94,7 +94,17 @@
     </div>
     <div class="field">
       <label for="fKm">Km compteur</label>
-      <input type="number" id="fKm" placeholder="11 596" inputmode="numeric">
+      <div class="km-input-wrap">
+        <input type="number" id="fKm" placeholder="11 596" inputmode="numeric">
+        <button type="button" id="voiceKmBtn" class="voice-btn" title="Dicter le kilométrage">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/>
+            <path d="M5 11a7 7 0 0 0 14 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="8" y1="22" x2="16" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
       <div class="km-warn" id="kmWarn"></div>
     </div>
   </div>

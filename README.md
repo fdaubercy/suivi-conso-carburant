@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v2.17.0.0**
+> 🔖 Version courante : **v3.0.0.0**
 
 ## 🌐 Accès
 
@@ -133,6 +133,14 @@ Bouton **📜** dans la carte "Derniers pleins" → carte `#histoireFullCard` af
 - Auto-rafraîchi à chaque rechargement de l'historique
 - **Sync différentielle** : l'historique est mis en cache en localStorage (`suivi_e85_hist_cache`). Seuls les enregistrements postérieurs à la dernière sync (`suivi_e85_hist_since`) sont téléchargés — les sessions suivantes sont quasi-instantanées. En cas d'erreur réseau, le cache local est utilisé en fallback.
 
+### 🎤 Saisie km mains-libres (W35)
+Le champ **Km compteur** est pré-rempli automatiquement au démarrage avec le kilométrage estimé par W33 (prochain plein prédit). Un bouton **🎤** permet de dicter le kilométrage à voix haute — conçu pour les motards avec des gants.
+
+- Reconnaissance vocale `SpeechRecognition fr-FR` (API Web Speech, aucune clé requise)
+- Interprète chiffres parlés : "douze mille quatre cent trente" → `12430`
+- Pulse en rouge pendant l'écoute ; masqué si l'API n'est pas disponible (Firefox desktop)
+- Après reconnaissance : champ rempli, validation km et contrôle doublon déclenchés automatiquement
+
 ### 🔮 Prédiction prochain plein (W33)
 Affiché dans la carte Statistiques sous la sparkline : **"Prochain plein dans ~X km · ~Y j"**
 et l'estimation du prochain compteur.
@@ -211,11 +219,11 @@ suivi-e85/
 │   ├── rentabilite.js               # Badge rentabilité E85 vs SP98 (W5)
 │   ├── geo.js                       # Géoloc + liste stations proches + W30 comparateur + W31 cache localStorage
 │   ├── recherche.js                 # Recherche manuelle par ville
-│   ├── formulaire.js                # Soumission, réinitialisation, détection doublons, auto-save brouillon W15
+│   ├── formulaire.js                # Soumission, réinitialisation, détection doublons, auto-save brouillon W15, dictée vocale km W35
 │   ├── stations.js                  # Chargement liste stations Google Sheets
 │   ├── theme.js                     # Dark mode (toggle + persist localStorage)
 │   ├── historique.js                # 5 derniers pleins + W32 historique complet + filtres + W26 Web Share
-│   ├── stats.js                     # Stats live 4 KPIs + sparkline multi-carburant W28+W34 + prédiction W33
+│   ├── stats.js                     # Stats live 4 KPIs + sparkline multi-carburant W28+W34 + prédiction W33 + getNextKmPrediction W35
 │   ├── stationsmap.js               # Carte statique stations habituelles + prix moyens
 │   ├── pwa.js                       # Installation PWA Android/iOS + bannière update W23 (W4)
 │   └── ticket.js                    # Scan ticket OCR Tesseract.js + photo base64 W9 (W17)
@@ -291,7 +299,7 @@ Actions `doPost` disponibles :
 Dans `js/config.js` :
 
 ```javascript
-export const APP_VERSION    = '2.17.0.0';
+export const APP_VERSION    = '3.0.0.0';
 export const GAS_URL        = 'https://script.google.com/macros/s/VOTRE_ID_GAS/exec';
 export const GS_SHEET_ID    = 'VOTRE_ID_GOOGLE_SHEET';
 export const HIST_CACHE_KEY = 'suivi_e85_hist_cache';   // cache localStorage historique

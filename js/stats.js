@@ -250,13 +250,9 @@ function computeStats() {
   };
 }
 
-/**
- * W33 — Prédiction prochain plein basée sur l'intervalle moyen entre pleins.
- * Renvoie '' si moins de 3 pleins disponibles.
- */
-function buildPrediction() {
+/** W33 — Calcule les données de prédiction (partagé par buildPrediction + getNextKmPrediction). */
+function _computePrediction(veh) {
   const all = getAllRecords();
-  const veh = state.currentVehiculeNom;
 
   const records = (veh
     ? all.filter(r => (r['Véhicule'] || r['Vehicule'] || '') === veh)
@@ -269,7 +265,7 @@ function buildPrediction() {
     return da - db;
   });
 
-  if (records.length < 3) return '';
+  if (records.length < 3) return null;
 
   const kmDeltas  = [];
   const dayDeltas = [];
@@ -287,7 +283,7 @@ function buildPrediction() {
     }
   }
 
-  if (kmDeltas.length < 2) return '';
+  if (kmDeltas.length < 2) return null;
 
   const avgKm  = Math.round(kmDeltas.reduce((s, v) => s + v, 0) / kmDeltas.length);
   const avgDay = dayDeltas.length
@@ -295,7 +291,27 @@ function buildPrediction() {
     : null;
 
   const lastKm = Number(records[records.length - 1]['Km compteur']);
-  const nextKm = lastKm + avgKm;
+  return { avgKm, avgDay, lastKm, nextKm: lastKm + avgKm, count: kmDeltas.length };
+}
+
+/**
+ * W35 — Retourne le prochain kilométrage estimé (pour pré-remplissage du champ fKm).
+ * Retourne null si pas assez de données.
+ */
+export function getNextKmPrediction() {
+  const data = _computePrediction(state.currentVehiculeNom);
+  return data ? data.nextKm : null;
+}
+
+/**
+ * W33 — Prédiction prochain plein basée sur l'intervalle moyen entre pleins.
+ * Renvoie '' si moins de 3 pleins disponibles.
+ */
+function buildPrediction() {
+  const data = _computePrediction(state.currentVehiculeNom);
+  if (!data) return '';
+
+  const { avgKm, avgDay, nextKm, count } = data;
 
   const daysStr = avgDay ? ` · ~${avgDay} j` : '';
 
@@ -304,7 +320,7 @@ function buildPrediction() {
       <span class="pred-icon">🔮</span>
       <div class="pred-content">
         <div class="pred-main">Prochain plein dans <strong>~${avgKm.toLocaleString('fr-FR')} km</strong>${daysStr}</div>
-        <div class="pred-sub">vers ${nextKm.toLocaleString('fr-FR')} km · basé sur ${kmDeltas.length} plein${kmDeltas.length > 1 ? 's' : ''}</div>
+        <div class="pred-sub">vers ${nextKm.toLocaleString('fr-FR')} km · basé sur ${count} plein${count > 1 ? 's' : ''}</div>
       </div>
     </div>`;
 }

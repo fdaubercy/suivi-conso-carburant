@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.0.0.0] — 2026-05-28
+
+### Added
+- **W35 — Pré-remplissage km + dictée vocale** : le champ "Km compteur" est pré-rempli automatiquement au démarrage avec la valeur estimée par W33 (prochain kilométrage prédit), si aucun brouillon n'est en cours. Bouton **🎤** à côté du champ : un tap lance la reconnaissance vocale (`SpeechRecognition fr-FR`), l'utilisateur dicte le kilométrage (ex. "douze mille quatre cent trente"), le champ est rempli et validé automatiquement. Le bouton pulse en rouge pendant l'écoute. Masqué automatiquement sur les navigateurs sans `SpeechRecognition`. Conçu pour les utilisateurs portant des gants (moto).
+
+### Changed
+- **`js/stats.js`** — Refactoring `buildPrediction()` : extraction de `_computePrediction(veh)` (helper partagé retournant `{ avgKm, avgDay, lastKm, nextKm, count }` ou `null`) ; nouvelle export `getNextKmPrediction()` pour le pré-remplissage du champ km (W35).
+- **`js/formulaire.js`** — Ajout `initVoiceKm()` (W35) : `SpeechRecognition fr-FR`, parser `_parseSpeechToNumber()` (chiffres directs + mots français courants), gestion état `mic-active`, appels `onKmInput()` / `checkDuplicate()` / `saveDraft()` après reconnaissance.
+- **`js/main.js`** — Imports `initVoiceKm` + `getNextKmPrediction` ; pré-remplissage `fKm` dans le `setTimeout` 800 ms (W35) ; appel `initVoiceKm()` dans la séquence d'init.
+- **`index.html`** — Champ `fKm` enveloppé dans `.km-input-wrap` avec bouton `#voiceKmBtn`.
+- **`css/style.css`** — Styles `.km-input-wrap`, `.voice-btn`, `.voice-btn.mic-active`, animation `@keyframes mic-pulse` ; icône SVG mic style iOS (`currentColor`, rouge pendant l'écoute).
+- **`js/config.js`** — `APP_VERSION` → `3.0.0.0`.
+
 ## [2.17.0.0] — 2026-05-28
 
 ### Added
