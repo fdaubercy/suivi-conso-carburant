@@ -755,6 +755,21 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
 .hist-share:active { background: var(--toggle-bg); }
 body.no-share .hist-share { display: none; }
 
+/* Bouton Supprimer dans hist-row1 */
+.hist-delete {
+  background: transparent; border: none;
+  font-size: 13px; line-height: 1;
+  width: 24px; height: 24px;
+  border-radius: 4px;
+  color: var(--text-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0; flex-shrink: 0;
+  transition: background .15s;
+}
+.hist-delete:active { background: var(--toggle-bg); }
+.hist-delete:disabled { opacity: .4; cursor: default; }
+
 .hist-row2 {
   display: flex; align-items: center; justify-content: space-between;
   font-size: 12px; color: var(--text-muted); margin-top: 2px;

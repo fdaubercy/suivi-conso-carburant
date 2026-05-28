@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.1.0.5] — 2026-05-29
+
+### Added
+- **Suppression d'un plein (UI + Google Sheet)** : chaque entrée de l'historique (liste des 5 derniers pleins et historique complet) affiche désormais un bouton 🗑️. Au clic, une confirmation est demandée, puis la ligne correspondante est supprimée dans le Google Sheet `_ImportGS` (action `deletePlein`, recherche par `sync_id` colonne O) ainsi que du cache local et de l'affichage. Les statistiques et la carte des stations sont rafraîchies.
+
+### Changed
+- **`js/historique.js`** — bouton 🗑️ (`data-sync-id`) ajouté à `renderItem()` ; nouvelles fonctions `initHistoireDelete()` (délégation sur `#historiqueList` et `#histoireFullList`) et `_renderLists()` (réaffichage après suppression).
+- **`js/main.js`** — import et appel de `initHistoireDelete()`.
+- **`Code.gs`** — nouvelle action `deletePlein` + fonction `handleDeletePlein(ss, syncId)` (suppression de la ligne par `sync_id`, col O index 14). Version backend → `v3.1.0.5`. ⚠️ Nécessite un **redéploiement** de l'application web.
+- **`css/style.css`** — style `.hist-delete` (calqué sur `.hist-share`).
+- **`js/config.js`** — `APP_VERSION` → `3.1.0.5`.
+
 ## [3.1.0.4] — 2026-05-29
 
 ### Added

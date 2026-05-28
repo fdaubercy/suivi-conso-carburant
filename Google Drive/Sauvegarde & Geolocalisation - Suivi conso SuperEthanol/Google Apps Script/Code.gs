@@ -1,5 +1,5 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend               v3.1.0.4
+//  SUIVI CONSO E85 — Web App Backend               v3.1.0.5
 //
 //  ⚠️  BREAKING CHANGE v2.3.0.0 : suppression colonne G "Prix S98 jour"
 //  La colonne K "SP98 station (€/L)" est désormais la seule source SP98.
@@ -163,6 +163,11 @@ function doPost(e) {
     return jsonResponse({ success: true });
   }
 
+  // ── Suppression d'un plein par sync_id (col O, index 14) ──
+  if (payload.action === 'deletePlein') {
+    return handleDeletePlein(ss, payload.sync_id);
+  }
+
   if (payload.action === 'bulkAdd') {
     return handleBulkAdd(ss, payload.rows || []);
   }
@@ -314,6 +319,26 @@ function handleScanTicket(imageBase64, mimeType) {
   } catch (err) {
     return jsonResponse({ success: false, error: err.message });
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  handleDeletePlein — supprime la ligne dont sync_id (col O = index 14)
+//  correspond. Parcourt de la dernière ligne vers la 1ère (saute l'en-tête).
+// ─────────────────────────────────────────────────────────────
+function handleDeletePlein(ss, syncId) {
+  if (!syncId) return jsonResponse({ success: false, error: 'sync_id manquant' });
+
+  const sheet = getOrCreateSheet(ss);
+  const data  = sheet.getDataRange().getValues();
+  const target = String(syncId);
+
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (String(data[i][14]) === target) {
+      sheet.deleteRow(i + 1);
+      return jsonResponse({ success: true });
+    }
+  }
+  return jsonResponse({ success: false, error: 'Plein introuvable (sync_id inconnu)' });
 }
 
 // ─────────────────────────────────────────────────────────────

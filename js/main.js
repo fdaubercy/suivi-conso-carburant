@@ -15,7 +15,7 @@ import { onAutreInput, setRadius } from './recherche.js';
 import { onStationChange, onKmInput, submitForm, resetForm, checkDuplicate, saveDraft, restoreDraft, initVoiceKm } from './formulaire.js';
 import { chargerStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
-import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters, initHistoireShare, getMaxKmForVehicule } from './historique.js';
+import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule } from './historique.js';
 import { renderStats, initSparkToggles, getNextKmPrediction } from './stats.js';
 import { initScanner }       from './ticket.js';
 import { initPWA }           from './pwa.js';
@@ -127,6 +127,7 @@ initNearbyList();      // geo.js — délégation sur #nearbyList
 initMapInteractions(); // carte.js — délégation sur #stationMap
 initHistoireFilters(); // historique.js — filtres historique complet (W32)
 initHistoireShare();   // historique.js — W26 Web Share API
+initHistoireDelete();  // historique.js — suppression d'un plein (UI + GoogleSheet)
 initSparkToggles();    // stats.js — W34 filtres sparkline multi-carburant
 initVoiceKm();         // formulaire.js — W35 dictée vocale km
 

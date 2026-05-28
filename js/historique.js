@@ -299,6 +299,81 @@ export function initHistoireShare() {
   document.getElementById('histoireFullList')?.addEventListener('click', handler);
 }
 
+/* ═══════════════════════════════════════
+   Suppression d'un plein (UI + GoogleSheet)
+   ═══════════════════════════════════════ */
+
+/** Réaffiche les 5 derniers pleins + l'historique complet ouvert. */
+function _renderLists() {
+  const el = document.getElementById('historiqueList');
+  if (el) {
+    if (!_allRecords.length) {
+      el.innerHTML = '<div class="hist-msg">Aucun plein enregistré.</div>';
+      _lastRecord = null;
+    } else {
+      const recent = _allRecords
+        .slice()
+        .sort((a, b) => (b.Horodatage || '').localeCompare(a.Horodatage || ''))
+        .slice(0, 5);
+      _lastRecord = recent[0];
+      el.innerHTML = recent.map(renderItem).join('');
+    }
+  }
+  renderStats();
+  renderStationsCard();
+
+  const fullCard = document.getElementById('histoireFullCard');
+  if (fullCard && !fullCard.hidden) {
+    renderFullHistory(
+      document.getElementById('histVehFilter')?.value || '',
+      document.getElementById('histTypeFilter')?.value || ''
+    );
+  }
+}
+
+/**
+ * Câble le bouton "Supprimer" 🗑️ sur les entrées historique (délégation d'événements).
+ * Confirme, supprime la ligne dans le GoogleSheet (action=deletePlein via sync_id),
+ * puis retire l'enregistrement du cache et réaffiche les listes.
+ */
+export function initHistoireDelete() {
+  const handler = async (e) => {
+    const btn = e.target.closest('.hist-delete');
+    if (!btn) return;
+
+    const sid = String(btn.dataset.syncId || '');
+    if (!sid) return;
+
+    if (!window.confirm('Supprimer définitivement ce plein ?\nCette action est irréversible.')) return;
+
+    btn.disabled = true;
+    try {
+      const resp = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'deletePlein', sync_id: sid }),
+        redirect: 'follow',
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const result = await resp.json().catch(() => ({}));
+      if (result && result.success === false) {
+        throw new Error(result.error || 'suppression refusée');
+      }
+
+      _allRecords = _allRecords.filter(r => String(r.sync_id || '') !== sid);
+      _saveCache(_allRecords);
+      _renderLists();
+      showFeedback('success', 'Plein supprimé ✓', 'L\'enregistrement a été retiré.');
+    } catch (err) {
+      btn.disabled = false;
+      showFeedback('error', 'Suppression échouée', err.message || 'erreur réseau');
+    }
+  };
+
+  document.getElementById('historiqueList')?.addEventListener('click', handler);
+  document.getElementById('histoireFullList')?.addEventListener('click', handler);
+}
+
 /* ─── Helpers ─── */
 function setSelectValue(id, value) {
   const sel = document.getElementById(id);
@@ -319,6 +394,13 @@ function renderItem(r) {
   const total   = (Number(litres) * Number(prix)).toFixed(2);
   const station = String(r['Station essence'] || '—').slice(0, 40);
   const type    = escapeHtml(r.Type || '');
+  const syncId  = String(r.sync_id || '');
+
+  const deleteBtn = syncId
+    ? `<button class="hist-delete" type="button"
+          data-sync-id="${escapeHtml(syncId)}"
+          aria-label="Supprimer ce plein">🗑️</button>`
+    : '';
 
   return `
     <div class="hist-item">
@@ -333,6 +415,7 @@ function renderItem(r) {
           data-share-date="${date}"
           data-share-type="${type}"
           aria-label="Partager ce plein">📤</button>
+        ${deleteBtn}
       </div>
       <div class="hist-row2">
         <span>${litres} L · ${prix} €/L</span>
