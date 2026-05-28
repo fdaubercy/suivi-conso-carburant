@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [2.15.0.1] — 2026-05-28
+
+### Fixed
+- **CSP `connect-src`** : ajout de `https://script.googleusercontent.com` dans la directive `connect-src` (index.html + `_headers`). Les appels GAS redirigent de `script.google.com` vers `script.googleusercontent.com` — l'absence de ce domaine bloquait silencieusement tous les fetch GAS (historique, soumission de pleins), provoquant "Failed to fetch" dans la carte "5 Derniers Pleins" et l'état "Chargement…" figé dans la carte Statistiques.
+- **`js/config.js`** — `APP_VERSION` → `2.15.0.1`.
+
 ## [2.15.0.0] — 2026-05-28
 
 ### Added
