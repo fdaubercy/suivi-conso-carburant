@@ -144,6 +144,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.1.0.5 | **Suppression d'un plein** — bouton 🗑️ sur chaque entrée d'historique ; confirmation puis suppression dans le Google Sheet `_ImportGS` (action `deletePlein` par `sync_id`), du cache local et de l'affichage ; stats + carte rafraîchies (`initHistoireDelete`, `handleDeletePlein`) |
 | v3.1.0.6 | **Fix suppression « sync_id inconnu »** — `handleDeletePlein()` retrouve la colonne `sync_id` par en-tête (comme `handleExport`) au lieu d'un index codé en dur, comparaison après `trim()` |
 | v3.1.0.7 | **Stations à jour automatiquement** — menu déroulant = union des stations curées (feuille « Stations » GS) ∪ stations vues dans l'historique des pleins (`mergeHistoryStations`) ; synchro Excel VBA pousse `tbl_stationEssence` → feuille « Stations » à chaque sync (`PushStationsToGS`) ; liste ne peut plus disparaître |
+| v3.1.0.8 | **Fix import Excel « Erreur 13 »** — `ModuleImportGS` lisait le prix SP98 en colonne 7 (= Station essence, texte) → crash `ToDouble`. Corrigé : colonne SP98 détectée par en-tête + `ToDouble` blindé. Effet de bord résolu : la repousse auto des stations (en fin d'import) refonctionne |
 
 ---
 

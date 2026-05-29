@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.1.0.8] — 2026-05-29
+
+### Fixed
+- **Excel — « Import échoué : Erreur 13 Incompatibilité de type »** : `ModuleImportGS.ImporterNouveauxPleins` lisait le prix SP98 dans la **colonne 7** (mapping hérité de l'ancienne colonne G « Prix S98 jour » supprimée en v2.3). Or la colonne 7 de l'export est désormais **« Station essence »** (texte) → `ToDouble("E.Leclerc - Beuvry")` levait l'erreur 13 et l'import entier échouait. Conséquence cachée : l'import plantant **avant** l'appel final `SyncStationsVersGoogleSheets`, la liste curée des stations n'était jamais repoussée vers le Google Sheet (d'où sa « disparition »).
+- Correctifs (`vba/ModuleImportGS.bas`, à **réimporter** dans le classeur) : (1) le prix SP98 est lu depuis la colonne **détectée par en-tête** (« SP98 station (€/L) »), jamais la colonne 7 ; (2) `ToDouble()` est blindé (`On Error` → 0) et ne peut plus jamais lever d'erreur 13 sur du texte.
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.1.0.8`.
+- **`vba/ModuleImportGS.bas`** — module exporté du classeur dans le dépôt (était auparavant uniquement interne au `.xlsm`).
+
 ## [3.1.0.7] — 2026-05-29
 
 ### Added
