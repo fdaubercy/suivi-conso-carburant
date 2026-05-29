@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.1.0.11] — 2026-05-29
+
+### Fixed
+- **Excel — doublons à l'import** : la déduplication reposait sur un repère d'horodatage (`Z1`), or la colonne *Horodatage* du Google Sheet est incohérente (la plupart des lignes n'ont pas d'heure) → repère inexploitable, l'import re-ajoutait des pleins déjà présents. Remplacé par une **déduplication par contenu** (`PleinKey` = `date|km|litres`) : un index des pleins déjà présents dans la table *Suivi Carburant* est construit avant la boucle, et chaque ligne entrante déjà connue est ignorée (y compris les doublons au sein d'un même lot). L'import devient idempotent quel que soit l'état de `Z1`.
+- À **réimporter** dans le classeur (`vba/ModuleImportGS.bas`).
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.1.0.11`.
+
 ## [3.1.0.10] — 2026-05-29
 
 ### Fixed

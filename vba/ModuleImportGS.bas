@@ -93,6 +93,20 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
         Exit Sub
     End If
 
+    ' Index des pleins déjà présents (déduplication robuste par contenu : date|km|litres)
+    Dim existing As Object
+    Set existing = CreateObject("Scripting.Dictionary")
+    existing.CompareMode = vbTextCompare
+    Dim rrSuivi As ListRow, cleEx As String
+    If Not tbl.DataBodyRange Is Nothing Then
+        For Each rrSuivi In tbl.ListRows
+            cleEx = PleinKey(rrSuivi.Range.Cells(1, 2).Value, _
+                             rrSuivi.Range.Cells(1, 4).Value, _
+                             rrSuivi.Range.Cells(1, 6).Value)
+            If Len(cleEx) > 0 Then existing(cleEx) = True
+        Next rrSuivi
+    End If
+
     nbTotal = tblImport.ListRows.count
     nbImportes = 0
     i = 0
@@ -112,8 +126,8 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
         If Err.Number <> 0 Then Err.Clear: GoTo NextLigne
         On Error GoTo GestionErreur
 
-        ' Déjà importé ?
-        If horodatage <= dernierHorodatage Then GoTo NextLigne
+        ' (Déduplication par contenu plus bas — l'horodatage du Google Sheet
+        '  est peu fiable : certaines lignes n'ont pas d'heure.)
 
         ' Parser les champs obligatoires — skip si erreur
         On Error Resume Next
@@ -125,8 +139,14 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
         If Err.Number <> 0 Then Err.Clear: GoTo NextLigne
         On Error GoTo GestionErreur
 
-        ' ? Ignorer les lignes poubelles (syncStations parasite, action sans données, etc.)
+        ' Ignorer les lignes poubelles (syncStations parasite, action sans données, etc.)
         If kmVal = 0 Or litresVal = 0 Or prixVal = 0 Then GoTo NextLigne
+
+        ' Déjà présent ? Déduplication robuste par contenu (date|km|litres)
+        Dim cle As String
+        cle = PleinKey(dateValue, kmVal, litresVal)
+        If existing.Exists(cle) Then GoTo NextLigne
+        existing(cle) = True   ' évite aussi les doublons au sein du même lot
 
         ' Prix SP98 station (optionnel) — colonne detectee par en-tete, jamais la 7 (= Station essence)
         prixS98Val = Empty
@@ -471,6 +491,19 @@ End Sub
 Public Sub ResetStatus()
     Application.StatusBar = False
 End Sub
+
+' Clé naturelle d'un plein pour la déduplication (insensible au format de date)
+Private Function PleinKey(vDate As Variant, vKm As Variant, vLitres As Variant) As String
+    Dim ds As String
+    On Error Resume Next
+    If IsDate(vDate) Then
+        ds = Format(CDate(vDate), "yyyymmdd")
+    Else
+        ds = Trim(CStr(vDate))
+    End If
+    PleinKey = ds & "|" & CStr(CLng(ToDouble(vKm))) & "|" & Format(ToDouble(vLitres), "0.00")
+    On Error GoTo 0
+End Function
 
 Private Function ToDouble(v As Variant) As Double
     ' Robuste : ne leve jamais d'erreur 13 (texte non numerique -> 0)
