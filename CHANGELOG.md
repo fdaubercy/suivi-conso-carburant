@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.1.0.9] — 2026-05-29
+
+### Changed
+- **Encart « 📵 Mode hors-ligne » affiché uniquement hors-ligne** : auparavant toujours visible dans les Paramètres, il n'apparaît désormais que lorsque l'appareil est réellement hors-ligne (`navigator.onLine === false`), et disparaît au retour du réseau.
+
+### Added
+- Feedback « 📵 Hors-ligne » au passage hors-ligne (événement `offline`), en complément du « 🌐 Connexion rétablie » existant.
+
+### Fixed
+- **`index.html`** — la ligne `#offlineRow` est `hidden` par défaut.
+- **`js/offline.js`** — nouvelle `updateOfflineRow()` (bascule selon `navigator.onLine`) appelée à l'init et sur les événements `online`/`offline`.
+- **`js/config.js`** — `APP_VERSION` → `3.1.0.9`.
+
 ## [3.1.0.8] — 2026-05-29
 
 ### Fixed

@@ -97,16 +97,32 @@ export function updateOfflineBadge() {
   }
 }
 
+/* ─── Encart « Mode hors-ligne » (visible seulement hors-ligne) ──────── */
+
+export function updateOfflineRow() {
+  const row = document.getElementById('offlineRow');
+  if (!row) return;
+  row.hidden = navigator.onLine;
+}
+
 /* ─── Init ───────────────────────────────────────────────────────────── */
 
 export function initOffline() {
-  /* Affichage initial du badge */
+  /* Affichage initial du badge + encart hors-ligne */
   updateOfflineBadge();
+  updateOfflineRow();
 
   /* Sync automatique dès le retour réseau */
   window.addEventListener('online', () => {
+    updateOfflineRow();
     showFeedback('info', '🌐 Connexion rétablie', 'Synchronisation des pleins en attente…');
     syncQueue();
+  });
+
+  /* Passage hors-ligne : afficher l'encart d'information */
+  window.addEventListener('offline', () => {
+    updateOfflineRow();
+    showFeedback('info', '📵 Hors-ligne', 'Vos pleins seront mis en file d\'attente et envoyés au retour du réseau.');
   });
 
   /* Message reçu du Service Worker (Background Sync) */
