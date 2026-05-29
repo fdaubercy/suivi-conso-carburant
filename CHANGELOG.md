@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.1.0.13] — 2026-05-29
+
+### Added
+- **Sparkline multi-carburant : bouton 🔄 rechargement forcé** — un bouton "🔄" apparaît dans l'en-tête du graphique Prix carburants. Un clic vide le cache localStorage (`suivi_e85_hist_cache` + `suivi_e85_hist_since`) et force un rechargement complet depuis le GAS, garantissant que toutes les colonnes de prix (SP95, E10, Gazole, GPLc) sont à jour.
+- **`forceRefreshHistorique()`** (`js/historique.js`) — nouvelle fonction exportée qui purge le cache différentiel et relance `chargerHistorique()`.
+
+### Changed
+- **Seuil d'affichage du sparkline abaissé à 1 point** — un carburant (SP95, E10, Gazole, GPLc…) apparaît désormais comme toggle dès qu'il possède **au moins 1 point de donnée** dans l'historique (au lieu de 2), évitant que les données récentes soient invisibles.
+
+### Fixed
+- **`js/config.js`** — `APP_VERSION` → `3.1.0.13`.
+
 ## [3.1.0.12] — 2026-05-29
 
 ### Changed

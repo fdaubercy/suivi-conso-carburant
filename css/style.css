@@ -1013,6 +1013,18 @@ body.no-share .hist-share { display: none; }
   letter-spacing: .05em;
   white-space: nowrap;
 }
+.spark-refresh-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0 2px;
+  line-height: 1;
+  opacity: .6;
+  transition: opacity .15s;
+}
+.spark-refresh-btn:hover { opacity: 1; }
+.spark-refresh-btn:disabled { cursor: default; }
 .spark-meta {
   display: flex;
   align-items: center;

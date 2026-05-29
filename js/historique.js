@@ -22,6 +22,14 @@ function _saveSince(ts) {
   try { localStorage.setItem(HIST_SINCE_KEY, ts); } catch { /* quota / private */ }
 }
 
+/** Vide le cache historique et force un rechargement complet depuis le GAS. */
+export async function forceRefreshHistorique() {
+  try { localStorage.removeItem(HIST_CACHE_KEY); } catch {}
+  try { localStorage.removeItem(HIST_SINCE_KEY); } catch {}
+  _allRecords = [];
+  return chargerHistorique();
+}
+
 /** Charge et affiche les 5 derniers pleins dans #historiqueList.
  *  Utilise un cache localStorage + sync différentielle (?since=) pour
  *  limiter les données téléchargées sur les chargements successifs. */

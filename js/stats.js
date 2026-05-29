@@ -1,7 +1,7 @@
 /* ─── Stats live : conso, coût, économies E85 vs SP98 + sparkline prix multi-carburant + prédiction ─── */
 import { state } from './state.js';
 import { FUEL_CONFIG } from './config.js';
-import { getAllRecords } from './historique.js';
+import { getAllRecords, forceRefreshHistorique } from './historique.js';
 
 const MONTHS_WINDOW = 6;
 const SPARK_KEY = 'suivi_e85_spark_fuels';
@@ -145,7 +145,7 @@ function buildPrixSparkline() {
   const veh = state.currentVehiculeNom;
 
   const series     = buildFuelSeries(all, veh);
-  const availFuels = Object.keys(SPARK_COLORS).filter(k => (series[k] || []).length >= 2);
+  const availFuels = Object.keys(SPARK_COLORS).filter(k => (series[k] || []).length >= 1);
 
   if (!availFuels.length) return '';
 
@@ -180,6 +180,7 @@ function buildPrixSparkline() {
     <div class="e85-sparkline">
       <div class="spark-header">
         <span class="spark-label">Prix carburants</span>
+        <button class="spark-refresh-btn" data-spark-refresh title="Recharger les prix depuis le serveur">🔄</button>
       </div>
       <div class="spark-toggles">${togglesHtml}</div>
       ${svgHtml}
@@ -401,12 +402,20 @@ export function renderStats() {
  */
 export function initSparkToggles() {
   document.getElementById('statsBox')?.addEventListener('click', e => {
+    if (e.target.closest('[data-spark-refresh]')) {
+      const btn = e.target.closest('[data-spark-refresh]');
+      btn.textContent = '⏳';
+      btn.disabled = true;
+      forceRefreshHistorique().finally(() => renderStats());
+      return;
+    }
+
     const btn = e.target.closest('[data-spark-fuel]');
     if (!btn) return;
 
     const fuel = btn.dataset.sparkFuel;
     const series = buildFuelSeries(getAllRecords(), state.currentVehiculeNom);
-    const availFuels = Object.keys(SPARK_COLORS).filter(k => (series[k] || []).length >= 2);
+    const availFuels = Object.keys(SPARK_COLORS).filter(k => (series[k] || []).length >= 1);
 
     let active = _loadSparkFuels(availFuels);
     if (active.includes(fuel)) {
