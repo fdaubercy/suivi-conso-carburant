@@ -148,6 +148,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.1.0.9 | **Encart hors-ligne conditionnel** — « 📵 Mode hors-ligne » n'apparaît que si `navigator.onLine === false` (`updateOfflineRow` sur événements `online`/`offline`) + feedback au passage hors-ligne |
 | v3.1.0.10 | **Fix dates import Excel à 1900** — `ParseGoogleDate` retire l'heure (format gviz `M/J/A HH:MM:SS`) et interprète le mois en premier (US) ; fini les dates `02/01/1900` sur les pleins importés |
 | v3.1.0.11 | **Fix doublons import Excel** — déduplication par contenu (`PleinKey` = date\|km\|litres) au lieu du repère d'horodatage `Z1` peu fiable ; import idempotent |
+| v3.1.0.12 | **Dédup immunisée + nettoyage doublons** — `PleinKey` = `km\|litres\|prix` (sans date, robuste aux dates mal parsées) + macro `NettoyerDoublons()` qui purge les doublons existants en gardant la 1ʳᵉ occurrence |
 
 ---
 

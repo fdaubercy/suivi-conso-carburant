@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.1.0.12] — 2026-05-29
+
+### Changed
+- **Excel — déduplication immunisée contre les dates** : la clé `PleinKey` ne dépend plus de la date (qui pouvait être mal parsée par l'ancien module et créer des doublons), mais de **`km | litres | prix`**. Le compteur kilométrique étant strictement croissant, il identifie un plein de façon fiable indépendamment du format de date.
+
+### Added
+- **`NettoyerDoublons()`** (`vba/ModuleImportGS.bas`) : macro qui supprime les doublons déjà présents dans le tableau *Suivi Carburant* (clé `km|litres|prix`), en conservant la **première occurrence** (la ligne d'origine, bien datée) et en supprimant les copies plus bas (ex. lignes réimportées avec une mauvaise date par l'ancien module). À lancer une fois via `Alt+F8`.
+
+### Fixed
+- **`js/config.js`** — `APP_VERSION` → `3.1.0.12`.
+
 ## [3.1.0.11] — 2026-05-29
 
 ### Fixed

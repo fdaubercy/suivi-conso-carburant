@@ -100,9 +100,9 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
     Dim rrSuivi As ListRow, cleEx As String
     If Not tbl.DataBodyRange Is Nothing Then
         For Each rrSuivi In tbl.ListRows
-            cleEx = PleinKey(rrSuivi.Range.Cells(1, 2).Value, _
-                             rrSuivi.Range.Cells(1, 4).Value, _
-                             rrSuivi.Range.Cells(1, 6).Value)
+            cleEx = PleinKey(rrSuivi.Range.Cells(1, 4).Value, _
+                             rrSuivi.Range.Cells(1, 6).Value, _
+                             rrSuivi.Range.Cells(1, 7).Value)
             If Len(cleEx) > 0 Then existing(cleEx) = True
         Next rrSuivi
     End If
@@ -142,9 +142,9 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
         ' Ignorer les lignes poubelles (syncStations parasite, action sans données, etc.)
         If kmVal = 0 Or litresVal = 0 Or prixVal = 0 Then GoTo NextLigne
 
-        ' Déjà présent ? Déduplication robuste par contenu (date|km|litres)
+        ' Déjà présent ? Déduplication robuste par contenu (km|litres|prix)
         Dim cle As String
-        cle = PleinKey(dateValue, kmVal, litresVal)
+        cle = PleinKey(kmVal, litresVal, prixVal)
         If existing.Exists(cle) Then GoTo NextLigne
         existing(cle) = True   ' évite aussi les doublons au sein du même lot
 
@@ -219,6 +219,57 @@ Public Sub ReinitialiserImport()
         ThisWorkbook.Worksheets(SHEET_SUIVI).Range(CELL_LAST_IMPORT).ClearContents
         MsgBox "Réinitialisation effectuée.", vbInformation
     End If
+End Sub
+
+'=========================================================================
+'  Nettoyage des doublons existants dans le tableau Suivi Carburant
+'  Cle = km|litres|prix. Conserve la PREMIERE occurrence (la plus haute,
+'  donc la ligne d'origine), supprime les copies plus bas (ex. lignes
+'  reimportees avec une mauvaise date par l'ancien module).
+'=========================================================================
+Public Sub NettoyerDoublons()
+    Dim wsSuivi As Worksheet, tbl As ListObject
+    Dim seen As Object, toDelete As Collection
+    Dim i As Long, k As Long, cle As String, nbSupp As Long
+
+    On Error GoTo Erreur
+    Set wsSuivi = ThisWorkbook.Worksheets(SHEET_SUIVI)
+    Set tbl = wsSuivi.ListObjects(TABLE_SUIVI)
+    If tbl Is Nothing Then MsgBox "Tableau introuvable.", vbExclamation: Exit Sub
+    If tbl.DataBodyRange Is Nothing Then MsgBox "Aucun plein dans le tableau.", vbInformation: Exit Sub
+
+    Set seen = CreateObject("Scripting.Dictionary")
+    seen.CompareMode = vbTextCompare
+    Set toDelete = New Collection
+
+    ' Parcours du haut vers le bas : on garde la 1ere occurrence de chaque cle
+    For i = 1 To tbl.ListRows.count
+        With tbl.ListRows(i).Range
+            cle = PleinKey(.Cells(1, 4).Value, .Cells(1, 6).Value, .Cells(1, 7).Value)
+        End With
+        If cle <> "0|0.00|0.000" Then
+            If seen.Exists(cle) Then
+                toDelete.Add i
+            Else
+                seen(cle) = True
+            End If
+        End If
+    Next i
+
+    Application.ScreenUpdating = False
+    nbSupp = 0
+    ' Suppression du bas vers le haut pour ne pas decaler les index restants
+    For k = toDelete.count To 1 Step -1
+        tbl.ListRows(toDelete(k)).Delete
+        nbSupp = nbSupp + 1
+    Next k
+    Application.ScreenUpdating = True
+
+    MsgBox nbSupp & " doublon(s) supprimé(s).", vbInformation, "Nettoyage des doublons"
+    Exit Sub
+Erreur:
+    Application.ScreenUpdating = True
+    MsgBox "Erreur " & Err.Number & " : " & Err.Description, vbCritical, "Nettoyage"
 End Sub
 
 '=========================================================================
@@ -492,17 +543,13 @@ Public Sub ResetStatus()
     Application.StatusBar = False
 End Sub
 
-' Clé naturelle d'un plein pour la déduplication (insensible au format de date)
-Private Function PleinKey(vDate As Variant, vKm As Variant, vLitres As Variant) As String
-    Dim ds As String
-    On Error Resume Next
-    If IsDate(vDate) Then
-        ds = Format(CDate(vDate), "yyyymmdd")
-    Else
-        ds = Trim(CStr(vDate))
-    End If
-    PleinKey = ds & "|" & CStr(CLng(ToDouble(vKm))) & "|" & Format(ToDouble(vLitres), "0.00")
-    On Error GoTo 0
+' Clé naturelle d'un plein pour la déduplication.
+' Basée sur km|litres|prix (PAS la date) : robuste même si une date est mal parsée.
+' Le compteur kilométrique est strictement croissant → identifie un plein de façon fiable.
+Private Function PleinKey(vKm As Variant, vLitres As Variant, vPrix As Variant) As String
+    PleinKey = CStr(CLng(ToDouble(vKm))) & "|" & _
+               Format(ToDouble(vLitres), "0.00") & "|" & _
+               Format(ToDouble(vPrix), "0.000")
 End Function
 
 Private Function ToDouble(v As Variant) As Double
