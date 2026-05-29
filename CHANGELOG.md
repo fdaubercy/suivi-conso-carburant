@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.1.0.7] — 2026-05-29
+
+### Added
+- **Liste des stations à jour automatiquement (GS ∪ historique + push Excel)** : le menu déroulant « Stations habituelles » se construit désormais à partir de **l'union** des stations curées (feuille « Stations » du Google Sheet) **et** des stations réellement vues dans l'historique des pleins — la liste ne peut donc plus « disparaître ». En parallèle, la synchro Excel (VBA `modSyncGS`) pousse à chaque exécution le tableau `tbl_stationEssence` (onglet *Notes*) vers la feuille « Stations » du GS (action `syncStations`).
+
+### Changed
+- **`js/stations.js`** — réécrit : `chargerStations()` mémorise la liste curée (`_gsStations`) ; nouvelle `mergeHistoryStations()` (stations de l'historique) ; `_renderStationOptions()` fusionne, déduplique (insensible à la casse) et trie ; `syncStationSiNouvelle()` met à jour l'état interne.
+- **`js/main.js`** — après `chargerHistorique()`, appel de `mergeHistoryStations(getAllRecords()…)`.
+- **`vba/modSyncGS.bas`** — nouvelle `PushStationsToGS()` (lit `tbl_stationEssence`, pousse via `syncStations` avec en-tête en ligne 1) + helper `JEsc()` ; appelée dans `SyncCore` (Direction 3) ; bilan enrichi.
+- **`js/config.js`** — `APP_VERSION` → `3.1.0.7`.
+
+### Fixed
+- Restauration de la liste des 6 stations curées (perdue côté Google Sheet) : `Carrefour - Flers`, `E.Leclerc - Beuvry`, `Intermarché`, `Leclerc - Douai`, `Total Access`, `Total Waziers`.
+
 ## [3.1.0.6] — 2026-05-29
 
 ### Fixed

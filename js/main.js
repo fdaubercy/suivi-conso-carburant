@@ -13,9 +13,9 @@ import { fetchPricesNearUser, fetchPricesByCP } from './prix.js';
 import { geolocate, pickStation, highlightNearbyItem, initNearbyList } from './geo.js';
 import { onAutreInput, setRadius } from './recherche.js';
 import { onStationChange, onKmInput, submitForm, resetForm, checkDuplicate, saveDraft, restoreDraft, initVoiceKm } from './formulaire.js';
-import { chargerStations } from './stations.js';
+import { chargerStations, mergeHistoryStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
-import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule } from './historique.js';
+import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords } from './historique.js';
 import { renderStats, initSparkToggles, getNextKmPrediction } from './stats.js';
 import { initScanner }       from './ticket.js';
 import { initPWA }           from './pwa.js';
@@ -49,6 +49,9 @@ setTimeout(() => {
 
 /* ─── W35 — Pré-remplir km dès que l'historique est chargé (données disponibles) ─── */
 chargerHistorique().then(() => {
+  // Fusionne les stations vues dans l'historique avec la liste curée (GS)
+  mergeHistoryStations(getAllRecords().map(r => r['Station essence']));
+
   const fKm = document.getElementById('fKm');
   if (!fKm) return;
   const lastKm = getMaxKmForVehicule(state.currentVehiculeNom);

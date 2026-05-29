@@ -31,6 +31,10 @@ Private Const WS_NAME     As String = "GS_Pleins"
 Private Const COL_SYNC_ID As Integer = 15  ' O
 Private Const COL_MODIFIED As Integer = 16 ' P  timestamp derniere modif locale
 
+' Liste curee des stations essence (poussee vers la feuille "Stations" du GS)
+Private Const STATIONS_WS  As String = "Notes"
+Private Const STATIONS_TBL As String = "tbl_stationEssence"
+
 Private Const T_RESOLVE  As Long = 5000
 Private Const T_CONNECT  As Long = 10000
 Private Const T_SEND     As Long = 30000
@@ -362,6 +366,11 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     SetStatus "Export Excel -> GS (modifications)..."
     sentUpdToGS = ExportModificationsToGS(ws, gsRecs)
 
+    ' Direction 3 : push liste curee des stations Excel -> GS (feuille "Stations")
+    SetStatus "Export stations curees -> GS..."
+    Dim pushedStations As Long
+    pushedStations = PushStationsToGS()
+
     ' Bilan
     Dim msg As String
     msg = "OK :"
@@ -369,6 +378,7 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     If updFromGS   > 0 Then msg = msg & " +" & updFromGS   & " MAJ"
     msg = msg & " / ->" & sentToGS & " nouv."
     If sentUpdToGS > 0 Then msg = msg & " +" & sentUpdToGS & " MAJ"
+    If pushedStations >= 0 Then msg = msg & " / stations:" & pushedStations
     SetStatus msg
 
 Cleanup:
@@ -851,6 +861,74 @@ Private Function jN(key As String, val As Variant) As String
         n = "null"
     End If
     jN = """" & key & """:" & n
+End Function
+
+' Echappe une chaine pour insertion dans une valeur JSON
+Private Function JEsc(ByVal s As String) As String
+    s = Replace(s, "\", "\\")
+    s = Replace(s, """", "\""")
+    JEsc = s
+End Function
+
+
+' ============================================================
+'  DIRECTION 3 : LISTE STATIONS CUREE  Excel -> GS
+'  Lit le tableau tbl_stationEssence (onglet Notes) et le pousse
+'  vers la feuille "Stations" du Google Sheet via action=syncStations.
+'  La 1ere entree est l'en-tete (l'app cote web saute la ligne 1).
+'  Retour : nb de stations poussees, ou -1 en cas d'echec.
+' ============================================================
+Private Function PushStationsToGS() As Long
+    Dim ws   As Worksheet
+    Dim tbl  As ListObject
+    Dim seen As Object
+    Dim c    As Range
+    Dim v    As String
+    Dim json As String
+    Dim body As String
+    Dim resp As String
+    Dim cnt  As Long
+
+    On Error GoTo Done
+
+    Set ws = Nothing
+    On Error Resume Next
+    Set ws = ThisWorkbook.Sheets(STATIONS_WS)
+    If ws Is Nothing Then On Error GoTo 0: PushStationsToGS = -1: Exit Function
+    Set tbl = ws.ListObjects(STATIONS_TBL)
+    On Error GoTo Done
+    If tbl Is Nothing Then PushStationsToGS = -1: Exit Function
+    If tbl.DataBodyRange Is Nothing Then PushStationsToGS = -1: Exit Function
+
+    Set seen = CreateObject("Scripting.Dictionary")
+    seen.CompareMode = vbTextCompare
+
+    ' En-tete en premier (la feuille "Stations" attend un header en ligne 1)
+    json = """" & JEsc(K("Station essence utilis{e}e")) & """"
+
+    cnt = 0
+    For Each c In tbl.DataBodyRange.Columns(1).Cells
+        v = Trim(CStr(c.Value))
+        If v <> "" And Not seen.Exists(v) Then
+            seen(v) = True
+            json = json & ",""" & JEsc(v) & """"
+            cnt = cnt + 1
+        End If
+    Next c
+
+    body = "{""action"":""syncStations"",""stations"":[" & json & "]}"
+    resp = HttpPost(GAS_URL, body)
+
+    If InStr(resp, """success"":true") > 0 Then
+        PushStationsToGS = cnt
+    Else
+        Debug.Print Format(Now(), "hh:mm:ss") & _
+            "  PushStationsToGS : reponse inattendue. Reponse=" & Left(resp, 200)
+        PushStationsToGS = -1
+    End If
+    Exit Function
+Done:
+    PushStationsToGS = -1
 End Function
 
 
