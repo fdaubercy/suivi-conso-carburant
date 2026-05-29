@@ -267,18 +267,28 @@ function computeStats() {
   // Économie E85 vs SP98 — méthode du dashboard Excel (feuille « Suivi Carburant ») :
   //   • sur TOUS les pleins E85 (pas la fenêtre 6 mois) pour refléter le ROI cumulé du kit ;
   //   • surconsommation E85 dynamique → litres SP98 équivalents = litres / (1 + surconso) ;
-  //   • coût E85 cumulé sur tous les pleins E85 valides, coût SP98 équivalent seulement
-  //     quand un prix SP98 est connu (fidèle aux formules J29/B35/J30 Excel).
+  //   • un plein E85 sans prix SP98 enregistré utilise le prix SP98 moyen connu
+  //     (dans Excel chaque plein a toujours un « Prix S98 jour » ; on évite ainsi de
+  //     sous-estimer l'économie quand le Google Sheet a une cellule SP98 vide).
   const surconso = computeSurconso(byVeh);
+  const e85Pleins = byVeh.filter(r =>
+    matchType(r.Type, 'E85') && Number(r['Prix €/L']) > 0 && Number(r['Nb. Litres']) > 0
+  );
+  // Prix SP98 moyen sur les pleins E85 qui en ont un (repli pour les autres)
+  const sp98Connus = e85Pleins
+    .map(r => Number(r['SP98 station (€/L)']) || 0)
+    .filter(p => p > 0);
+  const sp98Moyen = sp98Connus.length
+    ? sp98Connus.reduce((s, p) => s + p, 0) / sp98Connus.length
+    : 0;
+
   let totCoutE85 = 0, totCoutSP98Equiv = 0;
-  byVeh.forEach(r => {
-    if (!matchType(r.Type, 'E85')) return;
-    const prix = Number(r['Prix €/L']) || 0;
-    const lit  = Number(r['Nb. Litres']) || 0;
-    if (lit <= 0 || prix <= 0) return;
-    totCoutE85 += lit * prix;
-    const sp98 = Number(r['SP98 station (€/L)']) || 0;
-    if (sp98 > 0) totCoutSP98Equiv += (lit / (1 + surconso)) * sp98;
+  e85Pleins.forEach(r => {
+    const prix = Number(r['Prix €/L']);
+    const lit  = Number(r['Nb. Litres']);
+    const sp98 = (Number(r['SP98 station (€/L)']) || 0) || sp98Moyen;
+    totCoutE85      += lit * prix;
+    totCoutSP98Equiv += (lit / (1 + surconso)) * sp98;
   });
 
   const econBrute = totCoutSP98Equiv - totCoutE85;   // = J30 (J29 − B35)
