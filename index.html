@@ -268,6 +268,17 @@
       <span class="seuil-unit">€/L</span>
     </div>
   </div>
+
+  <div class="seuil-row" id="kitPrixRow">
+    <label for="kitPrix" class="notif-label">Prix du kit E85</label>
+    <div style="display:flex;align-items:center;gap:6px">
+      <input type="number" id="kitPrix" class="seuil-input"
+             step="1" min="0" placeholder="514.54"
+             inputmode="decimal">
+      <span class="seuil-unit">€</span>
+    </div>
+  </div>
+  <p class="notif-sub" style="margin-top:4px">Sert au calcul de l'économie nette (brute − prix du kit). Défaut : 514,54 € (cellule B5 Excel).</p>
 </div>
 
 <div class="feedback" id="feedback"></div>

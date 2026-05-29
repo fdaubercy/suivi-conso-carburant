@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.2.0.1] — 2026-05-29
+
+### Added
+- **Champ « Prix du kit E85 » visible dans la carte ⚙️ Paramètres** (`#kitPrix`, style `seuil-row`, sous le seuil d'alerte) — permet d'ajuster le prix du kit qui sert au calcul de l'économie nette. La v3.2.0.0 avait livré la logique mais le champ HTML n'avait pas été inséré (ancre introuvable).
+
+### Fixed
+- **`js/config.js`** — `APP_VERSION` → `3.2.0.1`.
+
 ## [3.2.0.0] — 2026-05-29
 
 ### Added
