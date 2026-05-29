@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.2.0.0] — 2026-05-29
+
+### Added
+- **Économie nette E85 (kit déduit)** — ligne « 💰 Économie nette » : économie brute − prix du kit (réplique J31 Excel).
+- **Champ « Prix du kit E85 (€) »** dans Paramètres (#kitPrix), localStorage suivi_e85_kit_prix, défaut **514,54 €** (cellule B5).
+- **getKitPrix(), computeSurconso(), initKitSetting()** (js/stats.js) ; DEFAULT_SURCONSO, KIT_PRIX_KEY, DEFAULT_KIT_PRIX (js/config.js).
+
+### Changed
+- **Calcul économie fidèle au dashboard Excel** (feuille « Suivi Carburant ») : surconsommation E85 dynamique (conso E85 / conso S98 − 1, cellule J7, défaut 20 %), litres SP98 équiv. = litres / (1 + surconso) (corrige ~124 € → ~106 €) ; brute = Σ coût équiv. S98 − Σ coût E85 (J29 − B35 = J30) ; 4e tuile « éco. brute E85 ».
+
+### Fixed
+- **js/config.js** — APP_VERSION → 3.2.0.0.
+
 ## [3.1.0.13] — 2026-05-29
 
 ### Added

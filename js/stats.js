@@ -1,7 +1,42 @@
 /* ─── Stats live : conso, coût, économies E85 vs SP98 + sparkline prix multi-carburant + prédiction ─── */
 import { state } from './state.js';
-import { FUEL_CONFIG } from './config.js';
+import { FUEL_CONFIG, DEFAULT_SURCONSO, KIT_PRIX_KEY, DEFAULT_KIT_PRIX } from './config.js';
 import { getAllRecords, forceRefreshHistorique } from './historique.js';
+
+/* ─── Prix du kit de conversion (localStorage, défaut = cellule B5 Excel) ─── */
+export function getKitPrix() {
+  const raw = localStorage.getItem(KIT_PRIX_KEY);
+  const n = Number(raw);
+  return raw != null && raw !== '' && isFinite(n) && n >= 0 ? n : DEFAULT_KIT_PRIX;
+}
+
+/* ─── Surconsommation E85 dynamique (cellule J7 Excel) ───
+   conso moyenne E85 / conso moyenne S98 − 1, calculée à partir des pleins.
+   Défaut DEFAULT_SURCONSO si pas de données S98 exploitables. */
+function computeSurconso(records) {
+  const sorted = records
+    .filter(r => Number(r['Km compteur'] || 0) > 0)
+    .sort((a, b) => {
+      const da = new Date(String(a.Date || a.Horodatage || '').replace(' ', 'T'));
+      const db = new Date(String(b.Date || b.Horodatage || '').replace(' ', 'T'));
+      return da - db;
+    });
+  const consoE85 = [], consoS98 = [];
+  for (let i = 1; i < sorted.length; i++) {
+    const km0 = Number(sorted[i - 1]['Km compteur'] || 0);
+    const km1 = Number(sorted[i]['Km compteur'] || 0);
+    const lit = Number(sorted[i]['Nb. Litres'] || 0);
+    const dk  = km1 - km0;
+    if (dk <= 0 || lit <= 0) continue;
+    const conso = (lit / dk) * 100;
+    if (matchType(sorted[i].Type, 'E85')) consoE85.push(conso);
+    else if (matchType(sorted[i].Type, 'SP98')) consoS98.push(conso);
+  }
+  if (!consoE85.length || !consoS98.length) return DEFAULT_SURCONSO;
+  const avg = a => a.reduce((s, v) => s + v, 0) / a.length;
+  const s = avg(consoE85) / avg(consoS98) - 1;
+  return isFinite(s) && s > 0 ? s : DEFAULT_SURCONSO;
+}
 
 const MONTHS_WINDOW = 6;
 const SPARK_KEY = 'suivi_e85_spark_fuels';
@@ -229,14 +264,26 @@ function computeStats() {
     (s, r) => s + (Number(r['Nb. Litres']) || 0) * (Number(r['Prix €/L']) || 0), 0
   );
 
-  const econ = recent.reduce((s, r) => {
-    if (!String(r.Type || '').toLowerCase().includes('e85')) return s;
-    const sp98 = Number(r['SP98 station (€/L)']) || 0;
+  // Économie E85 vs SP98 — méthode du dashboard Excel (feuille « Suivi Carburant ») :
+  //   • sur TOUS les pleins E85 (pas la fenêtre 6 mois) pour refléter le ROI cumulé du kit ;
+  //   • surconsommation E85 dynamique → litres SP98 équivalents = litres / (1 + surconso) ;
+  //   • coût E85 cumulé sur tous les pleins E85 valides, coût SP98 équivalent seulement
+  //     quand un prix SP98 est connu (fidèle aux formules J29/B35/J30 Excel).
+  const surconso = computeSurconso(byVeh);
+  let totCoutE85 = 0, totCoutSP98Equiv = 0;
+  byVeh.forEach(r => {
+    if (!matchType(r.Type, 'E85')) return;
     const prix = Number(r['Prix €/L']) || 0;
     const lit  = Number(r['Nb. Litres']) || 0;
-    if (sp98 <= 0 || prix <= 0 || lit <= 0) return s;
-    return s + (sp98 - prix) * lit;
-  }, 0);
+    if (lit <= 0 || prix <= 0) return;
+    totCoutE85 += lit * prix;
+    const sp98 = Number(r['SP98 station (€/L)']) || 0;
+    if (sp98 > 0) totCoutSP98Equiv += (lit / (1 + surconso)) * sp98;
+  });
+
+  const econBrute = totCoutSP98Equiv - totCoutE85;   // = J30 (J29 − B35)
+  const kitPrix   = getKitPrix();                    // = B5
+  const econNette = econBrute - kitPrix;             // = J31
 
   return {
     fuelKey,
@@ -245,7 +292,10 @@ function computeStats() {
     coutPer100,
     nbPleinsFuel: byFuel.length,
     totalCout,
-    econ,
+    econBrute,
+    econNette,
+    kitPrix,
+    surconso,
     nbPleins: recent.length,
     vehiculeName: veh || 'tous véhicules'
   };
@@ -361,9 +411,11 @@ export function renderStats() {
     return;
   }
 
-  const econClass = s.econ > 0 ? 'pos' : (s.econ < 0 ? 'neg' : '');
-  const econSign  = s.econ > 0 ? '+' : '';
-  const fuelTag   = s.fuelShort ? '<span class="stat-tag">' + s.fuelShort + '</span>' : '';
+  const bruteClass = s.econBrute > 0 ? 'pos' : (s.econBrute < 0 ? 'neg' : '');
+  const bruteSign  = s.econBrute > 0 ? '+' : '';
+  const netClass   = s.econNette > 0 ? 'pos' : (s.econNette < 0 ? 'neg' : '');
+  const netSign    = s.econNette > 0 ? '+' : '';
+  const fuelTag    = s.fuelShort ? '<span class="stat-tag">' + s.fuelShort + '</span>' : '';
 
   const consoCell = s.nbPleinsFuel > 1
     ? `<div class="stat-val">${s.conso.toFixed(1)}</div>
@@ -385,12 +437,17 @@ export function renderStats() {
         <div class="stat-val">${s.totalCout.toFixed(0)} €</div>
         <div class="stat-unit">dépensés ${MONTHS_WINDOW} mois</div>
       </div>
-      <div class="stat ${econClass}">
-        <div class="stat-val">${econSign}${s.econ.toFixed(0)} €</div>
-        <div class="stat-unit">éco. E85 vs SP98</div>
+      <div class="stat ${bruteClass}">
+        <div class="stat-val">${bruteSign}${s.econBrute.toFixed(0)} €</div>
+        <div class="stat-unit">éco. brute E85</div>
       </div>
     </div>
     <div class="stats-sub">${s.nbPleins} plein(s) · ${s.vehiculeName} · ${MONTHS_WINDOW} derniers mois</div>
+    <div class="econ-net ${netClass}">
+      <span class="econ-net-label">💰 Économie nette</span>
+      <span class="econ-net-val">${netSign}${s.econNette.toFixed(0)} €</span>
+      <span class="econ-net-sub">brute ${s.econBrute.toFixed(0)} € − kit ${s.kitPrix.toFixed(2)} € · surconso +${Math.round(s.surconso * 100)}% · total</span>
+    </div>
     ${buildPrixSparkline()}
     ${buildPrediction()}
   `;
@@ -426,6 +483,26 @@ export function initSparkToggles() {
     if (!active.length) return;
 
     _saveSparkFuels(active);
+    renderStats();
+  });
+}
+
+/**
+ * Câble le champ « prix du kit de conversion » de la carte Paramètres.
+ * Persiste dans localStorage et rafraîchit les stats (économie nette).
+ */
+export function initKitSetting() {
+  const el = document.getElementById('kitPrix');
+  if (!el) return;
+  el.value = getKitPrix();
+  el.addEventListener('change', () => {
+    const v = Number(el.value);
+    if (el.value === '' || !isFinite(v) || v < 0) {
+      localStorage.removeItem(KIT_PRIX_KEY);
+      el.value = getKitPrix();
+    } else {
+      localStorage.setItem(KIT_PRIX_KEY, String(v));
+    }
     renderStats();
   });
 }

@@ -150,6 +150,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.1.0.11 | **Fix doublons import Excel** — déduplication par contenu (`PleinKey` = date\|km\|litres) au lieu du repère d'horodatage `Z1` peu fiable ; import idempotent |
 | v3.1.0.12 | **Dédup immunisée + nettoyage doublons** — `PleinKey` = `km\|litres\|prix` (sans date, robuste aux dates mal parsées) + macro `NettoyerDoublons()` qui purge les doublons existants en gardant la 1ʳᵉ occurrence |
 | v3.1.0.13 | **Sparkline tous carburants + rechargement forcé** — bouton 🔄 dans l'en-tête du graphique vide le cache localStorage et force un rechargement complet depuis le GAS ; seuil d'affichage abaissé à 1 point (au lieu de 2) pour que SP95/E10/Gazole/GPLc apparaissent dès la première donnée |
+| v3.2.0.0 | **Économie brute / nette E85 (alignée Excel)** — surconsommation dynamique (conso E85 / conso S98 − 1, défaut 20 %), litres SP98 = litres / (1 + surconso) ; tuile « éco. brute E85 » + ligne « 💰 Économie nette » (brute − prix du kit) ; champ « Prix du kit E85 » dans Paramètres (défaut 514,54 € = cellule B5) |
 
 ---
 

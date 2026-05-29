@@ -16,7 +16,7 @@ import { onStationChange, onKmInput, submitForm, resetForm, checkDuplicate, save
 import { chargerStations, mergeHistoryStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
 import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords } from './historique.js';
-import { renderStats, initSparkToggles, getNextKmPrediction } from './stats.js';
+import { renderStats, initSparkToggles, getNextKmPrediction, initKitSetting } from './stats.js';
 import { initScanner }       from './ticket.js';
 import { initPWA }           from './pwa.js';
 import { initOffline, syncQueue } from './offline.js';
@@ -132,6 +132,7 @@ initHistoireFilters(); // historique.js — filtres historique complet (W32)
 initHistoireShare();   // historique.js — W26 Web Share API
 initHistoireDelete();  // historique.js — suppression d'un plein (UI + GoogleSheet)
 initSparkToggles();    // stats.js — W34 filtres sparkline multi-carburant
+initKitSetting();      // stats.js — prix du kit pour l'economie nette
 initVoiceKm();         // formulaire.js — W35 dictée vocale km
 
 /* ─── Exposition globale minimale (requise par modules non-importants) ─── */

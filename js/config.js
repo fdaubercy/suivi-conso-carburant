@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '3.1.0.13';
+export const APP_VERSION       = '3.2.0.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 export const GS_SHEET_ID       = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 export const PRIX_API          = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
@@ -9,6 +9,13 @@ export const HIST_CACHE_KEY    = 'suivi_e85_hist_cache';
 export const HIST_SINCE_KEY    = 'suivi_e85_hist_since';
 export const DRAFT_KEY         = 'suivi_e85_draft';
 export const CLIENT_ID_KEY     = 'suivi_e85_client_id';
+export const KIT_PRIX_KEY      = 'suivi_e85_kit_prix';
+
+// Économie E85 vs SP98 — aligné sur le dashboard Excel (feuille « Suivi Carburant »).
+// Surconsommation calculée dynamiquement (conso E85 / conso S98 − 1, cellule J7) ;
+// la valeur ci-dessous sert de défaut quand il n'y a pas de données S98.
+export const DEFAULT_SURCONSO  = 0.20;   // +20% par défaut (Excel J7)
+export const DEFAULT_KIT_PRIX  = 514.54; // prix du kit de conversion (cellule B5 Excel)
 
 export const FUEL_CONFIG = {
   E85:    { apiField: 'e85_prix',    label: 'SuperEthanol E85', short: 'E85',    icon: '🌿', ph: '0.798' },

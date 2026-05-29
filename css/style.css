@@ -1374,3 +1374,11 @@ body.no-share .hist-share { display: none; }
 [data-theme="dark"] .prediction-box { background: var(--blue-light); }
 [data-theme="dark"] .pred-main       { color: var(--text); }
 [data-theme="dark"] .pred-main strong { color: var(--blue-mid); }
+
+/* Economie nette (brute - prix du kit) */
+.econ-net{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 8px;margin-top:8px;padding:8px 10px;border-radius:8px;background:rgba(125,125,125,.08);border:1px solid rgba(125,125,125,.18);}
+.econ-net-label{font-size:12px;font-weight:600;}
+.econ-net-val{margin-left:auto;font-size:16px;font-weight:700;}
+.econ-net.pos .econ-net-val{color:var(--ok,#34d399);}
+.econ-net.neg .econ-net-val{color:var(--bad,#f87171);}
+.econ-net-sub{flex-basis:100%;font-size:10px;color:var(--muted);}
