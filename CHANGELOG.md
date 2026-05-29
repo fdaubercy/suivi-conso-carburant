@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.1.0.10] — 2026-05-29
+
+### Fixed
+- **Excel — dates des pleins importés à `02/01/1900`** : le CSV gviz renvoie la colonne *Date* au format US **avec l'heure** (`5/22/2026 2:00:00`). `ParseGoogleDate` (dans `ModuleImportGS`) ne retirait pas l'heure pour le format à slashes → `CLng("2026 2:00:00")` échouait → date de repli `1900`. De plus la branche « ambiguë » supposait J/M/A alors que gviz renvoie **M/J/A**. Corrigé : suppression de la partie heure (séparateur espace, comme pour `T`) + interprétation M/J/A (mois en premier). Vérifié sur les 10 pleins (dont le cas ambigu `5/4/2026` → 04/05/2026).
+- À **réimporter** dans le classeur (`vba/ModuleImportGS.bas`).
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.1.0.10`.
+
 ## [3.1.0.9] — 2026-05-29
 
 ### Changed

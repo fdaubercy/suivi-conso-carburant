@@ -507,9 +507,11 @@ Private Function ParseGoogleDate(s As String) As Date
         On Error GoTo 0
         Exit Function
     End If
-    ' Tronquer après "T" (format ISO : "2026-05-24T00:00:00")
+    ' Retirer la partie heure : "2026-05-24T00:00:00" (ISO) ou "5/22/2026 2:00:00" (gviz US)
     Dim tPos As Integer: tPos = InStr(s, "T")
     If tPos > 0 Then s = Left(s, tPos - 1)
+    Dim spPos As Integer: spPos = InStr(s, " ")
+    If spPos > 0 Then s = Left(s, spPos - 1)
     On Error Resume Next
     If InStr(s, "-") > 0 Then
         parts = Split(s, "-")
@@ -522,11 +524,11 @@ Private Function ParseGoogleDate(s As String) As Date
             a = CLng(parts(0)): b = CLng(parts(1)): c = CLng(parts(2))
             If c < 100 Then c = c + 2000
             If a > 12 Then
+                ' jour en premier (J/M/A)
                 ParseGoogleDate = DateSerial(c, b, a)
-            ElseIf b > 12 Then
-                ParseGoogleDate = DateSerial(c, a, b)
             Else
-                ParseGoogleDate = DateSerial(c, b, a)
+                ' format US M/J/A renvoyé par gviz : mois en premier
+                ParseGoogleDate = DateSerial(c, a, b)
             End If
         End If
     Else

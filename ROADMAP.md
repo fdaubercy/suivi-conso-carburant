@@ -146,6 +146,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.1.0.7 | **Stations à jour automatiquement** — menu déroulant = union des stations curées (feuille « Stations » GS) ∪ stations vues dans l'historique des pleins (`mergeHistoryStations`) ; synchro Excel VBA pousse `tbl_stationEssence` → feuille « Stations » à chaque sync (`PushStationsToGS`) ; liste ne peut plus disparaître |
 | v3.1.0.8 | **Fix import Excel « Erreur 13 »** — `ModuleImportGS` lisait le prix SP98 en colonne 7 (= Station essence, texte) → crash `ToDouble`. Corrigé : colonne SP98 détectée par en-tête + `ToDouble` blindé. Effet de bord résolu : la repousse auto des stations (en fin d'import) refonctionne |
 | v3.1.0.9 | **Encart hors-ligne conditionnel** — « 📵 Mode hors-ligne » n'apparaît que si `navigator.onLine === false` (`updateOfflineRow` sur événements `online`/`offline`) + feedback au passage hors-ligne |
+| v3.1.0.10 | **Fix dates import Excel à 1900** — `ParseGoogleDate` retire l'heure (format gviz `M/J/A HH:MM:SS`) et interprète le mois en premier (US) ; fini les dates `02/01/1900` sur les pleins importés |
 
 ---
 
