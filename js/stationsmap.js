@@ -3,6 +3,7 @@ import { getAllRecords }  from './historique.js';
 import { escHtml, getCoords, haversine } from './utils.js';
 import { PRIX_API }       from './config.js';
 import { state }          from './state.js';
+import { showStationPopup } from './itineraire.js';
 
 const COORD_CACHE_KEY = 'suivi_e85_station_coords';
 const TILE_SZ = 256;
@@ -14,6 +15,9 @@ const _geocodeTried = new Set();
 // Position courante de l'utilisateur (session) + garde anti-redemande géoloc.
 let _userPos = null;
 let _userPosTried = false;
+
+// Stations actuellement affichées sur la mini-carte (pour le clic → popup S11).
+let _renderedStations = [];
 
 /** Icône utilisateur selon le véhicule courant : 🏍️ moto / 🚗 voiture. */
 function _vehicleIcon(name) {
@@ -150,6 +154,8 @@ function _renderStaticMap(stations, userPos) {
   const container = document.getElementById('staticStationMap');
   if (!container) return;
 
+  _renderedStations = stations;   // S11 — mémorise pour le clic (popup itinéraire)
+
   const W = container.offsetWidth  || 340;
   const H = container.offsetHeight || 160;
 
@@ -207,7 +213,7 @@ function _renderStaticMap(stations, userPos) {
     const ax = Math.max(PAD_X, Math.min(W - PAD_X, Math.round(gx[i] - originX)));
     const ay = Math.round(gy[i] - originY);
     html += `
-      <div class="smap-marker" style="left:${ax}px;top:${ay}px">
+      <div class="smap-marker" data-smap-idx="${i}" style="left:${ax}px;top:${ay}px">
         <span class="smap-marker-price">${s.avg.toFixed(3)} €/L</span>
         <span class="smap-marker-pin"><span>⛽</span></span>
       </div>`;
@@ -289,6 +295,30 @@ function _refPoint(coordCache) {
     lat: pool.reduce((s, c) => s + c.lat, 0) / pool.length,
     lon: pool.reduce((s, c) => s + c.lon, 0) / pool.length
   };
+}
+
+// ── S11 — Clic sur un marqueur « station habituelle » → popup itinéraire ──────
+
+/**
+ * Délégation d'événements sur la card #stationsMapCard (qui persiste même si
+ * son innerHTML est reconstruit à chaque rendu). Appelée une fois depuis main.js.
+ */
+export function initStationsMapInteractions() {
+  const card = document.getElementById('stationsMapCard');
+  if (!card) return;
+  card.addEventListener('click', e => {
+    const marker = e.target.closest('.smap-marker');
+    if (!marker) return;
+    const idx = parseInt(marker.dataset.smapIdx, 10);
+    const s = _renderedStations[idx];
+    if (!s) return;
+    showStationPopup({
+      name: s.name,
+      lat:  s.lat,
+      lon:  s.lon,
+      priceLabel: `E85 moy. ${Number(s.avg).toFixed(3)} €/L`,
+    });
+  });
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

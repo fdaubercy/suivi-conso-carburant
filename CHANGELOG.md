@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.5.0.0] — 2026-05-30
+
+### Added
+- **Itinéraire vers une station au clic sur un marqueur (S11)** — nouveau module `js/itineraire.js` (`showStationPopup`). Au clic sur un marqueur — **carte des stations habituelles** (`js/stationsmap.js`) **ou** carte des recherches par **géolocalisation / saisie manuelle** (`js/carte.js` → `selectStationFromMap`) — une **popup** affiche les renseignements de la station (nom, prix, distance depuis la position connue, adresse si disponible) puis **demande** l'itinéraire (« Obtenir l'itinéraire vers cette station ? »). Deux boutons : **🚗 Itinéraire Waze** (`https://waze.com/ul?ll=<lat>,<lon>&navigate=yes`, trajet depuis la position GPS de l'utilisateur) et **🗺️ Google Maps** en repli (`maps/dir/?api=1&destination=…`) si Waze n'est pas installé. Le clic sur le bouton sert de **confirmation explicite** avant de lancer l'app de navigation.
+  - `js/stationsmap.js` : marqueurs `.smap-marker` rendus cliquables (`data-smap-idx`) + `initStationsMapInteractions()` (délégation sur la card `#stationsMapCard`).
+  - `js/main.js` : `selectStationFromMap()` ouvre désormais la popup en plus de la sélection ; init de `initStationsMapInteractions()`.
+  - `css/style.css` : styles `.stpop-*` (overlay modal, boutons Waze/Maps, dark mode).
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.5.0.0`.
+
 ## [3.4.0.5] — 2026-05-30
 
 ### Fixed

@@ -2,12 +2,14 @@
    Suivi Conso E85 — Point d'entrée v2.16.0.0
    ES Module : chargé en defer automatique
 ═══════════════════════════════════════ */
-import { APP_VERSION } from './config.js';
+import { APP_VERSION, FUEL_CONFIG } from './config.js';
 import { state }       from './state.js';
 import { updateCout, showFeedback }  from './ui.js';
+import { showStationPopup } from './itineraire.js';
 
 import { chargerVehicules, onVehiculeChange, confirmerAjoutVehicule } from './vehicules.js';
 import { showPinLabel, hideMap, initMapInteractions } from './carte.js';
+import { initStationsMapInteractions } from './stationsmap.js';
 import { _buildTypeToggle, setType, registerPriceCallback, initTypeToggle } from './carburant.js';
 import { fetchPricesNearUser, fetchPricesByCP } from './prix.js';
 import { geolocate, pickStation, highlightNearbyItem, initNearbyList } from './geo.js';
@@ -128,6 +130,7 @@ initStaticHandlers();
 initTypeToggle();      // carburant.js — délégation sur #typeToggle
 initNearbyList();      // geo.js — délégation sur #nearbyList
 initMapInteractions(); // carte.js — délégation sur #stationMap
+initStationsMapInteractions(); // stationsmap.js — clic marqueur favori → popup itinéraire (S11)
 initHistoireFilters(); // historique.js — filtres historique complet (W32)
 initHistoireShare();   // historique.js — W26 Web Share API
 initHistoireDelete();  // historique.js — suppression d'un plein (UI + GoogleSheet)
@@ -159,4 +162,16 @@ window.selectStationFromMap = function(idx) {
     highlightNearbyItem(s.srcIdx);
     document.getElementById('nearbyItem' + s.srcIdx)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
+
+  /* S11 — popup infos + itinéraire (Waze / Google Maps) */
+  const cfg   = FUEL_CONFIG[state.currentType];
+  const prix  = s.prices ? s.prices[state.currentType] : null;
+  showStationPopup({
+    name: s.name,
+    lat:  s.lat,
+    lon:  s.lon,
+    dist: s.dist,
+    sub:  s.sub,
+    priceLabel: prix != null ? `${cfg.short} ${parseFloat(prix).toFixed(3)} €/L` : null,
+  });
 };

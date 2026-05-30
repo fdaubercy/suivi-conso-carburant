@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v3.4.0.0**
+> 🔖 Version courante : **v3.5.0.0**
 
 ## 🌐 Accès
 
@@ -93,6 +93,7 @@ Si OSM ne retourne pas de résultat, l'adresse de l'API gouvernementale est util
 - Cliquer sur un marqueur sélectionne la station et met en surbrillance sa ligne dans la liste
 - Marqueur vert pour la position de l'utilisateur
 - Synchronisation bidirectionnelle liste ↔ carte
+- **S11 — Itinéraire au clic** : sur la carte des **stations habituelles** comme sur la carte de **recherche/géoloc**, cliquer un marqueur ouvre une popup d'infos (nom, prix, distance, adresse) puis propose l'**itinéraire Waze** (départ = position GPS) après confirmation, avec repli **Google Maps** si Waze n'est pas installé
 
 ### Géolocalisation (+ W30 + W31)
 - Bouton 📍 : détecte les stations E85 dans un rayon de **8 km**
@@ -219,6 +220,7 @@ suivi-e85/
 │   ├── vehicules.js                 # Gestion véhicules (localStorage)
 │   ├── osm.js                       # Enrichissement Overpass (nom enseigne)
 │   ├── carte.js                     # Rendu carte tuiles OSM
+│   ├── itineraire.js                # Popup infos station + itinéraire Waze/Google Maps (S11)
 │   ├── carburant.js                 # Toggle type de carburant + badges header
 │   ├── prix.js                      # API prix carburants + badge rentabilité E85
 │   ├── rentabilite.js               # Badge rentabilité E85 vs SP98 (W5)

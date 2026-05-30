@@ -167,6 +167,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.4.0.3 | **Carte habituelles — marqueurs ⛽ + cadrage fiable** — pin goutte vert E85 avec icône ⛽ ; moteur recentré sur l'empreinte des marqueurs + zoom adaptatif (corrige un marqueur rogné sous la carte) |
 | v3.4.0.4 | **Carte habituelles — position utilisateur + push par seuil** — marqueur position courante avec icône véhicule (🏍️/🚗) ; push prix E85 filtrée par le seuil propre à chaque appareil (`_PushSubs.Seuil`) au lieu d'un seuil global |
 | v3.4.0.0 | **Renommage « Suivi Conso. Carburants »** — titre de la page web + app (`index.html`, `manifest.json`, `Code.gs`) et rapport mensuel envoyé (`RapportMensuel.gs` : sujet, expéditeur, en-têtes) ; rapport mensuel déjà consultable dans l'app (carte X16) |
+| v3.5.0.0 | **Itinéraire au clic sur un marqueur (S11)** — `js/itineraire.js` : popup d'infos station (nom, prix, distance, adresse) au clic d'un marqueur (carte habituelles **et** carte recherche/géoloc), avec demande de confirmation puis **itinéraire Waze** (`waze.com/ul?…&navigate=yes`, départ position GPS) et repli **Google Maps** |
 
 ---
 
