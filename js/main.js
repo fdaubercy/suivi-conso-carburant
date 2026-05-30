@@ -14,7 +14,7 @@ import { _buildTypeToggle, setType, registerPriceCallback, initTypeToggle } from
 import { fetchPricesNearUser, fetchPricesByCP } from './prix.js';
 import { geolocate, pickStation, highlightNearbyItem, initNearbyList } from './geo.js';
 import { onAutreInput, setRadius } from './recherche.js';
-import { onStationChange, onKmInput, submitForm, resetForm, checkDuplicate, saveDraft, restoreDraft, initVoiceKm } from './formulaire.js';
+import { onStationChange, onKmInput, submitForm, checkDuplicate, saveDraft, restoreDraft, initVoiceKm } from './formulaire.js';
 import { chargerStations, mergeHistoryStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
 import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords, rerenderHistorique } from './historique.js';

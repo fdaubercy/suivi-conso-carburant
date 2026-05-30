@@ -99,7 +99,7 @@ function _loadSparkFuels(availFuels) {
 }
 
 function _saveSparkFuels(fuels) {
-  try { localStorage.setItem(SPARK_KEY, JSON.stringify(fuels)); } catch {}
+  try { localStorage.setItem(SPARK_KEY, JSON.stringify(fuels)); } catch { /* quota / navigation privée */ }
 }
 
 /* ─── Construction des séries de prix par carburant ─── */
