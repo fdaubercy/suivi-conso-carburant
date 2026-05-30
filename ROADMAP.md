@@ -13,6 +13,12 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|
 | W25 | **Export CSV de l'historique** : bouton "📥 Exporter" dans la carte historique → télécharge tous les enregistrements en `.csv` (via `?action=export` + `Blob` + `URL.createObjectURL`) | Justificatif remboursement employeur / fiscalité · zéro backend · effort 1 h |
 | W36 | **Notion de station favorite** (aujourd'hui inexistante : `computeStationAverages` agrège *toutes* les stations E85, top 8 par prix, sans seuil). Pistes : (a) seuil auto configurable dans `config.js` — favorite à partir de N pleins, badge ⭐ distinct du ★ meilleur prix ; (b) favori manuel épinglé (⭐ cliquable, localStorage), indépendant du prix ; (c) tri optionnel par fréquence (nb de pleins) en plus du tri par prix | Mettre en avant les stations réellement fréquentées, pas seulement les moins chères · effort < 2 h |
+| W37 | **Bilan annuel / "Wrapped"** : carte récap de fin d'année (litres totaux, € dépensés, km parcourus, économie E85 cumulée, station préférée, mois le plus cher) générée depuis `stats.js` | Toutes les données existent déjà · effet "waouh" · faible effort |
+| W38 | **Prix payé vs meilleur prix dispo** : pour chaque plein, afficher "payé X €/L de plus que le moins cher du secteur ce jour-là" en croisant l'historique avec l'API gouv déjà interrogée | Pédagogique · valorise l'usage de l'app pour choisir la station |
+| W39 | **Budget carburant mensuel** : objectif € configurable dans ⚙️ Paramètres + barre de progression dans la carte stats + alerte au dépassement | Réutilise les stats mensuelles (`_monthAggregate`) · attendu sur une app de suivi conso |
+| W40 | **Empreinte CO₂ E85 vs essence** : tuile "kg CO₂ évités" (E85 ≈ −50 % à la combustion) calculée sur les litres saisis | Colle au branding 🌿 · pur calcul, zéro réseau |
+| W41 | **Comparaison entre véhicules** : graphe conso/coût croisant tous les véhicules (les stats actuelles sont mono-véhicule depuis W7) | Vue comparative manquante pour les foyers multi-véhicules |
+| T6 | **Tests des modules récents** : `itineraire.js`, `stationsmap.js`, `notifications.js` n'ont aucun test (Vitest + Playwright déjà en place) | Évite les régressions sur le code carte / push / itinéraire |
 
 ---
 
