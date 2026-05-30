@@ -155,6 +155,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.3.0.0 | **Formulaire de saisie d'un plein (VBA)** — `vba/modSaisie.bas` `NouveauPlein` : UserForm `frmPleinE85` construit par code (Véhicule/Carburant/Date/Km/Litres/Prix/Station, listes auto, coût live, validation km rétrograde, détection de doublon) ; ajout dans `GS_Pleins` avec `Horodatage` + `sync_id` UUID ; bouton « + Nouveau plein » |
 | v3.3.0.2 | **Fix MFC Erreur 5 (Excel FR)** — `FormatConditions.Add` rejetait la formule à séparateurs US ; helpers `AjouterRegleMFC` + `TraduireFormuleLocale` (essai anglais → repli formule localisée via `FormulaLocal`) ; MFC « Prix €/L » robuste FR/US |
 | v3.3.0.3 | **Messages barre d'état (VBA)** — helper `Statut` (`Application.StatusBar`) remplace les `MsgBox` de `modFeatures.bas` : retour discret non bloquant pour `RafraichirFeatures`/`AppliquerMFCPrix`/`CreerSuiviAuto` |
+| v3.3.0.4 | **Barre d'état généralisée (VBA)** — tous les `MsgBox` non bloquants (`modFeatures`/`modSaisie`/`modDashboard`/`ModuleImportGS`/`GS_Pleins_snippet`) passent par le helper public `SetStatus` existant (doublon `Statut` supprimé) ; `MsgBox` réservé aux confirmations Oui/Non et au gate d'accès VBA |
 
 ---
 

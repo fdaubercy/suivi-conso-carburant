@@ -1,6 +1,6 @@
 Attribute VB_Name = "modSaisie"
 ' ============================================================
-'  SUIVI E85 - Formulaire de saisie d'un plein     v3.3.0.0
+'  SUIVI E85 - Formulaire de saisie d'un plein     v3.3.0.4
 '
 '  Construit par CODE le UserForm "frmPleinE85" + son code-behind,
 '  puis l'affiche. Ajoute la ligne directement dans le tableau
@@ -53,7 +53,7 @@ Public Sub NouveauPlein()
     Exit Sub
 
 ErrHandler:
-    MsgBox "Erreur " & Err.Number & " : " & Err.Description, vbCritical, "Suivi E85"
+    SetStatus "[Suivi E85] " & ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description
 End Sub
 
 
@@ -191,7 +191,7 @@ Private Sub InjecterCode(vbc As Object)
     c = c & "    End If" & vbNewLine
     c = c & "    modSaisie.EnregistrerPlein Me.cboVehicule.Value, Me.cboType.Value, _" & vbNewLine
     c = c & "        Me.txtDate.Value, Me.txtKm.Value, Me.txtLitres.Value, Me.txtPrix.Value, Me.cboStation.Value" & vbNewLine
-    c = c & "    MsgBox ""Plein enregistre dans " & WS_GS & "."", vbInformation, ""Suivi E85""" & vbNewLine
+    c = c & "    SetStatus ""[Suivi E85] Plein enregistre dans " & WS_GS & ".""" & vbNewLine
     c = c & "    Unload Me" & vbNewLine
     c = c & "End Sub" & vbNewLine
 

@@ -62,7 +62,7 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
     Set wsImport = ThisWorkbook.Worksheets(SHEET_IMPORT)
     If wsImport.ListObjects.count = 0 Then
         ResetStatus
-        MsgBox "Aucun tableau trouvé dans '" & SHEET_IMPORT & "'.", vbExclamation
+        SetStatus "[Import E85] " & ChrW(9888) & " Aucun tableau trouvé dans '" & SHEET_IMPORT & "'."
         Application.ScreenUpdating = True
         Exit Sub
     End If
@@ -81,14 +81,14 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
 
     If colStation = 0 Then
         ResetStatus
-        MsgBox "Colonne 'Station essence' absente du Google Sheet.", vbExclamation, "Colonne manquante"
+        SetStatus "[Import E85] " & ChrW(9888) & " Colonne 'Station essence' absente du Google Sheet."
         Application.ScreenUpdating = True
         Exit Sub
     End If
 
     If tblImport.DataBodyRange Is Nothing Then
         ResetStatus
-        If Not bSilent Then MsgBox "Aucun plein dans le Google Sheet pour le moment.", vbInformation
+        If Not bSilent Then SetStatus "[Import E85] Aucun plein dans le Google Sheet pour le moment."
         Application.ScreenUpdating = True
         Exit Sub
     End If
@@ -187,7 +187,7 @@ NextLigne:
     Application.ScreenUpdating = True
 
     If nbImportes = 0 Then
-        If Not bSilent Then MsgBox "Aucun nouveau plein à importer.", vbInformation, "Import"
+        If Not bSilent Then SetStatus "[Import E85] Aucun nouveau plein à importer."
     Else
         SetStatus nbImportes & " plein(s) importé(s) avec succès."
     End If
@@ -198,9 +198,8 @@ NextLigne:
 GestionErreur:
     ResetStatus
     Application.ScreenUpdating = True
-    MsgBox "Erreur " & Err.Number & " : " & Err.Description & vbCrLf & vbCrLf & _
-           "Si l'erreur persiste, supprimez le contenu de '" & CELL_LAST_IMPORT & _
-           "' pour forcer un import complet.", vbCritical, "Import échoué"
+    SetStatus "[Import E85] " & ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description & _
+              " (vider '" & CELL_LAST_IMPORT & "' pour forcer un import complet)."
 End Sub
 
 Public Sub ImporterNouveauxPleinsAuto()
@@ -217,7 +216,7 @@ Public Sub ReinitialiserImport()
                  vbExclamation + vbYesNo, "Confirmer")
     If rep = vbYes Then
         ThisWorkbook.Worksheets(SHEET_SUIVI).Range(CELL_LAST_IMPORT).ClearContents
-        MsgBox "Réinitialisation effectuée.", vbInformation
+        SetStatus "[Import E85] " & ChrW(10003) & " Réinitialisation effectuée."
     End If
 End Sub
 
@@ -235,8 +234,8 @@ Public Sub NettoyerDoublons()
     On Error GoTo Erreur
     Set wsSuivi = ThisWorkbook.Worksheets(SHEET_SUIVI)
     Set tbl = wsSuivi.ListObjects(TABLE_SUIVI)
-    If tbl Is Nothing Then MsgBox "Tableau introuvable.", vbExclamation: Exit Sub
-    If tbl.DataBodyRange Is Nothing Then MsgBox "Aucun plein dans le tableau.", vbInformation: Exit Sub
+    If tbl Is Nothing Then SetStatus "[Nettoyage E85] " & ChrW(9888) & " Tableau introuvable.": Exit Sub
+    If tbl.DataBodyRange Is Nothing Then SetStatus "[Nettoyage E85] Aucun plein dans le tableau.": Exit Sub
 
     Set seen = CreateObject("Scripting.Dictionary")
     seen.CompareMode = vbTextCompare
@@ -265,11 +264,11 @@ Public Sub NettoyerDoublons()
     Next k
     Application.ScreenUpdating = True
 
-    MsgBox nbSupp & " doublon(s) supprimé(s).", vbInformation, "Nettoyage des doublons"
+    SetStatus "[Nettoyage E85] " & ChrW(10003) & " " & nbSupp & " doublon(s) supprimé(s)."
     Exit Sub
 Erreur:
     Application.ScreenUpdating = True
-    MsgBox "Erreur " & Err.Number & " : " & Err.Description, vbCritical, "Nettoyage"
+    SetStatus "[Nettoyage E85] " & ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description
 End Sub
 
 '=========================================================================
@@ -317,9 +316,8 @@ Private Function ChargerCSVDansFeuilleImport() As Boolean
     nbLignes = UBound(lignes) + 1
 
     If nbLignes < 2 Then
-        MsgBox "Le Google Sheet ne contient pas encore de réponses." & vbCrLf & vbCrLf & _
-               "Vérifiez que l'onglet '_ImportGS' existe et contient au moins une ligne de données.", _
-               vbInformation
+        SetStatus "[Import E85] Le Google Sheet ne contient pas encore de réponses " & _
+                  "(vérifier que l'onglet '_ImportGS' existe et contient des données)."
         Exit Function
     End If
 
@@ -388,18 +386,14 @@ Private Function TelechargerCSV() As String
         End If
     Next K
 
-    MsgBox "Google Sheets a répondu HTTP " & statut & " sur les deux URLs." & vbCrLf & vbCrLf & _
-           "Vérifiez que le partage du Sheet est réglé sur" & vbCrLf & _
-           "« Tout le monde avec le lien peut consulter ».", _
-           vbExclamation, "Erreur de téléchargement"
+    SetStatus "[Import E85] " & ChrW(9888) & " Google Sheets a répondu HTTP " & statut & _
+              " (vérifier le partage du Sheet : « Tout le monde avec le lien peut consulter »)."
     TelechargerCSV = ""
     Exit Function
 
 ErrHTTP:
-    MsgBox "Erreur réseau (" & Err.Number & ") : " & Err.Description & vbCrLf & vbCrLf & _
-           "Assurez-vous qu'Excel peut accéder à Internet" & vbCrLf & _
-           "(pas de proxy bloquant, pas de pare-feu).", _
-           vbExclamation, "Erreur réseau"
+    SetStatus "[Import E85] " & ChrW(9888) & " Erreur réseau (" & Err.Number & ") : " & _
+              Err.Description & " (accès Internet / proxy / pare-feu)."
     TelechargerCSV = ""
 End Function
 
@@ -522,13 +516,11 @@ Suite:
 
     wsLog.Columns("A:D").AutoFit
     wsLog.Activate
-    MsgBox "Diagnostic terminé. Résultats dans l'onglet 'DiagLog'.", vbInformation
+    SetStatus "[Diag E85] " & ChrW(10003) & " Diagnostic terminé. Résultats dans l'onglet 'DiagLog'."
 Fin:
-    ResetStatus
     Exit Sub
 Erreur:
-    ResetStatus
-    MsgBox "Erreur " & Err.Number & " : " & Err.Description, vbCritical
+    SetStatus "[Diag E85] " & ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description
 End Sub
 
 '=========================================================================

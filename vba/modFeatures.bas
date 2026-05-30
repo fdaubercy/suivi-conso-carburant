@@ -1,6 +1,6 @@
 Attribute VB_Name = "modFeatures"
 ' ============================================================
-'  SUIVI E85 - Fonctionnalites X4 + X14            v3.3.0.3
+'  SUIVI E85 - Fonctionnalites X4 + X14            v3.3.0.4
 '
 '  X4  : Mise en forme conditionnelle "Prix EUR/L"
 '        vert si < moyenne 30 j (meme carburant), rouge si >
@@ -49,12 +49,12 @@ Public Sub RafraichirFeatures()
     CreerSuiviAuto
 
     Application.ScreenUpdating = True
-    Statut ChrW(10003) & " Features rafraichies : MFC prix + onglet 'Suivi (auto)'."
+    SetStatus "[Suivi E85] " & ChrW(10003) & " Features rafraichies : MFC prix + onglet 'Suivi (auto)'."
     Exit Sub
 
 ErrHandler:
     Application.ScreenUpdating = True
-    Statut ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description
+    SetStatus "[Suivi E85] " & ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description
 End Sub
 
 
@@ -76,7 +76,7 @@ Public Sub AppliquerMFCPrix()
 
 ErrHandler:
     Application.ScreenUpdating = True
-    Statut ChrW(9888) & " Erreur MFC : " & Err.Description
+    SetStatus "[Suivi E85] " & ChrW(9888) & " Erreur MFC : " & Err.Description
 End Sub
 
 ' Applique la MFC sur une feuille donnee. Retourne 1 si OK, 0 sinon.
@@ -249,11 +249,11 @@ Public Sub CreerSuiviAuto()
     Set dataWs = ThisWorkbook.Sheets(WS_GS)
     On Error GoTo 0
     If dataWs Is Nothing Then
-        Statut ChrW(9888) & " Feuille '" & WS_GS & "' introuvable."
+        SetStatus "[Suivi E85] " & ChrW(9888) & " Feuille '" & WS_GS & "' introuvable."
         GoTo CleanExit
     End If
     If dataWs.ListObjects.Count = 0 Then
-        Statut ChrW(9888) & " Aucun tableau dans '" & WS_GS & "'."
+        SetStatus "[Suivi E85] " & ChrW(9888) & " Aucun tableau dans '" & WS_GS & "'."
         GoTo CleanExit
     End If
 
@@ -411,22 +411,15 @@ CleanExit:
 
 ErrHandler:
     Application.ScreenUpdating = True
-    Statut ChrW(9888) & " Erreur Suivi (auto) : " & Err.Description
+    SetStatus "[Suivi E85] " & ChrW(9888) & " Erreur Suivi (auto) : " & Err.Description
 End Sub
 
 
 ' ════════════════════════════════════════════════════════════
 '  HELPERS
+'  Note : l'affichage barre d'etat reutilise SetStatus / ResetStatus
+'  (publics, definis dans ModuleImportGS.bas) -> pas de doublon.
 ' ════════════════════════════════════════════════════════════
-
-' Affiche un message non bloquant dans la barre d'etat Excel
-' (prefere aux MsgBox). Reste visible jusqu'au prochain appel.
-Private Sub Statut(ByVal msg As String)
-    On Error Resume Next
-    Application.DisplayStatusBar = True
-    Application.StatusBar = "Suivi E85  " & ChrW(8212) & "  " & msg
-    On Error GoTo 0
-End Sub
 
 ' Nom reel de la colonne i (1-based) d'un ListObject, "" si absente.
 Private Function ColNom(tbl As ListObject, i As Long) As String

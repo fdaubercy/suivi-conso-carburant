@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.3.0.4] — 2026-05-30
+
+### Changed
+- **Barre d'état généralisée + réutilisation du helper existant** : tous les `MsgBox` non bloquants des modules VBA convertis en `Application.StatusBar` via le helper **public `SetStatus`** déjà présent dans `ModuleImportGS.bas` (suppression du doublon `Statut` créé en v3.3.0.3 dans `modFeatures.bas`).
+  - `modFeatures.bas` : appelle désormais `SetStatus` (plus de helper local).
+  - `modSaisie.bas` : erreur + message « Plein enregistré » → barre d'état.
+  - `modDashboard.bas` : 7 messages (feuille/tableau absent, bilan KPIs, données absentes, « Graphiques mis à jour ») → barre d'état.
+  - `ModuleImportGS.bas` : messages d'import, nettoyage doublons, réseau/HTTP et diagnostic → barre d'état ; `Fin:` ne réinitialise plus la barre pour laisser le message final/erreur visible.
+  - `GS_Pleins_snippet.bas` : alertes inline km rétrograde [F3] et doublon [F4] → barre d'état (condensées sur une ligne).
+- **`MsgBox` conservés uniquement pour les décisions/gates bloquants** : confirmation doublon (Oui/Non), confirmation « Réinitialiser l'import ? » (Oui/Non), et instructions d'activation de l'« Accès au modèle objet VBA ».
+- **`js/config.js`** — `APP_VERSION` → `3.3.0.4`.
+
 ## [3.3.0.3] — 2026-05-30
 
 ### Changed

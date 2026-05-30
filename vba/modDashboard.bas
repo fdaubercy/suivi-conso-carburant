@@ -111,13 +111,13 @@ Public Sub CreerTableauDeBord()
     Set dataWs = ThisWorkbook.Sheets(WS_DATA)
     On Error GoTo 0
     If dataWs Is Nothing Then
-        MsgBox "Feuille '" & WS_DATA & "' introuvable.", vbCritical, "Dashboard E85"
+        SetStatus "[Dashboard E85] " & ChrW(9888) & " Feuille '" & WS_DATA & "' introuvable."
         GoTo Cleanup
     End If
 
     ' ── 2. Detecter le ListObject + noms reels des colonnes ──
     If dataWs.ListObjects.Count = 0 Then
-        MsgBox "Aucun tableau dans '" & WS_DATA & "'.", vbCritical, "Dashboard E85"
+        SetStatus "[Dashboard E85] " & ChrW(9888) & " Aucun tableau dans '" & WS_DATA & "'."
         GoTo Cleanup
     End If
     Set tbl = dataWs.ListObjects(1)
@@ -247,8 +247,8 @@ Public Sub CreerTableauDeBord()
     Debug.Print "KPIs - OK : " & okCount & " | KO : " & koCount
 
     If koCount > 0 Then
-        MsgBox okCount & " KPIs ajoutes, " & koCount & " en erreur." & vbNewLine & _
-               "Voir Immediate Window (Ctrl+G) pour le detail.", vbExclamation, "Dashboard E85"
+        SetStatus "[Dashboard E85] " & ChrW(9888) & " " & okCount & " KPIs ajoutes, " & _
+                  koCount & " en erreur (Ctrl+G pour le detail)."
     End If
 
 Cleanup:
@@ -283,11 +283,11 @@ Public Sub CreerGraphiques()
     Set dataWs = ThisWorkbook.Sheets(WS_DATA)
     On Error GoTo 0
     If dataWs Is Nothing Then
-        MsgBox "Feuille '" & WS_DATA & "' introuvable.", vbCritical, "Graphiques E85"
+        SetStatus "[Graphiques E85] " & ChrW(9888) & " Feuille '" & WS_DATA & "' introuvable."
         GoTo CleanupG
     End If
     If dataWs.ListObjects.Count = 0 Then
-        MsgBox "Aucun tableau dans '" & WS_DATA & "'.", vbCritical, "Graphiques E85"
+        SetStatus "[Graphiques E85] " & ChrW(9888) & " Aucun tableau dans '" & WS_DATA & "'."
         GoTo CleanupG
     End If
     Set tbl = dataWs.ListObjects(1)
@@ -298,7 +298,7 @@ Public Sub CreerGraphiques()
 
     ' Verifier qu'il y a des donnees
     If tbl.DataBodyRange Is Nothing Then
-        MsgBox "Aucune donnee dans " & g_tbl & ".", vbInformation, "Graphiques E85"
+        SetStatus "[Graphiques E85] Aucune donnee dans " & g_tbl & "."
         GoTo CleanupG
     End If
 
@@ -352,7 +352,7 @@ Public Sub CreerGraphiques()
 CleanupG:
     Application.ScreenUpdating = True
     Debug.Print String(50, "=")
-    MsgBox "Graphiques mis a jour.", vbInformation, "Graphiques E85"
+    SetStatus "[Graphiques E85] " & ChrW(10003) & " Graphiques mis a jour."
 End Sub
 
 

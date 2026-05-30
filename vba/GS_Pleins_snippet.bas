@@ -124,11 +124,8 @@ Private Sub ValidateKm(ws As Worksheet, r As Long)
     Next i
 
     If maxKm > 0 And kmNew < maxKm Then
-        MsgBox ChrW(9888) & "  Km inferieur au dernier enregistrement" & vbNewLine & vbNewLine & _
-               "  Saisi   : " & Format(kmNew, "#,##0") & " km" & vbNewLine & _
-               "  Dernier : " & Format(maxKm, "#,##0") & " km  (ligne " & maxRow & ")" & vbNewLine & vbNewLine & _
-               "Verifiez la valeur avant de continuer.", _
-               vbExclamation, "Suivi E85 -- Validation km"
+        SetStatus "[Suivi E85] " & ChrW(9888) & " Km saisi " & Format(kmNew, "#,##0") & _
+                  " < dernier " & Format(maxKm, "#,##0") & " km (ligne " & maxRow & ") -- verifiez la valeur."
     End If
 End Sub
 
@@ -181,13 +178,9 @@ Private Sub CheckDuplicate(ws As Worksheet, r As Long)
             On Error GoTo ExitSub
 
             If iDate = refDate And iKm = refKm And iLit = refLit Then
-                MsgBox ChrW(9888) & "  Doublon detecte !" & vbNewLine & vbNewLine & _
-                       "La ligne " & i & " a les memes Date / Km / Litres :" & vbNewLine & _
-                       "  Date   : " & refDate & vbNewLine & _
-                       "  Km     : " & Format(refKm, "#,##0") & " km" & vbNewLine & _
-                       "  Litres : " & Format(refLit / 100, "0.00") & " L" & vbNewLine & vbNewLine & _
-                       "Confirmez si c'est intentionnel.", _
-                       vbExclamation, "Suivi E85 -- Doublon"
+                SetStatus "[Suivi E85] " & ChrW(9888) & " Doublon possible (ligne " & i & ") : " & _
+                          "Date " & refDate & " / Km " & Format(refKm, "#,##0") & _
+                          " / Litres " & Format(refLit / 100, "0.00") & " L."
                 Exit For
             End If
         End If
