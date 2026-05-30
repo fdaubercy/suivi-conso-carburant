@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.4.0.2] — 2026-05-30
+
+### Fixed
+- **`WebPush.gs` — `ReferenceError: navigator is not defined`** au chargement de jsrsasign (`generateVapidKeys()` / `envoyerPushPrixBas()`) : la librairie référence `navigator`/`window` (globals navigateur) absents en GAS. Ajout de **shims** `var navigator = {…}; var window = {};` juste avant `eval(src)` (scope partagé par l'`eval` direct).
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.4.0.2`.
+
 ## [3.4.0.1] — 2026-05-30
 
 ### Fixed

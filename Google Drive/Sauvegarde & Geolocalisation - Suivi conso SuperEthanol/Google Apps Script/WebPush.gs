@@ -54,6 +54,9 @@ function _b64url(arr)   { return Utilities.base64EncodeWebSafe(_toSigned(arr)).r
 //  (hex) dans les Propriétés, loggue la publique (base64url, 65 o).
 // ─────────────────────────────────────────────────────────────
 function generateVapidKeys() {
+  // jsrsasign référence navigator/window au chargement → shims (scope partagé par eval)
+  var navigator = { appName: 'Netscape', userAgent: 'GAS', appVersion: '5.0' };
+  var window = {};
   var src = _getJsrsasignSrc();
   eval(src);                                   // expose KJUR / KEYUTIL dans ce scope
   if (typeof KEYUTIL === 'undefined') throw new Error('jsrsasign non chargé.');
@@ -91,6 +94,9 @@ function envoyerPushPrixBas(station, prix) {
   var subs = _readPushSubs();
   if (!subs.length) { Logger.log('Aucun abonné push.'); return; }
 
+  // jsrsasign référence navigator/window au chargement → shims (scope partagé par eval)
+  var navigator = { appName: 'Netscape', userAgent: 'GAS', appVersion: '5.0' };
+  var window = {};
   var src = _getJsrsasignSrc();
   eval(src);                                   // KJUR disponible dans ce scope
   if (typeof KJUR === 'undefined') { Logger.log('jsrsasign non chargé — push annulée.'); return; }
