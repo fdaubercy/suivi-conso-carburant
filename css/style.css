@@ -22,6 +22,7 @@
   --white:       #ffffff;
   --toggle-bg:   #e5e7eb;
   --radius:      10px;
+  --nav-h:       58px;   /* hauteur de la barre d'onglets (hors safe-area) */
 }
 
 /* ─── Dark mode ─── overrides via data-theme="dark" sur <html> */
@@ -50,7 +51,7 @@ body {
   color: var(--text);
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  padding-bottom: 1.5rem;
+  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
 }
@@ -564,9 +565,9 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
 #stationMap [data-map-pin-idx]:hover  .map-pin-label,
 #stationMap [data-map-pin-idx]:active .map-pin-label { opacity: 1; }
 
-/* ─── Bouton submit sticky ─── */
+/* ─── Bouton submit sticky (au-dessus de la barre d'onglets) ─── */
 .submit-wrap {
-  position: sticky; bottom: 0;
+  position: sticky; bottom: var(--nav-h);
   z-index: 20;
   padding: 12px 16px 16px;
   background: var(--bg);
@@ -604,8 +605,83 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
     padding-left:   max(1.25rem, env(safe-area-inset-left));
     padding-right:  max(1.25rem, env(safe-area-inset-right));
   }
-  .submit-wrap { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
-  footer       { padding-bottom: max(8px,  env(safe-area-inset-bottom)); }
+  /* La barre d'onglets absorbe la safe-area en bas : pas de double marge ici. */
+  .submit-wrap { padding-bottom: 16px; }
+  .bottom-nav  { padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+
+/* ═══════════════════════════════════════
+   W42 — Navigation par vues (onglets + hash)
+═══════════════════════════════════════ */
+
+/* Une vue = une "page". Masquée par défaut, affichée quand active. */
+.view { display: none; }
+.view.view--active { display: block; animation: viewIn .18s ease; }
+
+@keyframes viewIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .view.view--active { animation: none; }
+}
+
+/* Message d'attente quand une vue n'a pas encore de contenu (ex. Carte). */
+.view-empty {
+  margin: 24px 16px;
+  padding: 18px 16px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  background: var(--white);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+/* Quand la carte des stations est rendue, on masque le placeholder. */
+#stationsMapCard:not(.hidden) ~ #carteEmpty { display: none; }
+
+/* ─── Barre d'onglets fixe ─── */
+.bottom-nav {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 40;
+  display: flex;
+  background: var(--white);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -2px 10px -6px rgba(0,0,0,.18);
+}
+.nav-tab {
+  flex: 1;
+  height: var(--nav-h);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .15s, background .15s;
+  position: relative;
+}
+.nav-tab .nav-ico { font-size: 20px; line-height: 1; }
+.nav-tab .nav-lbl { letter-spacing: .01em; }
+.nav-tab:active { background: var(--blue-light); }
+
+.nav-tab--active { color: var(--blue-mid); }
+.nav-tab--active::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%; transform: translateX(-50%);
+  width: 28px; height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--blue-mid);
 }
 
 /* ─── Sélecteur de rayon de recherche ─── */

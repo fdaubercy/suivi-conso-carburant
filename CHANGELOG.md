@@ -4,6 +4,24 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.7.0.0] — 2026-05-30
+
+### Added
+- **Navigation par vues — onglets + pages (W42)** — fin du long scroll unique : l'application est désormais découpée en **5 vues** présentées comme des pages, accessibles via une **barre d'onglets fixe en bas** (style appli native) :
+  - ⛽ **Saisie** (vue par défaut au démarrage) : formulaire, véhicule, carburant, scan ticket, station, comparateur (W30), secteur (W38), bouton « Enregistrer ».
+  - 📊 **Statistiques** : stats live (W7), rapport mensuel (X16), bilan annuel « Wrapped » (W37).
+  - 🗺️ **Carte** : carte des stations habituelles + prix moyens (X10).
+  - 📜 **Historique** : 5 derniers pleins + historique complet filtrable (W32).
+  - ⚙️ **Réglages** : notifications, mode hors-ligne, prix du kit.
+  - `js/router.js` (nouveau) : routeur léger par **hash** (`#/saisie`, `#/stats`, `#/carte`, `#/historique`, `#/params`). Le **bouton retour** du navigateur et de l'OS fonctionne nativement (chaque vue a son URL) ; aucun fallback serveur nécessaire (compatible GitHub Pages). Onglet actif surligné (`aria-current="page"`), titre du header mis à jour par vue, remontée en haut à chaque changement de page.
+  - Le bouton 📋 « Dupliquer le dernier plein » (vue Historique) bascule automatiquement vers la vue Saisie pour montrer le formulaire pré-rempli.
+  - La carte statique des stations, rendue hors écran, est **re-cadrée** au premier affichage de l'onglet Carte (événement `viewchange`) pour un dimensionnement correct.
+
+### Changed
+- **`index.html`** — cartes regroupées dans `<main>` sous 5 `<section class="view" data-view="…">` ; ajout de la `<nav class="bottom-nav">` (5 onglets) ; `#feedback` et le bouton submit déplacés dans la vue Saisie.
+- **`css/style.css`** — styles `.view` / `.view--active` (transition d'entrée, respect de `prefers-reduced-motion`), `.bottom-nav` + `.nav-tab` (fixe, safe-area iPhone), variable `--nav-h` ; le bouton submit colle désormais **au-dessus** de la barre d'onglets ; `padding-bottom` du body ajusté.
+- **`js/config.js`** — `APP_VERSION` → `3.7.0.0`.
+
 ## [3.6.0.0] — 2026-05-30
 
 ### Added

@@ -17,6 +17,9 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | W40 | **Empreinte CO₂ E85 vs essence** : tuile "kg CO₂ évités" (E85 ≈ −50 % à la combustion) calculée sur les litres saisis | Colle au branding 🌿 · pur calcul, zéro réseau |
 | W41 | **Comparaison entre véhicules** : graphe conso/coût croisant tous les véhicules (les stats actuelles sont mono-véhicule depuis W7) | Vue comparative manquante pour les foyers multi-véhicules |
 | T6 | **Tests des modules récents** : `itineraire.js`, `stationsmap.js`, `notifications.js` n'ont aucun test (Vitest + Playwright déjà en place) | Évite les régressions sur le code carte / push / itinéraire |
+| W43 | **Écran d'accueil à tuiles** (complément de la navigation W42) : 6ᵉ vue `#/accueil` avec grandes tuiles cliquables (Saisie, Stats, Carte, Historique, Réglages) + raccourcis (« nouveau plein », « dernier plein ») ; bouton 🏠 dans le header pour y revenir | Vue d'ensemble / découverte sur grand écran · réutilise le routeur existant · effort ~1 h |
+| W44 | **Gestes de navigation (swipe)** entre onglets + transition latérale : balayage gauche/droite pour passer d'une vue à l'autre (pointer events), en plus des onglets | Ergonomie mobile native · au-dessus du routeur W42 · effort ~2 h |
+| W45 | **Badge de notification sur les onglets** : pastille sur ⚙️ Réglages (alertes non configurées), 📜 Historique (nouveaux pleins importés), 🗺️ Carte (meilleur prix secteur du jour) | Attire l'attention sur les vues sans forcer l'utilisateur à les ouvrir · effort < 2 h |
 
 ---
 
@@ -177,6 +180,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.6.0.0 | **Token secret sur les endpoints GAS (S6)** — `Code.gs` `tokenOk_()` en **mode souple** (contrôle actif seulement si la propriété de script `APP_TOKEN` est posée) ; token `APP_TOKEN` injecté dans tous les appels web (`config.js` + 7 modules) et VBA (`modSyncGS.bas` : export, bulkAdd/bulkUpdate/syncStations) ; la page HTML reste libre. Sécurité par obscurité (token dans le bundle public) mais relève le niveau d'accès |
 | v3.6.0.0 | **Bilan annuel « Wrapped » (W37)** — `js/wrapped.js` + carte `#wrappedCard` : litres totaux, € dépensés, km parcourus, économie E85 cumulée vs SP98, station préférée, mois le plus cher ; sélecteur d'année + bascule de périmètre 🏍️/🚗🏍️ (véhicule courant ↔ tous, persistée) ; km = somme des deltas max−min par véhicule, économie alignée sur le dashboard (surconso E85 dynamique) |
 | v3.6.0.0 | **Prix payé vs moins cher du secteur (W38)** — relevé quotidien ~7h (`RefreshPrix.gs`) étendu d'un scan des stations E85 les moins chères dans 15 km autour de `LAST_GEO` → `_PrixHistory` + `SECTOR_BEST_TODAY` ; `Code.gs` actions `saveLastGeo` (position mémorisée) + `sectorPrices` (prix mini secteur par jour) ; `js/secteur.js` (cache 2 h) ajoute « 💸 +X €/L vs le moins cher du secteur » sur chaque plein E85 + carte « 🏆 Moins cher du secteur » ; comportement prospectif (à partir du 1er refresh) |
+| v3.7.0.0 | **Navigation par vues — onglets + pages (W42)** — `js/router.js` : routeur par hash (`#/saisie`, `#/stats`, `#/carte`, `#/historique`, `#/params`), barre d'onglets fixe en bas, retour navigateur/OS natif, titre header par vue ; `index.html` découpé en 5 `<section class="view">` ; fin du long scroll unique ; ouverture directe sur la Saisie ; carte habituelles re-cadrée au 1er affichage de l'onglet (event `viewchange`) ; « dupliquer dernier plein » bascule vers la Saisie |
 
 ---
 

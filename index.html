@@ -44,6 +44,11 @@
   </div>
 </header>
 
+<main id="app-main">
+
+<!-- ════════════ VUE : Saisie d'un plein ════════════ -->
+<section class="view view--active" id="view-saisie" data-view="saisie">
+
 <div class="card">
 
   <!-- Véhicule -->
@@ -187,6 +192,20 @@
 <!-- ─── W38 Moins cher du secteur (relevé quotidien) ─── -->
 <div class="card secteur-card" id="secteurCard" hidden></div>
 
+<div class="feedback" id="feedback"></div>
+
+<div class="submit-wrap">
+  <button class="submit-btn" id="submitBtn">
+    <span id="submitIcon">✓</span>
+    <span id="submitText">Enregistrer le plein</span>
+  </button>
+</div>
+
+</section><!-- /view-saisie -->
+
+<!-- ════════════ VUE : Statistiques ════════════ -->
+<section class="view" id="view-stats" data-view="stats">
+
 <!-- ─── Stats live (W7) ─── -->
 <div class="card stats-card">
   <p class="section-title">Statistiques</p>
@@ -214,8 +233,19 @@
   <div id="wrappedBox"><div class="stats-msg">Chargement…</div></div>
 </div>
 
+</section><!-- /view-stats -->
+
+<!-- ════════════ VUE : Carte ════════════ -->
+<section class="view" id="view-carte" data-view="carte">
+
 <!-- ─── Carte statique stations habituelles + prix moyens ─── -->
 <div class="card hidden" id="stationsMapCard"></div>
+<p class="view-empty" id="carteEmpty">🗺️ La carte de vos stations habituelles s'affiche ici dès que des pleins géolocalisés sont enregistrés.</p>
+
+</section><!-- /view-carte -->
+
+<!-- ════════════ VUE : Historique ════════════ -->
+<section class="view" id="view-historique" data-view="historique">
 
 <!-- ─── Historique 5 derniers pleins ─── -->
 <div class="card hist-card">
@@ -248,6 +278,11 @@
   </div>
   <div id="histoireFullList"><div class="hist-msg">Chargement…</div></div>
 </div>
+
+</section><!-- /view-historique -->
+
+<!-- ════════════ VUE : Paramètres ════════════ -->
+<section class="view" id="view-params" data-view="params">
 
 <!-- ─── Paramètres : Notifications & Mode hors-ligne ─── -->
 <div class="card notif-card">
@@ -305,16 +340,31 @@
   <p class="notif-sub" style="margin-top:4px">Sert au calcul de l'économie nette (brute − prix du kit). Défaut : 514,54 € (cellule B5 Excel).</p>
 </div>
 
-<div class="feedback" id="feedback"></div>
+</section><!-- /view-params -->
 
-<div class="submit-wrap">
-  <button class="submit-btn" id="submitBtn">
-    <span id="submitIcon">✓</span>
-    <span id="submitText">Enregistrer le plein</span>
-  </button>
-</div>
+</main>
 
 <footer>Données enregistrées dans Google Sheets · Suivi Conso. Carburants</footer>
+
+<!-- ════════════ Barre de navigation (onglets) ════════════ -->
+<nav class="bottom-nav" id="bottomNav" aria-label="Navigation principale">
+  <button class="nav-tab" type="button" data-view="saisie">
+    <span class="nav-ico">⛽</span><span class="nav-lbl">Saisie</span>
+  </button>
+  <button class="nav-tab" type="button" data-view="stats">
+    <span class="nav-ico">📊</span><span class="nav-lbl">Stats</span>
+  </button>
+  <button class="nav-tab" type="button" data-view="carte">
+    <span class="nav-ico">🗺️</span><span class="nav-lbl">Carte</span>
+  </button>
+  <button class="nav-tab" type="button" data-view="historique">
+    <span class="nav-ico">📜</span><span class="nav-lbl">Historique</span>
+  </button>
+  <button class="nav-tab" type="button" data-view="params">
+    <span class="nav-ico">⚙️</span><span class="nav-lbl">Réglages</span>
+  </button>
+</nav>
+
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

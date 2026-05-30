@@ -20,6 +20,20 @@ Ajouter à l'écran d'accueil iPhone : Safari → Partager → « Sur l'écran d
 
 ## ✨ Fonctionnalités
 
+### 🧭 Navigation par vues — onglets + pages (W42)
+L'application est organisée en **5 vues** (pages) accessibles via une **barre d'onglets fixe en bas**, comme une appli native — fini le long scroll unique :
+
+| Onglet | Contenu |
+|---|---|
+| ⛽ **Saisie** | Formulaire, véhicule, carburant, scan ticket, station, comparateur, secteur, « Enregistrer » |
+| 📊 **Stats** | Statistiques live, rapport mensuel, bilan annuel « Wrapped » |
+| 🗺️ **Carte** | Carte des stations habituelles + prix moyens |
+| 📜 **Historique** | 5 derniers pleins + historique complet filtrable |
+| ⚙️ **Réglages** | Notifications, mode hors-ligne, prix du kit |
+
+- **Routeur par hash** (`js/router.js`) : chaque vue a son URL (`#/saisie`, `#/stats`, `#/carte`, `#/historique`, `#/params`) → le **bouton retour** du navigateur et de l'OS fonctionne nativement, et l'URL est partageable. Aucun fallback serveur nécessaire (compatible GitHub Pages).
+- **Ouverture directe sur la Saisie** (rapide à la pompe), onglet actif surligné, titre du header mis à jour selon la vue.
+
 ### Saisie du plein
 - Formulaire rapide : date (pré-remplie à aujourd'hui), km compteur, litres, prix, station
 - **Toggle multi-carburant** dynamique :
@@ -233,6 +247,7 @@ suivi-e85/
 │
 ├── js/                              # ── Web app (ES Modules) ────────────
 │   ├── main.js                      # Point d'entrée
+│   ├── router.js                    # W42 navigation par vues (onglets + hash #/saisie…)
 │   ├── config.js                    # APP_VERSION, FUEL_CONFIG, GAS_URL, GS_SHEET_ID, APP_TOKEN (S6)
 │   ├── state.js                     # État partagé (currentType, _stationPrices…)
 │   ├── utils.js                     # Fonctions pures (haversine, odsUrl…)

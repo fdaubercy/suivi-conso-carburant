@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════
-   Suivi Conso E85 — Point d'entrée v2.16.0.0
+   Suivi Conso E85 — Point d'entrée v3.7.0.0
    ES Module : chargé en defer automatique
 ═══════════════════════════════════════ */
 import { APP_VERSION, FUEL_CONFIG } from './config.js';
@@ -9,7 +9,7 @@ import { showStationPopup } from './itineraire.js';
 
 import { chargerVehicules, onVehiculeChange, confirmerAjoutVehicule } from './vehicules.js';
 import { showPinLabel, hideMap, initMapInteractions } from './carte.js';
-import { initStationsMapInteractions } from './stationsmap.js';
+import { initStationsMapInteractions, renderStationsCard } from './stationsmap.js';
 import { _buildTypeToggle, setType, registerPriceCallback, initTypeToggle } from './carburant.js';
 import { fetchPricesNearUser, fetchPricesByCP } from './prix.js';
 import { geolocate, pickStation, highlightNearbyItem, initNearbyList } from './geo.js';
@@ -25,6 +25,7 @@ import { initScanner }       from './ticket.js';
 import { initPWA }           from './pwa.js';
 import { initOffline, syncQueue } from './offline.js';
 import { initNotifications } from './notifications.js';
+import { initRouter, navigate } from './router.js';
 
 /* ─── Init synchrone ─── */
 initTheme();
@@ -129,7 +130,10 @@ function initStaticHandlers() {
   document.querySelector('#stationMapWrap .map-close-btn')?.addEventListener('click', hideMap);
 
   // Historique
-  document.querySelector('[data-action="dupliquerDernier"]')?.addEventListener('click', dupliquerDernier);
+  document.querySelector('[data-action="dupliquerDernier"]')?.addEventListener('click', () => {
+    dupliquerDernier();
+    navigate('saisie');   // le formulaire pré-rempli est dans la vue Saisie
+  });
   document.querySelector('[data-action="chargerHistorique"]')?.addEventListener('click', chargerHistorique);
   document.querySelector('[data-action="voirTout"]')?.addEventListener('click', voirTout);
 
@@ -149,6 +153,13 @@ initSparkToggles();    // stats.js — W34 filtres sparkline multi-carburant
 initKitSetting();      // stats.js — prix du kit pour l'economie nette
 initRapport();         // stats.js — rapport mensuel consultable (sélecteur de mois)
 initVoiceKm();         // formulaire.js — W35 dictée vocale km
+initRouter();          // router.js — W42 navigation par vues (onglets + hash)
+
+/* W42 — la carte statique est rendue hors écran (offsetWidth=0) : on la re-cadre
+   à l'affichage de l'onglet Carte pour un dimensionnement correct. */
+window.addEventListener('viewchange', e => {
+  if (e.detail?.view === 'carte') renderStationsCard();
+});
 
 /* ─── Exposition globale minimale (requise par modules non-importants) ─── */
 Object.assign(window, {
