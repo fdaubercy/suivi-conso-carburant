@@ -153,6 +153,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.3.0.0 | **Onglet « Suivi (auto) » — vue dérivée (X14)** — `vba/modFeatures.bas` `CreerSuiviAuto` : table en lecture seule reconstruite par formules `INDEX` sur le tableau de `GS_Pleins` (Date, Type, Véhicule, Km, Nb km, Litres, Prix, Coût plein, L/100 km, Station) ; source unique de vérité, fin de la double saisie ; bouton « ↻ Rafraîchir » ; `RafraichirFeatures` lance MFC + vue |
 | v3.3.0.0 | **Rapport mensuel automatique (X16)** — `Google Apps Script/RapportMensuel.gs` : trigger temporel le **1er du mois** → `MailApp.sendEmail()` avec le bilan du mois écoulé (nb pleins, total €, litres, distance, conso moyenne, économie E85 vs SP98 surconsommation +20 % incluse) ; `installerTriggerRapportMensuel()` une fois, `testRapportMensuel()` pour tester |
 | v3.3.0.0 | **Formulaire de saisie d'un plein (VBA)** — `vba/modSaisie.bas` `NouveauPlein` : UserForm `frmPleinE85` construit par code (Véhicule/Carburant/Date/Km/Litres/Prix/Station, listes auto, coût live, validation km rétrograde, détection de doublon) ; ajout dans `GS_Pleins` avec `Horodatage` + `sync_id` UUID ; bouton « + Nouveau plein » |
+| v3.3.0.2 | **Fix MFC Erreur 5 (Excel FR)** — `FormatConditions.Add` rejetait la formule à séparateurs US ; helpers `AjouterRegleMFC` + `TraduireFormuleLocale` (essai anglais → repli formule localisée via `FormulaLocal`) ; MFC « Prix €/L » robuste FR/US |
 
 ---
 

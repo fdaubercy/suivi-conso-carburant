@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.3.0.2] — 2026-05-30
+
+### Fixed
+- **MFC « Prix €/L » — Erreur 5 « Argument ou appel de procédure incorrect » en Excel français** (`vba/modFeatures.bas`) : `FormatConditions.Add` interprète `Formula1` selon les paramètres régionaux ; la formule `AVERAGEIFS`/`AND` construite avec des virgules (séparateur US) était rejetée. Ajout des helpers `AjouterRegleMFC` (essaie la formule anglaise puis sa version localisée en repli) et `TraduireFormuleLocale` (traduction via `FormulaLocal` d'une cellule tampon). MFC désormais robuste FR/US, sans crash.
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.3.0.2`.
+
 ## [3.3.0.1] — 2026-05-30
 
 ### Changed

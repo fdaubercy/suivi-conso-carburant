@@ -1,6 +1,6 @@
 Attribute VB_Name = "modFeatures"
 ' ============================================================
-'  SUIVI E85 - Fonctionnalites X4 + X14            v3.3.0.0
+'  SUIVI E85 - Fonctionnalites X4 + X14            v3.3.0.2
 '
 '  X4  : Mise en forme conditionnelle "Prix EUR/L"
 '        vert si < moyenne 30 j (meme carburant), rouge si >
@@ -140,19 +140,70 @@ Private Function MFCSurFeuille(nomFeuille As String) As Long
     ' Purge des anciennes regles sur la plage puis ajout
     plage.FormatConditions.Delete
 
+    ' Ajout robuste aux locales (FR/US) : evite l'erreur 5 de
+    ' FormatConditions.Add quand le separateur attendu est ";" (FR).
     Dim fc As FormatCondition
-    Set fc = plage.FormatConditions.Add(Type:=xlExpression, Formula1:=fVert)
+    Set fc = AjouterRegleMFC(plage, fVert)
+    If fc Is Nothing Then
+        Debug.Print "[MFC] Add impossible sur " & nomFeuille
+        MFCSurFeuille = 0
+        Exit Function
+    End If
     fc.Interior.Color = VERT_FOND
     fc.Font.Color = VERT_TEXTE
     fc.StopIfTrue = False
 
-    Set fc = plage.FormatConditions.Add(Type:=xlExpression, Formula1:=fRouge)
-    fc.Interior.Color = ROUGE_FOND
-    fc.Font.Color = ROUGE_TEXTE
-    fc.StopIfTrue = False
+    Set fc = AjouterRegleMFC(plage, fRouge)
+    If Not fc Is Nothing Then
+        fc.Interior.Color = ROUGE_FOND
+        fc.Font.Color = ROUGE_TEXTE
+        fc.StopIfTrue = False
+    End If
 
     Debug.Print "[MFC] OK " & nomFeuille & " : " & plage.Address
     MFCSurFeuille = 1
+End Function
+
+' Ajoute une regle xlExpression robuste a la locale.
+' 1) tente la formule anglaise (separateurs ",") ;
+' 2) en repli, la traduit en formule locale via FormulaLocal d'une
+'    cellule tampon (separateurs ";" + noms de fonctions FR si besoin).
+' Retourne la FormatCondition creee, ou Nothing si echec total.
+Private Function AjouterRegleMFC(plage As Range, formuleEN As String) As FormatCondition
+    Dim fc As FormatCondition
+
+    On Error Resume Next
+    Set fc = plage.FormatConditions.Add(Type:=xlExpression, Formula1:=formuleEN)
+    On Error GoTo 0
+    If Not fc Is Nothing Then
+        Set AjouterRegleMFC = fc
+        Exit Function
+    End If
+
+    Dim fLoc As String
+    fLoc = TraduireFormuleLocale(plage.Worksheet, formuleEN)
+    If Len(fLoc) > 0 Then
+        On Error Resume Next
+        Set fc = plage.FormatConditions.Add(Type:=xlExpression, Formula1:=fLoc)
+        On Error GoTo 0
+    End If
+    Set AjouterRegleMFC = fc
+End Function
+
+' Traduit une formule anglaise (commas) vers la langue/locale d'Excel
+' en l'ecrivant dans une cellule tampon (derniere cellule de la feuille,
+' supposee vide) puis en relisant .FormulaLocal. Restaure la cellule.
+Private Function TraduireFormuleLocale(ws As Worksheet, formuleEN As String) As String
+    Dim tmp As Range
+    Set tmp = ws.Cells(ws.Rows.Count, ws.Columns.Count)
+    Dim oldF As String
+    oldF = tmp.Formula
+
+    On Error Resume Next
+    tmp.Formula = formuleEN
+    TraduireFormuleLocale = tmp.FormulaLocal
+    If Len(oldF) = 0 Then tmp.ClearContents Else tmp.Formula = oldF
+    On Error GoTo 0
 End Function
 
 ' Detecte les colonnes Date / Type / Prix par en-tete (lignes 1 a 20).
