@@ -50,6 +50,8 @@
 
 <!-- ════════════ VUE : Accueil à tuiles (W43) ════════════ -->
 <section class="view" id="view-accueil" data-view="accueil">
+  <!-- U5 — tuile « reprendre » : dernière vue consultée + résumé du dernier plein (rempli par main.js) -->
+  <button class="home-resume" id="homeResume" type="button" hidden></button>
   <div class="home-shortcuts">
     <button class="home-shortcut" type="button" data-shortcut="nouveau">
       <span class="hs-ico">➕</span><span class="hs-txt">Nouveau plein</span>
@@ -321,8 +323,24 @@
 <!-- ════════════ VUE : Paramètres ════════════ -->
 <section class="view" id="view-params" data-view="params">
 
+<!-- ─── Affichage / démarrage (U4) ─── -->
+<div class="card collapsible" data-collapse="affichage">
+  <p class="section-title">🚀 Démarrage</p>
+  <div class="param-group">
+    <div class="seuil-row" id="startViewRow">
+      <label for="startView" class="notif-label">Page d'ouverture</label>
+      <select id="startView" class="start-view-sel">
+        <option value="accueil">Accueil (tuiles)</option>
+        <option value="saisie">Saisie d'un plein</option>
+        <option value="last">Dernière vue consultée</option>
+      </select>
+    </div>
+    <p class="notif-sub" style="margin-top:4px">Vue affichée à l'ouverture de l'application. « Dernière vue consultée » reprend là où vous vous étiez arrêté.</p>
+  </div>
+</div>
+
 <!-- ─── Paramètres : Alertes prix & Mode hors-ligne ─── -->
-<div class="card notif-card">
+<div class="card notif-card collapsible" data-collapse="alertes">
   <p class="section-title">🔔 Alertes prix</p>
 
   <!-- Hors-ligne : visible uniquement quand l'appareil est hors-ligne -->
@@ -349,7 +367,7 @@
 </div>
 
 <!-- ─── Prix du kit E85 (seul) ─── -->
-<div class="card">
+<div class="card collapsible" data-collapse="kit">
   <p class="section-title">🔧 Conversion E85</p>
   <div class="param-group">
     <div class="seuil-row" id="kitPrixRow">
@@ -366,7 +384,7 @@
 </div>
 
 <!-- ─── Budget mensuel (seul) — W39 ─── -->
-<div class="card">
+<div class="card collapsible" data-collapse="budget">
   <p class="section-title">🎯 Budget mensuel</p>
   <div class="param-group">
     <div class="seuil-row" id="budgetRow">
@@ -383,7 +401,7 @@
 </div>
 
 <!-- ─── Objectif CO₂ annuel (seul) — W51 ─── -->
-<div class="card">
+<div class="card collapsible" data-collapse="co2">
   <p class="section-title">🌍 Objectif CO₂</p>
   <div class="param-group">
     <div class="seuil-row" id="objectifCo2Row">

@@ -986,6 +986,37 @@ body.no-share .hist-share { display: none; }
   margin-top: 4px;
 }
 
+/* ─── U6 — Blocs Réglages repliables ───────────────────────────────────── */
+.card.collapsible > .section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 10px;
+}
+.collapse-chevron {
+  font-size: 11px;
+  color: var(--text-muted);
+  transition: transform .2s ease;
+}
+.card.collapsed > .section-title { margin-bottom: 0; }
+.card.collapsed > .section-title .collapse-chevron { transform: rotate(-90deg); }
+/* Replié : tout est masqué sauf le titre (qui reste cliquable pour rouvrir). */
+.card.collapsed > :not(.section-title) { display: none; }
+
+/* U4 — Sélecteur de vue de départ */
+.start-view-sel {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+}
+
 /* ── Switch iOS-style ── */
 .switch {
   position: relative;
@@ -1624,6 +1655,15 @@ body.no-share .hist-share { display: none; }
 .budget-box.warn .budget-fill{background:#f59e0b;}
 .budget-box.over .budget-fill{background:#ef4444;}
 .budget-box.over{border-color:rgba(239,68,68,.45);background:rgba(239,68,68,.08);}
+/* ─── U7 — Repères de jauge : marque 50 % + échelle/cible 100 % ─── */
+.gauge-track{position:relative;}
+.gauge-tick{position:absolute;top:0;bottom:0;width:2px;transform:translateX(-1px);
+  background:rgba(0,0,0,.28);z-index:1;border-radius:2px;}
+[data-theme="dark"] .gauge-tick{background:rgba(255,255,255,.35);}
+.gauge-scale{display:flex;justify-content:space-between;align-items:baseline;
+  font-size:9px;color:var(--text-muted);margin:0 0 3px;font-variant-numeric:tabular-nums;}
+.gauge-scale .gauge-target{font-weight:600;color:var(--text);}
+
 .budget-foot{font-size:10px;color:var(--text-muted);}
 .budget-over{color:#ef4444;font-weight:600;}
 .budget-left{color:#1D9E75;font-weight:600;}
@@ -1786,6 +1826,20 @@ body.no-share .hist-share { display: none; }
   -webkit-tap-highlight-color:transparent;
 }
 .home-btn:active { background:var(--blue-light); }
+
+/* U5 — Tuile « reprendre » (dernière vue + dernier plein) */
+.home-resume {
+  display:flex; flex-direction:column; gap:2px; width:calc(100% - 32px);
+  margin:16px 16px 0; padding:12px 14px; text-align:left;
+  border:1px solid var(--blue-mid); border-radius:var(--radius);
+  background:var(--blue-light); color:var(--text); font-family:inherit; cursor:pointer;
+  box-shadow:0 1px 4px -2px rgba(0,0,0,.18); -webkit-tap-highlight-color:transparent;
+  transition:transform .12s, box-shadow .12s;
+}
+.home-resume:active { transform:scale(.985); }
+.home-resume .hr-main { font-size:14px; font-weight:700; color:var(--blue-dark); }
+.home-resume .hr-sub  { font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+[data-theme="dark"] .home-resume .hr-main { color:#fff; }
 
 .home-shortcuts { display:flex; gap:10px; margin:16px 16px 4px; }
 .home-shortcut {

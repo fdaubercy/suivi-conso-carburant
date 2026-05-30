@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.2.0.0] — 2026-05-30
+
+### Added
+- **Vue de départ configurable (U4)** — nouveau bloc « 🚀 Démarrage » dans Réglages (`#startView`) : choix de la page d'ouverture entre **Accueil**, **Saisie** ou **Dernière vue consultée**. Persisté (`START_VIEW_KEY`), résolu au démarrage par `resolveStartView()` (`js/router.js`) ; un deep-link `#/<vue>` reste prioritaire. La dernière vue « utile » (≠ accueil) est mémorisée à chaque navigation (`LAST_VIEW_KEY`).
+- **Tuile « reprendre » sur l'Accueil (U5)** — bouton en tête de l'accueil (`#homeResume`) affichant **↩️ Reprendre — <dernière vue>** (ou « 📜 Voir l'historique » à défaut) et un résumé du **dernier plein** (date · station · €/L). Clic → navigation directe. `getLastRecordSummary()` (`js/historique.js`) lit la mémoire vive ou le cache `localStorage` (fonctionne avant le 1er chargement réseau) ; rendu par `renderHomeResume()` (`js/preferences.js`) à l'ouverture et à chaque retour sur l'accueil.
+- **Blocs Réglages repliables (U6)** — chaque carte de Réglages (`.card.collapsible`) se replie/déplie au clic sur son titre (chevron ▾/▸), **état persistant** par bloc (`COLLAPSE_PREFIX`). Titre accessible au clavier (`role=button`, Entrée/Espace). `initCollapsibles()` (`js/preferences.js`), CSS `.collapse-chevron` / `.card.collapsed` (`css/style.css`).
+- **Repères de cible sur les jauges (U7)** — la barre **Budget** et la jauge **CO₂ annuel** (carte Stats) affichent désormais une **marque à 50 %** sur la piste (`.gauge-tick`) et une **échelle `0 · 50 % · 🎯 <cible> · 100 %`** sous la barre (`.gauge-scale` / `.gauge-target`), rendant explicite que la valeur saisie = le **maximum (100 %)** de la jauge (`buildBudgetBar` / `buildCo2Annuel`, `js/stats.js`).
+
+### Changed
+- **Nouveau module `js/preferences.js`** — regroupe le câblage U4/U5/U6 (`initPreferences()` appelé depuis `js/main.js`).
+
 ## [4.1.0.0] — 2026-05-30
 
 ### Added

@@ -29,6 +29,7 @@ import { initRouter, navigate } from './router.js';
 import { initPullRefresh } from './pullrefresh.js';
 import { initSwipe } from './swipe.js';
 import { initBadges, refreshBadges } from './badges.js';
+import { initPreferences, renderHomeResume } from './preferences.js';
 
 /* ─── Init synchrone ─── */
 initTheme();
@@ -65,6 +66,9 @@ chargerHistorique().then(() => {
 
   // W45 — badges onglets (compteur Historique dès l'historique chargé)
   refreshBadges();
+
+  // U5 — met à jour la tuile « reprendre » avec le dernier plein fraîchement chargé
+  renderHomeResume();
 
   // W38 — prix secteur : charge le snapshot quotidien puis enrichit l'historique
   loadSectorPrices().then(() => {
@@ -181,6 +185,7 @@ initRouter();          // router.js — W42 navigation par vues (onglets + hash)
 initPullRefresh();     // pullrefresh.js — W46 tirer vers le bas → recharge l'app
 initSwipe();           // swipe.js — W44 balayage gauche/droite entre onglets
 initBadges();          // badges.js — W45 pastilles de notification sur les onglets
+initPreferences();     // preferences.js — U4 vue de départ · U5 tuile reprendre · U6 blocs repliables
 
 /* W42 — la carte statique est rendue hors écran (offsetWidth=0) : on la re-cadre
    à l'affichage de l'onglet Carte pour un dimensionnement correct. */

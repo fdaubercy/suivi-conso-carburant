@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '4.1.0.0';
+export const APP_VERSION       = '4.2.0.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 
 // S6 — Token secret partagé avec les endpoints GAS et la macro VBA.
@@ -33,6 +33,12 @@ export const CO2_OBJECTIF_KEY  = 'suivi_e85_objectif_co2';   // W51 — objectif
 export const STATION_SORT_KEY  = 'suivi_e85_station_sort';   // W36 — tri carte stations : 'prix' | 'freq'
 export const HIST_SEEN_KEY     = 'suivi_e85_hist_seen';      // W45 — nb de pleins déjà consultés (badge Historique)
 export const CARTE_SEEN_KEY    = 'suivi_e85_carte_seen';     // W45 — jour de dernière ouverture de la Carte (badge secteur)
+export const START_VIEW_KEY    = 'suivi_e85_start_view';     // U4 — vue d'ouverture : 'accueil' | 'saisie' | 'last'
+export const LAST_VIEW_KEY     = 'suivi_e85_last_view';      // U4/U5 — dernière vue consultée (pour 'last' + tuile « reprendre »)
+export const COLLAPSE_PREFIX   = 'suivi_e85_collapse_';      // U6 — état replié des blocs Réglages (préfixe + clé de bloc)
+
+// U4 — vue d'ouverture par défaut quand aucune préférence n'est enregistrée.
+export const DEFAULT_START_VIEW = 'accueil';
 
 // W36 — Station favorite : une station habituelle devient « favorite » (badge ⭐)
 // à partir de ce nombre de pleins. Distinct du ★ « meilleur prix ». Configurable.

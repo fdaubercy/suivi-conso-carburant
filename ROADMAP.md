@@ -17,14 +17,11 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | W55 | **Objectif CO₂ : palier mensuel + historique** (complément W51) : décliner l'objectif annuel en cible mensuelle et tracer la courbe cumulée du CO₂ évité mois par mois | Lisibilité de la trajectoire 🌿 · réutilise `buildMonthlyReport` · effort ~1 h |
 | W56 | **Alerte de dépassement budget anticipée** (complément W39/W50) : à partir de la tendance 6 mois, prévenir « à ce rythme, budget dépassé le JJ/MM » avant la fin du mois | Action préventive plutôt que constat · pur calcul · effort ~1 h |
 
-### 🎨 UX / Ergonomie (suite v4.1.0.0)
+### 🎨 UX / Ergonomie
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| U4 | **Vue de départ configurable** (complément U1) : dans Réglages, choisir la page d'ouverture (Accueil / Saisie / dernière vue consultée) au lieu d'imposer Accueil | Respecte les habitudes de chacun · localStorage + `DEFAULT_VIEW` dynamique · effort ~½ h |
-| U5 | **Tuile « reprendre » sur l'Accueil** : raccourci vers la dernière vue consultée + résumé du dernier plein saisi (date, station, €/L) | Réduit les clics au quotidien · réutilise l'historique en cache · effort ~1 h |
-| U6 | **Réglages : repli/dépli des blocs** (complément U2) : sections `.param-group` repliables (Alertes / Conversion / Budget / CO₂) avec état persistant | Page plus courte, accès rapide au réglage cherché · effort ~1 h |
-| U7 | **Indicateur visuel d'objectif sur les jauges** : afficher la valeur cible (100 %) en étiquette sur la barre budget et la jauge CO₂, et une marque intermédiaire 50 % | Lecture immédiate du « combien il reste » · pur CSS/SVG · effort ~½ h |
+| _(U4–U7 implémentés en v4.2.0.0)_ | — | voir « ✅ Idées déjà implémentées » |
 
 ---
 
@@ -94,6 +91,10 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v4.2.0.0 | **Vue de départ configurable (U4)** — bloc « 🚀 Démarrage » dans Réglages (`#startView`, `START_VIEW_KEY`) : Accueil / Saisie / dernière vue consultée ; `resolveStartView()` au démarrage, deep-link prioritaire ; dernière vue ≠ accueil mémorisée (`LAST_VIEW_KEY`) |
+| v4.2.0.0 | **Tuile « reprendre » sur l'Accueil (U5)** — `#homeResume` : « ↩️ Reprendre — <dernière vue> » + résumé du dernier plein (date · station · €/L) ; `getLastRecordSummary()` (mémoire vive ou cache localStorage), `renderHomeResume()` (`preferences.js`) à l'ouverture et au retour sur l'accueil |
+| v4.2.0.0 | **Blocs Réglages repliables (U6)** — `.card.collapsible` repliée au clic sur le titre (chevron ▾/▸), état persistant par bloc (`COLLAPSE_PREFIX`), titre accessible clavier ; `initCollapsibles()` (`preferences.js`) |
+| v4.2.0.0 | **Repères de cible sur les jauges (U7)** — marque 50 % (`.gauge-tick`) + échelle « 0 · 50 % · 🎯 cible · 100 % » (`.gauge-scale`) sous la barre Budget et la jauge CO₂ ; rend explicite que la valeur saisie = le max (100 %) (`buildBudgetBar`/`buildCo2Annuel`) |
 | v4.1.0.0 | **Accueil par défaut à la connexion (U1)** — `DEFAULT_VIEW` passe de `saisie` à `accueil` (`router.js`) : au démarrage sans hash, l'app ouvre la page Accueil à tuiles ; deep-link `#/<vue>` toujours respecté |
 | v4.1.0.0 | **Réglages regroupés par bloc (U2)** — chaque type de paramètre dans un encadré `.param-group` : Alertes+Seuil d'un même carburant (E85/Gazole/SP98) groupés (`buildFuelRows`), puis cartes distinctes Conversion E85 / Budget mensuel / Objectif CO₂ ; libellés budget & CO₂ précisant qu'ils fixent le maximum (100 %) de leur jauge |
 | v4.1.0.0 | **Mise en page pleine hauteur (U3)** — `body` en flex colonne (`min-height: 100dvh`) + `#app-main { flex:1 }` : le footer reste collé en bas de l'écran sur toutes les pages, même quand le contenu ne remplit pas la hauteur |

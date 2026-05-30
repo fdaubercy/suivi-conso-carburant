@@ -129,6 +129,29 @@ export function getAllRecords() {
   return _allRecords;
 }
 
+/** U5 — Résumé du plein le plus récent pour la tuile « reprendre » de l'accueil.
+ *  Lit la mémoire vive si disponible, sinon le cache localStorage (fonctionne
+ *  donc avant même le 1er chargement réseau). Retourne null si aucun plein. */
+export function getLastRecordSummary() {
+  let r = _lastRecord;
+  if (!r) {
+    const cached = _loadCache();
+    if (!cached.length) return null;
+    r = cached.slice().sort((a, b) => (b.Horodatage || '').localeCompare(a.Horodatage || ''))[0];
+  }
+  if (!r) return null;
+  const litres = Number(r['Nb. Litres'] || 0);
+  const prix   = Number(r['Prix €/L']   || 0);
+  return {
+    date:    fmtDate(r.Date || r.Horodatage),
+    station: String(r['Station essence'] || '—').slice(0, 40),
+    type:    String(r.Type || ''),
+    litres,
+    prix,
+    total:   litres * prix,
+  };
+}
+
 /** Retourne le km maximum enregistré pour un véhicule donné. */
 export function getMaxKmForVehicule(vehiculeNom) {
   if (!_allRecords.length) return null;

@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v4.1.0.0**
+> 🔖 Version courante : **v4.2.0.0**
 
 ## 🌐 Accès
 
@@ -29,14 +29,14 @@ L'application est organisée en **5 vues** (pages) accessibles via une **barre d
 | 📊 **Stats** | Statistiques live, **budget mensuel** (W39) + **tendance 6 mois** (W50), **CO₂ évité** (W40) + **objectif CO₂ annuel** (W51), **comparatif véhicules** (W41), rapport mensuel, bilan annuel « Wrapped » |
 | 🗺️ **Carte** | Carte des stations habituelles + prix moyens, **sélecteur E85/Gazole/SP98** (W47) |
 | 📜 **Historique** | 5 derniers pleins + historique complet filtrable + **export CSV** (W25) |
-| ⚙️ **Réglages** | Réglages **regroupés par bloc** (v4.1.0.0) : alertes prix par carburant (alerte + seuil groupés), **conversion E85** (prix du kit), **budget mensuel**, **objectif CO₂ annuel** |
+| ⚙️ **Réglages** | Réglages **regroupés par bloc repliable** (v4.1/v4.2) : **🚀 démarrage** (vue d'ouverture), alertes prix par carburant (alerte + seuil groupés), **conversion E85** (prix du kit), **budget mensuel**, **objectif CO₂ annuel** |
 
 - **Routeur par hash** (`js/router.js`) : chaque vue a son URL (`#/saisie`, `#/stats`, `#/carte`, `#/historique`, `#/params`) → le **bouton retour** du navigateur et de l'OS fonctionne nativement, et l'URL est partageable. Aucun fallback serveur nécessaire (compatible GitHub Pages).
-- **Ouverture sur l'Accueil par défaut** (v4.1.0.0) — portail à tuiles à la connexion ; onglet actif surligné, titre du header mis à jour selon la vue. Un deep-link `#/<vue>` reste prioritaire.
+- **Vue de départ configurable** (v4.2.0.0) — dans ⚙️ Réglages → « 🚀 Démarrage », choisir l'ouverture sur **Accueil**, **Saisie** ou **dernière vue consultée**. Par défaut Accueil ; un deep-link `#/<vue>` reste prioritaire.
 - **Mise en page pleine hauteur** (v4.1.0.0) — `body` en flex colonne (`min-height: 100dvh`), le footer reste collé en bas de l'écran sur toutes les pages, même courtes.
 
 ### 🏠 Écran d'accueil à tuiles (W43)
-Une **6ᵉ vue `#/accueil`** sert de portail : **5 grandes tuiles** (Saisie · Stats · Carte · Historique · Réglages) + **2 raccourcis** (« Nouveau plein », « Dupliquer le dernier »). Un **bouton 🏠** dans le header y ramène à tout moment. Depuis **v4.1.0.0, c'est la vue de départ par défaut** ; l'accueil reste hors de la séquence d'onglets.
+Une **6ᵉ vue `#/accueil`** sert de portail : une **tuile « reprendre »** (v4.2.0.0 — dernière vue consultée + résumé du dernier plein), **5 grandes tuiles** (Saisie · Stats · Carte · Historique · Réglages) + **2 raccourcis** (« Nouveau plein », « Dupliquer le dernier »). Un **bouton 🏠** dans le header y ramène à tout moment. Depuis **v4.1.0.0, c'est la vue de départ par défaut** (modifiable en v4.2.0.0) ; l'accueil reste hors de la séquence d'onglets.
 
 ### 👆 Gestes de navigation — swipe (W44)
 **Balayage gauche/droite** (pointer events) pour passer d'un onglet à l'autre, avec **transition latérale** directionnelle, en complément de la barre d'onglets (`js/swipe.js`). Garde-fous : geste nettement horizontal uniquement, zones interactives ignorées (cartes, formulaires, sélecteurs), bord gauche réservé au geste « retour » natif iOS.
@@ -305,7 +305,8 @@ suivi-e85/
 │
 ├── js/                              # ── Web app (ES Modules) ────────────
 │   ├── main.js                      # Point d'entrée
-│   ├── router.js                    # W42 navigation par vues (onglets + hash #/saisie…) + W43 accueil
+│   ├── router.js                    # W42 navigation par vues (onglets + hash #/saisie…) + W43 accueil + U4 vue de départ
+│   ├── preferences.js               # U4 vue de départ · U5 tuile reprendre · U6 blocs Réglages repliables
 │   ├── swipe.js                     # W44 gestes de navigation (swipe gauche/droite)
 │   ├── badges.js                    # W45 pastilles de notification sur les onglets
 │   ├── pullrefresh.js               # W46 pull-to-refresh (tirer vers le bas → recharge)

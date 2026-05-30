@@ -569,7 +569,11 @@ function buildCo2Annuel() {
         <span class="co2y-label">🌍 CO₂ évité ${year}</span>
         <span class="co2y-amount">${co2.toFixed(0)} / ${obj.toFixed(0)} kg</span>
       </div>
-      <div class="co2y-track"><div class="co2y-fill" style="width:${w}%"></div></div>
+      <div class="co2y-track gauge-track">
+        <div class="co2y-fill" style="width:${w}%"></div>
+        <span class="gauge-tick" style="left:50%"></span>
+      </div>
+      <div class="gauge-scale"><span>0</span><span>50 %</span><span class="gauge-target">🎯 ${obj.toFixed(0)} kg · 100 %</span></div>
       <div class="co2y-foot">${right} · ${Math.round(pct)} %</div>
       <div class="co2y-equiv">≈ <strong>${kmTherm.toLocaleString('fr-FR')} km</strong> de conduite thermique évités · ${arbresTxt} 🌳</div>
     </div>`;
@@ -598,7 +602,11 @@ function buildBudgetBar() {
         <span class="budget-label">🎯 Budget ${r.label}</span>
         <span class="budget-amount">${spent.toFixed(0)} / ${budget.toFixed(0)} €</span>
       </div>
-      <div class="budget-track"><div class="budget-fill" style="width:${w}%"></div></div>
+      <div class="budget-track gauge-track">
+        <div class="budget-fill" style="width:${w}%"></div>
+        <span class="gauge-tick" style="left:50%"></span>
+      </div>
+      <div class="gauge-scale"><span>0</span><span>50 %</span><span class="gauge-target">🎯 ${budget.toFixed(0)} € · 100 %</span></div>
       <div class="budget-foot">${right} · ${Math.round(pct)} %</div>
     </div>`;
 }

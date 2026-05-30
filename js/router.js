@@ -3,7 +3,10 @@
    Hybride : barre d'onglets + URL #/<vue> + retour navigateur/OS
    W43 : vue d'accueil à tuiles (#/accueil)
    W44 : transition latérale selon la direction (swipe / onglets)
+   U4  : vue de départ configurable (Accueil / Saisie / dernière vue)
 ═══════════════════════════════════════ */
+
+import { START_VIEW_KEY, LAST_VIEW_KEY, DEFAULT_START_VIEW } from './config.js';
 
 /** Vues déclarées dans index.html (data-view) + titre affiché dans le header. */
 const VIEWS = {
@@ -15,6 +18,31 @@ const VIEWS = {
   params:     { title: 'Réglages' },
 };
 const DEFAULT_VIEW = 'accueil';
+
+/* ─── U4 — Vue de départ configurable ─────────────────────────────────
+   'accueil' | 'saisie' = vue fixe ; 'last' = reprend la dernière consultée. */
+export function getStartViewPref() {
+  const v = localStorage.getItem(START_VIEW_KEY);
+  return v === 'saisie' || v === 'last' || v === 'accueil' ? v : DEFAULT_START_VIEW;
+}
+
+export function setStartViewPref(v) {
+  if (v === 'saisie' || v === 'last' || v === 'accueil') localStorage.setItem(START_VIEW_KEY, v);
+}
+
+/** Dernière vue consultée (persistée par showView), pour la préférence 'last'
+ *  et la tuile « reprendre » de l'accueil. */
+export function getLastView() {
+  const v = localStorage.getItem(LAST_VIEW_KEY);
+  return VIEWS[v] ? v : null;
+}
+
+/** Vue à afficher au démarrage selon la préférence (résout 'last'). */
+function resolveStartView() {
+  const pref = getStartViewPref();
+  if (pref === 'last') return getLastView() || DEFAULT_VIEW;
+  return VIEWS[pref] ? pref : DEFAULT_VIEW;
+}
 
 /** W44 — ordre des onglets (= séquence de swipe). L'accueil est hors séquence
  *  (accessible via le bouton 🏠), il n'entre donc pas dans le balayage. */
@@ -52,6 +80,12 @@ function showView(view) {
   });
   const h1 = document.querySelector('header h1');
   if (h1 && VIEWS[view]) h1.textContent = VIEWS[view].title;
+
+  // U4/U5 — mémorise la dernière vue « utile » (≠ accueil) pour la préférence
+  // 'last' et la tuile « reprendre » : reprendre vers l'accueil n'aurait pas de sens.
+  if (view !== 'accueil') {
+    try { localStorage.setItem(LAST_VIEW_KEY, view); } catch { /* quota / privé */ }
+  }
 
   // Remonter en haut à chaque changement de vue (chaque vue est une "page").
   window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
@@ -96,7 +130,7 @@ export function initRouter() {
   window.addEventListener('hashchange', () => showView(viewFromHash()));
 
   // Vue de départ : respecte un hash existant (deep-link / rechargement),
-  // sinon ouvre directement l'Accueil sans polluer l'historique.
+  // sinon applique la préférence U4 (Accueil / Saisie / dernière vue).
   if (window.location.hash && VIEWS[viewFromHash()]) showView(viewFromHash());
-  else showView(DEFAULT_VIEW);
+  else showView(resolveStartView());
 }
