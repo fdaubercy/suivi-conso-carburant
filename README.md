@@ -481,10 +481,22 @@ stationSubLabel(r)
   "webapp": { "executeAs": "USER_DEPLOYING", "access": "ANYONE_ANONYMOUS" },
   "oauthScopes": [
     "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/script.external_request"
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/script.scriptapp",
+    "https://www.googleapis.com/auth/script.send_mail",
+    "https://www.googleapis.com/auth/userinfo.email"
   ]
 }
 ```
+
+| Scope | Utilisé par |
+|---|---|
+| `spreadsheets` | lecture/écriture du Google Sheet |
+| `script.external_request` | `UrlFetchApp.fetch` (scan Gemini, sync) |
+| `script.scriptapp` | `ScriptApp` — déclencheurs du **rapport mensuel** (X16) |
+| `script.send_mail` | `MailApp.sendEmail()` — **rapport mensuel** (X16) |
+| `userinfo.email` | `Session.getEffectiveUser().getEmail()` — destinataire auto du rapport |
+
 4. Sauvegarder (`Ctrl+S`)
 
 **Correction — étape 2 : autoriser**
@@ -507,6 +519,22 @@ Exécuter n'importe quelle fonction dans l'éditeur (ex. `migrateSyncId`) :
 4. Redéployer (nouvelle version)
 
 > Le GAS s'exécute sous l'identité du propriétaire du script (« Execute as: Me »). Chaque scope doit être consenti par le propriétaire. Un déploiement n'hérite que des scopes autorisés au moment de sa création — d'où la nécessité de redéployer après toute nouvelle autorisation.
+
+---
+
+### ⏰ Erreur déclencheur rapport mensuel — *« Specified permissions are not sufficient to call ScriptApp.getProjectTriggers »*
+
+À l'exécution de `installerTriggerRapportMensuel()` :
+
+> `Exception: Specified permissions are not sufficient to call ScriptApp.getProjectTriggers. Required permissions: https://www.googleapis.com/auth/script.scriptapp`
+
+**Cause** : le projet a été autorisé pour `Code.gs` mais sans les scopes `script.scriptapp` (déclencheurs) ni `script.send_mail` (envoi mail) requis par `RapportMensuel.gs`. La liste de scopes étant figée, GAS ne redemande pas l'autorisation seul.
+
+**Correction** :
+1. Ajouter `script.scriptapp`, `script.send_mail` et `userinfo.email` au bloc `oauthScopes` du manifeste (voir tableau ci-dessus) → **Ctrl+S**.
+2. Ré-exécuter `installerTriggerRapportMensuel` → la fenêtre **« Autorisation requise »** s'ouvre (la liste de scopes a changé) → **Autoriser** (écran « non vérifiée » → *Paramètres avancés → Accéder à…*).
+3. Vérifier le déclencheur créé dans l'icône ⏰ **Déclencheurs**. *(Pas de redéploiement nécessaire : un trigger temporel n'est pas l'application web.)*
+4. Tester avec `testRapportMensuel` → réception immédiate du bilan du mois précédent.
 
 ---
 

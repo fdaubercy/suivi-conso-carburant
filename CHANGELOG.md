@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.3.0.1] — 2026-05-30
+
+### Changed
+- **`README.md`** — bloc `oauthScopes` du manifeste `appsscript.json` complété pour le rapport mensuel (X16) : ajout de `script.scriptapp` (déclencheurs), `script.send_mail` (`MailApp.sendEmail`) et `userinfo.email` (`Session.getEffectiveUser`), + tableau récapitulatif scope → usage.
+- **`js/config.js`** — `APP_VERSION` → `3.3.0.1`.
+
+### Fixed
+- **Doc dépannage** — nouvelle entrée pour l'erreur `Specified permissions are not sufficient to call ScriptApp.getProjectTriggers` rencontrée à l'exécution de `installerTriggerRapportMensuel()` : cause (scopes figés non autorisés) + correction en 4 étapes (manifeste → ré-autorisation, sans redéploiement).
+
 ## [3.3.0.0] — 2026-05-30
 
 ### Added
