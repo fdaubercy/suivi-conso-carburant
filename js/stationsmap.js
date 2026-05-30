@@ -1,7 +1,7 @@
 /* ─── Carte statique Stations habituelles + prix moyens (multi-carburant W47) ─── */
 import { getAllRecords }  from './historique.js';
 import { escHtml, getCoords, haversine } from './utils.js';
-import { PRIX_API, FUEL_CONFIG, FAVORITE_MIN_PLEINS, STATION_SORT_KEY } from './config.js';
+import { PRIX_API, FUEL_CONFIG, FAVORITE_MIN_PLEINS, STATION_SORT_KEY, PINNED_STATIONS_KEY } from './config.js';
 import { state }          from './state.js';
 import { showStationPopup } from './itineraire.js';
 import { getSectorToday, loadSectorPrices } from './secteur.js';   // W48 prix secteur par carburant
@@ -34,6 +34,26 @@ let _sortMode = (() => {
 function _fuelMatch(fuelKey, typeStr) {
   const t = String(typeStr || '').toLowerCase();
   return (FUEL_TOKENS[fuelKey] || []).some(tok => t.includes(tok));
+}
+
+// ── W53 — Stations épinglées manuellement (📌, indépendantes du prix/seuil) ──
+/** Ensemble des noms de stations épinglés par l'utilisateur (localStorage). */
+function _loadPinned() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(PINNED_STATIONS_KEY) || '[]');
+    return Array.isArray(arr) ? new Set(arr.map(String)) : new Set();
+  } catch { return new Set(); }
+}
+function _savePinned(set) {
+  try { localStorage.setItem(PINNED_STATIONS_KEY, JSON.stringify([...set])); }
+  catch { /* quota / navigation privée */ }
+}
+/** Bascule l'épinglage d'une station ; renvoie le nouvel ensemble. */
+function _togglePinned(name) {
+  const set = _loadPinned();
+  if (set.has(name)) set.delete(name); else set.add(name);
+  _savePinned(set);
+  return set;
 }
 
 // Noms déjà géocodés (ou tentés sans succès) durant cette session — évite de
@@ -184,9 +204,15 @@ export function renderStationsCard() {
   const minAvg = avgs[0]?.avg ?? 0;          // meilleur prix (avgs trié par prix)
 
   // W36 — ordre d'affichage selon le tri choisi (prix croissant / fréquence décr.).
-  const displayed = (_sortMode === 'freq'
+  // W53 — les stations épinglées manuellement (📌) passent en tête, dans leur
+  // ordre de tri, indépendamment du prix et du seuil de fréquentation.
+  const pinned = _loadPinned();
+  const sorted = _sortMode === 'freq'
     ? avgs.slice().sort((a, b) => b.count - a.count || a.avg - b.avg)
-    : avgs.slice())
+    : avgs.slice();
+  const displayed = sorted
+    .slice()
+    .sort((a, b) => (pinned.has(b.name) ? 1 : 0) - (pinned.has(a.name) ? 1 : 0))
     .slice(0, 8);
 
   // W36 — bouton de tri : prix ↔ fréquentation.
@@ -199,8 +225,12 @@ export function renderStationsCard() {
 
   const listHtml = displayed.map(s => {
     const isBest = (s.avg - minAvg) < 0.002;                 // ★ meilleur prix
-    const isFav  = s.count >= FAVORITE_MIN_PLEINS;           // ⭐ station favorite
-    return `<div class="smap-item">
+    const isFav  = s.count >= FAVORITE_MIN_PLEINS;           // ⭐ station favorite (auto)
+    const isPin  = pinned.has(s.name);                       // 📌 épinglée (manuel, W53)
+    return `<div class="smap-item${isPin ? ' pinned' : ''}">
+      <button type="button" class="smap-pin-btn${isPin ? ' on' : ''}"
+        data-pin="${escHtml(s.name)}" aria-pressed="${isPin}"
+        title="${isPin ? 'Désépingler' : 'Épingler en tête'}">📌</button>
       <span class="smap-name">${isFav ? '⭐ ' : ''}${escHtml(s.name)}</span>
       <span class="smap-prix">${s.avg.toFixed(3)} €/L</span>
       <span class="smap-count">${s.count} plein${s.count > 1 ? 's' : ''}</span>
@@ -417,6 +447,14 @@ export function initStationsMapInteractions() {
   const card = document.getElementById('stationsMapCard');
   if (!card) return;
   card.addEventListener('click', e => {
+    // W53 — bouton 📌 épingler / désépingler une station (en tête de liste)
+    const pinBtn = e.target.closest('.smap-pin-btn');
+    if (pinBtn) {
+      _togglePinned(pinBtn.dataset.pin);
+      renderStationsCard();
+      return;
+    }
+
     // W36 — bouton de tri (prix / fréquentation)
     const sortBtn = e.target.closest('.smap-sort-btn');
     if (sortBtn) {

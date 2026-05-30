@@ -26,9 +26,9 @@ L'application est organisée en **5 vues** (pages) accessibles via une **barre d
 | Onglet | Contenu |
 |---|---|
 | ⛽ **Saisie** | Formulaire, véhicule, carburant, scan ticket, station, comparateur, secteur, « Enregistrer » |
-| 📊 **Stats** | Statistiques live, **budget mensuel** (W39) + **tendance 6 mois** (W50), **CO₂ évité** (W40) + **objectif CO₂ annuel** (W51), **comparatif véhicules** (W41), rapport mensuel, bilan annuel « Wrapped » |
-| 🗺️ **Carte** | Carte des stations habituelles + prix moyens, **sélecteur E85/Gazole/SP98** (W47) |
-| 📜 **Historique** | 5 derniers pleins + historique complet filtrable + **export CSV** (W25) |
+| 📊 **Stats** | Statistiques live, **budget mensuel** (W39) + **tendance 6 mois** (W50) + **alerte de dépassement anticipée** (W56), **CO₂ évité** (W40) + **objectif CO₂ annuel** (W51) + **cumul mensuel** (W55), **comparatif véhicules** (W41) + **export CSV** (W52), rapport mensuel, bilan annuel « Wrapped » |
+| 🗺️ **Carte** | Carte des stations habituelles + prix moyens, **sélecteur E85/Gazole/SP98** (W47), **épinglage manuel 📌** (W53) |
+| 📜 **Historique** | 5 derniers pleins + historique complet filtrable + **export CSV filtré / global, séparateur `;` ou `,`** (W25 + W54) |
 | ⚙️ **Réglages** | Réglages **regroupés par bloc repliable** (v4.1/v4.2) : **🚀 démarrage** (vue d'ouverture), alertes prix par carburant (alerte + seuil groupés), **conversion E85** (prix du kit), **budget mensuel**, **objectif CO₂ annuel** |
 
 - **Routeur par hash** (`js/router.js`) : chaque vue a son URL (`#/saisie`, `#/stats`, `#/carte`, `#/historique`, `#/params`) → le **bouton retour** du navigateur et de l'OS fonctionne nativement, et l'URL est partageable. Aucun fallback serveur nécessaire (compatible GitHub Pages).
@@ -51,14 +51,17 @@ Des **pastilles** attirent l'attention sans forcer l'ouverture des vues (`js/bad
 - La carte des stations habituelles propose un **sélecteur E85 / Gazole / SP98** : le classement (par prix moyen payé) et la mini-carte suivent le carburant choisi.
 - **Présélection** = carburant du **dernier plein du véhicule courant** ; se ré-ajuste au changement de véhicule. Un carburant sans plein affiche un message dédié plutôt que de masquer la carte.
 - **Station favorite ⭐ (W36)** : une station habituelle est marquée ⭐ « favorite » dès `FAVORITE_MIN_PLEINS` pleins (défaut 4, `config.js`), distinct du ★ « meilleur prix ». Un **bouton de tri 💶 Prix ↔ ⭐ Fréquentation** (persisté) classe la liste par prix moyen ou par nombre de pleins.
+- **Épinglage manuel 📌 (W53)** : un **bouton 📌** sur chaque station permet de l'**épingler en tête** de la liste, **indépendamment** du prix et du seuil de fréquentation auto — votre station de référence reste toujours visible en haut, quel que soit le tri. Persisté en `localStorage`.
 - **« 🏆 Moins cher du secteur »** (W48) : prix live du jour pour le carburant sélectionné, relevé chaque matin (~7h) par le backend dans 15 km autour de votre dernière position + vos stations habituelles — utile même sans historique de pleins.
 
-### 📊 Stats étendues — budget, CO₂, comparatif (W39 → W41, W50, W51)
+### 📊 Stats étendues — budget, CO₂, comparatif (W39 → W41, W50 → W52, W55, W56)
 - **🎯 Budget carburant mensuel (W39)** — fixez un objectif € dans ⚙️ Réglages : la carte Stats affiche une **barre de progression** de la dépense du mois en cours (véhicule sélectionné) et passe en **rouge avec alerte** dès le dépassement. Laisser le champ vide désactive la barre.
 - **📈 Tendance du budget — 6 mois (W50)** — sous la barre de budget, un **mini-histogramme** des dépenses des 6 derniers mois avec une **ligne d'objectif** pointillée au niveau du budget : barres **vertes** sous l'objectif, **rouges** au-dessus, pour visualiser la trajectoire et anticiper le dépassement. (Affiché uniquement si un budget est défini et qu'au moins un mois a des dépenses.)
+- **⏰ Alerte de dépassement anticipée (W56)** — tant que le budget n'est pas encore dépassé, un encart **« À ce rythme, budget dépassé le JJ/MM · ≈ X € en fin de mois »** projette la dépense de fin de mois à partir du **rythme du mois en cours** (dépense cumulée ÷ jours écoulés). Action préventive plutôt que constat *a posteriori*. (Affiché uniquement si le franchissement est prévu avant la fin du mois.)
 - **🌱 CO₂ évité (W40)** — tuile « kg CO₂ évités » par l'E85 vs essence (SP95-E10 ≈ 2,21 kg/L ; E85 ≈ −50 % à la combustion), calculée **à distance égale** (litres essence équivalents = litres E85 / (1 + surconsommation)) sur l'ensemble de vos pleins E85.
 - **🌍 Objectif CO₂ / éco-score annuel (W51)** — jauge « **X kg CO₂ évités cette année** » vers un **objectif annuel** configurable dans ⚙️ Réglages (défaut **200 kg/an**), avec passage en mode « objectif atteint » et deux **équivalents parlants** : km de conduite thermique évités (≈ 120 g CO₂/km) et arbres (≈ 25 kg CO₂/an). Calculée sur les pleins E85 de l'**année en cours** (véhicule sélectionné).
-- **🚗🏍️ Comparaison entre véhicules (W41)** — quand au moins **2 véhicules** ont des données, un graphe croise leur **consommation (L/100 km)** et leur **coût (€/100 km)** en barres normalisées ; le véhicule courant est surligné et le plus économe mis en avant. (Les autres stats restent mono-véhicule.)
+- **🌿 CO₂ évité — cumul mensuel (W55)** — sous la jauge annuelle, une **courbe cumulée** du CO₂ évité mois par mois sur l'année, confrontée à la **trajectoire d'objectif** (droite pointillée, **cible mensuelle = objectif annuel / 12**) : on voit d'un coup d'œil si l'on est **en avance ou en retard** sur la cible.
+- **🚗🏍️ Comparaison entre véhicules (W41 + W52)** — quand au moins **2 véhicules** ont des données, un graphe croise leur **consommation (L/100 km)** et leur **coût (€/100 km)** en barres normalisées ; le véhicule courant est surligné et le plus économe mis en avant. Un **bouton 📥** exporte le tableau conso/coût en **CSV** (Excel FR). (Les autres stats restent mono-véhicule.)
 
 ### 🔔 Alertes prix par carburant (W11 → W49)
 - **Un interrupteur + un seuil par carburant** (E85 / Gazole / SP98) dans ⚙️ Réglages.
@@ -186,13 +189,18 @@ Bouton **📜** dans la carte "Derniers pleins" → carte `#histoireFullCard` af
 - Auto-rafraîchi à chaque rechargement de l'historique
 - **Sync différentielle** : l'historique est mis en cache en localStorage (`suivi_e85_hist_cache`). Seuls les enregistrements postérieurs à la dernière sync (`suivi_e85_hist_since`) sont téléchargés — les sessions suivantes sont quasi-instantanées. En cas d'erreur réseau, le cache local est utilisé en fallback.
 
-### 📥 Export CSV de l'historique (W25)
-Bouton **📥** dans l'en-tête de la carte "Tous les pleins" → télécharge la **vue filtrée courante** (filtres véhicule / carburant actifs) en fichier `.csv`.
+### 📥 Export CSV de l'historique (W25 + W54)
+Dans l'en-tête de la carte "Tous les pleins", deux exports `.csv` :
+- **📥 vue filtrée** → la **vue courante** (filtres véhicule / carburant actifs).
+- **📦 tout l'historique** (W54) → **tous les pleins**, hors filtres, triés du plus récent au plus ancien.
+
+Détails :
 - Génération **100 % côté client** (`Blob` + `URL.createObjectURL` + ancre `download`), aucun aller-retour serveur.
-- Format **Excel FR** : séparateur `;`, **BOM UTF-8** (accents corrects), décimales à la **virgule**.
+- **Choix du séparateur** (W54) : sélecteur `;` (**Excel FR**, décimales à la **virgule**) ou `,` (**tableurs anglo-saxons**, décimales au **point** pour éviter l'ambiguïté). Choix **persisté**.
+- **BOM UTF-8** (accents corrects) dans tous les cas.
 - Colonnes : Date · Horodatage · Véhicule · Type · Km compteur · Litres · Prix €/L · Total € · Station.
-- Nom de fichier horodaté : `suivi-e85-historique-AAAA-MM-JJ.csv`.
-- Idéal comme **justificatif** (remboursement employeur, fiscalité). Logique pure `buildHistoriqueCSV` couverte par tests unitaires.
+- Nom de fichier horodaté : `suivi-e85-historique-{filtre|complet}-AAAA-MM-JJ.csv`.
+- Idéal comme **justificatif** (remboursement employeur, fiscalité). Logique pure `buildHistoriqueCSV(records, sep)` couverte par tests unitaires.
 
 ### 🎤 Saisie km mains-libres (W35)
 Le champ **Km compteur** est pré-rempli automatiquement au démarrage avec le kilométrage estimé par W33 (prochain plein prédit). Un bouton **🎤** permet de dicter le kilométrage à voix haute — conçu pour les motards avec des gants.

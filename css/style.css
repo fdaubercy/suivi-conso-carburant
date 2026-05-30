@@ -1451,6 +1451,27 @@ body.no-share .hist-share { display: none; }
   font-size: 13px;
   min-width: 0;
 }
+/* W53 — bouton 📌 épingler une station + mise en avant des stations épinglées */
+.smap-pin-btn {
+  flex: 0 0 auto;
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  opacity: .32;
+  filter: grayscale(1);
+  transition: opacity .15s ease, filter .15s ease, transform .1s ease;
+}
+.smap-pin-btn:hover { opacity: .7; }
+.smap-pin-btn.on { opacity: 1; filter: none; transform: rotate(0); }
+.smap-item.pinned {
+  background: rgba(245, 158, 11, .10);
+  border-radius: 6px;
+  padding: 3px 5px;
+  margin: 0 -5px;
+}
 .smap-name {
   flex: 1;
   color: var(--text);
@@ -1668,6 +1689,26 @@ body.no-share .hist-share { display: none; }
 .budget-over{color:#ef4444;font-weight:600;}
 .budget-left{color:#1D9E75;font-weight:600;}
 [data-theme="dark"] .budget-left{color:#34d399;}
+/* W56 — alerte anticipée de dépassement de budget */
+.budget-forecast{margin-top:6px;font-size:10.5px;color:#b45309;
+  background:rgba(245,158,11,.12);border-radius:6px;padding:4px 7px;line-height:1.35;}
+.budget-forecast strong{font-variant-numeric:tabular-nums;}
+[data-theme="dark"] .budget-forecast{color:#fbbf24;background:rgba(245,158,11,.16);}
+
+/* W55 — courbe cumulée du CO₂ évité + trajectoire d'objectif mensuel */
+.co2m-box{margin-top:8px;padding:8px 10px;border-radius:8px;background:rgba(29,158,117,.08);
+  border:1px solid rgba(29,158,117,.18);}
+.co2m-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:2px;}
+.co2m-label{font-size:12px;font-weight:600;}
+.co2m-cible{font-size:10px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+.co2m-svg{display:block;}
+.co2m-objline{stroke:#f59e0b;stroke-width:1.2;stroke-dasharray:4 3;opacity:.85;}
+.co2m-line{stroke:#1D9E75;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round;}
+.co2m-dot{fill:#1D9E75;}
+.co2m-mlbl{fill:var(--text-muted);font-size:8px;text-anchor:middle;}
+.co2m-foot{font-size:10px;color:var(--text-muted);margin-top:2px;}
+.co2m-box.ahead .co2m-foot{color:#1D9E75;}
+[data-theme="dark"] .co2m-box.ahead .co2m-foot{color:#34d399;}
 
 /* ─── W50 — Tendance du budget (6 mois) ─── */
 .trend-box{margin-top:8px;padding:8px 10px;border-radius:8px;background:rgba(125,125,125,.08);

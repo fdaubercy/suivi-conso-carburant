@@ -14,6 +14,7 @@
 import { getAllRecords } from './historique.js';
 import { state } from './state.js';
 import { escHtml } from './utils.js';
+import { showFeedback } from './ui.js';
 
 /**
  * Agrège conso/coût par véhicule sur tout l'historique.
@@ -81,8 +82,80 @@ export function renderComparatif() {
 
   const best = rows[0];   // coût/100 km le plus bas
   card.innerHTML = `
-    <p class="section-title">🚗🏍️ Comparaison véhicules</p>
+    <div class="hist-header">
+      <p class="section-title" style="margin-bottom:0">🚗🏍️ Comparaison véhicules</p>
+      <button class="hist-btn" id="cmpExportBtn" data-action="exportComparatifCSV"
+        title="Exporter le tableau conso/coût en CSV">📥</button>
+    </div>
     <div class="cmp-list">${rowsHtml}</div>
     <p class="cmp-foot">Sur 100 km · barres normalisées au plus élevé.
        Plus économe : <strong>${escHtml(best.veh)}</strong> (${best.coutPer100.toFixed(1)} €/100 km).</p>`;
+}
+
+/* ═══════════════════════════════════════
+   W52 — Export CSV du comparatif véhicules
+   ═══════════════════════════════════════ */
+
+const CMP_CSV_SEP = ';';   // Excel FR : séparateur point-virgule, décimale virgule
+const CMP_COLS = [
+  ['Véhicule',            r => r.veh],
+  ['Pleins',              r => String(r.nb)],
+  ['Conso (L/100 km)',    r => _csvNum(r.conso, 2)],
+  ['Coût (€/100 km)',     r => _csvNum(r.coutPer100, 2)],
+  ['Total dépensé (€)',   r => _csvNum(r.totalCout, 2)],
+  ['Litres cumulés',      r => _csvNum(r.totalLitres, 2)],
+  ['Km parcourus',        r => String(Math.round(r.kmDelta))],
+];
+
+/** Nombre français (virgule décimale) à n décimales ; '' si non fini. */
+function _csvNum(v, n) {
+  const x = Number(v);
+  if (!isFinite(x)) return '';
+  return x.toFixed(n).replace('.', ',');
+}
+
+/** Échappe une cellule CSV (guillemets si séparateur/guillemet/saut de ligne). */
+function _csvCell(v) {
+  const s = String(v == null ? '' : v);
+  return /["\n\r;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+/** Construit le contenu CSV (sans BOM) du comparatif. Fonction pure (testable). */
+export function buildComparatifCSV(rows) {
+  const header = CMP_COLS.map(c => _csvCell(c[0])).join(CMP_CSV_SEP);
+  const lines = rows.map(r => CMP_COLS.map(c => _csvCell(c[1](r))).join(CMP_CSV_SEP));
+  return [header, ...lines].join('\r\n');
+}
+
+/** Exporte le comparatif véhicules courant en fichier .csv (BOM UTF-8, Excel FR). */
+export function exportComparatifCSV() {
+  const rows = computeVehicleComparison();
+  if (rows.length < 2) {
+    showFeedback('error', 'Rien à exporter', 'Il faut au moins 2 véhicules exploitables.');
+    return;
+  }
+  const csv = '﻿' + buildComparatifCSV(rows);
+  const stamp = new Date().toISOString().slice(0, 10);
+  const name = `suivi-e85-comparatif-${stamp}.csv`;
+  try {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showFeedback('success', 'Export CSV ✓', `${rows.length} véhicule(s) exporté(s) — ${name}`);
+  } catch (e) {
+    showFeedback('error', 'Export impossible', e.message || 'erreur navigateur');
+  }
+}
+
+/** Câble le bouton 📥 du comparatif (délégation sur #comparatifCard). Une fois. */
+export function initComparatifExport() {
+  document.getElementById('comparatifCard')?.addEventListener('click', e => {
+    if (e.target.closest('[data-action="exportComparatifCSV"]')) exportComparatifCSV();
+  });
 }

@@ -1,5 +1,5 @@
 /* ─── Historique des 5 derniers pleins (via GET ?action=export) ─── */
-import { GAS_URL, APP_TOKEN, FUEL_CONFIG, HIST_CACHE_KEY, HIST_SINCE_KEY } from './config.js';
+import { GAS_URL, APP_TOKEN, FUEL_CONFIG, HIST_CACHE_KEY, HIST_SINCE_KEY, CSV_SEP_KEY } from './config.js';
 import { state } from './state.js';
 import { showFeedback } from './ui.js';
 import { renderStats } from './stats.js';
@@ -306,66 +306,67 @@ export function initHistoireFilters() {
 }
 
 /* ═══════════════════════════════════════
-   W25 — Export CSV de l'historique
+   W25 / W54 — Export CSV de l'historique
+   (vue filtrée OU tout l'historique · séparateur ; ou , au choix)
    ═══════════════════════════════════════ */
 
-const CSV_SEP = ';';   // Excel FR : séparateur point-virgule
 const CSV_COLS = [
   ['Date',          r => isoDate(r.Date || r.Horodatage)],
   ['Horodatage',    r => String(r.Horodatage || '')],
   ['Véhicule',      r => r['Véhicule'] || r['Vehicule'] || ''],
   ['Type',          r => r.Type || ''],
-  ['Km compteur',   r => _num(r['Km compteur'])],
-  ['Litres',        r => _num(r['Nb. Litres'])],
-  ['Prix €/L',      r => _num(r['Prix €/L'])],
-  ['Total €',       r => _num(((Number(r['Nb. Litres']) || 0) * (Number(r['Prix €/L']) || 0)).toFixed(2))],
+  ['Km compteur',   (r, dc) => _num(r['Km compteur'], dc)],
+  ['Litres',        (r, dc) => _num(r['Nb. Litres'], dc)],
+  ['Prix €/L',      (r, dc) => _num(r['Prix €/L'], dc)],
+  ['Total €',       (r, dc) => _num(((Number(r['Nb. Litres']) || 0) * (Number(r['Prix €/L']) || 0)).toFixed(2), dc)],
   ['Station',       r => r['Station essence'] || ''],
 ];
 
-/** Nombre en notation française (virgule décimale) pour Excel FR ; '' si vide. */
-function _num(v) {
+/**
+ * Nombre pour CSV.
+ *  decimalComma=true  → virgule décimale (Excel FR, séparateur ';')
+ *  decimalComma=false → point décimal (tableurs anglo-saxons, séparateur ',')
+ * Retourne '' si vide.
+ */
+function _num(v, decimalComma) {
   const n = Number(v);
-  if (!isFinite(n) || n === 0) return v == null || v === '' ? '' : String(v).replace('.', ',');
-  return String(n).replace('.', ',');
+  const raw = (!isFinite(n) || n === 0)
+    ? (v == null || v === '' ? '' : String(v))
+    : String(n);
+  return decimalComma ? raw.replace('.', ',') : raw;
 }
 
 /** Échappe une cellule CSV (guillemets si séparateur, guillemet ou saut de ligne). */
-function _csvCell(v) {
+function _csvCell(v, sep) {
   const s = String(v == null ? '' : v);
-  return /["\n\r;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-}
-
-/** Construit le contenu CSV (sans BOM) à partir d'une liste d'enregistrements. */
-export function buildHistoriqueCSV(records) {
-  const header = CSV_COLS.map(c => _csvCell(c[0])).join(CSV_SEP);
-  const lines = records.map(r => CSV_COLS.map(c => _csvCell(c[1](r))).join(CSV_SEP));
-  return [header, ...lines].join('\r\n');
+  const re = new RegExp('["\\n\\r' + sep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ']');
+  return re.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
 /**
- * Exporte la vue filtrée courante de l'historique complet en fichier .csv.
- * Lit les filtres véhicule/carburant actifs, génère un Blob et déclenche le
- * téléchargement (BOM UTF-8 pour la compatibilité Excel FR).
+ * Construit le contenu CSV (sans BOM) à partir d'une liste d'enregistrements.
+ * @param {Array} records
+ * @param {string} [sep=';'] séparateur de colonnes (';' Excel FR, ',' anglo)
+ * Quand sep=',', les décimales utilisent le point (sinon ambiguïté avec la virgule).
  */
-export function exportHistoriqueCSV() {
-  if (!_allRecords.length) {
-    showFeedback('error', 'Rien à exporter', 'Chargez l\'historique d\'abord (bouton ↻).');
-    return;
-  }
+export function buildHistoriqueCSV(records, sep = ';') {
+  const decimalComma = sep !== ',';
+  const header = CSV_COLS.map(c => _csvCell(c[0], sep)).join(sep);
+  const lines = records.map(r => CSV_COLS.map(c => _csvCell(c[1](r, decimalComma), sep)).join(sep));
+  return [header, ...lines].join('\r\n');
+}
 
-  const vehFilter  = document.getElementById('histVehFilter')?.value || '';
-  const typeFilter = document.getElementById('histTypeFilter')?.value || '';
-  const records = _filteredRecords(vehFilter, typeFilter);
+/** Séparateur CSV choisi dans l'UI (#csvSepSel), défaut ';' (Excel FR). */
+function _csvSep() {
+  const v = document.getElementById('csvSepSel')?.value;
+  return v === ',' ? ',' : ';';
+}
 
-  if (!records.length) {
-    showFeedback('error', 'Aucun plein', 'Aucun enregistrement ne correspond aux filtres actifs.');
-    return;
-  }
-
-  const csv = '﻿' + buildHistoriqueCSV(records);
+/** Génère le Blob CSV et déclenche le téléchargement (BOM UTF-8). */
+function _downloadCSV(records, suffix) {
+  const csv = '﻿' + buildHistoriqueCSV(records, _csvSep());
   const stamp = isoDate(new Date().toISOString());
-  const name = `suivi-e85-historique-${stamp}.csv`;
-
+  const name = `suivi-e85-historique${suffix ? '-' + suffix : ''}-${stamp}.csv`;
   try {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -380,6 +381,54 @@ export function exportHistoriqueCSV() {
   } catch (e) {
     showFeedback('error', 'Export impossible', e.message || 'erreur navigateur');
   }
+}
+
+/**
+ * W25 — Exporte la vue filtrée courante de l'historique complet en .csv.
+ * Lit les filtres véhicule/carburant actifs + le séparateur choisi (W54).
+ */
+export function exportHistoriqueCSV() {
+  if (!_allRecords.length) {
+    showFeedback('error', 'Rien à exporter', 'Chargez l\'historique d\'abord (bouton ↻).');
+    return;
+  }
+  const vehFilter  = document.getElementById('histVehFilter')?.value || '';
+  const typeFilter = document.getElementById('histTypeFilter')?.value || '';
+  const records = _filteredRecords(vehFilter, typeFilter);
+  if (!records.length) {
+    showFeedback('error', 'Aucun plein', 'Aucun enregistrement ne correspond aux filtres actifs.');
+    return;
+  }
+  _downloadCSV(records, 'filtre');
+}
+
+/**
+ * W54 — Exporte TOUT l'historique (sans tenir compte des filtres), trié du
+ * plus récent au plus ancien. Séparateur choisi via #csvSepSel.
+ */
+export function exportHistoriqueAllCSV() {
+  if (!_allRecords.length) {
+    showFeedback('error', 'Rien à exporter', 'Chargez l\'historique d\'abord (bouton ↻).');
+    return;
+  }
+  const records = _allRecords
+    .slice()
+    .sort((a, b) => (b.Horodatage || '').localeCompare(a.Horodatage || ''));
+  _downloadCSV(records, 'complet');
+}
+
+/** W54 — Persiste le choix de séparateur CSV (#csvSepSel) et le restaure. */
+export function initCsvSepSetting() {
+  const el = document.getElementById('csvSepSel');
+  if (!el) return;
+  try {
+    const saved = localStorage.getItem(CSV_SEP_KEY);
+    if (saved === ',' || saved === ';') el.value = saved;
+  } catch { /* navigation privée */ }
+  el.addEventListener('change', () => {
+    try { localStorage.setItem(CSV_SEP_KEY, el.value === ',' ? ',' : ';'); }
+    catch { /* quota */ }
+  });
 }
 
 /* ═══════════════════════════════════════

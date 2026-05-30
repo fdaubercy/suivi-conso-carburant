@@ -17,8 +17,9 @@ import { onAutreInput, setRadius } from './recherche.js';
 import { onStationChange, onKmInput, submitForm, checkDuplicate, saveDraft, restoreDraft, initVoiceKm } from './formulaire.js';
 import { chargerStations, mergeHistoryStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
-import { chargerHistorique, dupliquerDernier, voirTout, exportHistoriqueCSV, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords, rerenderHistorique } from './historique.js';
+import { chargerHistorique, dupliquerDernier, voirTout, exportHistoriqueCSV, exportHistoriqueAllCSV, initCsvSepSetting, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords, rerenderHistorique } from './historique.js';
 import { renderStats, initSparkToggles, getNextKmPrediction, initKitSetting, initBudgetSetting, initCo2ObjectifSetting, initRapport } from './stats.js';
+import { initComparatifExport } from './comparatif.js';
 import { loadSectorPrices, renderSectorBestCard } from './secteur.js';
 import { initWrapped, renderWrapped } from './wrapped.js';
 import { initScanner }       from './ticket.js';
@@ -148,6 +149,7 @@ function initStaticHandlers() {
   document.querySelector('[data-action="chargerHistorique"]')?.addEventListener('click', chargerHistorique);
   document.querySelector('[data-action="voirTout"]')?.addEventListener('click', voirTout);
   document.querySelector('[data-action="exportHistoriqueCSV"]')?.addEventListener('click', exportHistoriqueCSV);
+  document.querySelector('[data-action="exportHistoriqueAllCSV"]')?.addEventListener('click', exportHistoriqueAllCSV);
 
   // Submit
   document.getElementById('submitBtn')?.addEventListener('click', submitForm);
@@ -173,8 +175,10 @@ initNearbyList();      // geo.js — délégation sur #nearbyList
 initMapInteractions(); // carte.js — délégation sur #stationMap
 initStationsMapInteractions(); // stationsmap.js — clic marqueur favori → popup itinéraire (S11)
 initHistoireFilters(); // historique.js — filtres historique complet (W32)
+initCsvSepSetting();   // historique.js — W54 choix du séparateur CSV (persisté)
 initHistoireShare();   // historique.js — W26 Web Share API
 initHistoireDelete();  // historique.js — suppression d'un plein (UI + GoogleSheet)
+initComparatifExport(); // comparatif.js — W52 export CSV du comparatif véhicules
 initSparkToggles();    // stats.js — W34 filtres sparkline multi-carburant
 initKitSetting();      // stats.js — prix du kit pour l'economie nette
 initBudgetSetting();   // stats.js — W39 objectif budget carburant mensuel

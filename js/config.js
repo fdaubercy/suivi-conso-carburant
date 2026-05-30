@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '4.2.0.0';
+export const APP_VERSION       = '4.3.0.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 
 // S6 — Token secret partagé avec les endpoints GAS et la macro VBA.
@@ -31,6 +31,8 @@ export const WRAPPED_SCOPE_KEY = 'suivi_e85_wrapped_scope'; // W37 — périmèt
 export const BUDGET_KEY        = 'suivi_e85_budget_mensuel'; // W39 — objectif budget carburant mensuel (€)
 export const CO2_OBJECTIF_KEY  = 'suivi_e85_objectif_co2';   // W51 — objectif CO₂ annuel évité (kg)
 export const STATION_SORT_KEY  = 'suivi_e85_station_sort';   // W36 — tri carte stations : 'prix' | 'freq'
+export const PINNED_STATIONS_KEY = 'suivi_e85_pinned_stations'; // W53 — stations épinglées manuellement (📌, JSON tableau de noms)
+export const CSV_SEP_KEY        = 'suivi_e85_csv_sep';       // W54 — séparateur d'export CSV : ';' (Excel FR) | ',' (anglo)
 export const HIST_SEEN_KEY     = 'suivi_e85_hist_seen';      // W45 — nb de pleins déjà consultés (badge Historique)
 export const CARTE_SEEN_KEY    = 'suivi_e85_carte_seen';     // W45 — jour de dernière ouverture de la Carte (badge secteur)
 export const START_VIEW_KEY    = 'suivi_e85_start_view';     // U4 — vue d'ouverture : 'accueil' | 'saisie' | 'last'

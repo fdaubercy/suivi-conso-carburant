@@ -494,6 +494,7 @@ export function renderStats() {
     </div>
     ${buildCO2Tile(s)}
     ${buildCo2Annuel()}
+    ${buildCo2Monthly()}
     ${buildBudgetBar()}
     ${buildBudgetTrend()}
     ${buildPrixSparkline()}
@@ -579,8 +580,122 @@ function buildCo2Annuel() {
     </div>`;
 }
 
+/* ─── W55 — CO₂ évité mois par mois sur l'année en cours (cumul) ───
+   Décline l'objectif annuel en cible mensuelle (objectif / 12) et calcule le
+   CO₂ évité par mois (même méthode « distance égale » que computeCo2Annuel),
+   restreint au véhicule courant et à l'année en cours. */
+function computeCo2Monthly() {
+  const all = getAllRecords();
+  const veh = state.currentVehiculeNom;
+  const byVeh = veh ? all.filter(r => (r['Véhicule'] || r['Vehicule'] || '') === veh) : all;
+
+  const year = new Date().getFullYear();
+  const surconso = computeSurconso(byVeh);
+
+  const litresParMois = Array(12).fill(0);
+  byVeh.forEach(r => {
+    if (!matchType(r.Type, 'E85')) return;
+    const lit = Number(r['Nb. Litres']) || 0;
+    if (!(lit > 0)) return;
+    const d = new Date(String(r.Date || r.Horodatage || '').replace(' ', 'T'));
+    if (isNaN(d) || d.getFullYear() !== year) return;
+    litresParMois[d.getMonth()] += lit;
+  });
+
+  const co2ParMois = litresParMois.map(L =>
+    (L / (1 + surconso)) * CO2_ESSENCE_PER_L - L * CO2_E85_PER_L);
+
+  return { year, co2ParMois, surconso };
+}
+
+/* ─── W55 — Courbe cumulée du CO₂ évité + trajectoire d'objectif mensuel ───
+   Ligne SVG du cumul réel (Jan → mois courant) vs droite d'objectif linéaire
+   (cible mensuelle = objectif annuel / 12). Affichée si au moins un mois > 0. */
+function buildCo2Monthly() {
+  const { year, co2ParMois } = computeCo2Monthly();
+  if (!co2ParMois.some(v => v > 0)) return '';
+
+  const obj      = getObjectifCo2();
+  const cibleMois = obj / 12;
+  const moisCourant = (new Date().getFullYear() === year) ? new Date().getMonth() : 11;
+  const n = moisCourant + 1;                       // Jan..mois courant inclus
+
+  // Cumul réel mois par mois
+  const cumul = [];
+  let acc = 0;
+  for (let i = 0; i < n; i++) { acc += co2ParMois[i]; cumul.push(acc); }
+  const cumulFinal = acc;
+
+  // Échelle : max du cumul réel et de la trajectoire d'objectif sur la période
+  const objLine = cibleMois * n;
+  const maxV = Math.max(cumulFinal, objLine, cibleMois) || 1;
+
+  const W = 240, H = 76, padT = 8, padB = 16, padL = 4, padR = 4;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const toX = i => (n === 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW);
+  const toY = v => padT + (1 - v / maxV) * plotH;
+
+  // Droite d'objectif (0 → cibleMois×(n)) : du début du mois 0 à la fin du mois n-1
+  const objY0 = toY(cibleMois).toFixed(1);         // fin du 1er mois
+  const objYn = toY(objLine).toFixed(1);           // fin du dernier mois
+  const objLineSvg = `<line x1="${toX(0).toFixed(1)}" y1="${objY0}" x2="${toX(n - 1).toFixed(1)}" y2="${objYn}" class="co2m-objline"/>`;
+
+  // Polyligne du cumul réel + point final
+  const pts = cumul.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
+  const lastX = toX(n - 1).toFixed(1), lastY = toY(cumulFinal).toFixed(1);
+  const lineSvg = n > 1
+    ? `<polyline points="${pts}" fill="none" class="co2m-line"/><circle cx="${lastX}" cy="${lastY}" r="2.6" class="co2m-dot"/>`
+    : `<circle cx="${lastX}" cy="${lastY}" r="3" class="co2m-dot"/>`;
+
+  // Étiquettes de mois (3 lettres), une sur deux si trop de mois
+  const step = n > 8 ? 2 : 1;
+  const labels = cumul.map((_, i) =>
+    (i % step === 0 || i === n - 1)
+      ? `<text x="${toX(i).toFixed(1)}" y="${H - 4}" class="co2m-mlbl">${MOIS_FR_LONG[i].slice(0, 3)}</text>`
+      : '').join('');
+
+  const tempo = cumulFinal >= objLine ? 'ahead' : 'behind';
+  const tempoTxt = cumulFinal >= objLine
+    ? `✅ en avance sur la cible (${objLine.toFixed(0)} kg attendus)`
+    : `reste ${(objLine - cumulFinal).toFixed(0)} kg pour suivre la cible`;
+
+  return `
+    <div class="co2m-box ${tempo}">
+      <div class="co2m-head">
+        <span class="co2m-label">🌿 CO₂ évité — cumul ${year}</span>
+        <span class="co2m-cible">🎯 ${cibleMois.toFixed(0)} kg/mois</span>
+      </div>
+      <svg class="co2m-svg" viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">
+        ${objLineSvg}
+        ${lineSvg}
+        ${labels}
+      </svg>
+      <div class="co2m-foot">${cumulFinal.toFixed(0)} kg cumulés · ${tempoTxt}</div>
+    </div>`;
+}
+
+/* ─── W56 — Projection de dépassement du budget au rythme du mois en cours ───
+   À partir de la dépense cumulée et des jours écoulés, projette la dépense de
+   fin de mois et la date de franchissement du budget. Fonction pure (testable).
+   Renvoie null si pas de dépassement prévu ou pas assez de données.
+     spent        : dépense cumulée du mois (€)
+     daysElapsed  : jours écoulés dans le mois (≈ jour du mois, ≥ 1)
+     daysInMonth  : nombre de jours du mois
+     budget       : objectif mensuel (€)
+   → { projected, crossDay, rate } */
+export function computeBudgetForecast(spent, daysElapsed, daysInMonth, budget) {
+  if (!(budget > 0) || !(spent > 0) || !(daysElapsed >= 2) || spent >= budget) return null;
+  const rate      = spent / daysElapsed;          // €/jour à ce rythme
+  const projected = rate * daysInMonth;           // dépense estimée en fin de mois
+  if (projected <= budget) return null;           // budget tenu au rythme actuel
+  const crossDay = Math.ceil(budget / rate);      // jour du mois où le budget est franchi
+  if (crossDay > daysInMonth) return null;
+  return { projected, crossDay, rate };
+}
+
 /* ─── W39 — Barre de progression du budget carburant mensuel ───
-   Compare la dépense du mois courant (véhicule sélectionné) à l'objectif €. */
+   Compare la dépense du mois courant (véhicule sélectionné) à l'objectif €.
+   W56 — ajoute une alerte anticipée « budget dépassé le JJ/MM » au rythme actuel. */
 function buildBudgetBar() {
   const budget = getBudgetMensuel();
   if (!budget) return '';
@@ -596,6 +711,19 @@ function buildBudgetBar() {
     ? `<span class="budget-over">⚠️ +${(spent - budget).toFixed(0)} € au-dessus</span>`
     : `<span class="budget-left">reste ${(budget - spent).toFixed(0)} €</span>`;
 
+  // W56 — alerte anticipée (uniquement si pas encore dépassé)
+  let forecastHtml = '';
+  if (!over) {
+    const now  = new Date();
+    const dim  = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const fc   = computeBudgetForecast(spent, now.getDate(), dim, budget);
+    if (fc) {
+      const dd = String(fc.crossDay).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      forecastHtml = `<div class="budget-forecast">⏰ À ce rythme, budget dépassé le <strong>${dd}/${mm}</strong> · ≈ ${fc.projected.toFixed(0)} € en fin de mois</div>`;
+    }
+  }
+
   return `
     <div class="budget-box ${cls}">
       <div class="budget-head">
@@ -608,6 +736,7 @@ function buildBudgetBar() {
       </div>
       <div class="gauge-scale"><span>0</span><span>50 %</span><span class="gauge-target">🎯 ${budget.toFixed(0)} € · 100 %</span></div>
       <div class="budget-foot">${right} · ${Math.round(pct)} %</div>
+      ${forecastHtml}
     </div>`;
 }
 

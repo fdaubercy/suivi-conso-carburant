@@ -45,3 +45,25 @@ describe('buildHistoriqueCSV', () => {
     expect(csv.split('\r\n')).toHaveLength(4);
   });
 });
+
+describe('buildHistoriqueCSV — séparateur configurable (W54)', () => {
+  it('utilise la virgule comme séparateur et le point décimal en mode anglo', () => {
+    const csv = buildHistoriqueCSV([plein()], ',');
+    const header = csv.split('\r\n')[0];
+    expect(header).toBe('Date,Horodatage,Véhicule,Type,Km compteur,Litres,Prix €/L,Total €,Station');
+    const row = csv.split('\r\n')[1];
+    expect(row).toContain('0.789');     // point décimal (pas de virgule en mode ,)
+    expect(row).toContain('31.56');     // total avec point
+    expect(row).not.toContain('0,789');
+  });
+
+  it('garde le point-virgule + virgule décimale par défaut (Excel FR)', () => {
+    const csv = buildHistoriqueCSV([plein()], ';');
+    expect(csv.split('\r\n')[1]).toContain('0,789');
+  });
+
+  it('échappe une valeur contenant la virgule quand le séparateur est la virgule', () => {
+    const csv = buildHistoriqueCSV([plein({ 'Station essence': 'Leclerc, Bron' })], ',');
+    expect(csv).toContain('"Leclerc, Bron"');
+  });
+});

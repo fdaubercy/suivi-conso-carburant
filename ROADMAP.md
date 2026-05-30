@@ -11,11 +11,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| W52 | **Export comparatif véhicules en image/CSV** (complément W41) : bouton 📥 sur la carte comparatif pour exporter le tableau conso/coût (CSV) ou capturer le graphe | Partage / archivage du comparatif multi-véhicules · effort ~1 h |
-| W53 | **Favori manuel épinglé** (complément W36, piste (b) non retenue) : ⭐ cliquable sur chaque station pour l'épingler en tête, indépendamment du prix et du seuil auto (localStorage) | Contrôle explicite de l'utilisateur sur sa station de référence · effort ~1 h |
-| W54 | **Export CSV global** (complément W25) : option « tout l'historique » à côté de l'export filtré, et choix du séparateur (`;` / `,`) pour Excel vs tableurs anglo-saxons | Couvre les deux usages d'export · réutilise `buildHistoriqueCSV` · effort ~½ h |
-| W55 | **Objectif CO₂ : palier mensuel + historique** (complément W51) : décliner l'objectif annuel en cible mensuelle et tracer la courbe cumulée du CO₂ évité mois par mois | Lisibilité de la trajectoire 🌿 · réutilise `buildMonthlyReport` · effort ~1 h |
-| W56 | **Alerte de dépassement budget anticipée** (complément W39/W50) : à partir de la tendance 6 mois, prévenir « à ce rythme, budget dépassé le JJ/MM » avant la fin du mois | Action préventive plutôt que constat · pur calcul · effort ~1 h |
+| _(W52–W56 implémentés en v4.3.0.0)_ | — | voir « ✅ Idées déjà implémentées » |
 
 ### 🎨 UX / Ergonomie
 
@@ -81,9 +77,11 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|---|
 | 1 | **X1** — Bouton "Synchroniser" sur la feuille GS_Pleins | 15 min | Ergonomie immédiate, plus besoin d'ouvrir l'IDE |
 | 2 | **X9** — Économies cumulées E85 vs SP98 | ½ j | ROI E85 chiffré depuis les données existantes |
-| 3 | **W56** — Alerte de dépassement budget anticipée | ~1 h | Prolonge W39/W50 : prévient avant la fin du mois plutôt que constater après |
-| 4 | **W52** — Export comparatif véhicules (CSV/image) | ~1 h | Complète W25/W41 : archivage du comparatif multi-véhicules |
-| 5 | **W55** — Objectif CO₂ : palier mensuel + courbe cumulée | ~1 h | Prolonge W51 : trajectoire 🌿 mois par mois |
+| 3 | **X15** — Graphique scatter Prix E85/L vs L/100 km | ½ j | Corrélation prix/comportement, pure formule Excel |
+| 4 | **S5** — Conflict resolution avancée (timestamp) | — | Édition simultanée web/Excel sans perte |
+| 5 | **X11** — Onglet `_SyncLog` (date, ←N, →N, durée) | — | Debug, historique des syncs |
+
+> ✅ W52/W55/W56 (top 3-5 précédents) implémentés en v4.3.0.0 — voir le tableau ci-dessous.
 
 ---
 
@@ -91,6 +89,11 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v4.3.0.0 | **Export comparatif véhicules CSV (W52)** — bouton 📥 dans l'en-tête de la carte `#comparatifCard` (vue Stats) ; `buildComparatifCSV()` (fonction pure testée) + `exportComparatifCSV()` exportent le tableau Véhicule / Pleins / Conso / Coût / Total / Litres / Km en `.csv` Excel FR (séparateur `;`, BOM UTF-8, virgule décimale) ; `initComparatifExport()` (délégation) câblé dans `main.js` |
+| v4.3.0.0 | **Favori manuel épinglé 📌 (W53)** — bouton 📌 cliquable sur chaque station habituelle (vue Carte) pour l'épingler **en tête**, indépendamment du prix et du seuil de fréquentation auto ⭐ ; persistance `PINNED_STATIONS_KEY` (localStorage) ; les épinglées passent en haut dans l'ordre de tri courant (`_loadPinned`/`_togglePinned`, `stationsmap.js`) ; CSS `.smap-pin-btn`/`.smap-item.pinned` |
+| v4.3.0.0 | **Export CSV global + séparateur (W54)** — second bouton 📦 « tout l'historique » à côté de l'export filtré 📥, et sélecteur de **séparateur** `;` (Excel FR) / `,` (tableurs anglo) persisté (`CSV_SEP_KEY`) ; `buildHistoriqueCSV(records, sep)` paramétré (décimale point quand `,` pour lever l'ambiguïté), `exportHistoriqueAllCSV()` + `initCsvSepSetting()` (`historique.js`) |
+| v4.3.0.0 | **Objectif CO₂ : palier mensuel + courbe cumulée (W55)** — sous la jauge CO₂ annuelle (carte Stats), graphe SVG du **CO₂ évité cumulé mois par mois** de l'année + droite d'**objectif mensuel** (cible = objectif annuel / 12) pointillée ; états en avance / en retard sur la cible ; `computeCo2Monthly`/`buildCo2Monthly` (`stats.js`, même méthode « distance égale »), CSS `.co2m-*` |
+| v4.3.0.0 | **Alerte de dépassement budget anticipée (W56)** — sous la barre Budget (carte Stats), encart « ⏰ À ce rythme, budget dépassé le JJ/MM · ≈ X € en fin de mois » calculé sur le **rythme du mois en cours** (dépense cumulée / jours écoulés → projection) ; `computeBudgetForecast()` (fonction pure testée), intégré à `buildBudgetBar` (affiché seulement si pas encore dépassé et franchissement prévu avant la fin du mois), CSS `.budget-forecast` |
 | v4.2.0.0 | **Vue de départ configurable (U4)** — bloc « 🚀 Démarrage » dans Réglages (`#startView`, `START_VIEW_KEY`) : Accueil / Saisie / dernière vue consultée ; `resolveStartView()` au démarrage, deep-link prioritaire ; dernière vue ≠ accueil mémorisée (`LAST_VIEW_KEY`) |
 | v4.2.0.0 | **Tuile « reprendre » sur l'Accueil (U5)** — `#homeResume` : « ↩️ Reprendre — <dernière vue> » + résumé du dernier plein (date · station · €/L) ; `getLastRecordSummary()` (mémoire vive ou cache localStorage), `renderHomeResume()` (`preferences.js`) à l'ouverture et au retour sur l'accueil |
 | v4.2.0.0 | **Blocs Réglages repliables (U6)** — `.card.collapsible` repliée au clic sur le titre (chevron ▾/▸), état persistant par bloc (`COLLAPSE_PREFIX`), titre accessible clavier ; `initCollapsibles()` (`preferences.js`) |

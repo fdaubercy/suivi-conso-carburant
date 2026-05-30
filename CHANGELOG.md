@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.3.0.0] — 2026-05-30
+
+### Added
+- **Export comparatif véhicules en CSV (W52)** — bouton « 📥 » dans l'en-tête de la carte **Comparaison véhicules** (`#comparatifCard`, vue Stats). Exporte le tableau **Véhicule / Pleins / Conso (L/100 km) / Coût (€/100 km) / Total dépensé / Litres cumulés / Km parcourus** en `.csv` au format **Excel FR** (séparateur `;`, **BOM UTF-8**, virgule décimale). Fonction pure `buildComparatifCSV()` (couverte par `tests/comparatif.test.js`) + `exportComparatifCSV()` + `initComparatifExport()` (délégation d'événements) dans `js/comparatif.js`, câblé depuis `js/main.js`. *(L'option capture image PNG a été écartée : le comparatif est en HTML/CSS, une capture imposerait une lib externe contraire au principe « zéro dépendance front » du projet.)*
+- **Favori manuel épinglé 📌 (W53)** — bouton **📌** cliquable sur chaque station habituelle (vue Carte) pour l'**épingler en tête** de la liste, **indépendamment du prix et du seuil de fréquentation automatique ⭐**. Les stations épinglées remontent en haut dans l'ordre de tri courant (prix ou fréquentation). Persistance `localStorage` (`PINNED_STATIONS_KEY`) via `_loadPinned` / `_togglePinned` (`js/stationsmap.js`). CSS `.smap-pin-btn` (état actif/inactif) et `.smap-item.pinned` (`css/style.css`). Le 📌 manuel est volontairement distinct du badge ⭐ « favorite auto » (W36) pour éviter toute confusion.
+- **Export CSV global + choix du séparateur (W54)** — dans la carte « Tous les pleins » : second bouton **📦** exportant **tout l'historique** (hors filtres, trié du plus récent au plus ancien) à côté de l'export 📥 de la vue filtrée. Nouveau sélecteur de **séparateur** `#csvSepSel` : `;` (Excel FR) ou `,` (tableurs anglo-saxons), **persisté** (`CSV_SEP_KEY`). `buildHistoriqueCSV(records, sep)` est désormais paramétré : en mode `,` les **décimales passent au point** pour lever l'ambiguïté avec la virgule. Ajouts `exportHistoriqueAllCSV()` + `initCsvSepSetting()` (`js/historique.js`), boutons/sélecteur dans `index.html`, câblage dans `js/main.js`. Tests étendus (`tests/historique.test.js`).
+- **Objectif CO₂ : palier mensuel + courbe cumulée (W55)** — sous la jauge CO₂ annuelle (carte Stats), nouveau graphe SVG « **CO₂ évité — cumul \<année\>** » : courbe verte du **CO₂ évité cumulé mois par mois** confrontée à la **trajectoire d'objectif** (droite pointillée orange, **cible mensuelle = objectif annuel / 12**). Pied de carte indiquant si l'on est **en avance** ou **en retard** sur la cible. `computeCo2Monthly()` / `buildCo2Monthly()` (`js/stats.js`, même méthode « distance égale » que l'annuel), CSS `.co2m-*` (`css/style.css`).
+- **Alerte de dépassement budget anticipée (W56)** — sous la barre Budget (carte Stats), encart **« ⏰ À ce rythme, budget dépassé le JJ/MM · ≈ X € en fin de mois »**, calculé sur le **rythme du mois en cours** (dépense cumulée ÷ jours écoulés → projection à fin de mois et date de franchissement). Affiché **uniquement** si le budget n'est pas encore dépassé et que le franchissement est prévu **avant la fin du mois**. Fonction pure `computeBudgetForecast()` (couverte par `tests/stats.test.js`), intégrée à `buildBudgetBar` (`js/stats.js`), CSS `.budget-forecast` (`css/style.css`).
+
+### Changed
+- **Version 4.3.0.0** — `APP_VERSION` (`js/config.js`) et `package.json` alignés. Nouvelles clés localStorage : `PINNED_STATIONS_KEY` (W53), `CSV_SEP_KEY` (W54).
+- **Tests** — **93 → 111** tests Vitest au vert : nouveau `tests/comparatif.test.js` (5 cas : agrégation véhicules + CSV), `tests/stats.test.js` (6 cas : projection budget W56), et 3 cas ajoutés à `tests/historique.test.js` (séparateur CSV configurable W54).
+
 ## [4.2.0.0] — 2026-05-30
 
 ### Added

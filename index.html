@@ -304,6 +304,7 @@
     </p>
     <div class="hist-actions">
       <button class="hist-btn" id="histExportBtn" data-action="exportHistoriqueCSV" title="Exporter la vue filtrée en CSV">📥</button>
+      <button class="hist-btn" id="histExportAllBtn" data-action="exportHistoriqueAllCSV" title="Exporter tout l'historique en CSV">📦</button>
       <button class="hist-btn" id="histFullCloseBtn" title="Fermer">✕</button>
     </div>
   </div>
@@ -313,6 +314,10 @@
     </select>
     <select id="histTypeFilter" class="hist-filter-sel">
       <option value="">Tous les carburants</option>
+    </select>
+    <select id="csvSepSel" class="hist-filter-sel" title="Séparateur des fichiers CSV exportés">
+      <option value=";">CSV «&nbsp;;&nbsp;» (Excel FR)</option>
+      <option value=",">CSV «&nbsp;,&nbsp;» (tableurs anglo)</option>
     </select>
   </div>
   <div id="histoireFullList"><div class="hist-msg">Chargement…</div></div>
