@@ -12,6 +12,8 @@ export default [
         document:        'readonly',
         navigator:       'readonly',
         localStorage:    'readonly',
+        sessionStorage:  'readonly',
+        Option:          'readonly',
         fetch:           'readonly',
         Response:        'readonly',
         caches:          'readonly',

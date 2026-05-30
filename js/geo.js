@@ -27,7 +27,7 @@ function loadGeoCache() {
 function saveGeoCache(lat, lon, stations) {
   try {
     localStorage.setItem(GEO_CACHE_KEY, JSON.stringify({ lat, lon, stations, timestamp: Date.now() }));
-  } catch {}
+  } catch { /* cache best-effort */ }
 }
 
 /* W38 — Mémorise la dernière position connue côté serveur (fire-and-forget).
@@ -39,7 +39,7 @@ function saveLastGeoToServer(lat, lon) {
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // évite le preflight CORS
       body:    JSON.stringify({ action: 'saveLastGeo', lat, lon, token: APP_TOKEN }),
     }).catch(() => {});
-  } catch {}
+  } catch { /* cache best-effort */ }
 }
 
 export function geolocate() {

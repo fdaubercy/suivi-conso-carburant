@@ -262,6 +262,16 @@ Quatre jobs automatiques sur chaque `push` / `pull_request` :
 
 **Dependabot (S9)** : MAJ npm automatiques hebdomadaires (lundi 09h00 Europe/Paris) pour Tesseract.js, Vite, Vitest et les autres dépendances ; MAJ github-actions mensuellement.
 
+### 🚀 Script de commit (`commit.sh`)
+
+Script d'aide au versionnement (Git Bash) qui sécurise chaque commit avec le même gate que la CI :
+
+```bash
+./commit.sh "feat(scope): description [vX.Y.Z.W]"
+```
+
+Étapes : message obligatoire → `npm run lint` → `npm test` → `git add -A` → `git commit` → `git pull --rebase origin <branche>` → `git push`. Le script **abandonne** si le message manque, si l'arbre est propre, ou si le lint / les tests échouent.
+
 ---
 
 ## 🗂️ Structure

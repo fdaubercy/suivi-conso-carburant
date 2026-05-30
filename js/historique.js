@@ -25,8 +25,8 @@ function _saveSince(ts) {
 
 /** Vide le cache historique et force un rechargement complet depuis le GAS. */
 export async function forceRefreshHistorique() {
-  try { localStorage.removeItem(HIST_CACHE_KEY); } catch {}
-  try { localStorage.removeItem(HIST_SINCE_KEY); } catch {}
+  try { localStorage.removeItem(HIST_CACHE_KEY); } catch { /* best-effort */ }
+  try { localStorage.removeItem(HIST_SINCE_KEY); } catch { /* best-effort */ }
   _allRecords = [];
   return chargerHistorique();
 }

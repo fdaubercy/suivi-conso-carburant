@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.12.1.0] — 2026-05-30
+
+### Added
+- **Script `commit.sh` (T7)** — script d'aide au versionnement référencé par `CLAUDE.md` mais absent du dépôt. Enchaîne : vérification du message → `npm run lint` → `npm test` (vitest) → `git add -A` → `git commit` → `git pull --rebase origin <branche>` → `git push`. Abandonne proprement si le message manque, si l'arbre est propre, ou si lint/tests échouent (gate qualité). Usage : `./commit.sh "feat(scope): description [vX.Y.Z.W]"`.
+
+### Fixed
+- **Doublon de carburant `ticket.js`** — la table `FUEL_LABEL_MAP` déclarait deux fois la clé `'sp 95-e10'` (`no-dupe-keys`) ; doublon supprimé (mappage `→ E10` inchangé).
+- **Lint propre — gate `commit.sh` opérationnel** — le dépôt comptait 43 erreurs ESLint qui auraient bloqué `commit.sh`. Corrections sans impact comportemental :
+  - `eslint.config.js` : ajout des globals navigateur manquants `Option` et `sessionStorage`.
+  - `ticket.js` : retrait des `\` inutiles **à l'intérieur de classes de caractères** des regex OCR (`[,\.]`→`[,.]`, `[\/\-]`→`[/-]`, `[\/\\|Il]`→`[/\\|Il]`) — strictement équivalents.
+  - `geo.js`, `historique.js` : blocs `catch {}` vides annotés (`no-empty`).
+
 ## [3.12.0.0] — 2026-05-30
 
 ### Added

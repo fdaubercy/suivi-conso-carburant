@@ -296,7 +296,7 @@ function _renderStaticMap(stations, userPos) {
   const minY = Math.min(...fitY), maxY = Math.max(...fitY);
 
   // Origine écran (pixel global du coin haut-gauche) : centre l'empreinte des marqueurs…
-  let originX = (minX + maxX) / 2 - W / 2;
+  const originX = (minX + maxX) / 2 - W / 2;
   let originY = (minY + maxY) / 2 - H / 2;
   // …puis garantit la marge haute (pin) et basse pour tous les marqueurs
   originY = Math.min(originY, minY - PAD_TOP);

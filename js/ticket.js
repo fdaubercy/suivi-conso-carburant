@@ -47,7 +47,7 @@ const FUEL_LABEL_MAP = {
 
   /* ── SP95-E10 (E10) — AVANT sp95 et e10 ── */
   'sp95-e10':          'E10', 'sp 95-e10':      'E10',
-  'sp 95-e10':         'E10', 'sp95 e10':       'E10',
+  'sp95 e10':          'E10',
   'sp 95 e10':         'E10', 'sans plomb 95-e10': 'E10',
   'sans plomb 95 e10': 'E10', '95-e10':         'E10',
   '95 e10':            'E10',
@@ -242,17 +242,17 @@ export function parseOCRText(rawText) {
 
   /* ── Date ─────────────────────────────────────────────────────────── */
   /* Priorité 1 : DD/MM/YYYY ou DD-MM-YYYY */
-  const mDate = normText.match(/\b(\d{2})[\/\-](\d{2})[\/\-](20\d{2})\b/);
+  const mDate = normText.match(/\b(\d{2})[/-](\d{2})[/-](20\d{2})\b/);
   if (mDate) {
     result.date = `${mDate[3]}-${mDate[2]}-${mDate[1]}`;
   } else {
     /* Priorité 2 : YYYY-MM-DD ou YYYY/MM/DD */
-    const mDate2 = normText.match(/\b(20\d{2})[\/\-](\d{2})[\/\-](\d{2})\b/);
+    const mDate2 = normText.match(/\b(20\d{2})[/-](\d{2})[/-](\d{2})\b/);
     if (mDate2) {
       result.date = `${mDate2[1]}-${mDate2[2]}-${mDate2[3]}`;
     } else {
       /* Priorité 3 : DD/MM/YY (année à 2 chiffres → préfixe 20xx) */
-      const mDate3 = normText.match(/\b(\d{2})[\/\-](\d{2})[\/\-](\d{2})\b/);
+      const mDate3 = normText.match(/\b(\d{2})[/-](\d{2})[/-](\d{2})\b/);
       if (mDate3) {
         result.date = `20${mDate3[3]}-${mDate3[2]}-${mDate3[1]}`;
       } else {
@@ -276,15 +276,15 @@ export function parseOCRText(rawText) {
   /* ── Volume (litres) ──────────────────────────────────────────────── */
   const litresPatterns = [
     /* "42,580 L", "42,58 L", "42,58L" — avec ou sans espace, 2-3 décimales */
-    /(\d{1,3}[,\.]\d{2,3})\s*(?:litres?|liters?|l\b)/i,
+    /(\d{1,3}[,.]\d{2,3})\s*(?:litres?|liters?|l\b)/i,
     /* "LITRES 42,580" — libellé avant le nombre */
-    /(?:litres?|liters?)\s+(\d{1,3}[,\.]\d{2,3})/i,
+    /(?:litres?|liters?)\s+(\d{1,3}[,.]\d{2,3})/i,
     /* "Qté : 42,58" / "Quantité 42,58" / "Quantite 42,58" (sans accent OCR) / "Volume 42,58" */
-    /(?:qté|quantité|quantite|volume|vol|qt(?:y|é|e)?)[^\d]*(\d{1,3}[,\.]\d{2,3})/i,
+    /(?:qté|quantité|quantite|volume|vol|qt(?:y|é|e)?)[^\d]*(\d{1,3}[,.]\d{2,3})/i,
     /* "42,58 × 1,799" (litres × prix) */
-    /(\d{1,3}[,\.]\d{2,3})\s*(?:x|×)\s*[01][,\.]\d{3}/i,
+    /(\d{1,3}[,.]\d{2,3})\s*(?:x|×)\s*[01][,.]\d{3}/i,
     /* Ligne débutant par un nombre suivi d'un opérateur × (tickets 2 colonnes) */
-    /^(\d{1,3}[,\.]\d{2,3})\s*(?:x|×)/m,
+    /^(\d{1,3}[,.]\d{2,3})\s*(?:x|×)/m,
   ];
   for (const pat of litresPatterns) {
     const m = normText.match(pat);
@@ -322,24 +322,24 @@ export function parseOCRText(rawText) {
 
   const prixPatterns = [
     /* ① Séparateur X,XXX puis unité — "€" peut être "e","E","£","é" ou absent */
-    /([0-3][,\.]\d{3})\s*[€e£é]?\s*[\/\\|Il]\s*l\b/i,
+    /([0-3][,.]\d{3})\s*[€e£é]?\s*[/\\|Il]\s*l\b/i,
 
     /* ② "1,799 euros/L", "euro/L", "eur/L" */
-    /([0-3][,\.]\d{3})\s*eur(?:os?)?\s*[\/\\|Il]\s*l\b/i,
+    /([0-3][,.]\d{3})\s*eur(?:os?)?\s*[/\\|Il]\s*l\b/i,
 
     /* ③ Libellé explicite :
      *   "Prix unitaire TTC : 1,799"  "Prix unit. = 0,849"  "P.U. : 0,798"  "Tarif 1,799" */
-    /(?:prix\s*(?:au\s*)?(?:litres?|\/\s*litres?|\/\s*l\b|l\b)|prix\s+unit(?:aire)?\.?|p\.?\s*u\.?|pu\b|tarif)[^\d]*([0-3][,\.]\d{3})/i,
+    /(?:prix\s*(?:au\s*)?(?:litres?|\/\s*litres?|\/\s*l\b|l\b)|prix\s+unit(?:aire)?\.?|p\.?\s*u\.?|pu\b|tarif)[^\d]*([0-3][,.]\d{3})/i,
 
     /* ④ "1,799 × 42,58" ou "1,799 x 42,58" (prix × litres) */
-    /([0-3][,\.]\d{3})\s*(?:x|×)\s*\d{1,3}[,\.]\d{2,3}/i,
+    /([0-3][,.]\d{3})\s*(?:x|×)\s*\d{1,3}[,.]\d{2,3}/i,
 
     /* ⑤ 2 décimales "1,80 €/L" */
-    /([0-3][,\.]\d{2})\s*[€e£é]?\s*[\/\\|Il]\s*l\b/i,
+    /([0-3][,.]\d{2})\s*[€e£é]?\s*[/\\|Il]\s*l\b/i,
 
     /* ⑥ Libellé carburant suivi du prix sur la même ligne
      *   Ex : "SuperEthanol E85 0,798"  "Gazole B7 1,749" */
-    /(?:e85|superethanol|superéthanol|sp98|sp95|e10|gazole|diesel|gplc)[^\d]{0,20}([0-3][,\.]\d{3})/i,
+    /(?:e85|superethanol|superéthanol|sp98|sp95|e10|gazole|diesel|gplc)[^\d]{0,20}([0-3][,.]\d{3})/i,
   ];
 
   for (const pat of prixPatterns) {
@@ -376,11 +376,11 @@ export function parseOCRText(rawText) {
    * ─────────────────────────────────────────────────────────────────── */
   const totalPatterns = [
     /* "TOTAL TTC 76,61", "TOTAL 76,61", "MONTANT 76,61", "À PAYER 76,61" */
-    /(?:total(?:\s*ttc)?|montant(?:\s*ttc)?|à payer|payé|net\s*à\s*payer)[^\d]*(\d{1,3}[,\.]\d{2,3})\s*€?/i,
+    /(?:total(?:\s*ttc)?|montant(?:\s*ttc)?|à payer|payé|net\s*à\s*payer)[^\d]*(\d{1,3}[,.]\d{2,3})\s*€?/i,
     /* "76,61 €" seul (sans label), optionnellement suivi de "TTC" ou "net" */
-    /(\d{1,3}[,\.]\d{2,3})\s*€\s*(?:ttc|net)?(?:\s|$)/i,
+    /(\d{1,3}[,.]\d{2,3})\s*€\s*(?:ttc|net)?(?:\s|$)/i,
     /* "RÈGLEMENT 76,61" / "SOLDE 76,61" / "TICKET 76,61" (certains TPE) */
-    /(?:règlement|reglement|solde)[^\d]*(\d{1,3}[,\.]\d{2,3})\s*€?/i,
+    /(?:règlement|reglement|solde)[^\d]*(\d{1,3}[,.]\d{2,3})\s*€?/i,
   ];
   for (const pat of totalPatterns) {
     const m = normText.match(pat);
@@ -434,7 +434,7 @@ export function parseOCRText(rawText) {
 
   /* Rejette les lignes qui ressemblent à une ligne de prix/montant
    * pour éviter que "TOTAL TTC 76,61" soit capturé comme nom de station. */
-  const isPriceLine = /\d{1,3}[,\.]\d{2}\s*[€e]?\s*(?:ttc|ht|net)?$/i;
+  const isPriceLine = /\d{1,3}[,.]\d{2}\s*[€e]?\s*(?:ttc|ht|net)?$/i;
 
   for (const kw of stationKw) {
     if (lower.includes(kw)) {
@@ -483,13 +483,13 @@ export function parseOCRText(rawText) {
   }
 
   /* ── Log de diagnostic (console DevTools) ─────────────────────────── */
-  /* eslint-disable no-console */
+   
   console.group('[OCR] Résultat parsing ticket');
   console.log('Texte brut :\n' + text);
   console.log('Résultat :', result);
   console.log('Candidats prix/L :', prixCandidates);
   console.groupEnd();
-  /* eslint-enable no-console */
+   
 
   return result;
 }
