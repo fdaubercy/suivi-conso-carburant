@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '3.12.3.0';
+export const APP_VERSION       = '4.0.0.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 
 // S6 — Token secret partagé avec les endpoints GAS et la macro VBA.
@@ -29,6 +29,7 @@ export const KIT_PRIX_KEY      = 'suivi_e85_kit_prix';
 export const SECTOR_CACHE_KEY  = 'suivi_e85_sector_cache';  // W38 — prix secteur quotidien (cache)
 export const WRAPPED_SCOPE_KEY = 'suivi_e85_wrapped_scope'; // W37 — périmètre Wrapped (vehicule|all)
 export const BUDGET_KEY        = 'suivi_e85_budget_mensuel'; // W39 — objectif budget carburant mensuel (€)
+export const CO2_OBJECTIF_KEY  = 'suivi_e85_objectif_co2';   // W51 — objectif CO₂ annuel évité (kg)
 export const STATION_SORT_KEY  = 'suivi_e85_station_sort';   // W36 — tri carte stations : 'prix' | 'freq'
 export const HIST_SEEN_KEY     = 'suivi_e85_hist_seen';      // W45 — nb de pleins déjà consultés (badge Historique)
 export const CARTE_SEEN_KEY    = 'suivi_e85_carte_seen';     // W45 — jour de dernière ouverture de la Carte (badge secteur)
@@ -44,6 +45,14 @@ export const FAVORITE_MIN_PLEINS = 4;
 export const CO2_ESSENCE_PER_L = 2.21;                       // kg CO₂/L (SP95-E10)
 export const CO2_E85_RATIO     = 0.50;                       // E85 ≈ −50 % à la combustion
 export const CO2_E85_PER_L     = CO2_ESSENCE_PER_L * CO2_E85_RATIO; // ≈ 1,105 kg CO₂/L
+
+// W51 — Objectif CO₂ / éco-score annuel.
+// Objectif par défaut (kg CO₂ évités sur l'année), modifiable dans ⚙️.
+// Équivalents « parlants » : 1 km en voiture thermique ≈ 0,12 kg CO₂ (≈ 120 g/km,
+// moyenne parc WLTP) ; 1 arbre absorbe ≈ 25 kg CO₂/an.
+export const DEFAULT_CO2_OBJECTIF   = 200;  // kg CO₂/an
+export const CO2_THERMIQUE_PER_KM   = 0.12; // kg CO₂/km (voiture thermique moyenne)
+export const CO2_ARBRE_PAR_AN       = 25;   // kg CO₂ absorbés par un arbre/an
 
 // Économie E85 vs SP98 — aligné sur le dashboard Excel (feuille « Suivi Carburant »).
 // Surconsommation calculée dynamiquement (conso E85 / conso S98 − 1, cellule J7) ;

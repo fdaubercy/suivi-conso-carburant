@@ -1,7 +1,8 @@
 /* ─── Stats live : conso, coût, économies E85 vs SP98 + sparkline prix multi-carburant + prédiction ─── */
 import { state } from './state.js';
 import { FUEL_CONFIG, DEFAULT_SURCONSO, KIT_PRIX_KEY, DEFAULT_KIT_PRIX,
-         BUDGET_KEY, CO2_ESSENCE_PER_L, CO2_E85_PER_L } from './config.js';
+         BUDGET_KEY, CO2_ESSENCE_PER_L, CO2_E85_PER_L,
+         CO2_OBJECTIF_KEY, DEFAULT_CO2_OBJECTIF, CO2_THERMIQUE_PER_KM, CO2_ARBRE_PAR_AN } from './config.js';
 import { getAllRecords, forceRefreshHistorique } from './historique.js';
 import { renderComparatif } from './comparatif.js';
 
@@ -17,6 +18,14 @@ export function getKitPrix() {
 export function getBudgetMensuel() {
   const n = Number(localStorage.getItem(BUDGET_KEY));
   return isFinite(n) && n > 0 ? n : 0;
+}
+
+/* ─── W51 — Objectif CO₂ annuel évité (kg, localStorage) ───
+   Vide / invalide = valeur par défaut DEFAULT_CO2_OBJECTIF. */
+export function getObjectifCo2() {
+  const raw = localStorage.getItem(CO2_OBJECTIF_KEY);
+  const n = Number(raw);
+  return raw != null && raw !== '' && isFinite(n) && n > 0 ? n : DEFAULT_CO2_OBJECTIF;
 }
 
 /** Clé 'YYYY-MM' du mois courant. */
@@ -484,7 +493,9 @@ export function renderStats() {
       <span class="econ-net-sub">brute ${s.econBrute.toFixed(0)} € − kit ${s.kitPrix.toFixed(2)} € · surconso +${Math.round(s.surconso * 100)}% · total</span>
     </div>
     ${buildCO2Tile(s)}
+    ${buildCo2Annuel()}
     ${buildBudgetBar()}
+    ${buildBudgetTrend()}
     ${buildPrixSparkline()}
     ${buildPrediction()}
   `;
@@ -504,6 +515,63 @@ function buildCO2Tile(s) {
         <div class="co2-main"><strong>${val}</strong> de CO₂ évités</div>
         <div class="co2-sub">E85 vs essence (≈ −50 % à la combustion) · ${s.totLitresE85.toFixed(0)} L E85 · distance égale</div>
       </div>
+    </div>`;
+}
+
+/* ─── W51 — CO₂ évité sur l'année en cours (cumul des pleins E85) ───
+   Même méthode que computeStats (distance égale), restreint à l'année courante
+   et au véhicule sélectionné. */
+function computeCo2Annuel() {
+  const all = getAllRecords();
+  const veh = state.currentVehiculeNom;
+  const byVeh = veh ? all.filter(r => (r['Véhicule'] || r['Vehicule'] || '') === veh) : all;
+
+  const year = new Date().getFullYear();
+  const surconso = computeSurconso(byVeh);
+
+  const e85Annee = byVeh.filter(r => {
+    if (!matchType(r.Type, 'E85') || !(Number(r['Nb. Litres']) > 0)) return false;
+    const d = new Date(String(r.Date || r.Horodatage || '').replace(' ', 'T'));
+    return !isNaN(d) && d.getFullYear() === year;
+  });
+
+  const totLitresE85 = e85Annee.reduce((s, r) => s + (Number(r['Nb. Litres']) || 0), 0);
+  const essenceEquivL = totLitresE85 / (1 + surconso);
+  const co2 = essenceEquivL * CO2_ESSENCE_PER_L - totLitresE85 * CO2_E85_PER_L;
+
+  return { year, co2, totLitresE85 };
+}
+
+/* ─── W51 — Jauge « X kg CO₂ évités cette année » + objectif + équivalents parlants ─── */
+function buildCo2Annuel() {
+  const { year, co2 } = computeCo2Annuel();
+  if (!(co2 > 0)) return '';
+
+  const obj   = getObjectifCo2();
+  const pct   = Math.min(100, (co2 / obj) * 100);
+  const w     = pct.toFixed(0);
+  const atteint = co2 >= obj;
+  const cls   = atteint ? 'done' : (pct >= 70 ? 'near' : 'go');
+
+  const kmTherm = Math.round(co2 / CO2_THERMIQUE_PER_KM);
+  const arbres  = co2 / CO2_ARBRE_PAR_AN;
+  const arbresTxt = arbres >= 1
+    ? `${Math.round(arbres)} arbre${arbres >= 2 ? 's' : ''} sur un an`
+    : `${(arbres * 12).toFixed(0)} mois d'absorption d'un arbre`;
+
+  const right = atteint
+    ? `<span class="co2y-done">🎉 objectif atteint</span>`
+    : `<span class="co2y-left">reste ${(obj - co2).toFixed(0)} kg</span>`;
+
+  return `
+    <div class="co2y-box ${cls}">
+      <div class="co2y-head">
+        <span class="co2y-label">🌍 CO₂ évité ${year}</span>
+        <span class="co2y-amount">${co2.toFixed(0)} / ${obj.toFixed(0)} kg</span>
+      </div>
+      <div class="co2y-track"><div class="co2y-fill" style="width:${w}%"></div></div>
+      <div class="co2y-foot">${right} · ${Math.round(pct)} %</div>
+      <div class="co2y-equiv">≈ <strong>${kmTherm.toLocaleString('fr-FR')} km</strong> de conduite thermique évités · ${arbresTxt} 🌳</div>
     </div>`;
 }
 
@@ -532,6 +600,59 @@ function buildBudgetBar() {
       </div>
       <div class="budget-track"><div class="budget-fill" style="width:${w}%"></div></div>
       <div class="budget-foot">${right} · ${Math.round(pct)} %</div>
+    </div>`;
+}
+
+/* ─── W50 — Tendance du budget : dépenses des 6 derniers mois + ligne d'objectif ───
+   Mini histogramme SVG (réutilise buildMonthlyReport mois par mois). Affiché
+   uniquement si un budget est défini et qu'au moins un mois a des dépenses. */
+function buildBudgetTrend() {
+  const budget = getBudgetMensuel();
+  if (!budget) return '';
+
+  // 6 derniers mois, du plus ancien au plus récent
+  const now = new Date();
+  const data = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const r = buildMonthlyReport(key);
+    data.push({
+      spent: r.nbPleins ? (r.totalCout || 0) : 0,
+      mois:  MOIS_FR_LONG[d.getMonth()].slice(0, 3),
+    });
+  }
+  if (!data.some(d => d.spent > 0)) return '';
+
+  const maxV = Math.max(budget, ...data.map(d => d.spent)) || 1;
+  const W = 240, H = 70, padT = 8, padB = 16, n = data.length;
+  const slot = W / n, bw = slot * 0.5;
+  const plotH = H - padT - padB;
+  const toY = v => padT + (1 - v / maxV) * plotH;
+  const objY = toY(budget).toFixed(1);
+
+  const bars = data.map((d, i) => {
+    const x = (i * slot + (slot - bw) / 2).toFixed(1);
+    const y = toY(d.spent).toFixed(1);
+    const h = Math.max(0, padT + plotH - parseFloat(y)).toFixed(1);
+    const fill = d.spent > budget ? '#ef4444' : '#1D9E75';
+    const label = `<text x="${(i * slot + slot / 2).toFixed(1)}" y="${H - 4}" class="trend-mlbl">${d.mois}</text>`;
+    const bar = d.spent > 0
+      ? `<rect x="${x}" y="${y}" width="${bw.toFixed(1)}" height="${h}" rx="2" fill="${fill}"/>`
+      : '';
+    return bar + label;
+  }).join('');
+
+  return `
+    <div class="trend-box">
+      <div class="trend-head">
+        <span class="trend-label">📈 Tendance 6 mois</span>
+        <span class="trend-obj">objectif ${budget.toFixed(0)} €</span>
+      </div>
+      <svg class="trend-svg" viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">
+        <line x1="0" y1="${objY}" x2="${W}" y2="${objY}" class="trend-objline"/>
+        ${bars}
+      </svg>
     </div>`;
 }
 
@@ -749,6 +870,26 @@ export function initBudgetSetting() {
       el.value = '';
     } else {
       localStorage.setItem(BUDGET_KEY, String(v));
+    }
+    renderStats();
+  });
+}
+
+/**
+ * W51 — Câble le champ « objectif CO₂ annuel » de la carte Paramètres.
+ * Vide → revient à la valeur par défaut (DEFAULT_CO2_OBJECTIF).
+ */
+export function initCo2ObjectifSetting() {
+  const el = document.getElementById('objectifCo2');
+  if (!el) return;
+  el.value = getObjectifCo2();
+  el.addEventListener('change', () => {
+    const v = Number(el.value);
+    if (el.value === '' || !isFinite(v) || v <= 0) {
+      localStorage.removeItem(CO2_OBJECTIF_KEY);
+      el.value = getObjectifCo2();
+    } else {
+      localStorage.setItem(CO2_OBJECTIF_KEY, String(v));
     }
     renderStats();
   });

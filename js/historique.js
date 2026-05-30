@@ -223,6 +223,18 @@ export function voirTout() {
   card.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/** Applique les filtres véhicule/carburant et trie du plus récent au plus ancien. */
+function _filteredRecords(vehFilter, typeFilter) {
+  let filtered = _allRecords
+    .slice()
+    .sort((a, b) => (b.Horodatage || '').localeCompare(a.Horodatage || ''));
+  if (vehFilter)
+    filtered = filtered.filter(r => (r['Véhicule'] || r['Vehicule'] || '') === vehFilter);
+  if (typeFilter)
+    filtered = filtered.filter(r => (r.Type || '') === typeFilter);
+  return filtered;
+}
+
 /** Génère la liste filtrée dans #histoireFullList. */
 export function renderFullHistory(vehFilter, typeFilter) {
   const listEl  = document.getElementById('histoireFullList');
@@ -235,14 +247,7 @@ export function renderFullHistory(vehFilter, typeFilter) {
     return;
   }
 
-  let filtered = _allRecords
-    .slice()
-    .sort((a, b) => (b.Horodatage || '').localeCompare(a.Horodatage || ''));
-
-  if (vehFilter)
-    filtered = filtered.filter(r => (r['Véhicule'] || r['Vehicule'] || '') === vehFilter);
-  if (typeFilter)
-    filtered = filtered.filter(r => (r.Type || '') === typeFilter);
+  const filtered = _filteredRecords(vehFilter, typeFilter);
 
   if (!filtered.length) {
     listEl.innerHTML = '<div class="hist-msg">Aucun plein correspondant au filtre.</div>';
@@ -275,6 +280,83 @@ export function initHistoireFilters() {
     const card = document.getElementById('histoireFullCard');
     if (card) card.hidden = true;
   });
+}
+
+/* ═══════════════════════════════════════
+   W25 — Export CSV de l'historique
+   ═══════════════════════════════════════ */
+
+const CSV_SEP = ';';   // Excel FR : séparateur point-virgule
+const CSV_COLS = [
+  ['Date',          r => isoDate(r.Date || r.Horodatage)],
+  ['Horodatage',    r => String(r.Horodatage || '')],
+  ['Véhicule',      r => r['Véhicule'] || r['Vehicule'] || ''],
+  ['Type',          r => r.Type || ''],
+  ['Km compteur',   r => _num(r['Km compteur'])],
+  ['Litres',        r => _num(r['Nb. Litres'])],
+  ['Prix €/L',      r => _num(r['Prix €/L'])],
+  ['Total €',       r => _num(((Number(r['Nb. Litres']) || 0) * (Number(r['Prix €/L']) || 0)).toFixed(2))],
+  ['Station',       r => r['Station essence'] || ''],
+];
+
+/** Nombre en notation française (virgule décimale) pour Excel FR ; '' si vide. */
+function _num(v) {
+  const n = Number(v);
+  if (!isFinite(n) || n === 0) return v == null || v === '' ? '' : String(v).replace('.', ',');
+  return String(n).replace('.', ',');
+}
+
+/** Échappe une cellule CSV (guillemets si séparateur, guillemet ou saut de ligne). */
+function _csvCell(v) {
+  const s = String(v == null ? '' : v);
+  return /["\n\r;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+/** Construit le contenu CSV (sans BOM) à partir d'une liste d'enregistrements. */
+export function buildHistoriqueCSV(records) {
+  const header = CSV_COLS.map(c => _csvCell(c[0])).join(CSV_SEP);
+  const lines = records.map(r => CSV_COLS.map(c => _csvCell(c[1](r))).join(CSV_SEP));
+  return [header, ...lines].join('\r\n');
+}
+
+/**
+ * Exporte la vue filtrée courante de l'historique complet en fichier .csv.
+ * Lit les filtres véhicule/carburant actifs, génère un Blob et déclenche le
+ * téléchargement (BOM UTF-8 pour la compatibilité Excel FR).
+ */
+export function exportHistoriqueCSV() {
+  if (!_allRecords.length) {
+    showFeedback('error', 'Rien à exporter', 'Chargez l\'historique d\'abord (bouton ↻).');
+    return;
+  }
+
+  const vehFilter  = document.getElementById('histVehFilter')?.value || '';
+  const typeFilter = document.getElementById('histTypeFilter')?.value || '';
+  const records = _filteredRecords(vehFilter, typeFilter);
+
+  if (!records.length) {
+    showFeedback('error', 'Aucun plein', 'Aucun enregistrement ne correspond aux filtres actifs.');
+    return;
+  }
+
+  const csv = '﻿' + buildHistoriqueCSV(records);
+  const stamp = isoDate(new Date().toISOString());
+  const name = `suivi-e85-historique-${stamp}.csv`;
+
+  try {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showFeedback('success', 'Export CSV ✓', `${records.length} plein(s) exporté(s) — ${name}`);
+  } catch (e) {
+    showFeedback('error', 'Export impossible', e.message || 'erreur navigateur');
+  }
 }
 
 /* ═══════════════════════════════════════

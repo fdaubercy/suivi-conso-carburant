@@ -11,11 +11,11 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| W25 | **Export CSV de l'historique** : bouton "📥 Exporter" dans la carte historique → télécharge tous les enregistrements en `.csv` (via `?action=export` + `Blob` + `URL.createObjectURL`) | Justificatif remboursement employeur / fiscalité · zéro backend · effort 1 h |
-| W50 | **Tendance du budget mensuel** (complément W39) : mini-graphe des dépenses des 6 derniers mois sous la barre de budget + ligne d'objectif, pour visualiser la trajectoire et anticiper le dépassement | Réutilise `buildMonthlyReport` mois par mois · effort ~1 h |
-| W51 | **Objectif CO₂ / éco-score annuel** (complément W40) : palier « X kg CO₂ évités cette année » avec jauge vers un objectif, et équivalent parlant (km en voiture thermique, arbres) | Renforce le branding 🌿 · pur calcul · effort ~1 h |
 | W52 | **Export comparatif véhicules en image/CSV** (complément W41) : bouton 📥 sur la carte comparatif pour exporter le tableau conso/coût (CSV) ou capturer le graphe | Partage / archivage du comparatif multi-véhicules · effort ~1 h |
 | W53 | **Favori manuel épinglé** (complément W36, piste (b) non retenue) : ⭐ cliquable sur chaque station pour l'épingler en tête, indépendamment du prix et du seuil auto (localStorage) | Contrôle explicite de l'utilisateur sur sa station de référence · effort ~1 h |
+| W54 | **Export CSV global** (complément W25) : option « tout l'historique » à côté de l'export filtré, et choix du séparateur (`;` / `,`) pour Excel vs tableurs anglo-saxons | Couvre les deux usages d'export · réutilise `buildHistoriqueCSV` · effort ~½ h |
+| W55 | **Objectif CO₂ : palier mensuel + historique** (complément W51) : décliner l'objectif annuel en cible mensuelle et tracer la courbe cumulée du CO₂ évité mois par mois | Lisibilité de la trajectoire 🌿 · réutilise `buildMonthlyReport` · effort ~1 h |
+| W56 | **Alerte de dépassement budget anticipée** (complément W39/W50) : à partir de la tendance 6 mois, prévenir « à ce rythme, budget dépassé le JJ/MM » avant la fin du mois | Action préventive plutôt que constat · pur calcul · effort ~1 h |
 
 ---
 
@@ -74,10 +74,10 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | Rang | Item | Effort | Bénéfice |
 |---|---|---|---|
 | 1 | **X1** — Bouton "Synchroniser" sur la feuille GS_Pleins | 15 min | Ergonomie immédiate, plus besoin d'ouvrir l'IDE |
-| 2 | **W25** — Export CSV de l'historique | 1 h | Justificatif employeur/fiscalité · zéro backend |
-| 3 | **X9** — Économies cumulées E85 vs SP98 | ½ j | ROI E85 chiffré depuis les données existantes |
-| 4 | **W50** — Tendance du budget mensuel | ~1 h | Prolonge W39 : visualiser la trajectoire des dépenses sur 6 mois |
-| 5 | **W51** — Objectif CO₂ / éco-score annuel | ~1 h | Prolonge W40 : jauge d'objectif + équivalents parlants, renforce le branding 🌿 |
+| 2 | **X9** — Économies cumulées E85 vs SP98 | ½ j | ROI E85 chiffré depuis les données existantes |
+| 3 | **W56** — Alerte de dépassement budget anticipée | ~1 h | Prolonge W39/W50 : prévient avant la fin du mois plutôt que constater après |
+| 4 | **W52** — Export comparatif véhicules (CSV/image) | ~1 h | Complète W25/W41 : archivage du comparatif multi-véhicules |
+| 5 | **W55** — Objectif CO₂ : palier mensuel + courbe cumulée | ~1 h | Prolonge W51 : trajectoire 🌿 mois par mois |
 
 ---
 
@@ -85,6 +85,10 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v4.0.0.0 | **Tendance du budget mensuel (W50)** — sous la barre de budget (carte Stats), mini-histogramme SVG des dépenses des 6 derniers mois + ligne d'objectif pointillée au niveau du budget ; barres vertes sous l'objectif / rouges au-dessus (`buildBudgetTrend`, réutilise `buildMonthlyReport`) ; affiché seulement si un budget est défini et qu'un mois a des dépenses |
+| v4.0.0.0 | **Objectif CO₂ / éco-score annuel (W51)** — jauge « X kg CO₂ évités cette année » vers un objectif annuel configurable dans ⚙️ (`#objectifCo2`, `CO2_OBJECTIF_KEY`, défaut 200 kg) ; états go/near/done + équivalents parlants km thermiques (`CO2_THERMIQUE_PER_KM`) et arbres (`CO2_ARBRE_PAR_AN`) ; calcul distance égale sur les pleins E85 de l'année courante (`computeCo2Annuel`/`buildCo2Annuel`/`getObjectifCo2`/`initCo2ObjectifSetting`) |
+| v4.0.0.0 | **Export CSV de l'historique (W25)** — bouton 📥 dans l'en-tête « Tous les pleins » exportant la vue filtrée courante en `.csv` (Excel FR : séparateur `;`, BOM UTF-8, décimales virgule) via `Blob`+`URL.createObjectURL` (`exportHistoriqueCSV`) ; fonction pure `buildHistoriqueCSV` testée (`tests/historique.test.js`, 4 cas) |
+| v4.0.0.0 | **`commit.sh` verbeux** — sortie réécrite : étapes 1/9→9/9 annoncées (séparateur, icône, titre, temps écoulé `+Ns`), liste des fichiers modifiés, messages ✅/ℹ️/⚠️/❌ distincts, bilan final (durée, branche, hash court) |
 | v2.2.4.x | Module VBA sync bidirectionnel `GS_Pleins` ↔ `_ImportGS` |
 | v2.2.4.5 | Format date français + heure locale Paris pour Horodatage |
 | v2.3.0.0 | Suppression colonne G "Prix S98 jour" (doublon avec K) |

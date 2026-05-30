@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.0.0.0] — 2026-05-30
+
+### Added
+- **Tendance du budget mensuel (W50)** — sous la barre de budget (carte Stats), mini-histogramme SVG des dépenses des **6 derniers mois** avec **ligne d'objectif** pointillée (orange) au niveau du budget configuré. Réutilise `buildMonthlyReport` mois par mois (`buildBudgetTrend` dans `js/stats.js`) ; barres **vertes** sous l'objectif, **rouges** au-dessus, étiquettes de mois abrégées. Affiché uniquement si un budget mensuel est défini et qu'au moins un mois présente des dépenses. CSS `.trend-*` (`css/style.css`).
+- **Objectif CO₂ / éco-score annuel (W51)** — dans la carte Stats, jauge « **X kg CO₂ évités cette année** » vers un objectif annuel (par défaut **200 kg**, configurable dans ⚙️ via `#objectifCo2` / `CO2_OBJECTIF_KEY`). États go / near / done (objectif atteint). Équivalents parlants : **km de conduite thermique évités** (`CO2_THERMIQUE_PER_KM = 0,12 kg/km`) et **arbres** (`CO2_ARBRE_PAR_AN = 25 kg/an`). Calcul à distance égale sur les pleins E85 de l'année courante uniquement (`computeCo2Annuel` / `buildCo2Annuel` / `getObjectifCo2` / `initCo2ObjectifSetting` dans `js/stats.js`). CSS `.co2y-*` (`css/style.css`).
+- **Export CSV de l'historique (W25)** — bouton « 📥 » dans l'en-tête de la carte « Tous les pleins » (vue Historique). Exporte la **vue filtrée courante** (filtres véhicule / carburant actifs) en `.csv` via `Blob` + `URL.createObjectURL` + ancre `download` (`exportHistoriqueCSV` dans `js/historique.js`). Format **Excel FR** : séparateur `;`, **BOM UTF-8**, décimales à la **virgule**, colonnes Date / Horodatage / Véhicule / Type / Km compteur / Litres / Prix €/L / Total € / Station. Fonction pure `buildHistoriqueCSV` couverte par `tests/historique.test.js` (4 cas : en-tête, virgule décimale + total, échappement du séparateur, nombre de lignes). Justificatif remboursement employeur / fiscalité, zéro backend.
+
+### Changed
+- **`commit.sh` verbeux** — sortie entièrement réécrite : chaque étape est annoncée (1/9 → 9/9) avec un séparateur, une icône, un titre et le **temps écoulé** (`+Ns`), la liste des fichiers modifiés à l'étape 2, des messages `✅ / ℹ️ / ⚠️ / ❌` distincts, et un **bilan final** (durée totale, branche, hash court du commit). Comportement et garde-fous (gate lint/tests, sync version, pull --rebase) inchangés.
+- **Version 4.0.0.0** — passage à la majeure : palier de maturité du tableau de bord Stats (budget + CO₂ + comparatif + tendances). `APP_VERSION` (`js/config.js`) et `package.json` alignés.
+- **`eslint.config.js`** — ajout du global navigateur `Blob` (utilisé par l'export CSV).
+
 ## [3.12.3.0] — 2026-05-30
 
 ### Fixed

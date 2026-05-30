@@ -1604,6 +1604,36 @@ body.no-share .hist-share { display: none; }
 .budget-left{color:#1D9E75;font-weight:600;}
 [data-theme="dark"] .budget-left{color:#34d399;}
 
+/* ─── W50 — Tendance du budget (6 mois) ─── */
+.trend-box{margin-top:8px;padding:8px 10px;border-radius:8px;background:rgba(125,125,125,.08);
+  border:1px solid rgba(125,125,125,.18);}
+.trend-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:2px;}
+.trend-label{font-size:12px;font-weight:600;}
+.trend-obj{font-size:10px;color:var(--text-muted);}
+.trend-svg{display:block;}
+.trend-objline{stroke:#f59e0b;stroke-width:1.2;stroke-dasharray:4 3;opacity:.85;}
+.trend-mlbl{fill:var(--text-muted);font-size:8px;text-anchor:middle;}
+
+/* ─── W51 — Objectif CO₂ / éco-score annuel ─── */
+.co2y-box{margin-top:8px;padding:8px 10px;border-radius:8px;background:rgba(29,158,117,.08);
+  border:1px solid rgba(29,158,117,.22);}
+.co2y-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+.co2y-label{font-size:12px;font-weight:600;}
+.co2y-amount{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;}
+.co2y-track{height:8px;border-radius:5px;background:rgba(29,158,117,.18);overflow:hidden;margin:6px 0 4px;}
+.co2y-fill{height:100%;border-radius:5px;transition:width .35s ease;background:#1D9E75;}
+.co2y-box.near .co2y-fill{background:#10b981;}
+.co2y-box.done .co2y-fill{background:#1D9E75;}
+.co2y-box.done{border-color:rgba(29,158,117,.45);background:rgba(29,158,117,.14);}
+.co2y-foot{font-size:10px;color:var(--text-muted);}
+.co2y-left{color:#1D9E75;font-weight:600;}
+.co2y-done{color:#1D9E75;font-weight:600;}
+.co2y-equiv{font-size:10px;color:var(--text-muted);margin-top:4px;}
+.co2y-equiv strong{color:#1D9E75;font-variant-numeric:tabular-nums;}
+[data-theme="dark"] .co2y-left,
+[data-theme="dark"] .co2y-done,
+[data-theme="dark"] .co2y-equiv strong{color:#34d399;}
+
 /* ─── W41 — Comparaison entre véhicules ─── */
 .cmp-list{display:flex;flex-direction:column;gap:10px;margin-top:6px;}
 .cmp-veh{padding:8px 10px;border-radius:8px;background:var(--toggle-bg);}

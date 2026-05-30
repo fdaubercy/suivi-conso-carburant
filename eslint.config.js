@@ -26,6 +26,7 @@ export default [
         Image:           'readonly',
         Event:           'readonly',
         URL:             'readonly',
+        Blob:            'readonly',
         URLSearchParams: 'readonly',
         AbortController: 'readonly',
         AbortSignal:     'readonly',

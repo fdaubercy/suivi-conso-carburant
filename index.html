@@ -300,7 +300,10 @@
     <p class="section-title" style="margin-bottom:0">
       Tous les pleins <span id="histFullCount" class="hist-count"></span>
     </p>
-    <button class="hist-btn" id="histFullCloseBtn" title="Fermer">✕</button>
+    <div class="hist-actions">
+      <button class="hist-btn" id="histExportBtn" data-action="exportHistoriqueCSV" title="Exporter la vue filtrée en CSV">📥</button>
+      <button class="hist-btn" id="histFullCloseBtn" title="Fermer">✕</button>
+    </div>
   </div>
   <div class="hist-filters">
     <select id="histVehFilter" class="hist-filter-sel">
@@ -366,6 +369,18 @@
     </div>
   </div>
   <p class="notif-sub" style="margin-top:4px">Barre de progression + alerte de dépassement dans la carte Stats (mois en cours, véhicule sélectionné). Laisser vide pour désactiver.</p>
+
+  <!-- W51 — Objectif CO₂ annuel évité -->
+  <div class="seuil-row" id="objectifCo2Row">
+    <label for="objectifCo2" class="notif-label">🌍 Objectif CO₂ annuel</label>
+    <div style="display:flex;align-items:center;gap:6px">
+      <input type="number" id="objectifCo2" class="seuil-input"
+             step="10" min="0" placeholder="200"
+             inputmode="decimal">
+      <span class="seuil-unit">kg</span>
+    </div>
+  </div>
+  <p class="notif-sub" style="margin-top:4px">Jauge « kg CO₂ évités cette année » + équivalents (km thermiques, arbres) dans la carte Stats. Défaut : 200 kg/an.</p>
 </div>
 
 </section><!-- /view-params -->

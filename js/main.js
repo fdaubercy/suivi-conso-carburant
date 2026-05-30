@@ -17,8 +17,8 @@ import { onAutreInput, setRadius } from './recherche.js';
 import { onStationChange, onKmInput, submitForm, checkDuplicate, saveDraft, restoreDraft, initVoiceKm } from './formulaire.js';
 import { chargerStations, mergeHistoryStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
-import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords, rerenderHistorique } from './historique.js';
-import { renderStats, initSparkToggles, getNextKmPrediction, initKitSetting, initBudgetSetting, initRapport } from './stats.js';
+import { chargerHistorique, dupliquerDernier, voirTout, exportHistoriqueCSV, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords, rerenderHistorique } from './historique.js';
+import { renderStats, initSparkToggles, getNextKmPrediction, initKitSetting, initBudgetSetting, initCo2ObjectifSetting, initRapport } from './stats.js';
 import { loadSectorPrices, renderSectorBestCard } from './secteur.js';
 import { initWrapped, renderWrapped } from './wrapped.js';
 import { initScanner }       from './ticket.js';
@@ -143,6 +143,7 @@ function initStaticHandlers() {
   });
   document.querySelector('[data-action="chargerHistorique"]')?.addEventListener('click', chargerHistorique);
   document.querySelector('[data-action="voirTout"]')?.addEventListener('click', voirTout);
+  document.querySelector('[data-action="exportHistoriqueCSV"]')?.addEventListener('click', exportHistoriqueCSV);
 
   // Submit
   document.getElementById('submitBtn')?.addEventListener('click', submitForm);
@@ -173,6 +174,7 @@ initHistoireDelete();  // historique.js — suppression d'un plein (UI + GoogleS
 initSparkToggles();    // stats.js — W34 filtres sparkline multi-carburant
 initKitSetting();      // stats.js — prix du kit pour l'economie nette
 initBudgetSetting();   // stats.js — W39 objectif budget carburant mensuel
+initCo2ObjectifSetting(); // stats.js — W51 objectif CO₂ annuel évité
 initRapport();         // stats.js — rapport mensuel consultable (sélecteur de mois)
 initVoiceKm();         // formulaire.js — W35 dictée vocale km
 initRouter();          // router.js — W42 navigation par vues (onglets + hash)
