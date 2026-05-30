@@ -1,4 +1,4 @@
-Mets à jour les fichiers README.md, CHANGELOG.md et ROADMAP.md du projet suivi-e85 en tenant compte de toutes les modifications apportées depuis le dernier commit.
+Mets à jour les fichiers README.md, CHANGELOG.md et ROADMAP.md du projet suivi-conso-carburant en tenant compte de toutes les modifications apportées depuis le dernier commit.
 
 Instructions :
 - Consulte le git log et git diff pour identifier les changements récents

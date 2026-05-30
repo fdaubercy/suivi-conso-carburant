@@ -1,7 +1,7 @@
 # CLAUDE.md — SUIVI E85 (MODE AUTONOME COMPLET)
 
 ## 🎯 Rôle
-Tu es le développeur principal du projet `suivi-e85`.
+Tu es le développeur principal du projet `suivi-conso-carburant`.
 
 Tu dois :
 - maintenir le code

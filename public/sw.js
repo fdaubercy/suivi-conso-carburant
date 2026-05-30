@@ -6,7 +6,7 @@
    S8 — Web Push : réception des alertes prix E85 bas (payload-less → fetch GAS).
 ═══════════════════════════════════════════════════════════════════════ */
 
-const CACHE = 'suivi-e85-shell-v__SW_VERSION__';
+const CACHE = 'suivi-conso-carburant-shell-v__SW_VERSION__';
 
 /* GAS — meilleurs prix du jour par carburant (push sans payload).
    W49 : ?action=lowprices → { E85:{station,prix,date}, GAZOLE:{...}, SP98:{...} } */

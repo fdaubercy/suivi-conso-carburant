@@ -11,7 +11,7 @@ const IOS_DISMISSED_KEY = 'pwa_ios_dismissed';
 export function initPWA() {
   /* ── Service Worker ─────────────────────────────────────────────────
    * SW placé dans public/sw.js → servi à la racine du scope PWA.
-   * import.meta.env.BASE_URL vaut '/' en dev et '/suivi-e85/' en build.
+   * import.meta.env.BASE_URL vaut '/' en dev et '/suivi-conso-carburant/' en build.
    * ─────────────────────────────────────────────────────────────────── */
   if ('serviceWorker' in navigator) {
     const swUrl = import.meta.env.BASE_URL + 'sw.js';

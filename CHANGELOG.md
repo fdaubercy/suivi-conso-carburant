@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.3.0.2] — 2026-05-30
+
+### Changed
+- **Renommage du projet `suivi-e85` → `suivi-conso-carburant`** — alignement du nom technique sur le nom d'usage « Suivi Conso. Carburants » (multi-carburant, plus seulement E85).
+  - **Dépôt GitHub** renommé → nouvelle URL **GitHub Pages : https://fdaubercy.github.io/suivi-conso-carburant/** (GitHub redirige l'ancienne URL un temps).
+  - **`vite.config.js`** : `base` de build `/suivi-e85/` → **`/suivi-conso-carburant/`** ; **`package.json`** : `name` + script `preview --base` mis à jour ; **`package-lock.json`** : `name`.
+  - **PWA** : nom du cache Service Worker `suivi-conso-carburant-shell-v…` (`public/sw.js`), commentaire `BASE_URL` (`js/pwa.js`). `manifest.json` inchangé (chemins déjà relatifs `./`).
+  - **Exports CSV** : préfixe des fichiers téléchargés `suivi-conso-carburant-historique-…` / `-comparatif-…` (`js/historique.js`, `js/comparatif.js`).
+  - **Outillage** : `README.md` (URL d'accès, arborescence), `CLAUDE.md`, `.claude/launch.json`, `.claude/settings.json` (rappel + hook de push + agent doc) et `.claude/commands/*.md` pointent vers le nouveau nom et le futur dossier local `…/Github/suivi-conso-carburant`.
+  - **Inchangé (volontairement)** : `GAS_URL` et `GS_SHEET_ID` (IDs de déploiement/feuille, indépendants du nom), `APP_TOKEN` / clés VAPID, et les **clés localStorage `suivi_e85_*`** (conservées pour ne pas effacer réglages/cache/épingles des utilisateurs).
+
 ## [4.3.0.1] — 2026-05-30
 
 ### Fixed

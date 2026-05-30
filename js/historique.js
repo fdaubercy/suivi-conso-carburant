@@ -366,7 +366,7 @@ function _csvSep() {
 function _downloadCSV(records, suffix) {
   const csv = '﻿' + buildHistoriqueCSV(records, _csvSep());
   const stamp = isoDate(new Date().toISOString());
-  const name = `suivi-e85-historique${suffix ? '-' + suffix : ''}-${stamp}.csv`;
+  const name = `suivi-conso-carburant-historique${suffix ? '-' + suffix : ''}-${stamp}.csv`;
   try {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

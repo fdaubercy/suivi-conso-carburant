@@ -10,7 +10,7 @@ et les enregistrer automatiquement dans Google Sheets.
 
 | Ressource | Lien |
 |---|---|
-| 📱 Application | **https://fdaubercy.github.io/suivi-e85/** |
+| 📱 Application | **https://fdaubercy.github.io/suivi-conso-carburant/** |
 | 📊 Google Sheet | https://docs.google.com/spreadsheets/d/1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE/edit |
 | ⚙️ Google Apps Script | Google Sheet → Extensions → Apps Script |
 
@@ -199,7 +199,7 @@ Détails :
 - **Choix du séparateur** (W54) : sélecteur `;` (**Excel FR**, décimales à la **virgule**) ou `,` (**tableurs anglo-saxons**, décimales au **point** pour éviter l'ambiguïté). Choix **persisté**.
 - **BOM UTF-8** (accents corrects) dans tous les cas.
 - Colonnes : Date · Horodatage · Véhicule · Type · Km compteur · Litres · Prix €/L · Total € · Station.
-- Nom de fichier horodaté : `suivi-e85-historique-{filtre|complet}-AAAA-MM-JJ.csv`.
+- Nom de fichier horodaté : `suivi-conso-carburant-historique-{filtre|complet}-AAAA-MM-JJ.csv`.
 - Idéal comme **justificatif** (remboursement employeur, fiscalité). Logique pure `buildHistoriqueCSV(records, sep)` couverte par tests unitaires.
 
 ### 🎤 Saisie km mains-libres (W35)
@@ -302,7 +302,7 @@ Script d'aide au versionnement (Git Bash) qui sécurise chaque commit avec le m�
 ## 🗂️ Structure
 
 ```
-suivi-e85/
+suivi-conso-carburant/
 ├── index.html                       # Structure HTML
 │
 ├── css/

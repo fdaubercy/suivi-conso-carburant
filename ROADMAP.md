@@ -89,6 +89,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v4.3.0.2 | **Renommage `suivi-e85` → `suivi-conso-carburant`** — dépôt GitHub + Pages (`/suivi-conso-carburant/`), `vite.config.js` base, `package.json`/`package-lock.json`, cache SW, préfixes CSV, doc & outillage `.claude`. `GAS_URL`/`GS_SHEET_ID`/tokens et clés localStorage `suivi_e85_*` conservés (zéro perte de données) |
 | v4.3.0.1 | **Fix carte Budget/Tendance « invisibles » (W39/W50)** — encart d'état vide quand aucun budget n'est défini (au lieu d'un masquage silencieux) : « 💡 Définissez un budget mensuel… » → lien qui ouvre Réglages, déplie le bloc et focalise le champ (`buildBudgetBar`/`js/main.js`, CSS `.budget-box.hint`) |
 | v4.3.0.0 | **Export comparatif véhicules CSV (W52)** — bouton 📥 dans l'en-tête de la carte `#comparatifCard` (vue Stats) ; `buildComparatifCSV()` (fonction pure testée) + `exportComparatifCSV()` exportent le tableau Véhicule / Pleins / Conso / Coût / Total / Litres / Km en `.csv` Excel FR (séparateur `;`, BOM UTF-8, virgule décimale) ; `initComparatifExport()` (délégation) câblé dans `main.js` |
 | v4.3.0.0 | **Favori manuel épinglé 📌 (W53)** — bouton 📌 cliquable sur chaque station habituelle (vue Carte) pour l'épingler **en tête**, indépendamment du prix et du seuil de fréquentation auto ⭐ ; persistance `PINNED_STATIONS_KEY` (localStorage) ; les épinglées passent en haut dans l'ordre de tri courant (`_loadPinned`/`_togglePinned`, `stationsmap.js`) ; CSS `.smap-pin-btn`/`.smap-item.pinned` |

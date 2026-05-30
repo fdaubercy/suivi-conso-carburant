@@ -40,8 +40,8 @@ function swVersionPlugin() {
 
 export default defineConfig(({ command }) => ({
   // En dev (vite) : base '/' → http://localhost:5173/
-  // En build (vite build) : base '/suivi-e85/' → GitHub Pages
-  base: command === 'build' ? '/suivi-e85/' : '/',
+  // En build (vite build) : base '/suivi-conso-carburant/' → GitHub Pages
+  base: command === 'build' ? '/suivi-conso-carburant/' : '/',
 
   plugins: [swVersionPlugin()],
 

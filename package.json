@@ -1,12 +1,12 @@
 {
-  "name": "suivi-e85",
-  "version": "4.3.0.1",
-  "description": "Formulaire mobile de saisie des pleins E85/SP98 — GitHub Pages + Google Sheets",
+  "name": "suivi-conso-carburant",
+  "version": "4.3.0.2",
+  "description": "Formulaire mobile de saisie des pleins carburant (E85/SP98/Gazole…) — GitHub Pages + Google Sheets",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview --base /suivi-e85/",
+    "preview": "vite preview --base /suivi-conso-carburant/",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

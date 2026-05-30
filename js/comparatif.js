@@ -136,7 +136,7 @@ export function exportComparatifCSV() {
   }
   const csv = '﻿' + buildComparatifCSV(rows);
   const stamp = new Date().toISOString().slice(0, 10);
-  const name = `suivi-e85-comparatif-${stamp}.csv`;
+  const name = `suivi-conso-carburant-comparatif-${stamp}.csv`;
   try {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
