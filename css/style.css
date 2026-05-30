@@ -1165,9 +1165,18 @@ body.no-share .hist-share { display: none; }
 }
 [data-theme="dark"] .static-map { background: #1e293b; }
 
-/* Pin prix sur la carte */
-.smap-pin {
-  display: inline-block;
+/* Marqueur « station habituelle » : badge prix + pin ⛽ (pointe en bas) */
+.smap-marker {
+  position: absolute;
+  transform: translate(-50%, -100%);   /* la pointe du pin tombe sur le point */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  z-index: 10;
+  pointer-events: none;
+}
+.smap-marker-price {
   background: var(--blue-dark);
   color: #fff;
   font-size: 10px;
@@ -1176,16 +1185,23 @@ body.no-share .hist-share { display: none; }
   border-radius: 5px;
   white-space: nowrap;
   box-shadow: 0 1px 4px rgba(0,0,0,.35);
-  line-height: 1.5;
+  margin-bottom: 3px;
 }
-.smap-pin-dot {
-  width: 7px;
-  height: 7px;
-  background: var(--blue-dark);
+.smap-marker-pin {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--green, #1D9E75);
   border: 2px solid #fff;
-  border-radius: 50%;
-  margin: 2px auto 0;
-  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  border-radius: 50% 50% 50% 0;        /* goutte : pointe en bas-gauche… */
+  transform: rotate(45deg);            /* …pivotée → pointe vers le bas */
+  box-shadow: 0 2px 5px rgba(0,0,0,.4);
+}
+.smap-marker-pin > span {
+  transform: rotate(-45deg);           /* redresse l'emoji ⛽ */
+  font-size: 13px;
 }
 
 /* Liste des stations */

@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.4.0.3] — 2026-05-30
+
+### Changed
+- **Carte « Stations E85 habituelles » — marqueurs ⛽ distinctifs + cadrage fiable** (`js/stationsmap.js` + `css/style.css`) : nouveau marqueur en **goutte verte E85 avec icône ⛽** (classes `.smap-marker` / `.smap-marker-pin`) à la place de l'ancien point. Moteur de rendu réécrit pour **centrer sur l'empreinte des marqueurs** (et non plus sur la grille de tuiles) et choisir le zoom qui les fait **tous tenir** dans la carte — corrige le cas où un marqueur tombait sous la zone visible (`top` > hauteur de la carte) et restait invisible.
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.4.0.3`.
+
 ## [3.4.0.2] — 2026-05-30
 
 ### Fixed

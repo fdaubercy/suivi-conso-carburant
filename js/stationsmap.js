@@ -10,29 +10,13 @@ const TILE_SZ = 256;
 // re-lancer une requête réseau à chaque rendu de la card.
 const _geocodeTried = new Set();
 
-// ── Math tuiles (même logique que carte.js) ─────────────────────────────────
-function tileXY(lat, lon, z) {
-  const n = 1 << z, lr = lat * Math.PI / 180;
-  return {
-    x: Math.floor((lon + 180) / 360 * n),
-    y: Math.floor((1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n)
-  };
+// ── Projection Mercator : coordonnée pixel GLOBALE (origine = coin NO du monde) ─
+function lonToGlobalPx(lon, z) {
+  return (lon + 180) / 360 * (1 << z) * TILE_SZ;
 }
-function latLonToPx(lat, lon, z, ox, oy) {
-  const n = 1 << z, lr = lat * Math.PI / 180;
-  return {
-    x: Math.round((lon + 180) / 360 * n * TILE_SZ - ox * TILE_SZ),
-    y: Math.round((1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n * TILE_SZ - oy * TILE_SZ)
-  };
-}
-function bestZoomStatic(allLats, allLons, maxW, maxH) {
-  for (let z = 14; z >= 10; z--) {
-    const nw = tileXY(Math.max(...allLats), Math.min(...allLons), z);
-    const se = tileXY(Math.min(...allLats), Math.max(...allLons), z);
-    if ((se.x - nw.x + 1) * TILE_SZ <= maxW + TILE_SZ &&
-        (se.y - nw.y + 1) * TILE_SZ <= maxH + TILE_SZ) return z;
-  }
-  return 10;
+function latToGlobalPx(lat, z) {
+  const lr = lat * Math.PI / 180;
+  return (1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * (1 << z) * TILE_SZ;
 }
 
 // ── Cache coordonnées ────────────────────────────────────────────────────────
@@ -120,46 +104,59 @@ function _renderStaticMap(stations) {
 
   const W = container.offsetWidth  || 340;
   const H = container.offsetHeight || 160;
-  const mg = 0.006;
-  const allLats = stations.map(s => s.lat);
-  const allLons = stations.map(s => s.lon);
 
-  const z  = bestZoomStatic(
-    [Math.min(...allLats) - mg, Math.max(...allLats) + mg],
-    [Math.min(...allLons) - mg, Math.max(...allLons) + mg],
-    W, H
-  );
-  const nw    = tileXY(Math.max(...allLats) + mg, Math.min(...allLons) - mg, z);
-  const se    = tileXY(Math.min(...allLats) - mg, Math.max(...allLons) + mg, z);
-  const gridW = (se.x - nw.x + 1) * TILE_SZ;
-  const gridH = (se.y - nw.y + 1) * TILE_SZ;
-  const offX  = Math.round((W - gridW) / 2);
-  let   offY  = Math.round((H - gridH) / 2);
+  // Marges réservées aux marqueurs (le pin monte au-dessus du point, badge prix large)
+  const PAD_X = 30;   // demi-largeur badge prix
+  const PAD_TOP = 50; // hauteur badge + pin ⛽ au-dessus du point
+  const PAD_BOT = 10;
 
-  // Sécurité : le pin le plus nord ne doit pas dépasser le haut
-  const PIN_H = 26;
-  const minPy = Math.min(...stations.map(s => latLonToPx(s.lat, s.lon, z, nw.x, nw.y).y));
-  offY = Math.max(offY, PIN_H - minPy);
+  // Choix du zoom : le plus détaillé où l'empreinte des marqueurs tient dans la carte
+  let z = 9;
+  for (let zz = 16; zz >= 9; zz--) {
+    const xs = stations.map(s => lonToGlobalPx(s.lon, zz));
+    const ys = stations.map(s => latToGlobalPx(s.lat, zz));
+    const spanX = Math.max(...xs) - Math.min(...xs);
+    const spanY = Math.max(...ys) - Math.min(...ys);
+    if (spanX <= W - 2 * PAD_X && spanY <= H - PAD_TOP - PAD_BOT) { z = zz; break; }
+  }
 
-  // ── Tuiles ──
-  let html = `<div style="position:absolute;left:${offX}px;top:${offY}px;width:${gridW}px;height:${gridH}px;overflow:hidden">`;
-  for (let ty = nw.y; ty <= se.y; ty++)
-    for (let tx = nw.x; tx <= se.x; tx++)
-      html += `<img src="https://tile.openstreetmap.org/${z}/${tx}/${ty}.png"
-        style="position:absolute;left:${(tx-nw.x)*TILE_SZ}px;top:${(ty-nw.y)*TILE_SZ}px;width:${TILE_SZ}px;height:${TILE_SZ}px"
+  // Coordonnées pixel globales des stations au zoom retenu
+  const gx = stations.map(s => lonToGlobalPx(s.lon, z));
+  const gy = stations.map(s => latToGlobalPx(s.lat, z));
+  const minX = Math.min(...gx), maxX = Math.max(...gx);
+  const minY = Math.min(...gy), maxY = Math.max(...gy);
+
+  // Origine écran (pixel global du coin haut-gauche) : centre l'empreinte des marqueurs…
+  let originX = (minX + maxX) / 2 - W / 2;
+  let originY = (minY + maxY) / 2 - H / 2;
+  // …puis garantit la marge haute (pin) et basse pour tous les marqueurs
+  originY = Math.min(originY, minY - PAD_TOP);
+  originY = Math.max(originY, maxY - (H - PAD_BOT));
+
+  // ── Tuiles couvrant le viewport [origin, origin+W/H] ──
+  const tx0 = Math.floor(originX / TILE_SZ), tx1 = Math.floor((originX + W) / TILE_SZ);
+  const ty0 = Math.floor(originY / TILE_SZ), ty1 = Math.floor((originY + H) / TILE_SZ);
+  const nTiles = 1 << z;
+
+  let html = '';
+  for (let ty = ty0; ty <= ty1; ty++)
+    for (let tx = tx0; tx <= tx1; tx++) {
+      if (ty < 0 || ty >= nTiles) continue;
+      const wtx = ((tx % nTiles) + nTiles) % nTiles;   // wrap longitude
+      html += `<img src="https://tile.openstreetmap.org/${z}/${wtx}/${ty}.png"
+        style="position:absolute;left:${tx * TILE_SZ - originX}px;top:${ty * TILE_SZ - originY}px;width:${TILE_SZ}px;height:${TILE_SZ}px"
         loading="lazy" onerror="this.style.background='#ddd'">`;
-  html += '</div>';
+    }
 
-  // ── Marqueurs prix (hors grille pour ne pas être clippés par overflow:hidden) ──
-  stations.forEach(s => {
-    const p   = latLonToPx(s.lat, s.lon, z, nw.x, nw.y);
-    const ax  = offX + p.x;
-    const ay  = offY + p.y;
+  // ── Marqueurs « stations habituelles » : pin ⛽ + badge prix ──
+  // x clampé pour que le badge ne soit jamais coupé au bord.
+  stations.forEach((s, i) => {
+    const ax = Math.max(PAD_X, Math.min(W - PAD_X, Math.round(gx[i] - originX)));
+    const ay = Math.round(gy[i] - originY);
     html += `
-      <div style="position:absolute;left:${ax}px;top:${ay - PIN_H}px;
-                  transform:translateX(-50%);z-index:10;pointer-events:none;text-align:center">
-        <div class="smap-pin">${s.avg.toFixed(3)} €/L</div>
-        <div class="smap-pin-dot"></div>
+      <div class="smap-marker" style="left:${ax}px;top:${ay}px">
+        <span class="smap-marker-price">${s.avg.toFixed(3)} €/L</span>
+        <span class="smap-marker-pin"><span>⛽</span></span>
       </div>`;
   });
 
