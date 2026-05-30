@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════
-   Suivi Conso E85 — Point d'entrée v3.7.0.0
+   Suivi Conso E85 — Point d'entrée v3.8.0.0
    ES Module : chargé en defer automatique
 ═══════════════════════════════════════ */
 import { APP_VERSION, FUEL_CONFIG } from './config.js';
@@ -26,6 +26,7 @@ import { initPWA }           from './pwa.js';
 import { initOffline, syncQueue } from './offline.js';
 import { initNotifications } from './notifications.js';
 import { initRouter, navigate } from './router.js';
+import { initPullRefresh } from './pullrefresh.js';
 
 /* ─── Init synchrone ─── */
 initTheme();
@@ -154,6 +155,7 @@ initKitSetting();      // stats.js — prix du kit pour l'economie nette
 initRapport();         // stats.js — rapport mensuel consultable (sélecteur de mois)
 initVoiceKm();         // formulaire.js — W35 dictée vocale km
 initRouter();          // router.js — W42 navigation par vues (onglets + hash)
+initPullRefresh();     // pullrefresh.js — W46 tirer vers le bas → recharge l'app
 
 /* W42 — la carte statique est rendue hors écran (offsetWidth=0) : on la re-cadre
    à l'affichage de l'onglet Carte pour un dimensionnement correct. */

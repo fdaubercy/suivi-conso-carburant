@@ -34,6 +34,10 @@ L'application est organisée en **5 vues** (pages) accessibles via une **barre d
 - **Routeur par hash** (`js/router.js`) : chaque vue a son URL (`#/saisie`, `#/stats`, `#/carte`, `#/historique`, `#/params`) → le **bouton retour** du navigateur et de l'OS fonctionne nativement, et l'URL est partageable. Aucun fallback serveur nécessaire (compatible GitHub Pages).
 - **Ouverture directe sur la Saisie** (rapide à la pompe), onglet actif surligné, titre du header mis à jour selon la vue.
 
+### 🔄 Pull-to-refresh (W46)
+- **Tirer la page vers le bas** en haut d'écran affiche un indicateur ↻ qui suit le doigt ; au-delà du seuil, le relâchement **recharge l'application** (`js/pullrefresh.js`).
+- Pensé pour la **PWA standalone iOS**, où Safari n'offre aucun pull-to-refresh natif. **Tactile uniquement** ; n'interfère ni avec le défilement de page, ni avec les listes à défilement interne, ni avec la carte interactive.
+
 ### Saisie du plein
 - Formulaire rapide : date (pré-remplie à aujourd'hui), km compteur, litres, prix, station
 - **Toggle multi-carburant** dynamique :
@@ -248,6 +252,7 @@ suivi-e85/
 ├── js/                              # ── Web app (ES Modules) ────────────
 │   ├── main.js                      # Point d'entrée
 │   ├── router.js                    # W42 navigation par vues (onglets + hash #/saisie…)
+│   ├── pullrefresh.js               # W46 pull-to-refresh (tirer vers le bas → recharge)
 │   ├── config.js                    # APP_VERSION, FUEL_CONFIG, GAS_URL, GS_SHEET_ID, APP_TOKEN (S6)
 │   ├── state.js                     # État partagé (currentType, _stationPrices…)
 │   ├── utils.js                     # Fonctions pures (haversine, odsUrl…)

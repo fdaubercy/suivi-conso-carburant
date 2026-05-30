@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.8.0.0] — 2026-05-30
+
+### Added
+- **Pull-to-refresh — tirer vers le bas pour recharger (W46)** — `js/pullrefresh.js` (nouveau) : en haut de page, un **tir vers le bas** affiche un indicateur circulaire (↻) qui suit le doigt avec résistance ; au-delà du seuil (70 px), le relâchement **recharge l'application** (`window.location.reload()`). Conçu surtout pour la **PWA standalone iOS**, où Safari n'offre aucun pull-to-refresh natif (et où `body { overscroll-behavior-y: none }` coupe déjà le rebond).
+  - Activé **uniquement sur appareils tactiles** (`'ontouchstart' in window`) — aucun effet au pointeur/souris.
+  - `touchmove` non passif pour bloquer le scroll/overscroll natif pendant le geste ; **n'interfère pas** avec le défilement (déclenché seulement quand la page est tout en haut) ni avec les conteneurs à défilement interne (détection d'un ancêtre `overflow-y` encore défilable) ni avec la **carte interactive** `#stationMap` (exclue pour préserver le panoramique).
+  - `css/style.css` : indicateur `.ptr` (fixe, safe-area iPhone, spinner `ptrSpin`, état « armé » en vert), respect de `prefers-reduced-motion`.
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.8.0.0`.
+
 ## [3.7.0.0] — 2026-05-30
 
 ### Added
