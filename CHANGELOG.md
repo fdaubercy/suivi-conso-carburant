@@ -4,6 +4,30 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.3.0.4] — 2026-05-31
+
+### Audit — alignement du classeur Excel local ↔ GAS / Google Sheet
+Vérification complète du `.xlsm` (VBA décompilé + Power Query décodée + tables). Bilan : les modules de **synchro VBA** sont fonctionnellement conformes au backend, mais **la requête Power Query était cassée** et le **classeur local est en retard** sur les sources canoniques `vba/*.bas` du dépôt.
+
+### Added
+- **`powerquery/GS_Pleins.m`** — la requête Power Query `GS_Pleins` est désormais **versionnée dans le dépôt** (elle n'avait aucun miroir traçable, contrairement aux modules `vba/*.bas`). Fichier prêt à coller dans l'Éditeur avancé Power Query, avec en-tête expliquant le mapping A→O et la raison de l'exclusion de `Photo ticket`.
+
+### Fixed
+- **Requête Power Query `GS_Pleins` désynchronisée du schéma GAS (bug réel et vivant)** — le code M lisait `Columns=15` et mappait encore `Column7 → "PrixS98"`, alors que la colonne « Prix S98 jour » a été **supprimée du GAS en v2.3.0.0** (`migrateRemoveS98`). Conséquence à chaque *Actualiser* : décalage d'une colonne à partir de la 7 (« Station essence » recevait le véhicule, les prix carburants glissaient d'un cran, `sync_id` atterrissait dans « GPLc station »), et `Photo ticket` (col P) jamais lue. La table cible `GS_Pleins` (A1:P12, 16 col) lue **par index** par `modSyncGS` était donc corrompue après tout rafraîchissement. La requête active est confirmée par `vba/ThisWorkbook_snippet.bas` (`ForceFormatDates` « au cas où Power Query l'a écrasé »).
+  - **Correctif** (`powerquery/GS_Pleins.m`) : `PrixS98` retirée, lecture des **16 colonnes** du CSV, **mapping A→O exact** (Horodatage … `sync_id`), endpoint **gviz** ciblant l'onglet `_ImportGS` par son **nom** (comme `vba/ModuleImportGS.bas`).
+  - **Choix délibéré — `Photo ticket` (col P du Sheet) N'EST PAS importée.** Dans la table Excel `GS_Pleins`, la **col P = marqueur VBA `Modifie_local`** (synchro bidirectionnelle dirty-flag). La lier à `Photo ticket` écraserait ce marqueur ; la requête conserve donc seulement les **15 colonnes A→O**.
+
+### ⚠️ Action requise dans le classeur (snippets fournis, binaire non modifié)
+Le `.xlsm` doit être resynchronisé manuellement avec les sources à jour du dépôt :
+1. **Power Query** : coller `powerquery/GS_Pleins.m` (ci-dessus) puis *Actualiser*.
+2. **`modSyncGS`** : le classeur **n'envoie pas le token S6** (`APP_TOKEN`). La version canonique `vba/modSyncGS.bas` ajoute `&token=APP_TOKEN` (GET) et `"token"` (POST bulkAdd/bulkUpdate). **Si la propriété de script `APP_TOKEN` est posée côté GAS, la synchro du classeur échoue en HTTP 401.** → réimporter `vba/modSyncGS.bas` (et y coller la même valeur `APP_TOKEN` que `js/config.js`).
+3. **`modFeatures`** : classeur en **v3.3.0.9**, dépôt en **v3.3.0.10** → réimporter `vba/modFeatures.bas`.
+4. **Module `General` (legacy) — à supprimer.** `General.SyncStationsGoogleForm` utilise une **ancienne URL GAS** (`AKfycbyXzMUh2…` ≠ URL courante `AKfycbwIyCfZ…`) et poste `{"stations":[…]}` **sans `action:"syncStations"`** → le backend actuel l'interpréterait comme un enregistrement de plein invalide. C'est un doublon obsolète de `synchroniseGoogleForm` / `modSyncGS.PushStationsToGS`. → retirer l'appel dans `OuvrirFormulairePlein` et supprimer le module `General` du classeur (il n'existe déjà plus dans `vba/`).
+
+### Changed
+- **Version 4.3.0.4** — `APP_VERSION` (`js/config.js`) et `package.json` alignés (la web app n'est pas modifiée ; bump de cohérence projet, comme en v4.3.0.3).
+- **Modules VBA conformes (rappel d'audit)** — `modSyncGS` (export/bulkAdd/bulkUpdate/syncStations, `sync_id`=col O, `Modifie_local`=col P, clés `stationPrices` {E85,SP98,SP95,E10,GAZOLE,GPLC}), `ModuleImportGS` (import CSV gviz, **détection des colonnes par nom d'en-tête** → résilient au schéma), `synchroniseGoogleForm` et le code-feuille `GS_Pleins` : tous alignés sur le backend `Code.gs`.
+
 ## [4.3.0.3] — 2026-05-30
 
 ### Changed

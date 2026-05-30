@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v4.3.0.3**
+> 🔖 Version courante : **v4.3.0.4**
 
 ## 🌐 Accès
 
@@ -486,8 +486,22 @@ Le module `GS_Pleins_snippet.bas` ajoute un `Worksheet_Change` qui se déclenche
 Alt+F11 → Fichier → Importer → vba/modSyncGS.bas
 Dans Microsoft Excel Objects → GS_Pleins : coller vba/GS_Pleins_snippet.bas
 Dans "ThisWorkbook" : coller vba/ThisWorkbook_snippet.bas
+Power Query → GS_Pleins → Éditeur avancé : coller powerquery/GS_Pleins.m
 GAS Editor → exécuter migrateSyncId() une seule fois (UUID sur lignes existantes)
+Token S6 : coller la valeur APP_TOKEN (js/config.js) dans vba/modSyncGS.bas
+          ET dans GAS → Propriétés du script → APP_TOKEN (sinon le contrôle reste désactivé)
 ```
+
+### Requête Power Query `GS_Pleins` (`powerquery/GS_Pleins.m`)
+La table `GS_Pleins` est alimentée **à la fois** par la Power Query (lecture CSV de l'onglet `_ImportGS` via gviz) **et** par le VBA `modSyncGS`. Règle de colonnes à respecter pour éviter tout conflit :
+
+| Colonnes | Source | Détail |
+|---|---|---|
+| **A → N** (14 cols data) | Power Query | Horodatage … GPLc station (le schéma GAS courant **ne contient plus** « Prix S98 jour », supprimée en v2.3.0.0) |
+| **O** `sync_id` | Power Query + VBA | clé de synchro ; chargée par la requête, écrite aussi par le VBA |
+| **P** `Modifie_local` | **VBA seul** | dirty-flag de synchro bidirectionnelle — **la requête NE lit PAS** `Photo ticket` (col P du Sheet) pour ne pas écraser ce marqueur |
+
+> ⚠️ Le code M historique lisait encore `PrixS98` sur 15 colonnes, ce qui décalait tout le mapping à partir de la 7 à chaque *Actualiser* (corrigé en v4.3.0.4). En cas de divergence entre le classeur et le dépôt, **`powerquery/GS_Pleins.m` et `vba/*.bas` font foi** : les réimporter dans le `.xlsm`.
 
 ### Fonctions VBA exposées
 
