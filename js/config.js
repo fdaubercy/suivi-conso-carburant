@@ -6,7 +6,7 @@ export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCf
 // Générer la paire avec generateVapidKeys() dans le projet Apps Script, puis
 // coller ici la clé PUBLIQUE et stocker la PRIVÉE dans les Propriétés du script.
 // Laisser '' désactive l'abonnement push (les alertes locales restent actives).
-export const VAPID_PUBLIC_KEY  = '';
+export const VAPID_PUBLIC_KEY  = 'BHhoGWV7022keNa8RfsgZcKTZaJ0f0lXrHlxJCRmYn5PWZ8O6EvvQFGdbZHqQTxh_mD9lZKbZTUZQWq7xdlbcYw';
 export const GS_SHEET_ID       = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 export const PRIX_API          = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
 export const VEHICULES_KEY     = 'suivi_e85_vehicules';
