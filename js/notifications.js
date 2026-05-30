@@ -132,7 +132,7 @@ export async function writeThresholdsToCache() {
     const cache = await caches.open(PREFS_CACHE);
     await cache.put(THRESHOLDS_URL,
       new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } }));
-  } catch (_) { /* Cache indisponible — non bloquant */ }
+  } catch { /* Cache indisponible — non bloquant */ }
 }
 
 export async function registerPushSubscription() {
@@ -171,7 +171,7 @@ export async function unregisterPushSubscription() {
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
     if (sub) await sub.unsubscribe();
-  } catch (_) { /* silencieux */ }
+  } catch { /* silencieux */ }
 }
 
 /* ─── Vérification prix (foreground) ─────────────────────────────────── */

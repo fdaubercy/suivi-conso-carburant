@@ -91,7 +91,7 @@ export function cacheStationCoords(name, lat, lon, src) {
     const cache = JSON.parse(localStorage.getItem(COORD_CACHE_KEY) || '{}');
     cache[name] = { lat: +lat, lon: +lon, src: src || 'pick' };
     localStorage.setItem(COORD_CACHE_KEY, JSON.stringify(cache));
-  } catch (_) { /* quota / navigation privée — silencieux */ }
+  } catch { /* quota / navigation privée — silencieux */ }
 }
 
 // ── Calcul prix moyens ───────────────────────────────────────────────────────
@@ -386,7 +386,7 @@ async function _geocodeMissing(stations, ref) {
         : cands[0];
       cacheStationCoords(s.name, best.lat, best.lon, 'geo');
       resolved++;
-    } catch (_) { /* réseau indisponible — réessai possible plus tard */ }
+    } catch { /* réseau indisponible — réessai possible plus tard */ }
   }
   if (resolved) renderStationsCard();   // re-rendu avec les nouveaux marqueurs
 }
@@ -460,5 +460,5 @@ export function initStationsMapInteractions() {
 
 function _loadCoordCache() {
   try { return JSON.parse(localStorage.getItem(COORD_CACHE_KEY) || '{}'); }
-  catch (_) { return {}; }
+  catch { return {}; }
 }

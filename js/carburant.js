@@ -1,5 +1,5 @@
 /* ─── Toggle type de carburant + badges header ─── */
-import { FUEL_CONFIG, FUEL_KEYS } from './config.js';
+import { FUEL_CONFIG } from './config.js';
 import { state } from './state.js';
 import { setFieldPrice, updateCout } from './ui.js';
 

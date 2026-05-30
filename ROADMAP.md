@@ -23,10 +23,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| T8 | **Hook `pre-commit` (husky + lint-staged)** : lance ESLint (et `vitest related`) automatiquement avant chaque `git commit`, même hors `commit.sh` | Filet de sécurité même quand on committe à la main / depuis l'IDE · effort ~½ h |
-| T9 | **`commit.sh` : bump de version semi-auto** : si le message contient `[vX.Y.Z.W]`, le script vérifie/synchronise `APP_VERSION` (`config.js`) et `version` (`package.json`) avant le commit, et avertit en cas de divergence | Évite l'oubli de bump et le désalignement `package.json` (3.11.0.0) ↔ `config.js` (3.12.x) · effort ~1 h |
-| T10 | **Tests sur le parsing `ticket.js`** : suite Vitest sur `parseOCRText` (dates DD/MM, volumes, prix €/L, mapping carburant) avec des textes OCR réels | Le module OCR est le plus complexe et n'a aucun test ; sécurise les regex · effort ~2 h |
-| T11 | **`--max-warnings 0` sur le job ESLint CI** une fois les 7 warnings `_`/`e` résorbés (catch binding optionnel) | Empêche la dette lint de se reformer · effort ~½ h |
+| _(aucune en attente)_ | — | T8–T11 implémentés en v3.12.2.0 |
 
 ---
 
@@ -201,6 +198,10 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.12.0.0 | **Gestes de navigation — swipe (W44)** — `js/swipe.js` : balayage gauche/droite (pointer events) entre onglets selon `SWIPE_ORDER`, transition latérale directionnelle (`view--slide-next/prev`) ; garde-fous geste horizontal + zones interactives ignorées + bord gauche réservé au retour natif ; `navigateRelative()` / `currentView()` ajoutés au routeur |
 | v3.12.0.0 | **Badges de notification sur les onglets (W45)** — `js/badges.js` : pastille ⚙️ (alertes non configurées), compteur 📜 (pleins importés non consultés, persistant, se vide à l'ouverture), pastille 🗺️ (meilleur prix secteur du jour, se vide à l'ouverture, réarmé chaque jour) ; rafraîchi sur `viewchange`, après chargement historique/secteur et changement d'alerte |
 | v3.12.1.0 | **Script `commit.sh` + lint propre (T7)** — création du script add → lint → tests → commit → pull --rebase → push (référencé par `CLAUDE.md`, jusqu'ici absent) ; gate qualité qui abandonne si lint/tests échouent. Nettoyage des 43 erreurs ESLint préexistantes pour rendre le gate vert : globals `Option`/`sessionStorage`, `\` inutiles dans les classes de caractères des regex OCR de `ticket.js`, blocs `catch {}` vides, **clé carburant dupliquée `'sp 95-e10'`** supprimée |
+| v3.12.2.0 | **Hook `pre-commit` husky + lint-staged (T8)** — `.husky/pre-commit` → `lint-staged` (`eslint --max-warnings=0` + `vitest related --run`) sur les `js/**/*.js` mis en scène, à chaque commit même hors `commit.sh` ; script `prepare: husky` |
+| v3.12.2.0 | **Synchro de version dans `commit.sh` (T9)** — extraction du `[vX.Y.Z.W]` du message → avertit si `APP_VERSION` (`config.js`) diverge et aligne `package.json` automatiquement (corrige le désalignement historique 3.11.0.0 ↔ 3.12.x) |
+| v3.12.2.0 | **Tests parsing OCR `ticket.js` (T10)** — `tests/ticket.test.js` (22 cas, jsdom, tesseract mocké) sur `parseOCRText` : dates (5 formats), volume, prix €/L (+ artefact OCR), montant total + fallbacks, km, station, mapping carburant ; **71 → 93 tests Vitest** |
+| v3.12.2.0 | **Lint strict `--max-warnings=0` (T11)** — 7 warnings résorbés (catch binding optionnel + import `FUEL_KEYS` retiré) puis CI/`commit.sh`/local échouent au moindre warning |
 
 ---
 

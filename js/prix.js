@@ -146,7 +146,7 @@ export async function fetchNearestE85Price(lat, lon) {
       if (!resp.ok) throw new Error();
       const data = await resp.json();
       if (data.results?.length && data.results[0].e85_prix != null) return data.results[0].e85_prix;
-    } catch(e) { return null; }
+    } catch { return null; }
   }
   return null;
 }

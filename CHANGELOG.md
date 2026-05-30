@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.12.2.0] — 2026-05-30
+
+### Added
+- **Hook `pre-commit` — husky + lint-staged (T8)** — `husky` et `lint-staged` ajoutés en devDependencies ; `.husky/pre-commit` lance `npx lint-staged` à **chaque** `git commit` (y compris depuis l'IDE, hors `commit.sh`). Config `lint-staged` (package.json) : sur les fichiers `js/**/*.js` mis en scène → `eslint --max-warnings=0` puis `vitest related --run` (tests liés aux fichiers modifiés). Script `prepare: husky` pour réinstaller le hook après `npm ci`.
+- **Synchronisation de version dans `commit.sh` (T9)** — si le message contient `[vX.Y.Z.W]`, le script extrait la version, **avertit** si `APP_VERSION` (`js/config.js`) diverge, et **aligne automatiquement** `version` dans `package.json` (corrige le désalignement historique `package.json` 3.11.0.0 ↔ `config.js` 3.12.x). Étape exécutée avant `git add` pour être incluse au commit.
+- **Tests du parsing OCR `ticket.js` (T10)** — `tests/ticket.test.js` (22 cas, env `jsdom`, `tesseract.js` mocké) couvrant `parseOCRText` : date (DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, DD/MM/YY, « 15 janvier 2024 »), volume (+ bornes), prix €/L (dont artefact OCR `1,799 e/l`), montant total + fallbacks (litres × prix, total ÷ litres), kilométrage (contigu / séparateur espace), station (anti ligne de prix) et mapping carburant — dont la zone de l'ancienne clé dupliquée `sp 95-e10`. **71 → 93 tests Vitest.**
+
+### Changed
+- **Lint strict `--max-warnings=0` (T11)** — script `lint` (`package.json`) et donc le job CI ESLint + `commit.sh` échouent désormais au moindre warning, empêchant la dette lint de se reformer.
+- **`package.json`** — `version` alignée sur `APP_VERSION` → `3.12.2.0` (désormais maintenue par `commit.sh`).
+
+### Fixed
+- **7 warnings ESLint résorbés** — bindings d'erreur `catch` inutilisés (`no-unused-vars`) passés en **catch binding optionnel** `catch { … }` (`notifications.js` ×2, `prix.js`, `stationsmap.js` ×3) ; import `FUEL_KEYS` inutilisé retiré de `carburant.js`.
+
 ## [3.12.1.0] — 2026-05-30
 
 ### Added
