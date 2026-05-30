@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.3.0.9] — 2026-05-30
+
+### Added
+- **`Tableau2` (Suivi Carburant) = vue dérivée de `GS_Pleins`** (`vba/modFeatures.bas` `SyncTableau2DepuisGS`) : les 6 colonnes **brutes** (Date, Type, Km compteur, Nb. Litres, Prix €/L, Station essence) sont tirées de `GS_Pleins` par formules `INDEX` ; les 9 colonnes de **calcul** (N°, Nb. km, Coût c€/km, Coût Plein, Conso L/100km, Prix S98 jour, Coût équiv. S98, Économie plein, Économie cumulée) sont **conservées intactes**. Le nombre de lignes de `Tableau2` est aligné sur `GS_Pleins`. L'onglet « Suivi Carburant » est conservé. Appelé par `RafraichirFeatures` **et** automatiquement après chaque `EnregistrerPlein` (les deux formulaires).
+- **`VerifierInstallation`** (`vba/modFeatures.bas`) : contrôle la présence des feuilles/tableaux requis (`GS_Pleins`, `Suivi Carburant`/`Tableau2`, `Notes`/`tbl_stationEssence`, `Vehicules`, `Suivi (auto)`) et affiche le bilan dans la barre d'état + l'Immediate Window.
+- **`INSTALL.md`** : récapitulatif complet d'installation/mise à jour (modules VBA, formulaires, GAS, vérification, schéma d'architecture des données).
+
+### Changed
+- **`modSaisie.EnregistrerPlein`** déclenche `modFeatures.SyncTableau2DepuisGS` en fin d'enregistrement (vue `Tableau2` toujours à jour, zéro double saisie).
+- **`js/config.js`** — `APP_VERSION` → `3.3.0.9`.
+
 ## [3.3.0.8] — 2026-05-30
 
 ### Added

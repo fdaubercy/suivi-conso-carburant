@@ -238,8 +238,8 @@ suivi-e85/
 │   ├── GS_Pleins_snippet.bas        # Module feuille GS_Pleins (F1-F4 : auto sync_id,
 │   │                                #   dirty flag, validation km, doublons)
 │   ├── modDashboard.bas             # Tableau de bord : 10 KPIs + graphiques X7/X8
-│   ├── modFeatures.bas              # X4 MFC « Prix €/L » (vert<moy30j/rouge) +
-│   │                                #   X14 onglet « Suivi (auto) » (vue dérivée INDEX)
+│   ├── modFeatures.bas              # X4 MFC « Prix €/L » + X14 « Suivi (auto) » +
+│   │                                #   Tableau2 vue dérivée + VerifierInstallation
 │   ├── modSaisie.bas                # Moteur saisie (ValiderSaisie/EstDoublon/EnregistrerPlein
 │   │                                #   /DernierVehicule) + UserForm frmPleinE85 généré par code
 │   ├── frmNouveauPlein.frm/.frx     # Formulaire de saisie perso (présentation custom) →

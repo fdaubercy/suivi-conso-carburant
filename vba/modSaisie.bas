@@ -1,6 +1,6 @@
 Attribute VB_Name = "modSaisie"
 ' ============================================================
-'  SUIVI E85 - Formulaire de saisie d'un plein     v3.3.0.7
+'  SUIVI E85 - Formulaire de saisie d'un plein     v3.3.0.9
 '
 '  Construit par CODE le UserForm "frmPleinE85" + son code-behind,
 '  puis l'affiche. Ajoute la ligne directement dans le tableau
@@ -345,6 +345,11 @@ Public Sub EnregistrerPlein(veh As String, typ As String, dateStr As String, _
     If ToNum(prixS98Str) > 0 And rng.Columns.Count >= 10 Then _
         rng.Cells(1, 10).Value = ToNum(prixS98Str)       ' J SP98 station (EUR/L)
     If rng.Columns.Count >= 15 Then rng.Cells(1, 15).Value = NewUUID()  ' O sync_id
+
+    ' Met a jour la vue derivee Tableau2 (Suivi Carburant) si presente.
+    On Error Resume Next
+    modFeatures.SyncTableau2DepuisGS
+    On Error GoTo 0
 End Sub
 
 ' Vehicule du dernier plein enregistre dans GS_Pleins (col H), "" si aucun.

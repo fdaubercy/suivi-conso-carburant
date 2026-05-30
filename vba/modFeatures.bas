@@ -1,6 +1,6 @@
 Attribute VB_Name = "modFeatures"
 ' ============================================================
-'  SUIVI E85 - Fonctionnalites X4 + X14            v3.3.0.5
+'  SUIVI E85 - Fonctionnalites X4 + X14            v3.3.0.9
 '
 '  X4  : Mise en forme conditionnelle "Prix EUR/L"
 '        vert si < moyenne 30 j (meme carburant), rouge si >
@@ -47,9 +47,10 @@ Public Sub RafraichirFeatures()
 
     AppliquerMFCPrix
     CreerSuiviAuto
+    SyncTableau2DepuisGS
 
     Application.ScreenUpdating = True
-    SetStatus "[Suivi E85] " & ChrW(10003) & " Features rafraichies : MFC prix + onglet 'Suivi (auto)'."
+    SetStatus "[Suivi E85] " & ChrW(10003) & " Features rafraichies : MFC + 'Suivi (auto)' + Tableau2."
     Exit Sub
 
 ErrHandler:
@@ -453,6 +454,175 @@ ErrHandler:
     Application.ScreenUpdating = True
     SetStatus "[Suivi E85] " & ChrW(9888) & " Erreur Suivi (auto) : " & Err.Description
 End Sub
+
+
+' ════════════════════════════════════════════════════════════
+'  Tableau2 (Suivi Carburant) = vue derivee de GS_Pleins
+'  Les colonnes BRUTES sont tirees de GS_Pleins par formules INDEX ;
+'  les colonnes de CALCUL de Tableau2 sont CONSERVEES telles quelles.
+'  Le nombre de lignes est aligne sur GS_Pleins.
+'    Brut : Date, Type, Km compteur, Nb. Litres, Prix EUR/L, Station essence
+'    Calcul (intacts) : N°, Nb. km, Cout c€/km, Cout Plein, Conso,
+'                       Prix S98 jour, Cout equiv. S98, Economie(s)
+' ════════════════════════════════════════════════════════════
+Public Sub SyncTableau2DepuisGS()
+    On Error GoTo done
+
+    ' Source
+    Dim gsWs As Worksheet, gsT As ListObject
+    On Error Resume Next
+    Set gsWs = ThisWorkbook.Sheets(WS_GS)
+    On Error GoTo done
+    If gsWs Is Nothing Then Exit Sub
+    If gsWs.ListObjects.Count = 0 Then Exit Sub
+    Set gsT = gsWs.ListObjects(1)
+
+    ' Cible
+    Dim t2Ws As Worksheet, t2 As ListObject
+    On Error Resume Next
+    Set t2Ws = ThisWorkbook.Sheets(WS_CARB)
+    If t2Ws Is Nothing Then Exit Sub
+    Set t2 = t2Ws.ListObjects("Tableau2")
+    On Error GoTo done
+    If t2 Is Nothing Then Exit Sub
+
+    Dim nGS As Long
+    If gsT.DataBodyRange Is Nothing Then nGS = 0 Else nGS = gsT.DataBodyRange.Rows.Count
+    If nGS = 0 Then Exit Sub
+
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+
+    ' Aligner le nombre de lignes de Tableau2 sur GS_Pleins
+    Dim nT2 As Long
+    If t2.DataBodyRange Is Nothing Then nT2 = 0 Else nT2 = t2.DataBodyRange.Rows.Count
+    Do While nT2 < nGS
+        t2.ListRows.Add
+        nT2 = nT2 + 1
+    Loop
+    Do While nT2 > nGS And nT2 > 1
+        t2.ListRows(nT2).Delete
+        nT2 = nT2 - 1
+    Loop
+
+    ' Colonnes brutes <- GS_Pleins (formules INDEX) ; calculs preserves
+    Dim hRow As Long: hRow = t2.HeaderRowRange.Row
+    SetT2ColFromGS t2, "Date", "Date", hRow
+    SetT2ColFromGS t2, "Type", "Type", hRow
+    SetT2ColFromGS t2, "Km compteur", "Km", hRow
+    SetT2ColFromGS t2, "Nb. Litres", "Litres", hRow
+    SetT2ColFromGS t2, "Prix " & ChrW(8364) & "/L", "PrixL", hRow
+    SetT2ColFromGS t2, "Station essence", "Station essence", hRow
+
+    ' Format date lisible sur la colonne Date
+    On Error Resume Next
+    t2.ListColumns("Date").DataBodyRange.NumberFormat = "dd/mm/yyyy"
+    On Error GoTo done
+
+    Application.Calculation = xlCalculationAutomatic
+    Application.ScreenUpdating = True
+    SetStatus "[Suivi Carburant] " & ChrW(10003) & " " & nGS & _
+              " ligne(s) tirees de GS_Pleins (calculs Tableau2 preserves)."
+    Exit Sub
+done:
+    Application.Calculation = xlCalculationAutomatic
+    Application.ScreenUpdating = True
+End Sub
+
+' Pose sur toute la colonne t2ColName une formule INDEX qui tire la
+' colonne gsColName de GS_Pleins, ligne par ligne (position relative).
+Private Sub SetT2ColFromGS(t2 As ListObject, t2ColName As String, _
+                            gsColName As String, hRow As Long)
+    Dim lc As ListColumn
+    On Error Resume Next
+    Set lc = t2.ListColumns(t2ColName)
+    On Error GoTo 0
+    If lc Is Nothing Then Exit Sub
+    If t2.DataBodyRange Is Nothing Then Exit Sub
+    lc.DataBodyRange.Formula = _
+        "=IFERROR(INDEX(GS_Pleins[" & gsColName & "],ROW()-" & hRow & "),"""")"
+End Sub
+
+
+' ════════════════════════════════════════════════════════════
+'  VERIFICATION DE L'INSTALLATION
+'  Controle feuilles + tableaux requis ; rapport Immediate + barre.
+' ════════════════════════════════════════════════════════════
+Public Sub VerifierInstallation()
+    Dim rap As String, ok As Long, ko As Long
+    rap = "=== Verification installation Suivi E85 ===" & vbNewLine
+
+    ok = 0: ko = 0
+    rap = rap & ChkFeuille("GS_Pleins", ok, ko)
+    rap = rap & ChkTableau("GS_Pleins", "", ok, ko)        ' 1er tableau
+    rap = rap & ChkFeuille("Suivi Carburant", ok, ko)
+    rap = rap & ChkTableau("Suivi Carburant", "Tableau2", ok, ko)
+    rap = rap & ChkFeuille("Notes", ok, ko)
+    rap = rap & ChkTableau("Notes", "tbl_stationEssence", ok, ko)
+    rap = rap & ChkFeuilleOpt("Vehicules", "(optionnelle : liste vehicules curee)")
+    rap = rap & ChkFeuilleOpt("Suivi (auto)", "(generee par CreerSuiviAuto)")
+
+    rap = rap & "-------------------------------------------" & vbNewLine
+    rap = rap & "Resultat : " & ok & " OK / " & ko & " manquant(s)." & vbNewLine
+    rap = rap & "Macros cles : RafraichirFeatures, SyncTableau2DepuisGS," & vbNewLine
+    rap = rap & "AppliquerMFCPrix, CreerSuiviAuto, NouveauPlein."
+
+    Debug.Print rap
+    SetStatus "[Install] " & IIf(ko = 0, ChrW(10003) & " Tout est en place (" & ok & " OK).", _
+              ChrW(9888) & " " & ko & " element(s) manquant(s) - voir Ctrl+G.")
+End Sub
+
+Private Function ChkFeuille(nom As String, ByRef ok As Long, ByRef ko As Long) As String
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Sheets(nom)
+    On Error GoTo 0
+    If ws Is Nothing Then
+        ko = ko + 1: ChkFeuille = "[X] Feuille manquante : " & nom & vbNewLine
+    Else
+        ok = ok + 1: ChkFeuille = "[OK] Feuille : " & nom & vbNewLine
+    End If
+End Function
+
+Private Function ChkFeuilleOpt(nom As String, note As String) As String
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Sheets(nom)
+    On Error GoTo 0
+    If ws Is Nothing Then
+        ChkFeuilleOpt = "[--] Feuille absente : " & nom & " " & note & vbNewLine
+    Else
+        ChkFeuilleOpt = "[OK] Feuille : " & nom & vbNewLine
+    End If
+End Function
+
+Private Function ChkTableau(nomFeuille As String, nomTbl As String, _
+                            ByRef ok As Long, ByRef ko As Long) As String
+    Dim ws As Worksheet, t As ListObject
+    On Error Resume Next
+    Set ws = ThisWorkbook.Sheets(nomFeuille)
+    On Error GoTo 0
+    If ws Is Nothing Then
+        ko = ko + 1: ChkTableau = "[X] Tableau introuvable (feuille " & nomFeuille & " absente)" & vbNewLine
+        Exit Function
+    End If
+    If nomTbl = "" Then
+        If ws.ListObjects.Count > 0 Then
+            ok = ok + 1: ChkTableau = "[OK] Tableau : " & ws.ListObjects(1).Name & " (" & nomFeuille & ")" & vbNewLine
+        Else
+            ko = ko + 1: ChkTableau = "[X] Aucun tableau dans " & nomFeuille & vbNewLine
+        End If
+    Else
+        On Error Resume Next
+        Set t = ws.ListObjects(nomTbl)
+        On Error GoTo 0
+        If t Is Nothing Then
+            ko = ko + 1: ChkTableau = "[X] Tableau manquant : " & nomTbl & " (" & nomFeuille & ")" & vbNewLine
+        Else
+            ok = ok + 1: ChkTableau = "[OK] Tableau : " & nomTbl & " (" & nomFeuille & ")" & vbNewLine
+        End If
+    End If
+End Function
 
 
 ' ════════════════════════════════════════════════════════════
