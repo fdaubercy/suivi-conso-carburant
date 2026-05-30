@@ -1689,6 +1689,13 @@ body.no-share .hist-share { display: none; }
 .budget-over{color:#ef4444;font-weight:600;}
 .budget-left{color:#1D9E75;font-weight:600;}
 [data-theme="dark"] .budget-left{color:#34d399;}
+/* W39 — état vide : aucun budget défini, invite à en créer un */
+.budget-box.hint{border-style:dashed;border-color:rgba(125,125,125,.4);background:rgba(125,125,125,.06);}
+.budget-hint-link{display:block;margin-top:6px;font-size:11px;line-height:1.4;color:var(--blue-mid);
+  text-decoration:none;font-weight:600;}
+.budget-hint-link:hover{text-decoration:underline;}
+[data-theme="dark"] .budget-hint-link{color:#7cc0ff;}
+
 /* W56 — alerte anticipée de dépassement de budget */
 .budget-forecast{margin-top:6px;font-size:10.5px;color:#b45309;
   background:rgba(245,158,11,.12);border-radius:6px;padding:4px 7px;line-height:1.35;}

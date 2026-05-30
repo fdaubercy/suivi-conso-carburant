@@ -167,6 +167,22 @@ function initStaticHandlers() {
 
   // W45 — réévalue la pastille ⚙️ après (dés)activation d'une alerte
   document.getElementById('notifFuelRows')?.addEventListener('change', () => setTimeout(refreshBadges, 300));
+
+  // W39 — lien « définir un budget » (état vide de la carte Stats) : navigue vers
+  // Réglages, déplie le bloc repliable si besoin, scrolle et focalise le champ.
+  document.getElementById('statsBox')?.addEventListener('click', e => {
+    const link = e.target.closest('[data-focus]');
+    if (!link) return;
+    const id = link.dataset.focus;
+    setTimeout(() => {
+      const inp = document.getElementById(id);
+      if (!inp) return;
+      const card = inp.closest('.card.collapsible');
+      if (card?.classList.contains('collapsed')) card.querySelector('.section-title')?.click();
+      inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      inp.focus();
+    }, 80);
+  });
 }
 
 initStaticHandlers();

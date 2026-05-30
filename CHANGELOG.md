@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.3.0.1] — 2026-05-30
+
+### Fixed
+- **Carte Budget / Tendance « invisibles » (W39/W50)** — quand **aucun budget mensuel n'était défini**, la barre de budget *et* la tendance 6 mois disparaissaient **sans explication**, donnant l'impression d'un bug. Désormais, s'il y a des dépenses ce mois-ci, un **encart d'état vide** s'affiche dans la carte Stats : « 🎯 Budget \<mois\> · X € ce mois · 💡 Définissez un budget mensuel… ». Le lien **navigue vers ⚙️ Réglages, déplie le bloc Budget si replié, fait défiler jusqu'au champ et le focalise** (`buildBudgetBar` dans `js/stats.js`, handler `data-focus` dans `js/main.js`, CSS `.budget-box.hint` / `.budget-hint-link`). Une fois un budget saisi, la barre de progression, la tendance 6 mois et l'alerte anticipée (W56) apparaissent normalement.
+
 ## [4.3.0.0] — 2026-05-30
 
 ### Added

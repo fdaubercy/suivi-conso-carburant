@@ -698,10 +698,26 @@ export function computeBudgetForecast(spent, daysElapsed, daysInMonth, budget) {
    W56 — ajoute une alerte anticipée « budget dépassé le JJ/MM » au rythme actuel. */
 function buildBudgetBar() {
   const budget = getBudgetMensuel();
-  if (!budget) return '';
-
   const r = buildMonthlyReport(_currentMonthKey());
   const spent = r.nbPleins ? (r.totalCout || 0) : 0;
+
+  // W39 — état vide : aucun budget défini. Plutôt que de masquer silencieusement
+  // la section (l'utilisateur ne comprend pas pourquoi elle manque), on invite à
+  // en définir un — uniquement s'il y a des dépenses ce mois-ci. Le lien ouvre
+  // Réglages et focalise le champ (data-focus, géré dans main.js).
+  if (!budget) {
+    if (spent <= 0) return '';
+    return `
+      <div class="budget-box hint">
+        <div class="budget-head">
+          <span class="budget-label">🎯 Budget ${r.label}</span>
+          <span class="budget-amount">${spent.toFixed(0)} € ce mois</span>
+        </div>
+        <a class="budget-hint-link" href="#/params" data-focus="budgetMensuel">
+          💡 Définissez un budget mensuel dans ⚙️ Réglages pour suivre vos dépenses et activer l'alerte de dépassement →
+        </a>
+      </div>`;
+  }
   const pct   = (spent / budget) * 100;
   const over  = spent > budget;
   const cls   = over ? 'over' : (pct >= 80 ? 'warn' : 'ok');
