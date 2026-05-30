@@ -1,5 +1,17 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend               v3.1.0.6
+//  SUIVI CONSO E85 — Web App Backend               v3.6.0.0
+//
+//  v3.6.0.0 — S6 Token secret (souple) + W38 prix secteur
+//  • S6 : si la propriété de script APP_TOKEN est définie, toute requête
+//    de données (doPost + doGet?action=…) doit fournir le même token
+//    (?token= en GET, "token" dans le JSON en POST). Si APP_TOKEN n'est
+//    pas définie → aucun contrôle (rétrocompatible). La page HTML reste
+//    toujours servie sans token.
+//  • W38 : action=saveLastGeo (mémorise la dernière position connue côté
+//    serveur, propriété LAST_GEO) + action=sectorPrices (renvoie le prix
+//    E85 mini du secteur par jour, calculé depuis _PrixHistory, et le
+//    meilleur prix du jour SECTOR_BEST_TODAY). Le snapshot quotidien est
+//    produit par refreshPrixCarburants() (RefreshPrix.gs, ~7h).
 //
 //  ⚠️  BREAKING CHANGE v2.3.0.0 : suppression colonne G "Prix S98 jour"
 //  La colonne K "SP98 station (€/L)" est désormais la seule source SP98.
@@ -44,6 +56,25 @@ const HEADERS = [
 ];
 
 // ─────────────────────────────────────────────────────────────
+//  S6 — Token secret (souple)
+//  Retourne true si la requête est autorisée. Si la propriété de
+//  script APP_TOKEN n'est pas définie → aucun contrôle (true).
+//  Sinon, exige un token identique en GET (?token=) ou POST (payload.token).
+// ─────────────────────────────────────────────────────────────
+function tokenOk_(e, payload) {
+  const expected = PropertiesService.getScriptProperties().getProperty('APP_TOKEN');
+  if (!expected) return true;                       // contrôle désactivé tant que non posé
+  let provided = '';
+  if (payload && payload.token != null) provided = String(payload.token);
+  else if (e && e.parameter && e.parameter.token != null) provided = String(e.parameter.token);
+  return provided === expected;
+}
+
+function unauthorizedResponse_() {
+  return jsonResponse({ success: false, error: 'unauthorized', code: 401 });
+}
+
+// ─────────────────────────────────────────────────────────────
 //  S7 — Rate limiting : max 10 requêtes/min par client
 //  Clé CacheService : rl_<cid>_<minute> — TTL 90 s
 //  Retourne true si le client est bloqué, false sinon.
@@ -71,6 +102,9 @@ function rateLimit(cid) {
 //  • (aucun param)               → page HTML index
 // ─────────────────────────────────────────────────────────────
 function doGet(e) {
+  // S6 — contrôle du token sur les actions de données (la page HTML reste libre)
+  if (e.parameter.action && !tokenOk_(e, null)) return unauthorizedResponse_();
+
   if (e.parameter.action === 'export') {
     return handleExport(e);
   }
@@ -79,6 +113,11 @@ function doGet(e) {
   if (e.parameter.action === 'lowprice') {
     const raw = PropertiesService.getScriptProperties().getProperty('LAST_LOW_PRICE');
     return jsonResponse(raw ? JSON.parse(raw) : {});
+  }
+
+  // W38 — prix mini E85 du secteur par jour + meilleur prix du jour
+  if (e.parameter.action === 'sectorPrices') {
+    return handleSectorPrices();
   }
 
   const isMobile = (e.parameter.v === 'mobile');
@@ -135,6 +174,14 @@ function handleExport(e) {
 function doPost(e) {
   const payload = JSON.parse(e.postData.contents);
   const ss      = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // S6 — contrôle du token (souple : actif seulement si APP_TOKEN est posé)
+  if (!tokenOk_(e, payload)) return unauthorizedResponse_();
+
+  // W38 — mémorise la dernière position connue (pour le scan 15 km du refresh 7h)
+  if (payload.action === 'saveLastGeo') {
+    return handleSaveLastGeo(payload);
+  }
 
   if (payload.action === 'addStation') {
     const sheet = ss.getSheetByName(STATIONS_SHEET);
@@ -474,6 +521,63 @@ function handleBulkUpdate(ss, rows) {
   });
 
   return jsonResponse({ status: 'ok', updated, added });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  W38 — handleSaveLastGeo
+//  Mémorise la dernière position connue (propriété LAST_GEO) pour
+//  que le refresh quotidien (~7h) scanne les prix 15 km autour.
+// ─────────────────────────────────────────────────────────────
+function handleSaveLastGeo(payload) {
+  const lat = Number(payload.lat);
+  const lon = Number(payload.lon);
+  if (!isFinite(lat) || !isFinite(lon)) {
+    return jsonResponse({ success: false, error: 'coordonnées invalides' });
+  }
+  PropertiesService.getScriptProperties().setProperty('LAST_GEO',
+    JSON.stringify({ lat, lon, ts: new Date().toISOString() }));
+  return jsonResponse({ success: true });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  W38 — handleSectorPrices
+//  Renvoie, depuis l'onglet _PrixHistory (Station, Date, Type, Prix) :
+//    • byDate : { 'yyyy-MM-dd' : prix E85 mini relevé ce jour-là }
+//    • today  : meilleur prix du jour (propriété SECTOR_BEST_TODAY)
+//  Permet à l'app d'afficher, pour chaque plein, l'écart vs le moins
+//  cher du secteur le jour du plein, et la station la moins chère du jour.
+// ─────────────────────────────────────────────────────────────
+function handleSectorPrices() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName('_PrixHistory');
+  const byDate = {};
+
+  if (sh && sh.getLastRow() > 1) {
+    const data = sh.getDataRange().getValues();
+    const head = data[0].map(String);
+    const iDate = head.indexOf('Date');
+    const iType = head.indexOf('Type');
+    const iPrix = head.indexOf('Prix €/L');
+    const tz    = ss.getSpreadsheetTimeZone();
+
+    for (let i = 1; i < data.length; i++) {
+      const row  = data[i];
+      const type = String(row[iType] || '').toUpperCase();
+      if (type && type.indexOf('E85') < 0) continue;     // E85 uniquement
+      let d = row[iDate];
+      const dStr = (d instanceof Date)
+        ? Utilities.formatDate(d, tz, 'yyyy-MM-dd')
+        : String(d || '').slice(0, 10);
+      const prix = Number(row[iPrix]);
+      if (!dStr || !isFinite(prix) || prix <= 0) continue;
+      if (byDate[dStr] == null || prix < byDate[dStr]) byDate[dStr] = prix;
+    }
+  }
+
+  const rawToday = PropertiesService.getScriptProperties().getProperty('SECTOR_BEST_TODAY');
+  const today    = rawToday ? JSON.parse(rawToday) : null;
+
+  return jsonResponse({ byDate, today });
 }
 
 // ─────────────────────────────────────────────────────────────

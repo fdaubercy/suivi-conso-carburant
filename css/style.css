@@ -1467,3 +1467,46 @@ body.no-share .hist-share { display: none; }
 .stpop-gmaps { background: var(--green); }
 .stpop-btn:active { filter: brightness(.92); }
 .stpop-hint { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 10px; }
+
+/* ═══════════════════════════════════════
+   W38 — Écart prix payé vs moins cher du secteur
+   ═══════════════════════════════════════ */
+.hist-secteur {
+  font-size: 10.5px;
+  margin-top: 3px;
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+.hist-secteur.over { color: var(--red); }
+.hist-secteur.best { color: var(--green); }
+
+/* W38 — Carte « Moins cher du secteur » */
+.secteur-card { padding: 14px 16px; }
+.secteur-best {
+  display: flex; align-items: baseline; gap: 10px;
+  flex-wrap: wrap; margin-top: 6px;
+}
+.secteur-prix {
+  font-size: 24px; font-weight: 800; color: var(--green);
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.secteur-meta { font-size: 12px; color: var(--text); font-weight: 600; }
+.secteur-sub  { font-size: 10px; color: var(--text-muted); margin-top: 8px; font-style: italic; }
+
+/* ═══════════════════════════════════════
+   W37 — Bilan annuel « Wrapped »
+   ═══════════════════════════════════════ */
+.wrapped-card { padding: 14px 16px; }
+.wrapped-hero {
+  background: linear-gradient(135deg, var(--blue-dark), var(--blue-mid));
+  color: #fff;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px; font-weight: 700;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.stat-text {
+  font-size: 13px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}

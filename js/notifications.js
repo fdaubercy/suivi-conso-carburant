@@ -17,7 +17,7 @@
      Firefox Desktop     : supporté
 ═══════════════════════════════════════════════════════════════════════ */
 
-import { GAS_URL, VAPID_PUBLIC_KEY } from './config.js';
+import { GAS_URL, APP_TOKEN, VAPID_PUBLIC_KEY } from './config.js';
 
 const KEY_ENABLED   = 'notif_e85_enabled';
 const KEY_SEUIL     = 'notif_e85_seuil';
@@ -149,7 +149,8 @@ export async function registerPushSubscription() {
       body:    JSON.stringify({
         action:       'savePushSub',
         subscription: sub.toJSON(),
-        seuil:        getSeuil()
+        seuil:        getSeuil(),
+        token:        APP_TOKEN   // S6
       })
     });
   } catch (e) {

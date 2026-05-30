@@ -1,5 +1,5 @@
 /* ─── Géolocalisation + liste stations proches ─── */
-import { FUEL_CONFIG, FUEL_KEYS, FUEL_SELECT } from './config.js';
+import { FUEL_CONFIG, FUEL_KEYS, FUEL_SELECT, GAS_URL, APP_TOKEN } from './config.js';
 import { state } from './state.js';
 import { haversine, escHtml, getCoords, stationLabel, stationSubLabel, composeStationName } from './utils.js';
 import { setGeoStatus } from './ui.js';
@@ -30,6 +30,18 @@ function saveGeoCache(lat, lon, stations) {
   } catch {}
 }
 
+/* W38 — Mémorise la dernière position connue côté serveur (fire-and-forget).
+   Le refresh quotidien (~7h) scanne les prix E85 dans 15 km autour. */
+function saveLastGeoToServer(lat, lon) {
+  try {
+    fetch(GAS_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // évite le preflight CORS
+      body:    JSON.stringify({ action: 'saveLastGeo', lat, lon, token: APP_TOKEN }),
+    }).catch(() => {});
+  } catch {}
+}
+
 export function geolocate() {
   if (!navigator.geolocation) { setGeoStatus('err', 'Géolocalisation non disponible.'); return; }
   const btn = document.getElementById('geoBtn'); btn.classList.add('loading'); btn.textContent = '🔄';
@@ -48,7 +60,11 @@ export function geolocate() {
   }
 
   navigator.geolocation.getCurrentPosition(
-    pos => { state.userLat = pos.coords.latitude; state.userLon = pos.coords.longitude; searchNearby(state.userLat, state.userLon, btn); },
+    pos => {
+      state.userLat = pos.coords.latitude; state.userLon = pos.coords.longitude;
+      saveLastGeoToServer(state.userLat, state.userLon);   // W38 — alimente le scan 15 km du refresh 7h
+      searchNearby(state.userLat, state.userLon, btn);
+    },
     err => {
       btn.classList.remove('loading'); btn.textContent = '📍';
       const msgs = { 1: 'Accès refusé — autorisez dans Réglages.', 2: 'Position introuvable.', 3: 'Délai dépassé.' };

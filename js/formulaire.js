@@ -1,5 +1,5 @@
 /* ─── Formulaire — soumission, réinitialisation et auto-save brouillon (W15) ─── */
-import { FUEL_CONFIG, FUEL_KEYS, GAS_URL, DRAFT_KEY, CLIENT_ID_KEY } from './config.js';
+import { FUEL_CONFIG, FUEL_KEYS, GAS_URL, APP_TOKEN, DRAFT_KEY, CLIENT_ID_KEY } from './config.js';
 import { state } from './state.js';
 import { setAutreStatus, hideCpSearch, setSubmitState, showFeedback, updateCout } from './ui.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
@@ -222,6 +222,7 @@ export async function submitForm() {
     date, type: FUEL_CONFIG[state.currentType].label,
     km, litres, prix, station, vehicule, stationPrices,
     cid: _getClientId(),   // S7 — rate limiting côté GAS
+    token: APP_TOKEN,      // S6 — token secret (souple)
   };
 
   // W9 — joindre la photo du ticket si disponible

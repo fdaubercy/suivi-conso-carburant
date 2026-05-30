@@ -17,8 +17,10 @@ import { onAutreInput, setRadius } from './recherche.js';
 import { onStationChange, onKmInput, submitForm, resetForm, checkDuplicate, saveDraft, restoreDraft, initVoiceKm } from './formulaire.js';
 import { chargerStations, mergeHistoryStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
-import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords } from './historique.js';
+import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords, rerenderHistorique } from './historique.js';
 import { renderStats, initSparkToggles, getNextKmPrediction, initKitSetting, initRapport } from './stats.js';
+import { loadSectorPrices, renderSectorBestCard } from './secteur.js';
+import { initWrapped, renderWrapped } from './wrapped.js';
 import { initScanner }       from './ticket.js';
 import { initPWA }           from './pwa.js';
 import { initOffline, syncQueue } from './offline.js';
@@ -53,6 +55,15 @@ setTimeout(() => {
 chargerHistorique().then(() => {
   // Fusionne les stations vues dans l'historique avec la liste curée (GS)
   mergeHistoryStations(getAllRecords().map(r => r['Station essence']));
+
+  // W37 — bilan annuel (les enregistrements sont disponibles)
+  initWrapped();
+
+  // W38 — prix secteur : charge le snapshot quotidien puis enrichit l'historique
+  loadSectorPrices().then(() => {
+    renderSectorBestCard();
+    rerenderHistorique();   // affiche l'écart « payé X €/L de plus que le secteur »
+  });
 
   const fKm = document.getElementById('fKm');
   if (!fKm) return;
@@ -141,9 +152,10 @@ initVoiceKm();         // formulaire.js — W35 dictée vocale km
 
 /* ─── Exposition globale minimale (requise par modules non-importants) ─── */
 Object.assign(window, {
-  renderStats,  // carburant.js/setType() → typeof window.renderStats === 'function'
-  setType,      // ticket.js/fillFormFromTicket() → window.setType
-  updateCout,   // ticket.js/fillFormFromTicket() → window.updateCout
+  renderStats,    // carburant.js/setType() → typeof window.renderStats === 'function'
+  renderWrapped,  // vehicules.js/onVehiculeChange() → W37 bilan annuel suit le véhicule
+  setType,        // ticket.js/fillFormFromTicket() → window.setType
+  updateCout,     // ticket.js/fillFormFromTicket() → window.updateCout
 });
 
 /**

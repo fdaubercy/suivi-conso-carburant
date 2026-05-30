@@ -11,7 +11,7 @@
        → chargerHistorique()         : rafraîchit la liste
 ═══════════════════════════════════════════════════════════════════════ */
 
-import { GAS_URL } from './config.js';
+import { GAS_URL, APP_TOKEN } from './config.js';
 import { showFeedback } from './ui.js';
 
 const QUEUE_KEY = 'suivi_e85_offline_queue';
@@ -50,7 +50,7 @@ export async function syncQueue() {
     try {
       const json = await fetch(GAS_URL, {
         method: 'POST', redirect: 'follow',
-        body: JSON.stringify(entry.payload),
+        body: JSON.stringify({ ...entry.payload, token: APP_TOKEN }), // S6
       }).then(r => r.json());
 
       if (json.success) {

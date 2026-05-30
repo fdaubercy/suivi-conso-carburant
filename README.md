@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v3.5.0.1**
+> 🔖 Version courante : **v3.6.0.0**
 
 ## 🌐 Accès
 
@@ -164,6 +164,26 @@ Courbe **SVG inline** affichée sous la grille de statistiques, avec **filtres p
 - **Autres carburants** : prix station enregistrés à chaque plein (colonnes I→N du Sheet)
 - Filtré sur le véhicule courant, trié chronologiquement, 20 points max par carburant (déduplication journalière)
 
+### 🎉 Bilan annuel « Wrapped » (W37)
+Carte récap de fin d'année construite depuis l'historique (`js/wrapped.js`) :
+- **Litres totaux**, **€ dépensés**, **km parcourus**, **économie E85 cumulée** (vs SP98), **station préférée**, **mois le plus cher**
+- **Sélecteur d'année** (toutes les années présentes dans l'historique)
+- **Bascule de périmètre** 🏍️ / 🚗🏍️ : véhicule courant ↔ tous véhicules (persistée `suivi_e85_wrapped_scope`) — le périmètre « véhicule » suit le véhicule sélectionné en haut de page
+- Km parcourus = somme des deltas max−min par véhicule ; économie alignée sur la méthode du dashboard (surconsommation E85 dynamique)
+
+### 💸 Prix payé vs moins cher du secteur (W38)
+Pour chaque plein **E85**, l'historique indique l'écart au meilleur prix du secteur le jour du plein : « 💸 +X €/L vs le moins cher du secteur (Y €/L) » ou « ✅ Au meilleur prix du secteur ».
+- Le **relevé quotidien (~7h)** (`RefreshPrix.gs`) complète les stations curées par un **scan des stations E85 les moins chères dans 15 km autour de la dernière position connue**, logue le tout dans `_PrixHistory` et mémorise le meilleur prix du jour (`SECTOR_BEST_TODAY`)
+- L'app pousse la dernière position GPS au serveur (`action=saveLastGeo` → propriété `LAST_GEO`) ; elle lit le snapshot via `action=sectorPrices` (`js/secteur.js`, cache 2 h)
+- Carte **« 🏆 Moins cher du secteur »** affichée à l'ouverture
+- Comportement **prospectif** : l'écart n'apparaît que pour les pleins postérieurs au 1er refresh
+
+### 🔐 Token secret sur les endpoints GAS (S6)
+Le backend GAS peut exiger un **token partagé** (`APP_TOKEN`) sur toutes les requêtes de données.
+- **Mode souple** : le contrôle ne s'active que si la **propriété de script** `APP_TOKEN` est définie côté Apps Script. Tant qu'elle n'est pas posée, tout fonctionne sans token (rétrocompatible).
+- Token transmis en `?token=` (GET) et dans le JSON (POST) par l'app web (`js/config.js` → `APP_TOKEN`) **et** par la macro VBA (`vba/modSyncGS.bas`). La page HTML reste servie sans token.
+- ⚠️ Sécurité par obscurité (le token est dans le bundle public) : relève le niveau d'accès sans être un secret cryptographique. **Activation** : poser la même valeur dans les Propriétés du script GAS (clé `APP_TOKEN`).
+
 ### 🔄 Bannière "Mise à jour disponible" (W23)
 Détecte automatiquement quand un nouveau Service Worker est en attente d'activation :
 - Bannière verte en haut de page avec bouton **"Actualiser"**
@@ -213,7 +233,7 @@ suivi-e85/
 │
 ├── js/                              # ── Web app (ES Modules) ────────────
 │   ├── main.js                      # Point d'entrée
-│   ├── config.js                    # APP_VERSION, FUEL_CONFIG, GAS_URL, GS_SHEET_ID
+│   ├── config.js                    # APP_VERSION, FUEL_CONFIG, GAS_URL, GS_SHEET_ID, APP_TOKEN (S6)
 │   ├── state.js                     # État partagé (currentType, _stationPrices…)
 │   ├── utils.js                     # Fonctions pures (haversine, odsUrl…)
 │   ├── ui.js                        # Helpers DOM
@@ -232,6 +252,8 @@ suivi-e85/
 │   ├── historique.js                # 5 derniers pleins + W32 historique complet + filtres + W26 Web Share
 │   ├── stats.js                     # Stats live 4 KPIs + sparkline multi-carburant W28+W34 + prédiction W33 + getNextKmPrediction W35
 │   ├── stationsmap.js               # Carte statique stations habituelles + prix moyens
+│   ├── secteur.js                   # W38 prix mini secteur (relevé quotidien) + carte « moins cher du secteur »
+│   ├── wrapped.js                   # W37 bilan annuel « Wrapped » (litres/€/km/éco/station/mois, véhicule↔tous)
 │   ├── pwa.js                       # Installation PWA Android/iOS + bannière update W23 (W4)
 │   └── ticket.js                    # Scan ticket OCR Tesseract.js + photo base64 W9 (W17)
 │
@@ -267,9 +289,9 @@ suivi-e85/
 │   ├── Réponses - Suivi E85.xlsx
 │   └── Sauvegarde & Geolocalisation - Suivi conso SuperEthanol/
 │       └── Google Apps Script/
-│           ├── Code.gs              # Backend GAS (16 col + sync bidir. + ?since= + rate limiting + savePushSub/lowprice)
+│           ├── Code.gs              # Backend GAS (16 col + sync bidir. + ?since= + rate limiting + savePushSub/lowprice + S6 token + W38 saveLastGeo/sectorPrices)
 │           ├── RapportMensuel.gs    # X16 trigger 1er du mois → MailApp.sendEmail() bilan mensuel
-│           ├── RefreshPrix.gs       # S8 trigger quotidien → onglet _PrixHistory (Station/Date/Type/Prix)
+│           ├── RefreshPrix.gs       # S8/W38 trigger quotidien ~7h → _PrixHistory + scan 15 km autour LAST_GEO + SECTOR_BEST_TODAY
 │           ├── WebPush.gs           # S10 Web Push VAPID (ES256/P-256 pur JS) — alerte prix E85 bas
 │           ├── index.html           # Page HTML servie par GAS (standalone)
 │           └── GAS_UPDATE.md        # Doc : actions doPost, schéma 16 cols, migrations
@@ -309,6 +331,11 @@ Actions `doPost` disponibles :
 | `bulkAdd` | VBA Excel | Import initial Excel → GS (dédupliqué par `sync_id`) |
 | `bulkUpdate` | VBA Excel | MAJ bidirectionnelle : lignes modifiées Excel → GS |
 | `scanTicket` | App web | Analyse IA du ticket via Gemini 2.0 Flash → JSON (date, km, litres, prix/L, total, type, station) ; moteur principal du scan, fallback Tesseract.js côté navigateur si indisponible |
+| `saveLastGeo` | App web | W38 — mémorise la dernière position connue (`LAST_GEO`) pour le scan 15 km du refresh ~7h |
+
+Actions `doGet` (données) : `export` (historique JSON, `?since=`), `lowprice` (dernier prix E85 bas), `sectorPrices` (W38 — prix mini secteur par jour + meilleur prix du jour).
+
+> 🔐 **S6 — Token** : si la **propriété de script** `APP_TOKEN` est définie (Apps Script → Paramètres → Propriétés du script), toutes les actions de données exigent le même token (`?token=` en GET, champ `token` en POST). À défaut, aucun contrôle (rétrocompatible). Coller la même valeur dans `js/config.js` (`APP_TOKEN`) **et** `vba/modSyncGS.bas`.
 
 ### 2. Connecter le formulaire
 

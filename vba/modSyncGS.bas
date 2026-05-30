@@ -27,6 +27,10 @@ Attribute VB_Name = "modSyncGS"
 Option Explicit
 
 Private Const GAS_URL     As String = "https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec"
+' S6 - Token secret partage avec js/config.js (APP_TOKEN) et la propriete
+' de script APP_TOKEN du projet Apps Script. Mode souple : tant que la
+' propriete APP_TOKEN n'est pas posee cote GAS, ce token est ignore.
+Private Const APP_TOKEN   As String = "e85_a7f3c9e21b8d4f60a5c3e8b7d12f6049"
 Private Const WS_NAME     As String = "GS_Pleins"
 Private Const COL_SYNC_ID As Integer = 15  ' O
 Private Const COL_MODIFIED As Integer = 16 ' P  timestamp derniere modif locale
@@ -73,7 +77,7 @@ End Sub
 '  DIAGNOSTIC
 ' ============================================================
 Public Sub TestConnexion()
-    Dim url    As String: url = GAS_URL & "?action=export"
+    Dim url    As String: url = GAS_URL & "?action=export&token=" & APP_TOKEN
     Dim status As Long
     Dim body   As String
     Dim errTxt As String
@@ -161,7 +165,7 @@ Public Sub SyncDiagnose()
     Set ws = ThisWorkbook.Sheets(WS_NAME)
 
     SetStatus "Diagnose : recuperation export GS..."
-    jsonStr = HttpGet(GAS_URL & "?action=export")
+    jsonStr = HttpGet(GAS_URL & "?action=export&token=" & APP_TOKEN)
     If jsonStr = "" Or InStr(jsonStr, """records""") = 0 Then
         SetStatus "Diagnose ERREUR : export GS inaccessible (lancer TestConnexion)"
         Exit Sub
@@ -338,7 +342,7 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     ' v2.9 : s'assurer que la col P est bien initialisee
     EnsureModifiedColHeader ws
 
-    jsonStr = HttpGet(GAS_URL & "?action=export")
+    jsonStr = HttpGet(GAS_URL & "?action=export&token=" & APP_TOKEN)
 
     If jsonStr = "" Then
         SetStatus "ERREUR reseau - lancer TestConnexion() pour diagnostiquer"
@@ -627,7 +631,7 @@ NextRow:
     End If
 
     ReDim Preserve rowsJson(count - 1)
-    payload = "{""action"":""bulkAdd"",""rows"":[" & Join(rowsJson, ",") & "]}"
+    payload = "{""action"":""bulkAdd"",""token"":""" & APP_TOKEN & """,""rows"":[" & Join(rowsJson, ",") & "]}"
     HttpPost GAS_URL, payload
     ExportExcelToGS = count
 End Function
@@ -689,7 +693,7 @@ NextRow2:
     ReDim Preserve dirtyRows(count - 1)
 
     Dim payload As String
-    payload = "{""action"":""bulkUpdate"",""rows"":[" & Join(rowsJson, ",") & "]}"
+    payload = "{""action"":""bulkUpdate"",""token"":""" & APP_TOKEN & """,""rows"":[" & Join(rowsJson, ",") & "]}"
     Dim resp As String
     resp = HttpPost(GAS_URL, payload)
 
@@ -916,7 +920,7 @@ Private Function PushStationsToGS() As Long
         End If
     Next c
 
-    body = "{""action"":""syncStations"",""stations"":[" & json & "]}"
+    body = "{""action"":""syncStations"",""token"":""" & APP_TOKEN & """,""stations"":[" & json & "]}"
     resp = HttpPost(GAS_URL, body)
 
     If InStr(resp, """success"":true") > 0 Then

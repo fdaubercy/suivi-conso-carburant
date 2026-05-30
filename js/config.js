@@ -1,6 +1,16 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '3.5.0.1';
+export const APP_VERSION       = '3.6.0.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
+
+// S6 — Token secret partagé avec les endpoints GAS et la macro VBA.
+// Mode SOUPLE : le GAS ne rejette les requêtes QUE si la propriété de script
+// APP_TOKEN est définie côté Apps Script. Tant qu'elle n'est pas posée, tout
+// continue de fonctionner sans token (rétrocompatible). Pour activer :
+//   Apps Script → Paramètres du projet → Propriétés du script → APP_TOKEN = (cette valeur)
+//   + coller la même valeur dans vba/modSyncGS.bas (Const APP_TOKEN).
+// ⚠️ Sécurité par obscurité : ce fichier étant servi publiquement (GitHub Pages),
+// le token relève le niveau d'accès mais n'est pas un secret cryptographique.
+export const APP_TOKEN         = 'e85_a7f3c9e21b8d4f60a5c3e8b7d12f6049';
 
 // S8 — Web Push : clé publique VAPID (base64url, format "raw" 65 octets).
 // Générer la paire avec generateVapidKeys() dans le projet Apps Script, puis
@@ -16,6 +26,8 @@ export const HIST_SINCE_KEY    = 'suivi_e85_hist_since';
 export const DRAFT_KEY         = 'suivi_e85_draft';
 export const CLIENT_ID_KEY     = 'suivi_e85_client_id';
 export const KIT_PRIX_KEY      = 'suivi_e85_kit_prix';
+export const SECTOR_CACHE_KEY  = 'suivi_e85_sector_cache';  // W38 — prix secteur quotidien (cache)
+export const WRAPPED_SCOPE_KEY = 'suivi_e85_wrapped_scope'; // W37 — périmètre Wrapped (vehicule|all)
 
 // Économie E85 vs SP98 — aligné sur le dashboard Excel (feuille « Suivi Carburant »).
 // Surconsommation calculée dynamiquement (conso E85 / conso S98 − 1, cellule J7) ;

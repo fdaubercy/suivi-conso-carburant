@@ -1,6 +1,12 @@
 // ============================================================
-//  SUIVI CONSO CARBURANTS — Refresh quotidien des prix    v3.4.0.0
-//  Roadmap S8
+//  SUIVI CONSO CARBURANTS — Refresh quotidien des prix    v3.6.0.0
+//  Roadmap S8 + W38
+//
+//  v3.6.0.0 — W38 : le refresh ~7h complète les stations curées par un
+//  scan des stations E85 les moins chères dans 15 km autour de la dernière
+//  position connue (LAST_GEO), et mémorise le meilleur prix du secteur du
+//  jour (SECTOR_BEST_TODAY). L'app lit le tout via ?action=sectorPrices
+//  pour afficher l'écart « payé X €/L de plus que le moins cher du secteur ».
 //
 //  Trigger temporel (1×/jour) qui parcourt l'onglet "Stations",
 //  fetch le prix E85 actuel via l'API gouv (data.economie.gouv.fr)
@@ -88,11 +94,28 @@ function refreshPrixCarburants() {
     Utilities.sleep(300);   // courtoisie envers l'API publique
   });
 
+  // ── W38 — scan 15 km autour de la dernière position connue (LAST_GEO) ──
+  // Complète les stations curées avec les stations proches de l'utilisateur,
+  // pour que « le moins cher du secteur » couvre tout le rayon, pas seulement
+  // les enseignes déjà connues.
+  const geoStations = fetchCheapestE85AroundGeo_(15000, 15);
+  geoStations.forEach(s => {
+    rows.push([s.name, today, 'E85', s.prix]);
+    if (s.prix < bestPrix) { bestPrix = s.prix; bestStation = s.name; }
+  });
+
   if (rows.length) {
     hist.getRange(hist.getLastRow() + 1, 1, rows.length, 4).setValues(rows);
   }
-  Logger.log('Refresh : ' + rows.length + ' prix loggés. Min E85 = ' +
+  Logger.log('Refresh : ' + rows.length + ' prix loggés (' + geoStations.length +
+    ' via géo 15 km). Min E85 = ' +
     (isFinite(bestPrix) ? bestPrix.toFixed(3) + ' (' + bestStation + ')' : 'n/d'));
+
+  // ── W38 — meilleur prix du secteur du jour (lu par ?action=sectorPrices) ──
+  if (isFinite(bestPrix) && bestPrix > 0) {
+    PropertiesService.getScriptProperties().setProperty('SECTOR_BEST_TODAY',
+      JSON.stringify({ station: bestStation, prix: bestPrix, date: today }));
+  }
 
   // ── S8/S10 — mémorisation du prix mini + push filtrée PAR ABONNÉ ──
   // On mémorise toujours le meilleur prix (le Service Worker le lit via
@@ -107,6 +130,49 @@ function refreshPrixCarburants() {
     } else {
       Logger.log('WebPush.gs absent — push non envoyée.');
     }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  W38 — Stations E85 les moins chères dans un rayon autour de la
+//  dernière position connue (propriété LAST_GEO posée par l'app via
+//  action=saveLastGeo). Retourne [{ name:'Enseigne - Ville', prix }].
+//  Tableau vide si LAST_GEO absente ou API muette.
+// ─────────────────────────────────────────────────────────────
+function fetchCheapestE85AroundGeo_(radiusM, limit) {
+  const raw = PropertiesService.getScriptProperties().getProperty('LAST_GEO');
+  if (!raw) { Logger.log('W38 : LAST_GEO absente — scan géo ignoré.'); return []; }
+
+  let geo;
+  try { geo = JSON.parse(raw); } catch (e) { return []; }
+  const lat = Number(geo.lat), lon = Number(geo.lon);
+  if (!isFinite(lat) || !isFinite(lon)) return [];
+
+  try {
+    const where = "e85_prix is not null and distance(geom, geom'POINT(" +
+      lon + ' ' + lat + ")', " + radiusM + 'm)';
+    const url = PRIX_API_URL +
+      '?where='    + encodeURIComponent(where) +
+      '&select='   + encodeURIComponent('adresse,ville,e85_prix') +
+      '&order_by=' + encodeURIComponent('e85_prix asc') +
+      '&limit='    + (limit || 15);
+    const resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    if (resp.getResponseCode() !== 200) return [];
+    const data = JSON.parse(resp.getContentText());
+    const recs = (data && data.results) || [];
+    const out = [];
+    recs.forEach(r => {
+      const prix = Number(r.e85_prix);
+      if (!isFinite(prix) || prix <= 0) return;
+      const ville = String(r.ville || '').trim();
+      const adr   = String(r.adresse || '').trim();
+      const name  = (ville ? ville : adr) ? ('Secteur - ' + (ville || adr)) : 'Secteur';
+      out.push({ name: name, prix: prix });
+    });
+    return out;
+  } catch (e) {
+    Logger.log('fetchCheapestE85AroundGeo_ : ' + e.message);
+    return [];
   }
 }
 

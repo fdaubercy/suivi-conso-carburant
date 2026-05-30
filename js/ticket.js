@@ -18,7 +18,7 @@
  * ─────────────────────────────────────────────────────────────────────  */
 
 import Tesseract from 'tesseract.js';
-import { FUEL_CONFIG, FUEL_SELECT, GAS_URL, PRIX_API } from './config.js';
+import { FUEL_CONFIG, FUEL_SELECT, GAS_URL, APP_TOKEN, PRIX_API } from './config.js';
 import { state } from './state.js';
 import { showFeedback } from './ui.js';
 import { composeStationName, formatVille, getCoords, stationLabel } from './utils.js';
@@ -196,6 +196,7 @@ async function scanWithGemini(imageBase64, mimeType) {
       action:      'scanTicket',
       imageBase64,
       mimeType:    mimeType || 'image/jpeg',
+      token:       APP_TOKEN,   // S6
     }),
   });
 

@@ -4,6 +4,25 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.6.0.0] — 2026-05-30
+
+### Added
+- **Token secret sur les endpoints GAS (S6)** — sécurise les appels au backend (l'URL GAS étant publique, tout le monde pouvait lire/écrire l'historique).
+  - `Code.gs` : helper `tokenOk_(e, payload)` + `unauthorizedResponse_()`. **Mode souple** : le contrôle ne s'active que si la **propriété de script** `APP_TOKEN` est définie côté Apps Script — tant qu'elle n'est pas posée, tout fonctionne sans token (rétrocompatible, aucun déploiement bloquant). Une fois posée, chaque requête de données doit fournir le même token (`?token=` en GET, champ `token` du JSON en POST). La **page HTML** reste servie sans token.
+  - `js/config.js` : nouvelle constante `APP_TOKEN`, injectée dans tous les appels GAS (`formulaire.js`, `offline.js`, `ticket.js`, `notifications.js`, `stations.js`, `historique.js`, `geo.js`).
+  - `vba/modSyncGS.bas` : constante `APP_TOKEN` ajoutée au GET `?action=export` et aux POST `bulkAdd` / `bulkUpdate` / `syncStations`.
+  - ⚠️ Sécurité par obscurité : le token, présent dans le bundle public (GitHub Pages), relève le niveau d'accès mais n'est pas un secret cryptographique. **Activation** : coller la valeur d'`APP_TOKEN` dans les Propriétés du script GAS (clé `APP_TOKEN`) — la même que `js/config.js` et `vba/modSyncGS.bas`.
+- **Bilan annuel « Wrapped » (W37)** — nouvelle carte `#wrappedCard` + module `js/wrapped.js` : récap d'une année (litres totaux, € dépensés, km parcourus, économie E85 cumulée vs SP98, station préférée, mois le plus cher). **Sélecteur d'année** (années présentes dans l'historique) + **bascule de périmètre** 🏍️/🚗🏍️ (véhicule courant ↔ tous véhicules, persistée). Le périmètre « véhicule » suit le véhicule sélectionné en haut de page. Km parcourus = somme des deltas max−min par véhicule ; économie alignée sur la méthode du dashboard (surconsommation E85 dynamique).
+- **Prix payé vs moins cher du secteur (W38)** — pour chaque plein E85, l'historique affiche « 💸 +X €/L vs le moins cher du secteur (Y €/L) » ou « ✅ Au meilleur prix du secteur ».
+  - `RefreshPrix.gs` : le relevé quotidien (~7h) complète les stations curées par un **scan des stations E85 les moins chères dans 15 km autour de la dernière position connue** (`fetchCheapestE85AroundGeo_`), logue le tout dans `_PrixHistory` et mémorise le meilleur prix du jour (`SECTOR_BEST_TODAY`).
+  - `Code.gs` : action `saveLastGeo` (mémorise la dernière position connue, propriété `LAST_GEO`) + action `sectorPrices` (renvoie le prix E85 mini du secteur **par jour** depuis `_PrixHistory`, et le meilleur prix du jour).
+  - `js/geo.js` : la géolocalisation pousse la position au serveur (fire-and-forget) pour alimenter le scan.
+  - `js/secteur.js` (nouveau) : charge le snapshot (cache localStorage 2 h), fournit `getSectorMinForDate()` à l'historique et rend la carte « 🏆 Moins cher du secteur » (`#secteurCard`).
+  - Comportement **prospectif** : l'écart n'apparaît que pour les pleins dont le jour a un relevé secteur (à partir du 1er refresh ~7h après déploiement) ; les pleins antérieurs restent neutres.
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.6.0.0` ; nouvelles clés `SECTOR_CACHE_KEY`, `WRAPPED_SCOPE_KEY`, `APP_TOKEN`.
+
 ## [3.5.0.1] — 2026-05-30
 
 ### Fixed

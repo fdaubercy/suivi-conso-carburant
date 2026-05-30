@@ -1,5 +1,5 @@
 /* ─── Gestion de la liste des stations (Google Sheets + historique) ─── */
-import { GS_SHEET_ID, GAS_URL } from './config.js';
+import { GS_SHEET_ID, GAS_URL, APP_TOKEN } from './config.js';
 
 let _gsStations      = [];   // stations curées (feuille « Stations » du GS, alimentée par Excel)
 let _historyStations = [];   // stations distinctes vues dans l'historique des pleins
@@ -78,7 +78,7 @@ export async function syncStationSiNouvelle(nom) {
     await fetch(GAS_URL, {
       method:   'POST',
       redirect: 'follow',
-      body:     JSON.stringify({ action: 'addStation', station: v }),
+      body:     JSON.stringify({ action: 'addStation', station: v, token: APP_TOKEN }),
     });
     _gsStations.push(v);
     _renderStationOptions();

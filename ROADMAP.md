@@ -13,8 +13,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|
 | W25 | **Export CSV de l'historique** : bouton "📥 Exporter" dans la carte historique → télécharge tous les enregistrements en `.csv` (via `?action=export` + `Blob` + `URL.createObjectURL`) | Justificatif remboursement employeur / fiscalité · zéro backend · effort 1 h |
 | W36 | **Notion de station favorite** (aujourd'hui inexistante : `computeStationAverages` agrège *toutes* les stations E85, top 8 par prix, sans seuil). Pistes : (a) seuil auto configurable dans `config.js` — favorite à partir de N pleins, badge ⭐ distinct du ★ meilleur prix ; (b) favori manuel épinglé (⭐ cliquable, localStorage), indépendant du prix ; (c) tri optionnel par fréquence (nb de pleins) en plus du tri par prix | Mettre en avant les stations réellement fréquentées, pas seulement les moins chères · effort < 2 h |
-| W37 | **Bilan annuel / "Wrapped"** : carte récap de fin d'année (litres totaux, € dépensés, km parcourus, économie E85 cumulée, station préférée, mois le plus cher) générée depuis `stats.js` | Toutes les données existent déjà · effet "waouh" · faible effort |
-| W38 | **Prix payé vs meilleur prix dispo** : pour chaque plein, afficher "payé X €/L de plus que le moins cher du secteur ce jour-là" en croisant l'historique avec l'API gouv déjà interrogée | Pédagogique · valorise l'usage de l'app pour choisir la station |
 | W39 | **Budget carburant mensuel** : objectif € configurable dans ⚙️ Paramètres + barre de progression dans la carte stats + alerte au dépassement | Réutilise les stats mensuelles (`_monthAggregate`) · attendu sur une app de suivi conso |
 | W40 | **Empreinte CO₂ E85 vs essence** : tuile "kg CO₂ évités" (E85 ≈ −50 % à la combustion) calculée sur les litres saisis | Colle au branding 🌿 · pur calcul, zéro réseau |
 | W41 | **Comparaison entre véhicules** : graphe conso/coût croisant tous les véhicules (les stats actuelles sont mono-véhicule depuis W7) | Vue comparative manquante pour les foyers multi-véhicules |
@@ -60,7 +58,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| S6 | **Token secret** sur les endpoints GAS (`?token=XXX`) partagé avec VBA et web app | L'URL GAS étant publique, tout le monde peut lire l'historique aujourd'hui |
+| _(aucune en attente)_ | — | S6 (token secret) implémenté en v3.6.0.0 |
 
 ---
 
@@ -69,10 +67,10 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | Rang | Item | Effort | Bénéfice |
 |---|---|---|---|
 | 1 | **X1** — Bouton "Synchroniser" sur la feuille GS_Pleins | 15 min | Ergonomie immédiate, plus besoin d'ouvrir l'IDE |
-| 2 | **S6** — Token secret sur les endpoints GAS | 30 min | Sécurité minimale, données aujourd'hui publiques |
-| 3 | **W25** — Export CSV de l'historique | 1 h | Justificatif employeur/fiscalité · zéro backend |
-| 4 | **X9** — Économies cumulées E85 vs SP98 | ½ j | ROI E85 chiffré depuis les données existantes |
-| 5 | **S6** — Token secret sur les endpoints GAS | 30 min | Sécurité minimale, données aujourd'hui publiques |
+| 2 | **W25** — Export CSV de l'historique | 1 h | Justificatif employeur/fiscalité · zéro backend |
+| 3 | **X9** — Économies cumulées E85 vs SP98 | ½ j | ROI E85 chiffré depuis les données existantes |
+| 4 | **W39** — Budget carburant mensuel | ½ j | Objectif € + barre de progression, attendu sur une app de suivi conso |
+| 5 | **W40** — Empreinte CO₂ E85 vs essence | ¼ j | Colle au branding 🌿 · pur calcul, zéro réseau |
 
 ---
 
@@ -176,6 +174,9 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.4.0.0 | **Renommage « Suivi Conso. Carburants »** — titre de la page web + app (`index.html`, `manifest.json`, `Code.gs`) et rapport mensuel envoyé (`RapportMensuel.gs` : sujet, expéditeur, en-têtes) ; rapport mensuel déjà consultable dans l'app (carte X16) |
 | v3.5.0.0 | **Itinéraire au clic sur un marqueur (S11)** — `js/itineraire.js` : popup d'infos station (nom, prix, distance, adresse) au clic d'un marqueur (carte habituelles **et** carte recherche/géoloc), avec demande de confirmation puis **itinéraire Waze** (`waze.com/ul?…&navigate=yes`, départ position GPS) et repli **Google Maps** |
 | v3.5.0.1 | **Fix clic marqueurs carte habituelles** — `.smap-marker` était en `pointer-events:none` : les clics traversaient vers les tuiles et la popup S11 ne s'ouvrait pas (Windows + iPhone) ; `pointer-events:auto` rétabli |
+| v3.6.0.0 | **Token secret sur les endpoints GAS (S6)** — `Code.gs` `tokenOk_()` en **mode souple** (contrôle actif seulement si la propriété de script `APP_TOKEN` est posée) ; token `APP_TOKEN` injecté dans tous les appels web (`config.js` + 7 modules) et VBA (`modSyncGS.bas` : export, bulkAdd/bulkUpdate/syncStations) ; la page HTML reste libre. Sécurité par obscurité (token dans le bundle public) mais relève le niveau d'accès |
+| v3.6.0.0 | **Bilan annuel « Wrapped » (W37)** — `js/wrapped.js` + carte `#wrappedCard` : litres totaux, € dépensés, km parcourus, économie E85 cumulée vs SP98, station préférée, mois le plus cher ; sélecteur d'année + bascule de périmètre 🏍️/🚗🏍️ (véhicule courant ↔ tous, persistée) ; km = somme des deltas max−min par véhicule, économie alignée sur le dashboard (surconso E85 dynamique) |
+| v3.6.0.0 | **Prix payé vs moins cher du secteur (W38)** — relevé quotidien ~7h (`RefreshPrix.gs`) étendu d'un scan des stations E85 les moins chères dans 15 km autour de `LAST_GEO` → `_PrixHistory` + `SECTOR_BEST_TODAY` ; `Code.gs` actions `saveLastGeo` (position mémorisée) + `sectorPrices` (prix mini secteur par jour) ; `js/secteur.js` (cache 2 h) ajoute « 💸 +X €/L vs le moins cher du secteur » sur chaque plein E85 + carte « 🏆 Moins cher du secteur » ; comportement prospectif (à partir du 1er refresh) |
 
 ---
 

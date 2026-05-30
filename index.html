@@ -184,6 +184,9 @@
 <!-- ─── W30 Comparateur multi-stations ─── -->
 <div class="card" id="comparateurCard" hidden></div>
 
+<!-- ─── W38 Moins cher du secteur (relevé quotidien) ─── -->
+<div class="card secteur-card" id="secteurCard" hidden></div>
+
 <!-- ─── Stats live (W7) ─── -->
 <div class="card stats-card">
   <p class="section-title">Statistiques</p>
@@ -197,6 +200,18 @@
     <select id="rapportMois" class="hist-filter-sel" aria-label="Choisir le mois du rapport"></select>
   </div>
   <div id="rapportBox"><div class="stats-msg">Chargement…</div></div>
+</div>
+
+<!-- ─── W37 Bilan annuel « Wrapped » ─── -->
+<div class="card wrapped-card" id="wrappedCard">
+  <div class="hist-header">
+    <p class="section-title" style="margin-bottom:0">🎉 Bilan annuel</p>
+    <div class="hist-actions">
+      <select id="wrappedYear" class="hist-filter-sel" aria-label="Choisir l'année du bilan"></select>
+      <button class="hist-btn" id="wrappedScopeBtn" title="Basculer véhicule / tous">🏍️</button>
+    </div>
+  </div>
+  <div id="wrappedBox"><div class="stats-msg">Chargement…</div></div>
 </div>
 
 <!-- ─── Carte statique stations habituelles + prix moyens ─── -->

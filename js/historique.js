@@ -1,9 +1,10 @@
 /* ─── Historique des 5 derniers pleins (via GET ?action=export) ─── */
-import { GAS_URL, FUEL_CONFIG, HIST_CACHE_KEY, HIST_SINCE_KEY } from './config.js';
+import { GAS_URL, APP_TOKEN, FUEL_CONFIG, HIST_CACHE_KEY, HIST_SINCE_KEY } from './config.js';
 import { state } from './state.js';
 import { showFeedback } from './ui.js';
 import { renderStats } from './stats.js';
 import { renderStationsCard } from './stationsmap.js';
+import { getSectorMinForDate } from './secteur.js';   // W38 — prix mini du secteur par jour
 
 let _lastRecord  = null;   // memorise le plein le plus recent pour dupliquerDernier()
 let _allRecords  = [];     // memorise TOUS les enregistrements pour validation km retrograde
@@ -45,7 +46,8 @@ export async function chargerHistorique() {
 
     // Mode différentiel si on a déjà un cache : n'envoyer que les nouveaux
     const url = GAS_URL + '?action=export'
-      + (since && cachedRecords.length ? '&since=' + encodeURIComponent(since) : '');
+      + (since && cachedRecords.length ? '&since=' + encodeURIComponent(since) : '')
+      + '&token=' + encodeURIComponent(APP_TOKEN);   // S6
 
     const resp = await fetch(url, { redirect: 'follow' });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -359,7 +361,7 @@ export function initHistoireDelete() {
       const resp = await fetch(GAS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'deletePlein', sync_id: sid }),
+        body: JSON.stringify({ action: 'deletePlein', sync_id: sid, token: APP_TOKEN }),
         redirect: 'follow',
       });
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -403,6 +405,7 @@ function renderItem(r) {
   const station = String(r['Station essence'] || '—').slice(0, 40);
   const type    = escapeHtml(r.Type || '');
   const syncId  = String(r.sync_id || '');
+  const secteur = sectorDeltaHtml(r);   // W38 — écart vs moins cher du secteur
 
   const deleteBtn = syncId
     ? `<button class="hist-delete" type="button"
@@ -430,8 +433,49 @@ function renderItem(r) {
         <span class="hist-km">${km} km</span>
       </div>
       <div class="hist-row3">${escapeHtml(station)}</div>
+      ${secteur}
     </div>
   `;
+}
+
+/* ─── W38 — date ISO (yyyy-mm-dd) d'un enregistrement ─── */
+function isoDate(s) {
+  if (!s) return '';
+  const d = new Date(String(s).replace(' ', 'T'));
+  if (isNaN(d)) return String(s).slice(0, 10);
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0')
+  ].join('-');
+}
+
+/* ─── W38 — ligne « payé X €/L de plus que le moins cher du secteur ce jour-là » ───
+   Affichée uniquement pour les pleins E85, quand le snapshot du secteur du jour
+   existe (relevé quotidien ~7h) et que le prix payé dépasse le mini du secteur. */
+function sectorDeltaHtml(r) {
+  const t = String(r.Type || '').toLowerCase();
+  const isE85 = t.includes('e85') || t.includes('ethanol');
+  if (!isE85) return '';
+
+  const paid = Number(r['Prix €/L'] || 0);
+  if (!isFinite(paid) || paid <= 0) return '';
+
+  const min = getSectorMinForDate(isoDate(r.Date || r.Horodatage));
+  if (min == null || !isFinite(min) || min <= 0) return '';
+
+  const delta = paid - min;
+  if (delta > 0.0005) {
+    return `<div class="hist-secteur over">💸 +${delta.toFixed(3)} €/L vs le moins cher du secteur (${min.toFixed(3)} €/L)</div>`;
+  }
+  // Payé au prix du secteur (ou mieux) → petit encouragement
+  return `<div class="hist-secteur best">✅ Au meilleur prix du secteur (${min.toFixed(3)} €/L)</div>`;
+}
+
+/** W38 — Re-rend les listes d'historique (sans refetch), p.ex. quand les
+ *  prix secteur viennent d'arriver. */
+export function rerenderHistorique() {
+  if (_allRecords.length) _renderLists();
 }
 
 function iconForType(type) {

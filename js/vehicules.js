@@ -98,6 +98,8 @@ export function onVehiculeChange() {
   if (typeof window.onKmInput === 'function') window.onKmInput();
   // Les stats sont filtrees par vehicule -> re-render
   if (typeof window.renderStats === 'function') window.renderStats();
+  // W37 — le bilan annuel (perimetre vehicule) suit aussi le vehicule courant
+  if (typeof window.renderWrapped === 'function') window.renderWrapped();
 }
 
 export async function confirmerAjoutVehicule() {
