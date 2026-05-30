@@ -18,7 +18,8 @@ Private Const COL_KM       As Integer = 4   ' D
 Private Const COL_LITRES   As Integer = 5   ' E
 Private Const COL_VEHICULE As Integer = 8   ' H
 Private Const COL_SYNC_ID  As Integer = 15  ' O
-Private Const COL_MODIFIED As Integer = 16  ' P  timestamp modif locale
+Private Const COL_PHOTO    As Integer = 16  ' P  URL Drive photo ticket (importee de GS)
+Private Const COL_MODIFIED As Integer = 17  ' Q  timestamp modif locale (col interne)
 
 
 ' ============================================================
@@ -26,7 +27,7 @@ Private Const COL_MODIFIED As Integer = 16  ' P  timestamp modif locale
 ' ============================================================
 Private Sub Worksheet_Change(ByVal Target As Range)
     ' Restreindre aux colonnes de donnees A:N (1-14)
-    ' -- ignore toute ecriture sur O:P (cols internes 15-16)
+    ' -- ignore toute ecriture sur O:Q (cols internes 15-17 : sync_id, Photo, Modifie_local)
     Dim dataArea As Range
     On Error Resume Next
     Set dataArea = Intersect(Target, Me.Columns("A:N"))

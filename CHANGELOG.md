@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.3.0.5] — 2026-05-31
+
+### Added
+- **Import de la colonne `Photo ticket` dans le classeur Excel (`GS_Pleins`)** — l'URL Drive de la photo du ticket (saisie par la web app, col P du Google Sheet) est désormais **ramenée dans le classeur**, en même temps que les autres colonnes, **à la fois par la Power Query et par la synchro VBA**.
+  - **Disposition des colonnes de la table `GS_Pleins`** : `A→N` données · `O` `sync_id` · **`P` `Photo ticket` (nouveau)** · **`Q` `Modifie_local` (déplacé de P en Q)**. La table est ainsi un **miroir exact A→P** du schéma GAS, le marqueur de synchro local étant rejeté à droite (col Q, hors GS).
+  - **`powerquery/GS_Pleins.m`** : passe à **16 colonnes A→P** (ajout `Column16 → "Photo ticket"`, type texte).
+  - **`vba/modSyncGS.bas`** : nouvelle const `COL_PHOTO = 16` ; **`COL_MODIFIED` passe de 16 à 17** ; `ImportGSToExcel` écrit la photo en col P pour les nouvelles lignes (plage étendue à la col Q) ; `UpdateRowFromGS` met aussi à jour la photo ; `EnsureModifiedColHeader` initialise l'en-tête « Photo ticket » (col P) **sans écraser** celui posé par la requête, et « Modifie_local » (col Q). La photo est **import-only** : elle n'est jamais renvoyée vers le GS (`bulkAdd`/`bulkUpdate` n'écrivent pas la col P côté GAS).
+  - **`vba/GS_Pleins_snippet.bas`** : `COL_PHOTO = 16`, `COL_MODIFIED = 17` ; le `Worksheet_Change` reste restreint à `A:N`, donc éditer O/P/Q ne déclenche ni dirty-flag ni validations.
+
+### ⚠️ Application dans le classeur (snippets fournis)
+1. Coller **`powerquery/GS_Pleins.m`** (16 col) puis *Actualiser* : `Photo ticket` apparaît en col P, et la colonne `Modifie_local` existante glisse en col Q.
+2. Réimporter **`vba/modSyncGS.bas`** et **`vba/GS_Pleins_snippet.bas`** (consts `COL_PHOTO`/`COL_MODIFIED` à jour).
+3. Vérifier après *Actualiser* : en-tête col P = « Photo ticket », col Q = « Modifie_local » (réinitialisé à la prochaine ouverture / `ForceFormatDates`).
+
 ## [4.3.0.4] — 2026-05-31
 
 ### Audit — alignement du classeur Excel local ↔ GAS / Google Sheet

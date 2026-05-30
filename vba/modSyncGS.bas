@@ -32,8 +32,9 @@ Private Const GAS_URL     As String = "https://script.google.com/macros/s/AKfycb
 ' propriete APP_TOKEN n'est pas posee cote GAS, ce token est ignore.
 Private Const APP_TOKEN   As String = "e85_a7f3c9e21b8d4f60a5c3e8b7d12f6049"
 Private Const WS_NAME     As String = "GS_Pleins"
-Private Const COL_SYNC_ID As Integer = 15  ' O
-Private Const COL_MODIFIED As Integer = 16 ' P  timestamp derniere modif locale
+Private Const COL_SYNC_ID  As Integer = 15  ' O
+Private Const COL_PHOTO    As Integer = 16  ' P  URL Drive photo ticket (importee depuis GS)
+Private Const COL_MODIFIED As Integer = 17  ' Q  timestamp derniere modif locale (col interne, hors GS)
 
 ' Liste curee des stations essence (poussee vers la feuille "Stations" du GS)
 Private Const STATIONS_WS  As String = "Notes"
@@ -289,9 +290,14 @@ Public Sub ForceFormatDates()
     EnsureModifiedColHeader ws
 End Sub
 
-' Initialise le header col P et son format date/heure
+' Initialise les en-tetes des colonnes internes (P = Photo ticket importee de
+' GS, Q = Modifie_local) et le format de la col Q. La requete Power Query pose
+' deja l'en-tete "Photo ticket" (col P) : le test "" evite tout ecrasement.
 Private Sub EnsureModifiedColHeader(ws As Worksheet)
     On Error Resume Next
+    If CStr(ws.Cells(1, COL_PHOTO).Value) = "" Then
+        ws.Cells(1, COL_PHOTO).Value = "Photo ticket"
+    End If
     If CStr(ws.Cells(1, COL_MODIFIED).Value) = "" Then
         ws.Cells(1, COL_MODIFIED).Value = "Modifie_local"
         ws.Cells(1, COL_MODIFIED).Font.Italic = True
@@ -472,7 +478,7 @@ Private Function ImportGSToExcel(ws As Worksheet, gsRecs() As String, _
                 Set rng = tbl.ListRows.Add.Range
             Else
                 lr = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1
-                Set rng = ws.Range(ws.Cells(lr, 1), ws.Cells(lr, COL_SYNC_ID))
+                Set rng = ws.Range(ws.Cells(lr, 1), ws.Cells(lr, COL_MODIFIED))
             End If
 
             rng(1).Value  = ParseDt(JsonGet(rec, "Horodatage"))
@@ -490,7 +496,8 @@ Private Function ImportGSToExcel(ws As Worksheet, gsRecs() As String, _
             rng(13).Value = ToNum(JsonGet(rec, K("Gazole station ({E}/L)")))
             rng(14).Value = ToNum(JsonGet(rec, K("GPLc station ({E}/L)")))
             rng(15).Value = sid
-            ' Col 16 laissee vide : nouvelle ligne, propre
+            rng(16).Value = JsonGet(rec, "Photo ticket")   ' P - URL photo importee de GS
+            ' Col 17 (Modifie_local) laissee vide : nouvelle ligne, propre
 
             localIds(sid) = True
             added = added + 1
@@ -557,8 +564,9 @@ NoMatch:
     On Error GoTo 0
 End Function
 
-' Ecrase les champs de donnees (cols 2-14) d'une ligne locale depuis le record GS.
-' Ne touche pas col 1 (horodatage), col 15 (sync_id), col 16 (modified).
+' Ecrase les champs de donnees (cols 2-14) + Photo ticket (col 16) d'une ligne
+' locale depuis le record GS.
+' Ne touche pas col 1 (horodatage), col 15 (sync_id), col 17 (Modifie_local).
 Private Sub UpdateRowFromGS(ws As Worksheet, r As Long, rec As String)
     Application.EnableEvents = False
     On Error Resume Next
@@ -575,6 +583,7 @@ Private Sub UpdateRowFromGS(ws As Worksheet, r As Long, rec As String)
     ws.Cells(r, 12).Value = ToNum(JsonGet(rec, K("E10 station ({E}/L)")))
     ws.Cells(r, 13).Value = ToNum(JsonGet(rec, K("Gazole station ({E}/L)")))
     ws.Cells(r, 14).Value = ToNum(JsonGet(rec, K("GPLc station ({E}/L)")))
+    ws.Cells(r, COL_PHOTO).Value = JsonGet(rec, "Photo ticket")
     On Error GoTo 0
     Application.EnableEvents = True
 End Sub
