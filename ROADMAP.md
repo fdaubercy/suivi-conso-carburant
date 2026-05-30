@@ -162,6 +162,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.3.0.8 | **`frmNouveauPlein` multi-véhicules** — ComboBox `cmbVehicule` (liste `Vehicules` ∪ `GS_Pleins` col H, pré-sélection du dernier utilisé) ; véhicule choisi → col H ; validation ajoutée |
 | v3.3.0.9 | **`Tableau2` = vue dérivée de `GS_Pleins`** — `SyncTableau2DepuisGS` tire les colonnes brutes par `INDEX`, **préserve les 9 colonnes de calcul**, aligne les lignes ; auto-déclenché après chaque saisie ; + macro `VerifierInstallation` + `INSTALL.md` |
 | v3.3.0.10 | **Fix position INDEX Tableau2** — `ROW()-15` codé en dur remplacé par `ROW()-ROW(Tableau2[#Headers])` (robuste si la table est décalée) ; formule posée par macro (`.Formula` traduit la locale) |
+| v3.3.0.11 | **Fix rapport mensuel** — économie E85 vs SP98 non nulle (prix SP98 de repli sur tout l'historique + prix des pleins Super 98) ; mois affiché en français (`moisEnFrancais`) au lieu de la locale anglaise |
 
 ---
 

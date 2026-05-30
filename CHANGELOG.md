@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.3.0.11] — 2026-05-30
+
+### Fixed
+- **Rapport mensuel — « Économie E85 vs SP98 » à 0 €** (`RapportMensuel.gs`) : le prix SP98 de repli n'était calculé que sur les pleins E85 **du mois** ; un mois sans prix SP98 renseigné donnait une économie nulle. Désormais calculé sur **tout l'historique**, avec deux sources (prix SP98 relevé des pleins E85 + prix payé des pleins Super 98, dont le prix est un prix SP98) — aligné sur l'app web / le `Tableau2` Excel.
+- **Rapport mensuel — mois en anglais** : `Utilities.formatDate(..., 'MMMM yyyy')` suivait la locale (anglaise) du script → « April 2026 ». Nouvelle fonction `moisEnFrancais()` (libellé FR en dur, ex. « avril 2026 »), indépendante de la locale.
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.3.0.11`.
+
 ## [3.3.0.10] — 2026-05-30
 
 ### Fixed

@@ -1,5 +1,5 @@
 // ============================================================
-//  SUIVI CONSO E85 — Rapport mensuel automatique     v3.3.0.0
+//  SUIVI CONSO E85 — Rapport mensuel automatique     v3.3.0.11
 //  Roadmap X16
 //
 //  Trigger temporel (1er du mois) -> MailApp.sendEmail() avec
@@ -74,7 +74,7 @@ function envoyerRapportMensuel() {
   const now   = new Date();
   const debut = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const fin   = new Date(now.getFullYear(), now.getMonth(), 1); // 1er du mois courant (exclu)
-  const moisLabel = Utilities.formatDate(debut, tz, 'MMMM yyyy');
+  const moisLabel = moisEnFrancais(debut, tz);
 
   const stats = calculerStatsRapport(data, debut, fin);
 
@@ -94,6 +94,18 @@ function envoyerRapportMensuel() {
     name: 'Suivi E85'
   });
   Logger.log('Rapport mensuel envoye a ' + dest + ' (' + stats.nbPleins + ' pleins).');
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Libelle "mois annee" en francais (independant de la locale du
+//  script). Ex : avril 2026.
+// ─────────────────────────────────────────────────────────────
+function moisEnFrancais(d, tz) {
+  const MOIS_FR = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin',
+                   'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+  const numMois = Number(Utilities.formatDate(d, tz, 'MM'));   // 1..12
+  const annee   = Utilities.formatDate(d, tz, 'yyyy');
+  return MOIS_FR[numMois - 1] + ' ' + annee;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -131,12 +143,23 @@ function calculerStatsRapport(data, debut, fin) {
   let kmMin = Infinity, kmMax = -Infinity;
   let coutE85 = 0, coutSp98Equiv = 0;
 
-  // Prix SP98 moyen connu (repli pour pleins E85 sans SP98) — sur le mois
-  const sp98Connus = rows
-    .filter(r => isE85(r[cType]) && toNum(r[cSp98]) > 0)
-    .map(r => toNum(r[cSp98]));
-  const sp98Moyen = sp98Connus.length
-    ? sp98Connus.reduce((s, p) => s + p, 0) / sp98Connus.length
+  // Prix SP98 de reference (repli pour les pleins E85 sans SP98 renseigne).
+  // Calcule sur TOUT l'historique (pas seulement le mois) sinon un mois sans
+  // prix SP98 donne une economie nulle. Deux sources :
+  //   - prix SP98 releve sur les pleins E85 (colonne "SP98 station") ;
+  //   - prix paye sur les pleins Super 98 (leur prix EST un prix SP98).
+  const sp98Refs = [];
+  data.slice(1).forEach(r => {
+    if (isE85(r[cType])) {
+      const s = toNum(r[cSp98]);
+      if (s > 0) sp98Refs.push(s);
+    } else if (/98/.test(String(r[cType]))) {
+      const p = toNum(r[cPrix]);
+      if (p > 0) sp98Refs.push(p);
+    }
+  });
+  const sp98Moyen = sp98Refs.length
+    ? sp98Refs.reduce((s, p) => s + p, 0) / sp98Refs.length
     : 0;
 
   rows.forEach(r => {
