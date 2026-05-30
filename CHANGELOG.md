@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.11.0.1] — 2026-05-30
+
+### Fixed
+- **Nettoyage ESLint** — `js/stats.js` : bloc `catch {}` vide commenté (`no-empty`) ; `js/main.js` : retrait de l'import `resetForm` inutilisé (`no-unused-vars`).
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.11.0.1`.
+
 ## [3.11.0.0] — 2026-05-30
 
 ### Added
