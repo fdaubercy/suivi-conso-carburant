@@ -6,11 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Suivi E85">
+  <meta name="apple-mobile-web-app-title" content="Suivi Conso. Carburants">
   <meta name="theme-color" content="#1B3A5C">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon.svg">
-  <title>Suivi Conso E85</title>
+  <title>Suivi Conso. Carburants</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -190,6 +190,15 @@
   <div id="statsBox"><div class="stats-msg">Chargement…</div></div>
 </div>
 
+<!-- ─── Rapport mensuel consultable (X16) ─── -->
+<div class="card rapport-card">
+  <div class="hist-header">
+    <p class="section-title" style="margin-bottom:0">📅 Rapport mensuel</p>
+    <select id="rapportMois" class="hist-filter-sel" aria-label="Choisir le mois du rapport"></select>
+  </div>
+  <div id="rapportBox"><div class="stats-msg">Chargement…</div></div>
+</div>
+
 <!-- ─── Carte statique stations habituelles + prix moyens ─── -->
 <div class="card hidden" id="stationsMapCard"></div>
 
@@ -290,7 +299,7 @@
   </button>
 </div>
 
-<footer>Données enregistrées dans Google Sheets · Suivi Conso E85</footer>
+<footer>Données enregistrées dans Google Sheets · Suivi Conso. Carburants</footer>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

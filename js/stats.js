@@ -412,6 +412,7 @@ function buildPrediction() {
 
 /** Affiche les stats dans #statsBox. */
 export function renderStats() {
+  renderRapportMensuel();          // rafraîchit aussi le rapport mensuel consultable
   const el = document.getElementById('statsBox');
   if (!el) return;
 
@@ -461,6 +462,150 @@ export function renderStats() {
     ${buildPrixSparkline()}
     ${buildPrediction()}
   `;
+}
+
+/* ════════════════════════════════════════════════════════════
+   RAPPORT MENSUEL CONSULTABLE (réplique le mail GAS RapportMensuel.gs)
+   ════════════════════════════════════════════════════════════ */
+const MOIS_FR_LONG = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+
+function _monthKey(r) {
+  const d = new Date(String(r.Date || r.Horodatage || '').replace(' ', 'T'));
+  if (isNaN(d)) return null;
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+function _monthLabel(key) {
+  const [y, m] = key.split('-').map(Number);
+  return MOIS_FR_LONG[m - 1] + ' ' + y;
+}
+
+/** Mois présents dans l'historique (clé 'YYYY-MM'), du plus récent au plus ancien. */
+export function getReportMonths() {
+  const veh = state.currentVehiculeNom;
+  const all = getAllRecords();
+  const rows = veh ? all.filter(r => (r['Véhicule'] || r['Vehicule'] || '') === veh) : all;
+  const set = new Set();
+  rows.forEach(r => { const k = _monthKey(r); if (k) set.add(k); });
+  return [...set].sort().reverse();
+}
+
+/** Bilan d'un mois 'YYYY-MM' pour le véhicule courant (mêmes calculs que le mail). */
+export function buildMonthlyReport(monthKey) {
+  const veh = state.currentVehiculeNom;
+  const all = getAllRecords();
+  const byVeh = veh ? all.filter(r => (r['Véhicule'] || r['Vehicule'] || '') === veh) : all;
+  const rows = byVeh.filter(r => _monthKey(r) === monthKey);
+  if (!rows.length) return { monthKey, label: _monthLabel(monthKey), nbPleins: 0 };
+
+  let nbPleins = 0, totalCout = 0, totalLitres = 0, nbE85 = 0;
+  let kmMin = Infinity, kmMax = -Infinity;
+  rows.forEach(r => {
+    const lit  = Number(r['Nb. Litres']) || 0;
+    const prix = Number(r['Prix €/L']) || 0;
+    const km   = Number(r['Km compteur']) || 0;
+    if (lit > 0 && prix > 0) { nbPleins++; totalCout += lit * prix; totalLitres += lit; }
+    if (km > 0) { kmMin = Math.min(kmMin, km); kmMax = Math.max(kmMax, km); }
+    if (matchType(r.Type, 'E85')) nbE85++;
+  });
+  const kmParcourus = (kmMax > kmMin) ? (kmMax - kmMin) : 0;
+  const consoMoy = kmParcourus > 0 ? (totalLitres / kmParcourus) * 100 : 0;
+
+  // Prix SP98 de repli sur TOUT l'historique : pleins E85 avec prix SP98 relevé
+  // + prix payé des pleins Super 98 (dont le prix EST un prix SP98).
+  const surconso = computeSurconso(byVeh);
+  const sp98Refs = [];
+  byVeh.forEach(r => {
+    if (matchType(r.Type, 'E85')) {
+      const s = Number(r['SP98 station (€/L)']) || 0;
+      if (s > 0) sp98Refs.push(s);
+    } else if (matchType(r.Type, 'SP98')) {
+      const p = Number(r['Prix €/L']) || 0;
+      if (p > 0) sp98Refs.push(p);
+    }
+  });
+  const sp98Moyen = sp98Refs.length ? sp98Refs.reduce((s, p) => s + p, 0) / sp98Refs.length : 0;
+
+  let coutE85 = 0, coutSp98Equiv = 0;
+  rows.forEach(r => {
+    if (!matchType(r.Type, 'E85')) return;
+    const lit  = Number(r['Nb. Litres']) || 0;
+    const prix = Number(r['Prix €/L']) || 0;
+    if (lit <= 0 || prix <= 0) return;
+    const sp98 = (Number(r['SP98 station (€/L)']) || 0) || sp98Moyen;
+    coutE85 += lit * prix;
+    if (sp98 > 0) coutSp98Equiv += (lit / (1 + surconso)) * sp98;
+  });
+  const econBrute = coutSp98Equiv - coutE85;
+
+  return { monthKey, label: _monthLabel(monthKey), nbPleins, nbE85,
+           totalCout, totalLitres, kmParcourus, consoMoy, econBrute, surconso };
+}
+
+/** Affiche le rapport mensuel dans #rapportBox et (re)peuple le sélecteur de mois. */
+export function renderRapportMensuel() {
+  const box = document.getElementById('rapportBox');
+  if (!box) return;
+  const sel = document.getElementById('rapportMois');
+
+  const months = getReportMonths();
+  if (!months.length) {
+    if (sel) sel.innerHTML = '';
+    box.innerHTML = '<div class="stats-msg">Aucun plein enregistré.</div>';
+    return;
+  }
+
+  if (sel) {
+    const prev = sel.value;
+    sel.innerHTML = months.map(k => `<option value="${k}">${_monthLabel(k)}</option>`).join('');
+    sel.value = months.includes(prev) ? prev : months[0];
+  }
+  const key = (sel && sel.value) || months[0];
+  const s = buildMonthlyReport(key);
+
+  if (!s.nbPleins) {
+    box.innerHTML = `<div class="stats-msg">Aucun plein en ${s.label}.</div>`;
+    return;
+  }
+
+  const ecoClass = s.nbE85 ? (s.econBrute > 0 ? 'pos' : (s.econBrute < 0 ? 'neg' : '')) : '';
+  const ecoSign  = s.econBrute > 0 ? '+' : '';
+  const ecoCell  = s.nbE85
+    ? `<div class="stat-val">${ecoSign}${s.econBrute.toFixed(0)} €</div>
+       <div class="stat-unit">éco. E85 vs SP98</div>`
+    : `<div class="stat-val">—</div>
+       <div class="stat-unit">aucun plein E85</div>`;
+
+  box.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat">
+        <div class="stat-val">${s.nbPleins}</div>
+        <div class="stat-unit">plein(s)${s.nbE85 ? ' · ' + s.nbE85 + ' E85' : ''}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">${s.totalCout.toFixed(0)} €</div>
+        <div class="stat-unit">dépensés</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">${s.totalLitres.toFixed(1)}</div>
+        <div class="stat-unit">litres</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">${s.kmParcourus.toLocaleString('fr-FR')}</div>
+        <div class="stat-unit">km parcourus</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">${s.consoMoy > 0 ? s.consoMoy.toFixed(1) : '—'}</div>
+        <div class="stat-unit">L / 100 km</div>
+      </div>
+      <div class="stat ${ecoClass}">${ecoCell}</div>
+    </div>
+    <div class="stats-sub">${s.label} · ${state.currentVehiculeNom || 'tous véhicules'}</div>`;
+}
+
+/** Câble le sélecteur de mois du rapport. À appeler une fois depuis main.js. */
+export function initRapport() {
+  document.getElementById('rapportMois')?.addEventListener('change', () => renderRapportMensuel());
 }
 
 /**

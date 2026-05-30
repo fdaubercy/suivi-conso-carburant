@@ -1,10 +1,10 @@
-# ⛽ Suivi Conso E85 — Formulaire de saisie
+# ⛽ Suivi Conso. Carburants — Formulaire de saisie
 
 Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 98)
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v3.3.0.0**
+> 🔖 Version courante : **v3.4.0.0**
 
 ## 🌐 Accès
 
@@ -265,8 +265,10 @@ suivi-e85/
 │   ├── Réponses - Suivi E85.xlsx
 │   └── Sauvegarde & Geolocalisation - Suivi conso SuperEthanol/
 │       └── Google Apps Script/
-│           ├── Code.gs              # Backend GAS v2.16.0.0 (16 col + sync bidir. + ?since= + rate limiting)
+│           ├── Code.gs              # Backend GAS (16 col + sync bidir. + ?since= + rate limiting + savePushSub/lowprice)
 │           ├── RapportMensuel.gs    # X16 trigger 1er du mois → MailApp.sendEmail() bilan mensuel
+│           ├── RefreshPrix.gs       # S8 trigger quotidien → onglet _PrixHistory (Station/Date/Type/Prix)
+│           ├── WebPush.gs           # S10 Web Push VAPID (ES256/P-256 pur JS) — alerte prix E85 bas
 │           ├── index.html           # Page HTML servie par GAS (standalone)
 │           └── GAS_UPDATE.md        # Doc : actions doPost, schéma 16 cols, migrations
 │
@@ -414,7 +416,7 @@ Les colonnes Date / Type / Prix sont détectées **par en-tête** (pas d'index f
 
 ## 📧 Rapport mensuel automatique (X16)
 
-Module `Google Apps Script/RapportMensuel.gs` : un **trigger temporel** (le **1er du mois**, ~8 h) appelle `envoyerRapportMensuel()` qui calcule le bilan du **mois écoulé** et l'envoie par **`MailApp.sendEmail()`** (corps HTML).
+Module `Google Apps Script/RapportMensuel.gs` : un **trigger temporel** (le **1er du mois**, ~8 h) appelle `envoyerRapportMensuel()` qui calcule le bilan du **mois écoulé** et l'envoie par **`MailApp.sendEmail()`** (corps HTML), signé **« Suivi Conso. Carburants »**. Le mois est affiché au format **nom propre** (ex. « Avril 2026 »).
 
 Indicateurs : nombre de pleins (dont E85), total €, litres consommés, distance parcourue, consommation moyenne, **économie E85 vs SP98** (surconsommation +20 % prise en compte, même méthode que l'app web / le dashboard Excel).
 
@@ -425,6 +427,32 @@ Indicateurs : nombre de pleins (dont E85), total €, litres consommés, distanc
 | `supprimerTriggerRapportMensuel()` | Désactive le rapport |
 
 Destinataire = compte qui exécute le script (`Session.getEffectiveUser`) ou adresse forcée via `RAPPORT_EMAIL`.
+
+> 📱 **Consultable dans l'app** : la carte « 📅 Rapport mensuel » (avec sélecteur de mois) reproduit le bilan directement dans le formulaire web (`js/stats.js` `renderRapportMensuel`), sans attendre l'e-mail.
+
+---
+
+## 🔄 Refresh quotidien des prix + Web Push (S8 + S10)
+
+Module `Google Apps Script/RefreshPrix.gs` : un **trigger temporel quotidien** (`everyDays(1)`, ~7 h) appelle `refreshPrixCarburants()` qui parcourt l'onglet **`Stations`**, extrait la ville de chaque nom (`Enseigne - Ville`), récupère le **prix E85 le plus bas** de la commune via l'API gouv, et logue chaque relevé dans un onglet **`_PrixHistory`** (Station, Date, Type, Prix €/L) → historique exploitable pour des graphiques d'évolution.
+
+| Fonction | Usage |
+|---|---|
+| `installerTriggerRefreshPrix()` | À exécuter **une fois** (installe le trigger quotidien) |
+| `testRefreshPrix()` | Lance le refresh immédiatement |
+| `supprimerTriggerRefreshPrix()` | Désactive le refresh |
+
+**Notification push (S10)** — module `Google Apps Script/WebPush.gs` : quand le refresh détecte un prix E85 **≤ seuil** (`SEUIL_PUSH_E85`, défaut 0,700 €/L), une **Web Push VAPID** est envoyée aux appareils abonnés **même app fermée**. Implémentation **sans dépendance** : JWT **ES256 / courbe P-256** en pur JS (BigInt), push **sans payload** (le Service Worker récupère le détail via `?action=lowprice`).
+
+Mise en place (une fois) :
+
+1. Apps Script → exécuter **`generateVapidKeys()`** → copier la clé publique loggée.
+2. La coller dans `js/config.js` : `export const VAPID_PUBLIC_KEY = '<clé>';` puis redéployer l'app.
+3. Activer le toggle **🔔 Alertes prix E85** dans l'app (abonnement envoyé à GAS → onglet `_PushSubs`).
+4. (Optionnel) Propriétés du script : `VAPID_SUBJECT` (`mailto:…`), `SEUIL_PUSH_E85`.
+5. Tester : `testEnvoyerPush()`.
+
+> Sans clé VAPID configurée, le push est désactivé et seules les **alertes locales** (app ouverte) restent actives.
 
 ---
 

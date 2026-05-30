@@ -84,14 +84,14 @@ function envoyerRapportMensuel() {
     return;
   }
 
-  const sujet = '[Suivi E85] Rapport mensuel — ' + moisLabel;
+  const sujet = '[Suivi Conso. Carburants] Rapport mensuel — ' + moisLabel;
   const html  = construireCorpsRapport(moisLabel, stats);
 
   MailApp.sendEmail({
     to: dest,
     subject: sujet,
     htmlBody: html,
-    name: 'Suivi E85'
+    name: 'Suivi Conso. Carburants'
   });
   Logger.log('Rapport mensuel envoye a ' + dest + ' (' + stats.nbPleins + ' pleins).');
 }
@@ -101,8 +101,8 @@ function envoyerRapportMensuel() {
 //  script). Ex : avril 2026.
 // ─────────────────────────────────────────────────────────────
 function moisEnFrancais(d, tz) {
-  const MOIS_FR = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin',
-                   'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+  const MOIS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
   const numMois = Number(Utilities.formatDate(d, tz, 'MM'));   // 1..12
   const annee   = Utilities.formatDate(d, tz, 'yyyy');
   return MOIS_FR[numMois - 1] + ' ' + annee;
@@ -203,7 +203,7 @@ function construireCorpsRapport(moisLabel, s) {
 
   if (s.nbPleins === 0) {
     return '<div style="font-family:Arial,sans-serif;color:#333">' +
-      '<h2 style="color:#1B3A5C">⛽ Suivi E85 — ' + moisLabel + '</h2>' +
+      '<h2 style="color:#1B3A5C">⛽ Suivi Conso. Carburants — ' + moisLabel + '</h2>' +
       '<p>Aucun plein enregistre sur cette periode.</p></div>';
   }
 
@@ -216,7 +216,7 @@ function construireCorpsRapport(moisLabel, s) {
   return '' +
     '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#333;max-width:520px">' +
       '<h2 style="color:#1B3A5C;border-bottom:2px solid #1D9E75;padding-bottom:6px">' +
-        '⛽ Suivi E85 — ' + moisLabel +
+        '⛽ Suivi Conso. Carburants — ' + moisLabel +
       '</h2>' +
       '<p>Voici le bilan de vos pleins pour <strong>' + moisLabel + '</strong> :</p>' +
       '<table style="border-collapse:collapse;width:100%">' +
@@ -227,8 +227,10 @@ function construireCorpsRapport(moisLabel, s) {
         ligne('Consommation moyenne', (s.consoMoy > 0 ? f2(s.consoMoy) + ' L/100 km' : 'n/d')) +
         '<tr>' +
           '<td style="padding:8px 12px;color:#6B7280">Économie E85 vs SP98</td>' +
-          '<td style="padding:8px 12px;text-align:right;font-weight:700;color:' + ecoColor + '">' +
-            ecoSign + eur(s.ecoBrute) + ' €' +
+          '<td style="padding:8px 12px;text-align:right;font-weight:700;color:' +
+            (s.nbE85 ? ecoColor : '#9CA3AF') + '">' +
+            (s.nbE85 ? (ecoSign + eur(s.ecoBrute) + ' €')
+                     : '— <span style="font-weight:400;font-size:11px">(aucun plein E85)</span>') +
           '</td>' +
         '</tr>' +
       '</table>' +

@@ -1,11 +1,16 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   Service Worker — Suivi E85
+   Service Worker — Suivi Conso. Carburants
    Stratégie : network-first → cache fallback (offline shell)
    Cache dynamique : toutes les ressources same-origin sont mises en cache
    lors du premier chargement réseau réussi.
+   S8 — Web Push : réception des alertes prix E85 bas (payload-less → fetch GAS).
 ═══════════════════════════════════════════════════════════════════════ */
 
 const CACHE = 'suivi-e85-shell-v__SW_VERSION__';
+
+/* GAS — endpoint du dernier prix E85 bas détecté (push sans payload) */
+const GAS_LOWPRICE_URL =
+  'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec?action=lowprice';
 
 /* ── Install : prendre la main immédiatement ─────────────────────────── */
 self.addEventListener('install', event => {
@@ -82,4 +87,50 @@ self.addEventListener('sync', event => {
  *  Déclenche la prise de contrôle immédiate → controllerchange → reload. */
 self.addEventListener('message', event => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+/* ── S8 — Push : alerte prix E85 bas envoyée par GAS (refresh quotidien) ─ *
+ *  Push sans payload (VAPID) : on récupère le détail du prix bas auprès    *
+ *  de GAS (?action=lowprice) pour enrichir la notification.               */
+self.addEventListener('push', event => {
+  event.waitUntil((async () => {
+    const title = '🌿 Prix E85 avantageux !';
+    let   body  = 'Un prix E85 bas a été détecté près de vos stations habituelles.';
+
+    /* Payload éventuel (si le push en contient un) sinon fetch GAS */
+    let info = null;
+    try { info = event.data ? event.data.json() : null; } catch (_) { info = null; }
+    if (!info || info.prix == null) {
+      try {
+        const resp = await fetch(GAS_LOWPRICE_URL, { cache: 'no-store' });
+        if (resp.ok) info = await resp.json();
+      } catch (_) { /* hors-ligne — notification générique */ }
+    }
+    if (info && info.prix != null) {
+      body = `⛽ E85 à ${Number(info.prix).toFixed(3)} €/L`
+           + (info.station ? `\n📍 ${info.station}` : '');
+    }
+
+    await self.registration.showNotification(title, {
+      body,
+      icon:  'icons/icon.svg',
+      badge: 'icons/icon.svg',
+      tag:   'e85-price-push',
+      renotify: true,
+      data:  { url: './' }
+    });
+  })());
+});
+
+/* ── S8 — Clic sur la notification : focus l'app ou l'ouvre ───────────── */
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const target = event.notification.data?.url || './';
+  event.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of all) {
+      if ('focus' in c) { c.navigate?.(target); return c.focus(); }
+    }
+    if (self.clients.openWindow) return self.clients.openWindow(target);
+  })());
 });

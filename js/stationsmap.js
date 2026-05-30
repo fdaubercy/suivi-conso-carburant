@@ -1,9 +1,14 @@
 /* ─── Carte statique Stations habituelles + prix moyens E85 ─── */
 import { getAllRecords }  from './historique.js';
-import { escHtml }        from './utils.js';
+import { escHtml, getCoords } from './utils.js';
+import { PRIX_API }       from './config.js';
 
 const COORD_CACHE_KEY = 'suivi_e85_station_coords';
 const TILE_SZ = 256;
+
+// Noms déjà géocodés (ou tentés sans succès) durant cette session — évite de
+// re-lancer une requête réseau à chaque rendu de la card.
+const _geocodeTried = new Set();
 
 // ── Math tuiles (même logique que carte.js) ─────────────────────────────────
 function tileXY(lat, lon, z) {
@@ -77,6 +82,11 @@ export function renderStationsCard() {
   const mapStations = avgs
     .filter(s => coordCache[s.name])
     .map(s => ({ ...coordCache[s.name], name: s.name, avg: s.avg, count: s.count }));
+
+  // Stations habituelles sans coordonnées connues → géocodage en tâche de fond
+  // (parse la ville depuis le nom, résout via l'API gouv.) puis re-rendu de la card.
+  const missing = avgs.filter(s => !coordCache[s.name] && !_geocodeTried.has(s.name));
+  if (missing.length) _geocodeMissing(missing);
 
   const minAvg = avgs[0]?.avg ?? 0;
 
@@ -159,6 +169,42 @@ function _renderStaticMap(stations) {
            text-decoration:none;z-index:20">© OSM</a>`;
 
   container.innerHTML = html;
+}
+
+// ── Géocodage des stations habituelles sans coordonnées ──────────────────────
+
+/** Extrait la ville d'un nom de station "Enseigne - Ville" → "Ville". */
+function _villeFromName(name) {
+  const parts = String(name).split(/\s[-–]\s/);            // " - " ou " – "
+  const ville = (parts.length > 1 ? parts[parts.length - 1] : '').trim();
+  return ville;
+}
+
+/**
+ * Résout les coordonnées des stations manquantes via l'API gouv. (1 requête par
+ * station, sur la ville), persiste dans le cache, puis re-rend la card une fois
+ * terminé. Tolérant aux erreurs réseau (chaque station marquée « tentée »).
+ */
+async function _geocodeMissing(stations) {
+  let resolved = 0;
+  for (const s of stations) {
+    _geocodeTried.add(s.name);
+    const ville = _villeFromName(s.name);
+    if (!ville) continue;
+    try {
+      const url = PRIX_API + '?' + new URLSearchParams({
+        where:  `e85_prix is not null and ville like "${ville.replace(/"/g, '')}%"`,
+        select: 'geom',
+        limit:  '1'
+      });
+      const resp = await fetch(url);
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      const c = data.results?.[0] ? getCoords(data.results[0]) : null;
+      if (c && c.lat && c.lon) { cacheStationCoords(s.name, c.lat, c.lon); resolved++; }
+    } catch (_) { /* réseau indisponible — réessai possible plus tard */ }
+  }
+  if (resolved) renderStationsCard();   // re-rendu avec les nouveaux marqueurs
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

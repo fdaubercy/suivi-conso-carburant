@@ -75,10 +75,16 @@ function doGet(e) {
     return handleExport(e);
   }
 
+  // S8 — dernier prix E85 bas détecté (pour enrichir un push sans payload)
+  if (e.parameter.action === 'lowprice') {
+    const raw = PropertiesService.getScriptProperties().getProperty('LAST_LOW_PRICE');
+    return jsonResponse(raw ? JSON.parse(raw) : {});
+  }
+
   const isMobile = (e.parameter.v === 'mobile');
   return HtmlService
     .createHtmlOutputFromFile(isMobile ? 'iphone' : 'index')
-    .setTitle('Suivi E85 — Saisie plein')
+    .setTitle('Suivi Conso. Carburants — Saisie plein')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
@@ -134,6 +140,11 @@ function doPost(e) {
     const sheet = ss.getSheetByName(STATIONS_SHEET);
     sheet.appendRow([payload.station]);
     return jsonResponse({ success: true });
+  }
+
+  // S8 — enregistrement d'un abonnement Web Push (voir WebPush.gs)
+  if (payload.action === 'savePushSub') {
+    return handleSavePushSub(ss, payload);
   }
 
   if (payload.action === 'syncStations') {

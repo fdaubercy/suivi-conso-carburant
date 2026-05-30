@@ -17,6 +17,8 @@
      Firefox Desktop     : supporté
 ═══════════════════════════════════════════════════════════════════════ */
 
+import { GAS_URL, VAPID_PUBLIC_KEY } from './config.js';
+
 const KEY_ENABLED   = 'notif_e85_enabled';
 const KEY_SEUIL     = 'notif_e85_seuil';
 const DEFAULT_SEUIL = 0.850;
@@ -67,12 +69,14 @@ export async function toggleNotifications(enable) {
 
   if (!enable) {
     localStorage.removeItem(KEY_ENABLED);
+    unregisterPushSubscription();
     updateNotifUI();
     return false;
   }
 
   if (Notification.permission === 'granted') {
     localStorage.setItem(KEY_ENABLED, '1');
+    registerPushSubscription();
     updateNotifUI();
     return true;
   }
@@ -94,6 +98,7 @@ export async function toggleNotifications(enable) {
 
   if (perm === 'granted') {
     localStorage.setItem(KEY_ENABLED, '1');
+    registerPushSubscription();
     updateNotifUI();
     new Notification('✓ Alertes E85 activées', {
       body: `Vous serez alerté quand l'E85 passe sous ${getSeuil().toFixed(3)} €/L.`,
@@ -106,6 +111,60 @@ export async function toggleNotifications(enable) {
     updateNotifUI();
     return false;
   }
+}
+
+/* ─── S8 — Abonnement Web Push (VAPID) ───────────────────────────────────
+   Quand les alertes sont activées et qu'une clé VAPID publique est configurée,
+   on s'abonne au PushManager et on envoie l'abonnement à GAS. Le refresh
+   quotidien GAS peut alors notifier un prix E85 bas même app fermée.
+   Sans clé VAPID : silencieux, seules les alertes locales restent actives. */
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw     = atob(base64);
+  const out     = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+export async function registerPushSubscription() {
+  if (!VAPID_PUBLIC_KEY) return;                                  // push GAS désactivé
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  if (Notification.permission !== 'granted') return;
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub   = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly:      true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    /* Envoi (fire-and-forget) de l'abonnement + seuil à GAS */
+    await fetch(GAS_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // évite le preflight CORS
+      body:    JSON.stringify({
+        action:       'savePushSub',
+        subscription: sub.toJSON(),
+        seuil:        getSeuil()
+      })
+    });
+  } catch (e) {
+    /* Abonnement impossible (refus, navigateur sans push…) — non bloquant */
+    console.warn('Push subscribe échoué :', e?.message || e);
+  }
+}
+
+export async function unregisterPushSubscription() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) await sub.unsubscribe();
+  } catch (_) { /* silencieux */ }
 }
 
 /* ─── Vérification prix ──────────────────────────────────────────────── */
@@ -186,6 +245,9 @@ export function updateNotifUI() {
 export function initNotifications() {
   updateNotifUI();
 
+  /* Réabonnement push si les alertes sont déjà actives (sub fraîche + seuil) */
+  if (isEnabled()) registerPushSubscription();
+
   /* Le toggle est toujours câblé, même sur iOS browser, pour fournir
      un retour visuel (bref flash vert → retour à off) + message animé. */
   const toggle = document.getElementById('notifToggle');
@@ -216,6 +278,7 @@ export function initNotifications() {
     inp.addEventListener('change', () => {
       setSeuil(inp.value);
       inp.value = getSeuil().toFixed(3);
+      if (isEnabled()) registerPushSubscription();   // propage le nouveau seuil à GAS
     });
   }
 }

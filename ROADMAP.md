@@ -48,8 +48,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | S3 | **Suppression bidirectionnelle** : flag `_deleted` au lieu de hard delete, sync efface l'autre côté | Cohérence si on corrige une erreur |
 | S4 | **Bouton "Force resync"** : vide `GS_Pleins`, ré-importe tout depuis GS | Reset si désalignement |
 | S5 | **Conflict resolution avancée** : si même `sync_id` modifié des 2 côtés, garder le plus récent (timestamp) plutôt qu'Excel-wins systématique | Édition simultanée web/Excel sans perte |
-| S8 | **Refresh quotidien des prix carburants** : trigger temporel GAS (`ScriptApp.newTrigger().timeBased().everyDays(1)`) qui parcourt l'onglet `Stations`, fetch le prix actuel via l'API gov, et logue chaque résultat dans un nouvel onglet `_PrixHistory` (station, date, type, prix) | Permet de tracer l'évolution prix par station dans le temps → graphiques Excel + détection des baisses |
-| S10 | **Notification push depuis GAS** : couplé à S8, envoyer une Web Push (VAPID) quand un prix E85 très bas est détecté lors du refresh quotidien — sans que l'app soit ouverte | Alerte passive · complément naturel de S8 + W11 déjà implémenté · effort 2 j (VAPID complexe) |
 
 ### 🛡️ Sécurité
 
@@ -67,7 +65,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | 2 | **S6** — Token secret sur les endpoints GAS | 30 min | Sécurité minimale, données aujourd'hui publiques |
 | 3 | **W25** — Export CSV de l'historique | 1 h | Justificatif employeur/fiscalité · zéro backend |
 | 4 | **X9** — Économies cumulées E85 vs SP98 | ½ j | ROI E85 chiffré depuis les données existantes |
-| 5 | **S8** — Refresh quotidien prix par trigger GAS | 1 j | Historique prix par station + alerte passive |
+| 5 | **S6** — Token secret sur les endpoints GAS | 30 min | Sécurité minimale, données aujourd'hui publiques |
 
 ---
 
@@ -163,6 +161,10 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.3.0.9 | **`Tableau2` = vue dérivée de `GS_Pleins`** — `SyncTableau2DepuisGS` tire les colonnes brutes par `INDEX`, **préserve les 9 colonnes de calcul**, aligne les lignes ; auto-déclenché après chaque saisie ; + macro `VerifierInstallation` + `INSTALL.md` |
 | v3.3.0.10 | **Fix position INDEX Tableau2** — `ROW()-15` codé en dur remplacé par `ROW()-ROW(Tableau2[#Headers])` (robuste si la table est décalée) ; formule posée par macro (`.Formula` traduit la locale) |
 | v3.3.0.11 | **Fix rapport mensuel** — économie E85 vs SP98 non nulle (prix SP98 de repli sur tout l'historique + prix des pleins Super 98) ; mois affiché en français (`moisEnFrancais`) au lieu de la locale anglaise |
+| v3.4.0.0 | **Refresh quotidien des prix (S8)** — `RefreshPrix.gs` : trigger GAS `everyDays(1)` qui parcourt l'onglet `Stations`, fetch le prix E85 le plus bas de la ville via l'API gov et logue chaque résultat dans `_PrixHistory` (Station, Date, Type, Prix) ; `installerTriggerRefreshPrix()` / `testRefreshPrix()` |
+| v3.4.0.0 | **Notification push depuis GAS (S10)** — `WebPush.gs` : Web Push VAPID **sans payload** (JWT ES256 / P-256 implémenté en pur JS BigInt, zéro dépendance) envoyée quand un prix E85 ≤ seuil est détecté au refresh quotidien, **app fermée** ; abonnement côté client (`notifications.js` → `savePushSub`), handlers `push`/`notificationclick` du Service Worker (récupèrent le détail via `?action=lowprice`) ; `generateVapidKeys()` une fois |
+| v3.4.0.0 | **Fix marqueurs carte « stations habituelles »** — `stationsmap.js` : les stations sans coordonnées en cache (saisies hors géoloc) n'apparaissaient pas ; géocodage de secours (ville extraite du nom → API gov) + re-rendu, tous les marqueurs s'affichent |
+| v3.4.0.0 | **Renommage « Suivi Conso. Carburants »** — titre de la page web + app (`index.html`, `manifest.json`, `Code.gs`) et rapport mensuel envoyé (`RapportMensuel.gs` : sujet, expéditeur, en-têtes) ; rapport mensuel déjà consultable dans l'app (carte X16) |
 
 ---
 

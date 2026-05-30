@@ -4,6 +4,27 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.4.0.0] — 2026-05-30
+
+### Added
+- **Refresh quotidien des prix (S8)** — nouveau `Google Apps Script/RefreshPrix.gs` : trigger temporel `ScriptApp.newTrigger('refreshPrixCarburants').timeBased().everyDays(1).atHour(7)` qui parcourt l'onglet `Stations`, extrait la ville de chaque nom (`Enseigne - Ville`), fetch le prix **E85 le plus bas** de la ville via l'API gouv (`order_by=e85_prix asc`), et logue chaque résultat dans un nouvel onglet **`_PrixHistory`** (Station, Date, Type, Prix €/L). `installerTriggerRefreshPrix()` (une fois) + `testRefreshPrix()`.
+- **Notification push depuis GAS (S10)** — nouveau `Google Apps Script/WebPush.gs` : **Web Push VAPID sans payload** (RFC 8030). JWT **ES256 / courbe P-256** implémenté en **pur JS (BigInt)** — aucune librairie externe (signature ECDSA, multiplication scalaire, inverse modulaire). Quand `refreshPrixCarburants()` détecte un prix E85 ≤ seuil (`SEUIL_PUSH_E85`, défaut 0,700 €/L), il mémorise le meilleur prix (`LAST_LOW_PRICE`) et appelle `envoyerPushPrixBas()` → push à tous les abonnés, **app fermée**. `generateVapidKeys()` (une fois) génère la paire et stocke la privée dans les Propriétés du script.
+  - Côté client (`js/notifications.js`) : `registerPushSubscription()` s'abonne au `PushManager` (clé `VAPID_PUBLIC_KEY`) et envoie l'abonnement à GAS (`action=savePushSub`, stocké dans l'onglet `_PushSubs`) à l'activation des alertes, au démarrage et au changement de seuil ; `unregisterPushSubscription()` au désabonnement.
+  - Service Worker (`public/sw.js`) : handlers `push` (push sans payload → `fetch ?action=lowprice` pour enrichir la notification avec station + prix) et `notificationclick` (focus/ouverture de l'app).
+  - `Code.gs` : routes `doPost action=savePushSub` (→ `handleSavePushSub`) et `doGet ?action=lowprice`.
+
+### Changed
+- **Renommage « Suivi E85 » → « Suivi Conso. Carburants »** :
+  - Rapport mensuel envoyé (`RapportMensuel.gs`) — sujet de l'e-mail, nom de l'expéditeur (`name`) et en-têtes HTML (`<h2>`).
+  - App / page web — `<title>`, `apple-mobile-web-app-title`, `footer` (`index.html` + miroir GAS), `name`/`short_name`/`description` du `manifest.json`, `setTitle()` de `Code.gs`.
+- **`js/config.js`** — `APP_VERSION` → `3.4.0.0` ; nouvelle constante `VAPID_PUBLIC_KEY` (vide par défaut → push désactivé, alertes locales conservées).
+
+### Fixed
+- **Carte « Stations E85 habituelles » — marqueurs invisibles** (`js/stationsmap.js`) : seules les stations dont les coordonnées étaient en cache (sélectionnées via géoloc) apparaissaient ; les stations saisies autrement n'avaient aucun marqueur. Ajout d'un **géocodage de secours** (`_geocodeMissing`) — la ville est extraite du nom de station, résolue via l'API gouv, mise en cache, puis la carte est re-rendue avec tous les marqueurs.
+
+### Note
+- Le **rapport mensuel est consultable dans l'app** depuis la v3.3.0.x (carte « 📅 Rapport mensuel » avec sélecteur de mois, `js/stats.js` `renderRapportMensuel`) ; le mois y est déjà au format « nom propre » (ex. « Avril 2026 »).
+
 ## [3.3.0.11] — 2026-05-30
 
 ### Fixed

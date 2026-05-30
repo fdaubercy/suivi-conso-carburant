@@ -1,7 +1,7 @@
 {
-  "name": "Suivi Conso E85",
-  "short_name": "Suivi E85",
-  "description": "Saisie rapide des pleins SuperEthanol E85 — prix, km, station",
+  "name": "Suivi Conso. Carburants",
+  "short_name": "Suivi Conso.",
+  "description": "Saisie rapide des pleins carburant (E85, SP98, Gazole…) — prix, km, station",
   "start_url": "./",
   "display": "standalone",
   "orientation": "portrait",
