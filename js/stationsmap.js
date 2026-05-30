@@ -1,12 +1,33 @@
-/* ─── Carte statique Stations habituelles + prix moyens E85 ─── */
+/* ─── Carte statique Stations habituelles + prix moyens (multi-carburant W47) ─── */
 import { getAllRecords }  from './historique.js';
 import { escHtml, getCoords, haversine } from './utils.js';
-import { PRIX_API }       from './config.js';
+import { PRIX_API, FUEL_CONFIG } from './config.js';
 import { state }          from './state.js';
 import { showStationPopup } from './itineraire.js';
 
 const COORD_CACHE_KEY = 'suivi_e85_station_coords';
 const TILE_SZ = 256;
+
+// W47 — carburants proposés par le sélecteur de la vue Carte.
+const CARTE_FUELS = ['E85', 'GAZOLE', 'SP98'];
+// Jetons de reconnaissance du type d'un plein (le champ "Type" stocke un libellé
+// FUEL_CONFIG, mais on reste tolérant aux variantes/anciennes saisies).
+const FUEL_TOKENS = {
+  E85:    ['e85', 'ethanol', 'éthanol'],
+  GAZOLE: ['gazole', 'diesel', 'gasoil', 'gazoil'],
+  SP98:   ['sp98', 'super 98', 'super98', '98'],
+};
+
+// Carburant actuellement affiché sur la carte + suivi du choix utilisateur.
+let _selectedFuel  = null;    // résolu au 1er rendu (défaut = dernier plein du véhicule)
+let _userPickedFuel = false;  // l'utilisateur a-t-il cliqué le sélecteur cette session ?
+let _lastVehForFuel = null;   // véhicule pour lequel le défaut a été calculé
+
+/** Le type d'un plein correspond-il au carburant demandé ? */
+function _fuelMatch(fuelKey, typeStr) {
+  const t = String(typeStr || '').toLowerCase();
+  return (FUEL_TOKENS[fuelKey] || []).some(tok => t.includes(tok));
+}
 
 // Noms déjà géocodés (ou tentés sans succès) durant cette session — évite de
 // re-lancer une requête réseau à chaque rendu de la card.
@@ -65,15 +86,14 @@ export function cacheStationCoords(name, lat, lon, src) {
 
 // ── Calcul prix moyens ───────────────────────────────────────────────────────
 
-/** Retourne la liste [{name, avg, count}] triée par prix croissant (E85 uniquement). */
-export function computeStationAverages() {
+/** Liste [{name, avg, count}] triée par prix croissant pour un carburant donné. */
+export function computeStationAverages(fuelKey = 'E85') {
   const agg = {};
   getAllRecords().forEach(r => {
     const name = r['Station essence'];
     const prix = Number(r['Prix €/L']);
     if (!name || !isFinite(prix) || prix <= 0) return;
-    const type = String(r.Type || '').toLowerCase();
-    if (!type.includes('e85') && !type.includes('ethanol')) return;
+    if (!_fuelMatch(fuelKey, r.Type)) return;
     if (!agg[name]) agg[name] = { total: 0, count: 0 };
     agg[name].total += prix;
     agg[name].count++;
@@ -83,6 +103,34 @@ export function computeStationAverages() {
     .sort((a, b) => a.avg - b.avg);
 }
 
+/** Carburant du dernier plein du véhicule courant (parmi CARTE_FUELS), sinon E85. */
+function _defaultFuelForVehicle() {
+  const veh = state.currentVehiculeNom || '';
+  const recent = getAllRecords()
+    .filter(r => !veh || (r['Véhicule'] || r['Vehicule'] || '') === veh)
+    .sort((a, b) => String(b.Horodatage || '').localeCompare(String(a.Horodatage || '')));
+  for (const r of recent) {
+    const k = CARTE_FUELS.find(fk => _fuelMatch(fk, r.Type));
+    if (k) return k;
+  }
+  return 'E85';
+}
+
+/** Fixe _selectedFuel : défaut = dernier plein du véhicule ; ré-évalué si le
+ *  véhicule change (sauf si l'utilisateur a explicitement choisi un carburant). */
+function _resolveFuel() {
+  const veh = state.currentVehiculeNom || '';
+  if (veh !== _lastVehForFuel) {           // changement de véhicule → on re-défaut
+    _userPickedFuel = false;
+    _selectedFuel = null;
+    _lastVehForFuel = veh;
+  }
+  if (!_userPickedFuel || _selectedFuel == null) {
+    _selectedFuel = _defaultFuelForVehicle();
+  }
+  if (!CARTE_FUELS.includes(_selectedFuel)) _selectedFuel = 'E85';
+}
+
 // ── Rendu card ───────────────────────────────────────────────────────────────
 
 /** Rend la card #stationsMapCard : mini-carte statique + liste prix moyens. */
@@ -90,9 +138,15 @@ export function renderStationsCard() {
   const card = document.getElementById('stationsMapCard');
   if (!card) return;
 
-  const avgs = computeStationAverages();
-  if (!avgs.length) { card.classList.add('hidden'); return; }
+  _resolveFuel();
+
+  // Carte masquée seulement si AUCUN carburant n'a de station habituelle.
+  const anyData = CARTE_FUELS.some(k => computeStationAverages(k).length > 0);
+  if (!anyData) { card.classList.add('hidden'); return; }
   card.classList.remove('hidden');
+
+  const avgs = computeStationAverages(_selectedFuel);
+  const short = FUEL_CONFIG[_selectedFuel]?.short || _selectedFuel;
 
   const coordCache = _loadCoordCache();
 
@@ -139,13 +193,27 @@ export function renderStationsCard() {
   const mapDiv = mapStations.length >= 1
     ? `<div id="staticStationMap" class="static-map"></div>` : '';
 
+  // Sélecteur de carburant (W47) — défaut = dernier plein du véhicule.
+  const fuelSel = `<div class="smap-fuel-sel" role="tablist">${
+    CARTE_FUELS.map(k => {
+      const cfg = FUEL_CONFIG[k] || {};
+      const on  = k === _selectedFuel;
+      return `<button type="button" class="smap-fuel-btn${on ? ' active' : ''}"
+        data-fuel="${k}" role="tab" aria-selected="${on}">${cfg.icon || ''} ${cfg.short || k}</button>`;
+    }).join('')
+  }</div>`;
+
+  const body = listHtml
+    ? `${mapDiv}<div class="smap-list">${listHtml}</div>`
+    : `<p class="smap-empty">Aucun plein ${escHtml(short)} enregistré pour ce véhicule.</p>`;
+
   card.innerHTML = `
-    <p class="section-title">Stations E85 habituelles</p>
-    ${mapDiv}
-    <div class="smap-list">${listHtml}</div>
+    <p class="section-title">Stations ${escHtml(short)} habituelles</p>
+    ${fuelSel}
+    ${body}
   `;
 
-  if (mapStations.length >= 1) _renderStaticMap(mapStations, _userPos);
+  if (listHtml && mapStations.length >= 1) _renderStaticMap(mapStations, _userPos);
 }
 
 // ── Rendu mini-carte statique ────────────────────────────────────────────────
@@ -307,16 +375,29 @@ export function initStationsMapInteractions() {
   const card = document.getElementById('stationsMapCard');
   if (!card) return;
   card.addEventListener('click', e => {
+    // W47 — sélecteur de carburant
+    const fuelBtn = e.target.closest('.smap-fuel-btn');
+    if (fuelBtn) {
+      const k = fuelBtn.dataset.fuel;
+      if (CARTE_FUELS.includes(k) && k !== _selectedFuel) {
+        _selectedFuel = k;
+        _userPickedFuel = true;
+        renderStationsCard();
+      }
+      return;
+    }
+
     const marker = e.target.closest('.smap-marker');
     if (!marker) return;
     const idx = parseInt(marker.dataset.smapIdx, 10);
     const s = _renderedStations[idx];
     if (!s) return;
+    const short = FUEL_CONFIG[_selectedFuel]?.short || _selectedFuel;
     showStationPopup({
       name: s.name,
       lat:  s.lat,
       lon:  s.lon,
-      priceLabel: `E85 moy. ${Number(s.avg).toFixed(3)} €/L`,
+      priceLabel: `${short} moy. ${Number(s.avg).toFixed(3)} €/L`,
     });
   });
 }

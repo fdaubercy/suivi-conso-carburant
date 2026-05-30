@@ -27,12 +27,16 @@ L'application est organisée en **5 vues** (pages) accessibles via une **barre d
 |---|---|
 | ⛽ **Saisie** | Formulaire, véhicule, carburant, scan ticket, station, comparateur, secteur, « Enregistrer » |
 | 📊 **Stats** | Statistiques live, rapport mensuel, bilan annuel « Wrapped » |
-| 🗺️ **Carte** | Carte des stations habituelles + prix moyens |
+| 🗺️ **Carte** | Carte des stations habituelles + prix moyens, **sélecteur E85/Gazole/SP98** (W47) |
 | 📜 **Historique** | 5 derniers pleins + historique complet filtrable |
 | ⚙️ **Réglages** | Notifications, mode hors-ligne, prix du kit |
 
 - **Routeur par hash** (`js/router.js`) : chaque vue a son URL (`#/saisie`, `#/stats`, `#/carte`, `#/historique`, `#/params`) → le **bouton retour** du navigateur et de l'OS fonctionne nativement, et l'URL est partageable. Aucun fallback serveur nécessaire (compatible GitHub Pages).
 - **Ouverture directe sur la Saisie** (rapide à la pompe), onglet actif surligné, titre du header mis à jour selon la vue.
+
+### ⛽ Carte multi-carburant (W47)
+- La carte des stations habituelles propose un **sélecteur E85 / Gazole / SP98** : le classement (par prix moyen payé) et la mini-carte suivent le carburant choisi.
+- **Présélection** = carburant du **dernier plein du véhicule courant** ; se ré-ajuste au changement de véhicule. Un carburant sans plein affiche un message dédié plutôt que de masquer la carte.
 
 ### 🔄 Pull-to-refresh (W46)
 - **Tirer la page vers le bas** en haut d'écran affiche un indicateur ↻ qui suit le doigt ; au-delà du seuil, le relâchement **recharge l'application** (`js/pullrefresh.js`).

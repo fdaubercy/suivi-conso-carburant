@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.9.0.0] — 2026-05-30
+
+### Added
+- **Sélecteur de carburant sur la vue Carte (W47)** — la carte des stations habituelles n'est plus limitée à l'E85 : un sélecteur **E85 / Gazole / SP98** en haut de la carte bascule le classement et la mini-carte affichés.
+  - `js/stationsmap.js` : `computeStationAverages(fuelKey)` paramétré par carburant (matcher tolérant `_fuelMatch` : `e85/ethanol`, `gazole/diesel/gasoil`, `sp98/super 98`) ; titre, libellés et popup d'itinéraire dynamiques selon le carburant choisi.
+  - **Défaut intelligent** : le carburant présélectionné est celui du **dernier plein du véhicule courant** (`_defaultFuelForVehicle`), repli E85. Le choix se ré-évalue quand on change de véhicule (`renderStationsCard` appelée depuis `onVehiculeChange`), sauf si l'utilisateur a explicitement cliqué le sélecteur dans la session.
+  - Quand un carburant n'a aucun plein pour ce véhicule, la carte reste visible avec le sélecteur et affiche « Aucun plein <carburant> enregistré pour ce véhicule » (la carte n'est masquée que si **aucun** des 3 carburants n'a de station habituelle).
+  - `css/style.css` : segmented control `.smap-fuel-sel` / `.smap-fuel-btn` (+ dark mode) et message `.smap-empty`.
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.9.0.0`.
+
+> ℹ️ Étapes suivantes possibles pour couvrir pleinement Gazole/SP98 (non incluses ici) : carte « moins cher du secteur » par carburant (backend `RefreshPrix.gs` + `secteur.js`) et alertes push par carburant (seuils indépendants).
+
 ## [3.8.0.0] — 2026-05-30
 
 ### Added

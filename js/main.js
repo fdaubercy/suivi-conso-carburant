@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════
-   Suivi Conso E85 — Point d'entrée v3.8.0.0
+   Suivi Conso E85 — Point d'entrée v3.9.0.0
    ES Module : chargé en defer automatique
 ═══════════════════════════════════════ */
 import { APP_VERSION, FUEL_CONFIG } from './config.js';
@@ -167,6 +167,7 @@ window.addEventListener('viewchange', e => {
 Object.assign(window, {
   renderStats,    // carburant.js/setType() → typeof window.renderStats === 'function'
   renderWrapped,  // vehicules.js/onVehiculeChange() → W37 bilan annuel suit le véhicule
+  renderStationsCard, // vehicules.js/onVehiculeChange() → W47 carte re-défaut carburant
   setType,        // ticket.js/fillFormFromTicket() → window.setType
   updateCout,     // ticket.js/fillFormFromTicket() → window.updateCout
 });

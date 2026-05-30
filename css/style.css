@@ -1329,6 +1329,43 @@ body.no-share .hist-share { display: none; }
 }
 
 /* Liste des stations */
+/* W47 — sélecteur de carburant sur la carte des stations habituelles */
+.smap-fuel-sel {
+  display: flex;
+  gap: 4px;
+  background: var(--toggle-bg);
+  border-radius: 9px;
+  padding: 3px;
+  margin: 2px 0 12px;
+}
+.smap-fuel-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 4px;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s, color .15s, box-shadow .15s;
+}
+.smap-fuel-btn.active {
+  background: var(--white);
+  color: var(--blue-dark);
+  box-shadow: 0 1px 2px rgba(0,0,0,.12);
+}
+[data-theme="dark"] .smap-fuel-btn.active { color: var(--text); }
+.smap-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 14px 8px;
+}
+
 .smap-list {
   display: flex;
   flex-direction: column;

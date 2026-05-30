@@ -100,6 +100,8 @@ export function onVehiculeChange() {
   if (typeof window.renderStats === 'function') window.renderStats();
   // W37 — le bilan annuel (perimetre vehicule) suit aussi le vehicule courant
   if (typeof window.renderWrapped === 'function') window.renderWrapped();
+  // W47 — la carte des stations re-défaut sur le dernier carburant du vehicule
+  if (typeof window.renderStationsCard === 'function') window.renderStationsCard();
 }
 
 export async function confirmerAjoutVehicule() {
