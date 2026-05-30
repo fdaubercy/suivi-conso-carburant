@@ -159,6 +159,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.3.0.5 | **Fix MFC « Colonnes introuvables sur GS_Pleins »** — `DetecterColonnes` assouplie (Date/Type/Prix par sous-chaîne, scan 25×40) + diagnostic `ListerEntetes` qui dump la ligne d'en-tête réelle dans l'Immediate Window |
 | v3.3.0.6 | **Fix saisie « Instruction d'option dupliquée »** — `modSaisie.InjecterCode` vide le module du UserForm (`DeleteLines`) avant `AddFromString` : plus de double `Option Explicit` quand « Déclaration des variables obligatoire » est actif |
 | v3.3.0.7 | **`frmNouveauPlein` branché sur `GS_Pleins`** — le formulaire perso (présentation conservée) enregistre désormais via `modSaisie.EnregistrerPlein` dans `GS_Pleins` (Horodatage + sync_id + anti-doublon) au lieu de `Tableau2` ; prix S98 → col J, véhicule = `DernierVehicule()` ; `EnregistrerPlein` gagne un param optionnel `prixS98Str` |
+| v3.3.0.8 | **`frmNouveauPlein` multi-véhicules** — ComboBox `cmbVehicule` (liste `Vehicules` ∪ `GS_Pleins` col H, pré-sélection du dernier utilisé) ; véhicule choisi → col H ; validation ajoutée |
 
 ---
 

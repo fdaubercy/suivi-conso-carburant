@@ -35,6 +35,12 @@ Private Sub UserForm_Initialize()
     cmbType.AddItem "SuperEthanol E85"
     cmbType.ListIndex = 0
 
+    ' --- Vehicules (feuille "Vehicules" union GS_Pleins col H) ---
+    modSaisie.RemplirCombo Me.cmbVehicule, "Vehicules", 8
+    Dim dv As String
+    dv = modSaisie.DernierVehicule()       ' pre-selection du dernier utilise
+    If dv <> "" Then Me.cmbVehicule.Value = dv
+
     ' --- Stations depuis tbl_stationEssence (Notes) ---
     Call ChargerStations
 
@@ -149,6 +155,9 @@ Private Sub btnEnregistrer_Click()
     If txtDate.Value = "" Or Len(Replace(Replace(txtDate.Value, "/", ""), "-", "")) < 8 Then
         MsgBox "Date invalide. Format attendu : jj/mm/aaaa", vbExclamation: Exit Sub
     End If
+    If Trim(cmbVehicule.Value) = "" Then
+        MsgBox "Choisissez un vehicule.", vbExclamation: Exit Sub
+    End If
     If cmbType.Value = "" Then
         MsgBox "Choisissez un type de carburant.", vbExclamation: Exit Sub
     End If
@@ -174,9 +183,9 @@ Private Sub btnEnregistrer_Click()
         prixS98Str = txtPrixS98.Value
     End If
 
-    ' Ce formulaire n'a pas de selecteur de vehicule -> dernier connu.
+    ' Vehicule choisi dans la liste (multi-vehicules).
     Dim vehVal As String
-    vehVal = modSaisie.DernierVehicule()
+    vehVal = Trim(cmbVehicule.Value)
 
     ' -- Detection de doublon (meme moteur que frmPleinE85) ------
     If modSaisie.EstDoublon(txtDate.Value, txtKm.Value, txtLitres.Value) Then

@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.3.0.8] — 2026-05-30
+
+### Added
+- **`frmNouveauPlein` — sélecteur de véhicule multi-véhicules** (`cmbVehicule`) : peuplé par `modSaisie.RemplirCombo` (feuille `Vehicules` ∪ valeurs distinctes de `GS_Pleins` col H), pré-sélection du dernier véhicule utilisé (`DernierVehicule`). Le véhicule choisi est enregistré en col H de `GS_Pleins` ; validation « Choisissez un véhicule » ajoutée.
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.3.0.8`.
+
 ## [3.3.0.7] — 2026-05-30
 
 ### Added
