@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v4.2.0.0**
+> 🔖 Version courante : **v4.3.0.3**
 
 ## 🌐 Accès
 
@@ -309,7 +309,7 @@ suivi-conso-carburant/
 │   └── style.css                    # Feuille de styles
 │
 ├── excel/
-│   └── Suivi conso E85.xlsm        # Classeur Excel (Power Query + GS_Pleins + VBA sync v2.9)
+│   └── Suivi Conso Carburants.xlsm        # Classeur Excel (Power Query + GS_Pleins + VBA sync v2.9)
 │
 ├── js/                              # ── Web app (ES Modules) ────────────
 │   ├── main.js                      # Point d'entrée
@@ -371,7 +371,7 @@ suivi-conso-carburant/
 ├── eslint.config.js                 # Flat config ESLint 9
 │
 ├── Google Drive/                    # ── Sauvegardes et exports externes ─
-│   ├── Réponses - Suivi E85.xlsx
+│   ├── Réponses - Suivi Conso Carburants.xlsx
 │   └── Sauvegarde & Geolocalisation - Suivi conso SuperEthanol/
 │       └── Google Apps Script/
 │           ├── Code.gs              # Backend GAS (16 col + sync bidir. + ?since= + rate limiting + savePushSub/lowprice + S6 token + W38 saveLastGeo/sectorPrices)
@@ -456,7 +456,7 @@ export const CLIENT_ID_KEY  = 'suivi_e85_client_id';    // UUID client rate limi
 
 ## 🔄 Synchronisation bidirectionnelle Excel ↔ Google Sheets
 
-Depuis v2.9.0.0, le classeur `excel/Suivi conso E85.xlsm` synchronise en **4 directions** son onglet `GS_Pleins` avec `_ImportGS` :
+Depuis v2.9.0.0, le classeur `excel/Suivi Conso Carburants.xlsm` synchronise en **4 directions** son onglet `GS_Pleins` avec `_ImportGS` :
 
 ### Principe
 Chaque enregistrement est identifié par un **UUID** (`sync_id`, colonne O). À la saisie comme au sync, la macro VBA :

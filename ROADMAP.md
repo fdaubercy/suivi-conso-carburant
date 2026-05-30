@@ -49,7 +49,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi |
 |---|---|---|
 | X11 | **Onglet `_SyncLog`** : chaque sync ajoute une ligne (date, ←N, →N, durée) | Debug, historique des syncs |
-| X12 | **Backup auto** dans `Google Drive/Sauvegardes/Suivi conso E85_YYYYMMDD.xlsm` avant chaque sync majeure | Filet de sécurité |
+| X12 | **Backup auto** dans `Google Drive/Sauvegardes/Suivi Conso Carburants_YYYYMMDD.xlsm` avant chaque sync majeure | Filet de sécurité |
 
 ---
 
@@ -89,6 +89,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v4.3.0.3 | **Renommage du Google Sheet → « Réponses - Suivi Conso Carburants »** — alignement du nom du classeur source. Aucun paramétrage à changer : accès par **ID** (`GS_SHEET_ID`/`SPREADSHEET_ID`) et **noms d'onglets** (`_ImportGS`, `Stations`…), jamais par le nom du fichier. Export local `Réponses - Suivi E85.xlsx` → `Réponses - Suivi Conso Carburants.xlsx` et classeur `excel/Suivi conso E85.xlsm` → `excel/Suivi Conso Carburants.xlsm` renommés (réfs README/INSTALL/ROADMAP) |
 | v4.3.0.2 | **Renommage `suivi-e85` → `suivi-conso-carburant`** — dépôt GitHub + Pages (`/suivi-conso-carburant/`), `vite.config.js` base, `package.json`/`package-lock.json`, cache SW, préfixes CSV, doc & outillage `.claude`. `GAS_URL`/`GS_SHEET_ID`/tokens et clés localStorage `suivi_e85_*` conservés (zéro perte de données) |
 | v4.3.0.1 | **Fix carte Budget/Tendance « invisibles » (W39/W50)** — encart d'état vide quand aucun budget n'est défini (au lieu d'un masquage silencieux) : « 💡 Définissez un budget mensuel… » → lien qui ouvre Réglages, déplie le bloc et focalise le champ (`buildBudgetBar`/`js/main.js`, CSS `.budget-box.hint`) |
 | v4.3.0.0 | **Export comparatif véhicules CSV (W52)** — bouton 📥 dans l'en-tête de la carte `#comparatifCard` (vue Stats) ; `buildComparatifCSV()` (fonction pure testée) + `exportComparatifCSV()` exportent le tableau Véhicule / Pleins / Conso / Coût / Total / Litres / Km en `.csv` Excel FR (séparateur `;`, BOM UTF-8, virgule décimale) ; `initComparatifExport()` (délégation) câblé dans `main.js` |

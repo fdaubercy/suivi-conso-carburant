@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.3.0.3] — 2026-05-30
+
+### Changed
+- **Renommage du Google Sheet → « Réponses - Suivi Conso Carburants »** — alignement du nom d''usage du classeur source. **Aucun paramétrage technique à modifier** : tous les accès passent par l''**ID** du classeur (`GS_SHEET_ID` dans `js/config.js`, `SPREADSHEET_ID` dans le GAS `Code.gs`, `GS_SHEET_ID` dans `vba/ModuleImportGS.bas`) et par les **noms d''onglets internes** (`_ImportGS`, `Stations`, `Vehicules`, `_PrixHistory`, `_PushSubs`), jamais par le nom du fichier classeur — qui n''a donc aucun impact fonctionnel sur la web app, le GAS ou la synchro VBA.
+  - **Fichier d''export local renommé** : `Google Drive/Réponses - Suivi E85.xlsx` → `Google Drive/Réponses - Suivi Conso Carburants.xlsx`.
+  - **Classeur Excel renommé** : `excel/Suivi conso E85.xlsm` → `excel/Suivi Conso Carburants.xlsm` ; références `README.md`/`INSTALL.md` et chemin de backup `ROADMAP.md` (X12) alignés.
+  - **Inchangé** : `GAS_URL`, `GS_SHEET_ID`, `APP_TOKEN`, clés VAPID, onglets et clés localStorage `suivi_e85_*` (zéro perte de données).
 ## [4.3.0.2] — 2026-05-30
 
 ### Changed
