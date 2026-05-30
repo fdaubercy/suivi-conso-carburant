@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.3.0.10] — 2026-05-30
+
+### Fixed
+- **`SyncTableau2DepuisGS` : position de ligne robuste** (`vba/modFeatures.bas`) — le `ROW()-15` codé en dur (en-tête supposé ligne 15) cassait si la table `Tableau2` était décalée. Remplacé par `ROW()-ROW(Tableau2[#Headers])` (position calculée dynamiquement, sans numéro de ligne en dur). La formule est posée via `.Formula` (séparateurs US auto-traduits par Excel selon la locale) — ne pas la taper à la main en Excel français (séparateurs `;` + noms `SIERREUR`/`LIGNE`/`[#En-têtes]` requis).
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.3.0.10`.
+
 ## [3.3.0.9] — 2026-05-30
 
 ### Added

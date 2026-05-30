@@ -1,6 +1,6 @@
 Attribute VB_Name = "modFeatures"
 ' ============================================================
-'  SUIVI E85 - Fonctionnalites X4 + X14            v3.3.0.9
+'  SUIVI E85 - Fonctionnalites X4 + X14            v3.3.0.10
 '
 '  X4  : Mise en forme conditionnelle "Prix EUR/L"
 '        vert si < moyenne 30 j (meme carburant), rouge si >
@@ -506,13 +506,13 @@ Public Sub SyncTableau2DepuisGS()
     Loop
 
     ' Colonnes brutes <- GS_Pleins (formules INDEX) ; calculs preserves
-    Dim hRow As Long: hRow = t2.HeaderRowRange.Row
-    SetT2ColFromGS t2, "Date", "Date", hRow
-    SetT2ColFromGS t2, "Type", "Type", hRow
-    SetT2ColFromGS t2, "Km compteur", "Km", hRow
-    SetT2ColFromGS t2, "Nb. Litres", "Litres", hRow
-    SetT2ColFromGS t2, "Prix " & ChrW(8364) & "/L", "PrixL", hRow
-    SetT2ColFromGS t2, "Station essence", "Station essence", hRow
+    Dim t2Name As String: t2Name = t2.Name
+    SetT2ColFromGS t2, "Date", "Date", t2Name
+    SetT2ColFromGS t2, "Type", "Type", t2Name
+    SetT2ColFromGS t2, "Km compteur", "Km", t2Name
+    SetT2ColFromGS t2, "Nb. Litres", "Litres", t2Name
+    SetT2ColFromGS t2, "Prix " & ChrW(8364) & "/L", "PrixL", t2Name
+    SetT2ColFromGS t2, "Station essence", "Station essence", t2Name
 
     ' Format date lisible sur la colonne Date
     On Error Resume Next
@@ -530,9 +530,11 @@ done:
 End Sub
 
 ' Pose sur toute la colonne t2ColName une formule INDEX qui tire la
-' colonne gsColName de GS_Pleins, ligne par ligne (position relative).
+' colonne gsColName de GS_Pleins, ligne par ligne. La position de ligne
+' est calculee dynamiquement (ROW() - ligne d'en-tete du tableau) : aucune
+' dependance a un numero de ligne code en dur -> robuste si la table bouge.
 Private Sub SetT2ColFromGS(t2 As ListObject, t2ColName As String, _
-                            gsColName As String, hRow As Long)
+                            gsColName As String, t2Name As String)
     Dim lc As ListColumn
     On Error Resume Next
     Set lc = t2.ListColumns(t2ColName)
@@ -540,7 +542,8 @@ Private Sub SetT2ColFromGS(t2 As ListObject, t2ColName As String, _
     If lc Is Nothing Then Exit Sub
     If t2.DataBodyRange Is Nothing Then Exit Sub
     lc.DataBodyRange.Formula = _
-        "=IFERROR(INDEX(GS_Pleins[" & gsColName & "],ROW()-" & hRow & "),"""")"
+        "=IFERROR(INDEX(GS_Pleins[" & gsColName & "]," & _
+        "ROW()-ROW(" & t2Name & "[#Headers])),"""")"
 End Sub
 
 
