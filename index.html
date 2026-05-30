@@ -321,9 +321,9 @@
 <!-- ════════════ VUE : Paramètres ════════════ -->
 <section class="view" id="view-params" data-view="params">
 
-<!-- ─── Paramètres : Notifications & Mode hors-ligne ─── -->
+<!-- ─── Paramètres : Alertes prix & Mode hors-ligne ─── -->
 <div class="card notif-card">
-  <p class="section-title">⚙️ Paramètres</p>
+  <p class="section-title">🔔 Alertes prix</p>
 
   <!-- Hors-ligne : visible uniquement quand l'appareil est hors-ligne -->
   <div class="notif-row" id="offlineRow" hidden>
@@ -344,43 +344,59 @@
     🚫 Notifications bloquées — autorisez-les dans les paramètres du navigateur, puis rechargez la page.
   </div>
 
-  <!-- Lignes toggle + seuil par carburant (E85/Gazole/SP98), générées par notifications.js -->
+  <!-- Un bloc « param-group » par carburant (Alertes + Seuil), généré par notifications.js -->
   <div id="notifFuelRows"></div>
+</div>
 
-  <div class="seuil-row" id="kitPrixRow">
-    <label for="kitPrix" class="notif-label">Prix du kit E85</label>
-    <div style="display:flex;align-items:center;gap:6px">
-      <input type="number" id="kitPrix" class="seuil-input"
-             step="1" min="0" placeholder="514.54"
-             inputmode="decimal">
-      <span class="seuil-unit">€</span>
+<!-- ─── Prix du kit E85 (seul) ─── -->
+<div class="card">
+  <p class="section-title">🔧 Conversion E85</p>
+  <div class="param-group">
+    <div class="seuil-row" id="kitPrixRow">
+      <label for="kitPrix" class="notif-label">Prix du kit E85</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="kitPrix" class="seuil-input"
+               step="1" min="0" placeholder="514.54"
+               inputmode="decimal">
+        <span class="seuil-unit">€</span>
+      </div>
     </div>
+    <p class="notif-sub" style="margin-top:4px">Sert au calcul de l'économie nette (brute − prix du kit). Défaut : 514,54 € (cellule B5 Excel).</p>
   </div>
-  <p class="notif-sub" style="margin-top:4px">Sert au calcul de l'économie nette (brute − prix du kit). Défaut : 514,54 € (cellule B5 Excel).</p>
+</div>
 
-  <!-- W39 — Objectif de budget carburant mensuel -->
-  <div class="seuil-row" id="budgetRow">
-    <label for="budgetMensuel" class="notif-label">🎯 Budget mensuel</label>
-    <div style="display:flex;align-items:center;gap:6px">
-      <input type="number" id="budgetMensuel" class="seuil-input"
-             step="10" min="0" placeholder="ex. 150"
-             inputmode="decimal">
-      <span class="seuil-unit">€</span>
+<!-- ─── Budget mensuel (seul) — W39 ─── -->
+<div class="card">
+  <p class="section-title">🎯 Budget mensuel</p>
+  <div class="param-group">
+    <div class="seuil-row" id="budgetRow">
+      <label for="budgetMensuel" class="notif-label">Budget carburant mensuel</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="budgetMensuel" class="seuil-input"
+               step="10" min="0" placeholder="ex. 150"
+               inputmode="decimal">
+        <span class="seuil-unit">€</span>
+      </div>
     </div>
+    <p class="notif-sub" style="margin-top:4px">Définit le <strong>maximum de la barre budget</strong> (100 %) dans la carte Stats : progression + alerte de dépassement (mois en cours, véhicule sélectionné). Laisser vide pour désactiver.</p>
   </div>
-  <p class="notif-sub" style="margin-top:4px">Barre de progression + alerte de dépassement dans la carte Stats (mois en cours, véhicule sélectionné). Laisser vide pour désactiver.</p>
+</div>
 
-  <!-- W51 — Objectif CO₂ annuel évité -->
-  <div class="seuil-row" id="objectifCo2Row">
-    <label for="objectifCo2" class="notif-label">🌍 Objectif CO₂ annuel</label>
-    <div style="display:flex;align-items:center;gap:6px">
-      <input type="number" id="objectifCo2" class="seuil-input"
-             step="10" min="0" placeholder="200"
-             inputmode="decimal">
-      <span class="seuil-unit">kg</span>
+<!-- ─── Objectif CO₂ annuel (seul) — W51 ─── -->
+<div class="card">
+  <p class="section-title">🌍 Objectif CO₂</p>
+  <div class="param-group">
+    <div class="seuil-row" id="objectifCo2Row">
+      <label for="objectifCo2" class="notif-label">Objectif CO₂ annuel évité</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="objectifCo2" class="seuil-input"
+               step="10" min="0" placeholder="200"
+               inputmode="decimal">
+        <span class="seuil-unit">kg</span>
+      </div>
     </div>
+    <p class="notif-sub" style="margin-top:4px">Définit le <strong>maximum de la jauge CO₂ annuelle</strong> (100 %) dans la carte Stats + équivalents (km thermiques, arbres). Défaut : 200 kg/an.</p>
   </div>
-  <p class="notif-sub" style="margin-top:4px">Jauge « kg CO₂ évités cette année » + équivalents (km thermiques, arbres) dans la carte Stats. Défaut : 200 kg/an.</p>
 </div>
 
 </section><!-- /view-params -->

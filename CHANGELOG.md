@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.1.0.0] — 2026-05-30
+
+### Added
+- **Réglages : maximum de jauge explicite** — les libellés des champs **Budget mensuel** et **Objectif CO₂ annuel** précisent désormais qu'ils définissent le **maximum (100 %)** de la barre budget / de la jauge CO₂ de la carte Stats. Aucun nouveau stockage : la valeur saisie sert déjà de plafond (`getBudgetMensuel` / `getObjectifCo2`, `js/stats.js`).
+
+### Changed
+- **Vue d'accueil par défaut à la connexion** — `DEFAULT_VIEW` passe de `saisie` à `accueil` (`js/router.js`). Au démarrage sans hash, l'app ouvre la page **Accueil** (tuiles) plutôt que le formulaire de saisie. Un deep-link `#/<vue>` reste respecté.
+- **Page Réglages réorganisée par bloc** — chaque type de paramètre est désormais **regroupé visuellement** (`.param-group`, `css/style.css`) : **Alertes + Seuil** d'un même carburant (E85, Gazole, SP98) dans un encadré commun (`buildFuelRows`, `js/notifications.js`), puis cartes distinctes **Conversion E85** (prix du kit), **Budget mensuel** et **Objectif CO₂** (`index.html`). Lecture plus claire : on identifie d'un coup d'œil à quel carburant se rapporte chaque seuil.
+- **Mise en page pleine hauteur** — `body` passe en **flex colonne** (`min-height: 100dvh`) et `#app-main` en `flex: 1` (`css/style.css`). Le **footer reste collé en bas de l'écran** quelle que soit la page, même quand le contenu ne remplit pas la hauteur (ex. page Réglages courte). La barre d'onglets fixe est inchangée.
+
 ## [4.0.0.0] — 2026-05-30
 
 ### Added

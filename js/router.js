@@ -14,7 +14,7 @@ const VIEWS = {
   historique: { title: 'Historique' },
   params:     { title: 'Réglages' },
 };
-const DEFAULT_VIEW = 'saisie';
+const DEFAULT_VIEW = 'accueil';
 
 /** W44 — ordre des onglets (= séquence de swipe). L'accueil est hors séquence
  *  (accessible via le bouton 🏠), il n'entre donc pas dans le balayage. */
@@ -96,7 +96,7 @@ export function initRouter() {
   window.addEventListener('hashchange', () => showView(viewFromHash()));
 
   // Vue de départ : respecte un hash existant (deep-link / rechargement),
-  // sinon ouvre directement la Saisie sans polluer l'historique.
+  // sinon ouvre directement l'Accueil sans polluer l'historique.
   if (window.location.hash && VIEWS[viewFromHash()]) showView(viewFromHash());
   else showView(DEFAULT_VIEW);
 }

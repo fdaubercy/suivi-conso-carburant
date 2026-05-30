@@ -217,23 +217,28 @@ function buildFuelRows() {
   const host = document.getElementById('notifFuelRows');
   if (!host || host.dataset.built === '1') return;
   host.dataset.built = '1';
+  // Un bloc « param-group » par carburant : la ligne Alertes et son Seuil sont
+  // visuellement regroupés (même paragraphe), pour qu'on identifie d'un coup
+  // d'œil à quel carburant se rapporte chaque seuil.
   host.innerHTML = ALERT_FUELS.map(f => `
-    <div class="notif-row">
-      <div>
-        <span class="notif-label">${f.icon} Alertes ${f.label}</span>
-        <span class="notif-sub">Notification quand le ${f.label} passe sous votre seuil</span>
+    <div class="param-group" data-fuel-group="${f.key}">
+      <div class="notif-row">
+        <div>
+          <span class="notif-label">${f.icon} Alertes ${f.label}</span>
+          <span class="notif-sub">Notification quand le ${f.label} passe sous votre seuil</span>
+        </div>
+        <label class="switch" title="Activer les alertes ${f.label}">
+          <input type="checkbox" data-fuel="${f.key}">
+          <span class="switch-track"></span>
+        </label>
       </div>
-      <label class="switch" title="Activer les alertes ${f.label}">
-        <input type="checkbox" data-fuel="${f.key}">
-        <span class="switch-track"></span>
-      </label>
-    </div>
-    <div class="seuil-row notif-fuel-seuil" data-fuel-seuil="${f.key}" hidden>
-      <label class="notif-label">Seuil ${f.label}</label>
-      <div style="display:flex;align-items:center;gap:6px">
-        <input type="number" class="seuil-input" data-fuel-input="${f.key}"
-               step="0.001" min="0.3" max="3.0" inputmode="decimal">
-        <span class="seuil-unit">€/L</span>
+      <div class="seuil-row notif-fuel-seuil" data-fuel-seuil="${f.key}" hidden>
+        <label class="notif-label">Seuil ${f.label}</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="number" class="seuil-input" data-fuel-input="${f.key}"
+                 step="0.001" min="0.3" max="3.0" inputmode="decimal">
+          <span class="seuil-unit">€/L</span>
+        </div>
       </div>
     </div>`).join('');
 }

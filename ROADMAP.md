@@ -17,6 +17,15 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | W55 | **Objectif CO₂ : palier mensuel + historique** (complément W51) : décliner l'objectif annuel en cible mensuelle et tracer la courbe cumulée du CO₂ évité mois par mois | Lisibilité de la trajectoire 🌿 · réutilise `buildMonthlyReport` · effort ~1 h |
 | W56 | **Alerte de dépassement budget anticipée** (complément W39/W50) : à partir de la tendance 6 mois, prévenir « à ce rythme, budget dépassé le JJ/MM » avant la fin du mois | Action préventive plutôt que constat · pur calcul · effort ~1 h |
 
+### 🎨 UX / Ergonomie (suite v4.1.0.0)
+
+| # | Idée | Pourquoi |
+|---|---|---|
+| U4 | **Vue de départ configurable** (complément U1) : dans Réglages, choisir la page d'ouverture (Accueil / Saisie / dernière vue consultée) au lieu d'imposer Accueil | Respecte les habitudes de chacun · localStorage + `DEFAULT_VIEW` dynamique · effort ~½ h |
+| U5 | **Tuile « reprendre » sur l'Accueil** : raccourci vers la dernière vue consultée + résumé du dernier plein saisi (date, station, €/L) | Réduit les clics au quotidien · réutilise l'historique en cache · effort ~1 h |
+| U6 | **Réglages : repli/dépli des blocs** (complément U2) : sections `.param-group` repliables (Alertes / Conversion / Budget / CO₂) avec état persistant | Page plus courte, accès rapide au réglage cherché · effort ~1 h |
+| U7 | **Indicateur visuel d'objectif sur les jauges** : afficher la valeur cible (100 %) en étiquette sur la barre budget et la jauge CO₂, et une marque intermédiaire 50 % | Lecture immédiate du « combien il reste » · pur CSS/SVG · effort ~½ h |
+
 ---
 
 ## 🛠️ Dev / Outillage
@@ -85,6 +94,9 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v4.1.0.0 | **Accueil par défaut à la connexion (U1)** — `DEFAULT_VIEW` passe de `saisie` à `accueil` (`router.js`) : au démarrage sans hash, l'app ouvre la page Accueil à tuiles ; deep-link `#/<vue>` toujours respecté |
+| v4.1.0.0 | **Réglages regroupés par bloc (U2)** — chaque type de paramètre dans un encadré `.param-group` : Alertes+Seuil d'un même carburant (E85/Gazole/SP98) groupés (`buildFuelRows`), puis cartes distinctes Conversion E85 / Budget mensuel / Objectif CO₂ ; libellés budget & CO₂ précisant qu'ils fixent le maximum (100 %) de leur jauge |
+| v4.1.0.0 | **Mise en page pleine hauteur (U3)** — `body` en flex colonne (`min-height: 100dvh`) + `#app-main { flex:1 }` : le footer reste collé en bas de l'écran sur toutes les pages, même quand le contenu ne remplit pas la hauteur |
 | v4.0.0.0 | **Tendance du budget mensuel (W50)** — sous la barre de budget (carte Stats), mini-histogramme SVG des dépenses des 6 derniers mois + ligne d'objectif pointillée au niveau du budget ; barres vertes sous l'objectif / rouges au-dessus (`buildBudgetTrend`, réutilise `buildMonthlyReport`) ; affiché seulement si un budget est défini et qu'un mois a des dépenses |
 | v4.0.0.0 | **Objectif CO₂ / éco-score annuel (W51)** — jauge « X kg CO₂ évités cette année » vers un objectif annuel configurable dans ⚙️ (`#objectifCo2`, `CO2_OBJECTIF_KEY`, défaut 200 kg) ; états go/near/done + équivalents parlants km thermiques (`CO2_THERMIQUE_PER_KM`) et arbres (`CO2_ARBRE_PAR_AN`) ; calcul distance égale sur les pleins E85 de l'année courante (`computeCo2Annuel`/`buildCo2Annuel`/`getObjectifCo2`/`initCo2ObjectifSetting`) |
 | v4.0.0.0 | **Export CSV de l'historique (W25)** — bouton 📥 dans l'en-tête « Tous les pleins » exportant la vue filtrée courante en `.csv` (Excel FR : séparateur `;`, BOM UTF-8, décimales virgule) via `Blob`+`URL.createObjectURL` (`exportHistoriqueCSV`) ; fonction pure `buildHistoriqueCSV` testée (`tests/historique.test.js`, 4 cas) |
