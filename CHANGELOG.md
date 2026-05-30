@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.3.0.6] — 2026-05-30
+
+### Fixed
+- **Formulaire de saisie : « Erreur de compilation : Instruction d'option dupliquée »** (`vba/modSaisie.bas`) — quand le VBE a « Déclaration des variables obligatoire » activé, le module de code du UserForm `frmPleinE85` nouvellement créé contient déjà un `Option Explicit`, et `InjecterCode` en ajoutait un second. Correctif : le module de code est vidé (`DeleteLines`) avant `AddFromString`, garantissant un seul `Option Explicit`.
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.3.0.6`.
+
 ## [3.3.0.5] — 2026-05-30
 
 ### Fixed

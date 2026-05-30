@@ -1,6 +1,6 @@
 Attribute VB_Name = "modSaisie"
 ' ============================================================
-'  SUIVI E85 - Formulaire de saisie d'un plein     v3.3.0.4
+'  SUIVI E85 - Formulaire de saisie d'un plein     v3.3.0.6
 '
 '  Construit par CODE le UserForm "frmPleinE85" + son code-behind,
 '  puis l'affiche. Ajoute la ligne directement dans le tableau
@@ -195,7 +195,13 @@ Private Sub InjecterCode(vbc As Object)
     c = c & "    Unload Me" & vbNewLine
     c = c & "End Sub" & vbNewLine
 
-    vbc.CodeModule.AddFromString c
+    ' Vider le module avant injection : si "Declaration des variables
+    ' obligatoire" est active dans le VBE, le nouveau UserForm contient deja
+    ' un "Option Explicit" -> sinon doublon ("Instruction d'option dupliquee").
+    With vbc.CodeModule
+        If .CountOfLines > 0 Then .DeleteLines 1, .CountOfLines
+        .AddFromString c
+    End With
 End Sub
 
 
