@@ -1,6 +1,6 @@
 Attribute VB_Name = "modSaisie"
 ' ============================================================
-'  SUIVI E85 - Formulaire de saisie d'un plein     v3.3.0.6
+'  SUIVI E85 - Formulaire de saisie d'un plein     v3.3.0.7
 '
 '  Construit par CODE le UserForm "frmPleinE85" + son code-behind,
 '  puis l'affiche. Ajoute la ligne directement dans le tableau
@@ -317,8 +317,11 @@ Public Function ValiderSaisie(veh As String, typ As String, dateStr As String, _
 End Function
 
 ' Ajoute la ligne dans le tableau de GS_Pleins (A..P) + sync_id UUID.
+' prixS98Str (optionnel) : prix SP98 du jour -> col J "SP98 station (EUR/L)"
+' (utilise par frmNouveauPlein ; frmPleinE85 ne le fournit pas).
 Public Sub EnregistrerPlein(veh As String, typ As String, dateStr As String, _
-                             kmStr As String, litStr As String, prixStr As String, station As String)
+                             kmStr As String, litStr As String, prixStr As String, station As String, _
+                             Optional prixS98Str As String = "")
     Dim dataWs As Worksheet, tbl As ListObject
     Set dataWs = ThisWorkbook.Sheets(WS_GS)
     Set tbl = dataWs.ListObjects(1)
@@ -339,8 +342,29 @@ Public Sub EnregistrerPlein(veh As String, typ As String, dateStr As String, _
     rng.Cells(1, 7).Value = station                      ' G Station
     rng.Cells(1, 8).Value = veh                          ' H Vehicule
     ' I..N : prix station laisses vides (remplis par sync web)
+    If ToNum(prixS98Str) > 0 And rng.Columns.Count >= 10 Then _
+        rng.Cells(1, 10).Value = ToNum(prixS98Str)       ' J SP98 station (EUR/L)
     If rng.Columns.Count >= 15 Then rng.Cells(1, 15).Value = NewUUID()  ' O sync_id
 End Sub
+
+' Vehicule du dernier plein enregistre dans GS_Pleins (col H), "" si aucun.
+' Sert de valeur par defaut aux formulaires sans selecteur de vehicule.
+Public Function DernierVehicule() As String
+    Dim tbl As ListObject, dataWs As Worksheet
+    On Error Resume Next
+    Set dataWs = ThisWorkbook.Sheets(WS_GS)
+    If Not dataWs Is Nothing Then If dataWs.ListObjects.Count > 0 Then Set tbl = dataWs.ListObjects(1)
+    On Error GoTo 0
+    If tbl Is Nothing Then Exit Function
+    If tbl.DataBodyRange Is Nothing Then Exit Function
+
+    Dim arr As Variant: arr = tbl.DataBodyRange.Value
+    Dim i As Long, v As String
+    For i = UBound(arr, 1) To 1 Step -1
+        v = Trim$(CStr(arr(i, 8)))
+        If v <> "" Then DernierVehicule = v: Exit Function
+    Next i
+End Function
 
 
 ' ════════════════════════════════════════════════════════════

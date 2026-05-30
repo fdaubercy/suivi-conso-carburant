@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.3.0.7] — 2026-05-30
+
+### Added
+- **`vba/frmNouveauPlein.frm` + `.frx`** versionnés dans le repo (formulaire de saisie personnalisé de l'utilisateur, présentation conservée).
+- **`modSaisie.EnregistrerPlein` — paramètre optionnel `prixS98Str`** → écrit le prix SP98 du jour dans la colonne **J « SP98 station (€/L) »** de `GS_Pleins` (rétro-compatible : `frmPleinE85` ne le fournit pas).
+- **`modSaisie.DernierVehicule()`** — renvoie le véhicule du dernier plein de `GS_Pleins` ; sert de valeur par défaut aux formulaires sans sélecteur de véhicule.
+
+### Changed
+- **`frmNouveauPlein` enregistre désormais au même endroit que `frmPleinE85`** : le bouton « Enregistrer » écrit dans **`GS_Pleins`** (via `modSaisie.EnregistrerPlein`, avec `Horodatage` + `sync_id` UUID + détection de doublon) **au lieu de** `Suivi Carburant`/`Tableau2`. Le prix S98 du jour va en col J, le véhicule = dernier connu. Présentation, formatage de date, coût live et chargement des stations (`Notes`/`tbl_stationEssence`) **inchangés**.
+- **`js/config.js`** — `APP_VERSION` → `3.3.0.7`.
+
 ## [3.3.0.6] — 2026-05-30
 
 ### Fixed

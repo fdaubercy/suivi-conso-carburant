@@ -240,8 +240,10 @@ suivi-e85/
 │   ├── modDashboard.bas             # Tableau de bord : 10 KPIs + graphiques X7/X8
 │   ├── modFeatures.bas              # X4 MFC « Prix €/L » (vert<moy30j/rouge) +
 │   │                                #   X14 onglet « Suivi (auto) » (vue dérivée INDEX)
-│   ├── modSaisie.bas                # UserForm frmPleinE85 (saisie plein, listes auto,
-│   │                                #   coût live, validation km, anti-doublon)
+│   ├── modSaisie.bas                # Moteur saisie (ValiderSaisie/EstDoublon/EnregistrerPlein
+│   │                                #   /DernierVehicule) + UserForm frmPleinE85 généré par code
+│   ├── frmNouveauPlein.frm/.frx     # Formulaire de saisie perso (présentation custom) →
+│   │                                #   enregistre dans GS_Pleins via modSaisie
 │   └── ThisWorkbook_snippet.bas     # Snippet Workbook_Open à coller
 │
 ├── .github/
