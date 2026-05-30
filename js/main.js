@@ -27,6 +27,8 @@ import { initOffline, syncQueue } from './offline.js';
 import { initNotifications } from './notifications.js';
 import { initRouter, navigate } from './router.js';
 import { initPullRefresh } from './pullrefresh.js';
+import { initSwipe } from './swipe.js';
+import { initBadges, refreshBadges } from './badges.js';
 
 /* ─── Init synchrone ─── */
 initTheme();
@@ -61,10 +63,14 @@ chargerHistorique().then(() => {
   // W37 — bilan annuel (les enregistrements sont disponibles)
   initWrapped();
 
+  // W45 — badges onglets (compteur Historique dès l'historique chargé)
+  refreshBadges();
+
   // W38 — prix secteur : charge le snapshot quotidien puis enrichit l'historique
   loadSectorPrices().then(() => {
     renderSectorBestCard();
     rerenderHistorique();   // affiche l'écart « payé X €/L de plus que le secteur »
+    refreshBadges();        // W45 — pastille Carte (meilleur prix secteur du jour)
   });
 
   const fKm = document.getElementById('fKm');
@@ -140,6 +146,20 @@ function initStaticHandlers() {
 
   // Submit
   document.getElementById('submitBtn')?.addEventListener('click', submitForm);
+
+  // W43 — accueil à tuiles : bouton 🏠 + tuiles + raccourcis
+  document.getElementById('homeBtn')?.addEventListener('click', () => navigate('accueil'));
+  document.getElementById('view-accueil')?.addEventListener('click', e => {
+    const tile = e.target.closest('[data-view]');
+    if (tile) { navigate(tile.dataset.view); return; }
+    const sc = e.target.closest('[data-shortcut]');
+    if (!sc) return;
+    if (sc.dataset.shortcut === 'dernier') dupliquerDernier();
+    navigate('saisie');
+  });
+
+  // W45 — réévalue la pastille ⚙️ après (dés)activation d'une alerte
+  document.getElementById('notifFuelRows')?.addEventListener('change', () => setTimeout(refreshBadges, 300));
 }
 
 initStaticHandlers();
@@ -157,6 +177,8 @@ initRapport();         // stats.js — rapport mensuel consultable (sélecteur d
 initVoiceKm();         // formulaire.js — W35 dictée vocale km
 initRouter();          // router.js — W42 navigation par vues (onglets + hash)
 initPullRefresh();     // pullrefresh.js — W46 tirer vers le bas → recharge l'app
+initSwipe();           // swipe.js — W44 balayage gauche/droite entre onglets
+initBadges();          // badges.js — W45 pastilles de notification sur les onglets
 
 /* W42 — la carte statique est rendue hors écran (offsetWidth=0) : on la re-cadre
    à l'affichage de l'onglet Carte pour un dimensionnement correct. */

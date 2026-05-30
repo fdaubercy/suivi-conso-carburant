@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.12.0.0] — 2026-05-30
+
+### Added
+- **Station favorite (W36)** — dans la vue Carte, une station habituelle devient « favorite » (badge ⭐) à partir de `FAVORITE_MIN_PLEINS` pleins (défaut 4, configurable dans `config.js`), distinct du ★ « meilleur prix ». Nouveau bouton de tri **💶 Prix ↔ ⭐ Fréquentation** au-dessus de la liste, choix persisté (`STATION_SORT_KEY`). `computeStationAverages` inchangée ; tri d'affichage appliqué dans `renderStationsCard` (`stationsmap.js`). Pistes retenues (a)+(c) ; le favori manuel épinglé (b) reste en roadmap (W53).
+- **Écran d'accueil à tuiles (W43)** — 6ᵉ vue `#/accueil` : 5 grandes tuiles cliquables (Saisie, Stats, Carte, Historique, Réglages) + 2 raccourcis (« Nouveau plein », « Dupliquer le dernier ») ; bouton 🏠 dans le header pour y revenir. La vue de départ reste la Saisie ; l'accueil est hors séquence d'onglets (`index.html`, `router.js`, `main.js`).
+- **Gestes de navigation — swipe (W44)** — `js/swipe.js` : balayage horizontal gauche/droite (pointer events tactile/stylet) pour passer d'une vue à l'autre selon l'ordre des onglets (`SWIPE_ORDER`), avec transition latérale directionnelle (`view--slide-next` / `view--slide-prev`). Garde-fous : geste nettement horizontal, zones interactives ignorées (cartes, formulaires, sélecteurs), bord gauche réservé au « retour » natif.
+- **Badges de notification sur les onglets (W45)** — `js/badges.js` : pastille sur ⚙️ Réglages (alertes non configurées), compteur sur 📜 Historique (pleins importés non consultés, persistant — se vide à l'ouverture), pastille sur 🗺️ Carte (meilleur prix secteur relevé aujourd'hui, se vide à l'ouverture, se réarme chaque jour). Rafraîchi sur `viewchange`, après chargement historique/secteur et changement d'alerte.
+
+### Changed
+- **`js/router.js`** — ajout de la vue `accueil`, de `SWIPE_ORDER`, `currentView()`, `navigateRelative()` et de la direction de transition (slide latéral) ; l'événement `viewchange` est désormais aussi consommé par les badges.
+- **`js/config.js`** — `APP_VERSION` → `3.12.0.0` ; ajout `STATION_SORT_KEY`, `HIST_SEEN_KEY`, `CARTE_SEEN_KEY`, `FAVORITE_MIN_PLEINS`.
+- **`css/style.css`** — styles `.smap-sort*`, `.home-btn`, `.home-tiles`/`.home-tile`, `.home-shortcut*`, `.view--slide-*`, `.nav-badge*`.
+
 ## [3.11.0.1] — 2026-05-30
 
 ### Fixed

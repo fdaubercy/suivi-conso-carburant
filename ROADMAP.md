@@ -12,13 +12,10 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi |
 |---|---|---|
 | W25 | **Export CSV de l'historique** : bouton "📥 Exporter" dans la carte historique → télécharge tous les enregistrements en `.csv` (via `?action=export` + `Blob` + `URL.createObjectURL`) | Justificatif remboursement employeur / fiscalité · zéro backend · effort 1 h |
-| W36 | **Notion de station favorite** (aujourd'hui inexistante : `computeStationAverages` agrège *toutes* les stations E85, top 8 par prix, sans seuil). Pistes : (a) seuil auto configurable dans `config.js` — favorite à partir de N pleins, badge ⭐ distinct du ★ meilleur prix ; (b) favori manuel épinglé (⭐ cliquable, localStorage), indépendant du prix ; (c) tri optionnel par fréquence (nb de pleins) en plus du tri par prix | Mettre en avant les stations réellement fréquentées, pas seulement les moins chères · effort < 2 h |
 | W50 | **Tendance du budget mensuel** (complément W39) : mini-graphe des dépenses des 6 derniers mois sous la barre de budget + ligne d'objectif, pour visualiser la trajectoire et anticiper le dépassement | Réutilise `buildMonthlyReport` mois par mois · effort ~1 h |
 | W51 | **Objectif CO₂ / éco-score annuel** (complément W40) : palier « X kg CO₂ évités cette année » avec jauge vers un objectif, et équivalent parlant (km en voiture thermique, arbres) | Renforce le branding 🌿 · pur calcul · effort ~1 h |
 | W52 | **Export comparatif véhicules en image/CSV** (complément W41) : bouton 📥 sur la carte comparatif pour exporter le tableau conso/coût (CSV) ou capturer le graphe | Partage / archivage du comparatif multi-véhicules · effort ~1 h |
-| W43 | **Écran d'accueil à tuiles** (complément de la navigation W42) : 6ᵉ vue `#/accueil` avec grandes tuiles cliquables (Saisie, Stats, Carte, Historique, Réglages) + raccourcis (« nouveau plein », « dernier plein ») ; bouton 🏠 dans le header pour y revenir | Vue d'ensemble / découverte sur grand écran · réutilise le routeur existant · effort ~1 h |
-| W44 | **Gestes de navigation (swipe)** entre onglets + transition latérale : balayage gauche/droite pour passer d'une vue à l'autre (pointer events), en plus des onglets | Ergonomie mobile native · au-dessus du routeur W42 · effort ~2 h |
-| W45 | **Badge de notification sur les onglets** : pastille sur ⚙️ Réglages (alertes non configurées), 📜 Historique (nouveaux pleins importés), 🗺️ Carte (meilleur prix secteur du jour) | Attire l'attention sur les vues sans forcer l'utilisateur à les ouvrir · effort < 2 h |
+| W53 | **Favori manuel épinglé** (complément W36, piste (b) non retenue) : ⭐ cliquable sur chaque station pour l'épingler en tête, indépendamment du prix et du seuil auto (localStorage) | Contrôle explicite de l'utilisateur sur sa station de référence · effort ~1 h |
 
 ---
 
@@ -71,8 +68,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | 1 | **X1** — Bouton "Synchroniser" sur la feuille GS_Pleins | 15 min | Ergonomie immédiate, plus besoin d'ouvrir l'IDE |
 | 2 | **W25** — Export CSV de l'historique | 1 h | Justificatif employeur/fiscalité · zéro backend |
 | 3 | **X9** — Économies cumulées E85 vs SP98 | ½ j | ROI E85 chiffré depuis les données existantes |
-| 4 | **W36** — Notion de station favorite | < 2 h | Met en avant les stations réellement fréquentées, pas seulement les moins chères |
-| 5 | **W50** — Tendance du budget mensuel | ~1 h | Prolonge W39 : visualiser la trajectoire des dépenses sur 6 mois |
+| 4 | **W50** — Tendance du budget mensuel | ~1 h | Prolonge W39 : visualiser la trajectoire des dépenses sur 6 mois |
+| 5 | **W51** — Objectif CO₂ / éco-score annuel | ~1 h | Prolonge W40 : jauge d'objectif + équivalents parlants, renforce le branding 🌿 |
 
 ---
 
@@ -188,6 +185,10 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.11.0.0 | **Empreinte CO₂ E85 vs essence (W40)** — tuile « 🌱 X kg CO₂ évités » dans la carte Stats ; référence SP95-E10 ≈ 2,21 kg CO₂/L, E85 ≈ −50 % à la combustion (`CO2_ESSENCE_PER_L`/`CO2_E85_RATIO`/`CO2_E85_PER_L`) ; calcul à distance égale (litres essence équivalents = litres E85 / (1 + surconso dynamique)) sur le cumul des pleins E85 ; méthodologie en sous-texte |
 | v3.11.0.0 | **Comparaison entre véhicules (W41)** — `js/comparatif.js` + carte `#comparatifCard` (vue Stats) : `computeVehicleComparison()` agrège tous les véhicules (conso L/100 km + coût €/100 km), barres horizontales normalisées (SVG/CSS pur), véhicule courant surligné, plus économe mis en avant ; masquée si < 2 véhicules exploitables ; `renderComparatif()` appelée depuis `renderStats()` |
 | v3.11.0.0 | **Tests des modules récents (T6)** — `jsdom` ajouté (env `// @vitest-environment jsdom` par fichier) ; `tests/itineraire.test.js` (popup station + liens Waze/Maps + échappement + fermetures), `tests/notifications.test.js` (seuils, activation, `checkPrixAlert` foreground, Notification mockée), `tests/stationsmap.test.js` (`computeStationAverages` + `cacheStationCoords`, `getAllRecords` mocké) ; **38 → 71 tests Vitest, tous au vert** |
+| v3.12.0.0 | **Notion de station favorite (W36)** — vue Carte : badge ⭐ « favorite » dès `FAVORITE_MIN_PLEINS` pleins (défaut 4, `config.js`), distinct du ★ « meilleur prix » ; bouton de tri **💶 Prix ↔ ⭐ Fréquentation** persisté (`STATION_SORT_KEY`) ; tri d'affichage dans `renderStationsCard` (`computeStationAverages` inchangée). Pistes retenues (a)+(c) ; le favori manuel épinglé (b) reste en roadmap (W53) |
+| v3.12.0.0 | **Écran d'accueil à tuiles (W43)** — 6ᵉ vue `#/accueil` : 5 tuiles cliquables (Saisie/Stats/Carte/Historique/Réglages) + 2 raccourcis (Nouveau plein / Dupliquer le dernier) ; bouton 🏠 dans le header ; vue de départ inchangée (Saisie), accueil hors séquence d'onglets (`router.js`, `index.html`, `main.js`) |
+| v3.12.0.0 | **Gestes de navigation — swipe (W44)** — `js/swipe.js` : balayage gauche/droite (pointer events) entre onglets selon `SWIPE_ORDER`, transition latérale directionnelle (`view--slide-next/prev`) ; garde-fous geste horizontal + zones interactives ignorées + bord gauche réservé au retour natif ; `navigateRelative()` / `currentView()` ajoutés au routeur |
+| v3.12.0.0 | **Badges de notification sur les onglets (W45)** — `js/badges.js` : pastille ⚙️ (alertes non configurées), compteur 📜 (pleins importés non consultés, persistant, se vide à l'ouverture), pastille 🗺️ (meilleur prix secteur du jour, se vide à l'ouverture, réarmé chaque jour) ; rafraîchi sur `viewchange`, après chargement historique/secteur et changement d'alerte |
 
 ---
 

@@ -1,7 +1,7 @@
 /* ─── Carte statique Stations habituelles + prix moyens (multi-carburant W47) ─── */
 import { getAllRecords }  from './historique.js';
 import { escHtml, getCoords, haversine } from './utils.js';
-import { PRIX_API, FUEL_CONFIG } from './config.js';
+import { PRIX_API, FUEL_CONFIG, FAVORITE_MIN_PLEINS, STATION_SORT_KEY } from './config.js';
 import { state }          from './state.js';
 import { showStationPopup } from './itineraire.js';
 import { getSectorToday, loadSectorPrices } from './secteur.js';   // W48 prix secteur par carburant
@@ -23,6 +23,12 @@ const FUEL_TOKENS = {
 let _selectedFuel  = null;    // résolu au 1er rendu (défaut = dernier plein du véhicule)
 let _userPickedFuel = false;  // l'utilisateur a-t-il cliqué le sélecteur cette session ?
 let _lastVehForFuel = null;   // véhicule pour lequel le défaut a été calculé
+
+// W36 — mode de tri de la liste des stations habituelles : 'prix' | 'freq'.
+let _sortMode = (() => {
+  try { return localStorage.getItem(STATION_SORT_KEY) === 'freq' ? 'freq' : 'prix'; }
+  catch { return 'prix'; }
+})();
 
 /** Le type d'un plein correspond-il au carburant demandé ? */
 function _fuelMatch(fuelKey, typeStr) {
@@ -175,12 +181,27 @@ export function renderStationsCard() {
     .filter(s => coordCache[s.name])
     .map(s => ({ ...coordCache[s.name], name: s.name, avg: s.avg, count: s.count }));
 
-  const minAvg = avgs[0]?.avg ?? 0;
+  const minAvg = avgs[0]?.avg ?? 0;          // meilleur prix (avgs trié par prix)
 
-  const listHtml = avgs.slice(0, 8).map(s => {
-    const isBest = (s.avg - minAvg) < 0.002;
+  // W36 — ordre d'affichage selon le tri choisi (prix croissant / fréquence décr.).
+  const displayed = (_sortMode === 'freq'
+    ? avgs.slice().sort((a, b) => b.count - a.count || a.avg - b.avg)
+    : avgs.slice())
+    .slice(0, 8);
+
+  // W36 — bouton de tri : prix ↔ fréquentation.
+  const sortHtml = `<div class="smap-sort">
+    <button type="button" class="smap-sort-btn${_sortMode === 'prix' ? ' active' : ''}"
+      data-sort="prix">💶 Prix</button>
+    <button type="button" class="smap-sort-btn${_sortMode === 'freq' ? ' active' : ''}"
+      data-sort="freq">⭐ Fréquentation</button>
+  </div>`;
+
+  const listHtml = displayed.map(s => {
+    const isBest = (s.avg - minAvg) < 0.002;                 // ★ meilleur prix
+    const isFav  = s.count >= FAVORITE_MIN_PLEINS;           // ⭐ station favorite
     return `<div class="smap-item">
-      <span class="smap-name">${escHtml(s.name)}</span>
+      <span class="smap-name">${isFav ? '⭐ ' : ''}${escHtml(s.name)}</span>
       <span class="smap-prix">${s.avg.toFixed(3)} €/L</span>
       <span class="smap-count">${s.count} plein${s.count > 1 ? 's' : ''}</span>
       ${isBest ? '<span class="smap-best">★ meilleur</span>' : ''}
@@ -215,7 +236,7 @@ export function renderStationsCard() {
     : '';
 
   const body = listHtml
-    ? `${mapDiv}<div class="smap-list">${listHtml}</div>`
+    ? `${mapDiv}${sortHtml}<div class="smap-list">${listHtml}</div>`
     : `<p class="smap-empty">Aucun plein ${escHtml(short)} enregistré pour ce véhicule.</p>`;
 
   card.innerHTML = `
@@ -396,6 +417,18 @@ export function initStationsMapInteractions() {
   const card = document.getElementById('stationsMapCard');
   if (!card) return;
   card.addEventListener('click', e => {
+    // W36 — bouton de tri (prix / fréquentation)
+    const sortBtn = e.target.closest('.smap-sort-btn');
+    if (sortBtn) {
+      const m = sortBtn.dataset.sort === 'freq' ? 'freq' : 'prix';
+      if (m !== _sortMode) {
+        _sortMode = m;
+        try { localStorage.setItem(STATION_SORT_KEY, m); } catch { /* quota */ }
+        renderStationsCard();
+      }
+      return;
+    }
+
     // W47 — sélecteur de carburant
     const fuelBtn = e.target.closest('.smap-fuel-btn');
     if (fuelBtn) {

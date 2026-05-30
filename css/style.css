@@ -1704,3 +1704,75 @@ body.no-share .hist-share { display: none; }
   font-size: 13px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+
+/* ═══════════════════════════════════════
+   W36 — Tri de la liste des stations habituelles
+═══════════════════════════════════════ */
+.smap-sort { display:flex; gap:6px; margin:2px 0 6px; }
+.smap-sort-btn {
+  flex:1; padding:5px 4px; border:1px solid var(--border); background:var(--white);
+  border-radius:8px; font-size:11px; font-weight:600; color:var(--text-muted);
+  cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent;
+}
+.smap-sort-btn.active { background:var(--blue-light); color:var(--blue-mid); border-color:var(--blue-mid); }
+
+/* ═══════════════════════════════════════
+   W43 — Écran d'accueil à tuiles + bouton 🏠 header
+═══════════════════════════════════════ */
+.home-btn {
+  background:transparent; border:none; cursor:pointer; font-size:20px;
+  padding:4px 6px; line-height:1; border-radius:8px;
+  -webkit-tap-highlight-color:transparent;
+}
+.home-btn:active { background:var(--blue-light); }
+
+.home-shortcuts { display:flex; gap:10px; margin:16px 16px 4px; }
+.home-shortcut {
+  flex:1; display:flex; align-items:center; justify-content:center; gap:8px;
+  padding:14px 10px; border:none; border-radius:var(--radius);
+  background:var(--blue-mid); color:#fff; font-family:inherit; font-size:14px;
+  font-weight:700; cursor:pointer; box-shadow:0 2px 8px -3px rgba(0,0,0,.3);
+  -webkit-tap-highlight-color:transparent;
+}
+.home-shortcut:active { transform:scale(.98); }
+.home-shortcut .hs-ico { font-size:18px; line-height:1; }
+.home-shortcut[data-shortcut="dernier"] { background:var(--green); }
+
+.home-tiles {
+  display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin:12px 16px 24px;
+}
+.home-tile {
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  aspect-ratio:1 / .82; border:1px solid var(--border); border-radius:var(--radius);
+  background:var(--white); color:var(--text); font-family:inherit; cursor:pointer;
+  box-shadow:0 1px 4px -2px rgba(0,0,0,.18); -webkit-tap-highlight-color:transparent;
+  transition:transform .12s, box-shadow .12s;
+}
+.home-tile:active { transform:scale(.97); box-shadow:0 1px 3px -2px rgba(0,0,0,.25); }
+.home-tile .tile-ico { font-size:34px; line-height:1; }
+.home-tile .tile-lbl { font-size:14px; font-weight:700; color:var(--blue-mid); }
+/* Dernière tuile (Réglages) seule sur sa ligne → pleine largeur. */
+.home-tile:last-child:nth-child(odd) { grid-column:1 / -1; aspect-ratio:auto; padding:18px; flex-direction:row; }
+
+/* ═══════════════════════════════════════
+   W44 — Transition latérale (swipe / onglets)
+═══════════════════════════════════════ */
+.view.view--active.view--slide-next { animation:slideNext .22s ease; }
+.view.view--active.view--slide-prev { animation:slidePrev .22s ease; }
+@keyframes slideNext { from { opacity:0; transform:translateX(22px); } to { opacity:1; transform:translateX(0); } }
+@keyframes slidePrev { from { opacity:0; transform:translateX(-22px); } to { opacity:1; transform:translateX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .view.view--active.view--slide-next,
+  .view.view--active.view--slide-prev { animation:none; }
+}
+
+/* ═══════════════════════════════════════
+   W45 — Pastilles de notification sur les onglets
+═══════════════════════════════════════ */
+.nav-badge {
+  position:absolute; top:6px; left:calc(50% + 8px);
+  min-width:16px; height:16px; padding:0 4px; box-sizing:border-box;
+  background:#e0392b; color:#fff; font-size:10px; font-weight:700; line-height:16px;
+  text-align:center; border-radius:9px; box-shadow:0 0 0 2px var(--white); pointer-events:none;
+}
+.nav-badge--dot { min-width:9px; width:9px; height:9px; padding:0; top:8px; left:calc(50% + 10px); }

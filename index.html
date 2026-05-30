@@ -38,6 +38,8 @@
           title="Installer l'app sur l'écran d'accueil">📲</button>
   <!-- Badge hors-ligne : visible quand des pleins sont en file d'attente -->
   <span id="offlineBadge" class="offline-badge" hidden></span>
+  <!-- W43 — retour à l'écran d'accueil à tuiles -->
+  <button class="home-btn" id="homeBtn" title="Écran d'accueil">🏠</button>
   <button class="theme-toggle" id="themeToggle" title="Changer de thème">🌙</button>
   <div class="header-right">
     <span class="badge" id="headerBadge">🌿 E85</span>
@@ -45,6 +47,35 @@
 </header>
 
 <main id="app-main">
+
+<!-- ════════════ VUE : Accueil à tuiles (W43) ════════════ -->
+<section class="view" id="view-accueil" data-view="accueil">
+  <div class="home-shortcuts">
+    <button class="home-shortcut" type="button" data-shortcut="nouveau">
+      <span class="hs-ico">➕</span><span class="hs-txt">Nouveau plein</span>
+    </button>
+    <button class="home-shortcut" type="button" data-shortcut="dernier">
+      <span class="hs-ico">📋</span><span class="hs-txt">Dupliquer le dernier</span>
+    </button>
+  </div>
+  <div class="home-tiles">
+    <button class="home-tile" type="button" data-view="saisie">
+      <span class="tile-ico">⛽</span><span class="tile-lbl">Saisie</span>
+    </button>
+    <button class="home-tile" type="button" data-view="stats">
+      <span class="tile-ico">📊</span><span class="tile-lbl">Stats</span>
+    </button>
+    <button class="home-tile" type="button" data-view="carte">
+      <span class="tile-ico">🗺️</span><span class="tile-lbl">Carte</span>
+    </button>
+    <button class="home-tile" type="button" data-view="historique">
+      <span class="tile-ico">📜</span><span class="tile-lbl">Historique</span>
+    </button>
+    <button class="home-tile" type="button" data-view="params">
+      <span class="tile-ico">⚙️</span><span class="tile-lbl">Réglages</span>
+    </button>
+  </div>
+</section><!-- /view-accueil -->
 
 <!-- ════════════ VUE : Saisie d'un plein ════════════ -->
 <section class="view view--active" id="view-saisie" data-view="saisie">
@@ -353,12 +384,15 @@
   </button>
   <button class="nav-tab" type="button" data-view="carte">
     <span class="nav-ico">🗺️</span><span class="nav-lbl">Carte</span>
+    <span class="nav-badge nav-badge--dot" data-badge="carte" hidden></span>
   </button>
   <button class="nav-tab" type="button" data-view="historique">
     <span class="nav-ico">📜</span><span class="nav-lbl">Historique</span>
+    <span class="nav-badge" data-badge="historique" hidden></span>
   </button>
   <button class="nav-tab" type="button" data-view="params">
     <span class="nav-ico">⚙️</span><span class="nav-lbl">Réglages</span>
+    <span class="nav-badge nav-badge--dot" data-badge="params" hidden></span>
   </button>
 </nav>
 

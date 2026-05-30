@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v3.11.0.0**
+> 🔖 Version courante : **v3.12.0.0**
 
 ## 🌐 Accès
 
@@ -34,9 +34,22 @@ L'application est organisée en **5 vues** (pages) accessibles via une **barre d
 - **Routeur par hash** (`js/router.js`) : chaque vue a son URL (`#/saisie`, `#/stats`, `#/carte`, `#/historique`, `#/params`) → le **bouton retour** du navigateur et de l'OS fonctionne nativement, et l'URL est partageable. Aucun fallback serveur nécessaire (compatible GitHub Pages).
 - **Ouverture directe sur la Saisie** (rapide à la pompe), onglet actif surligné, titre du header mis à jour selon la vue.
 
+### 🏠 Écran d'accueil à tuiles (W43)
+Une **6ᵉ vue `#/accueil`** sert de portail : **5 grandes tuiles** (Saisie · Stats · Carte · Historique · Réglages) + **2 raccourcis** (« Nouveau plein », « Dupliquer le dernier »). Un **bouton 🏠** dans le header y ramène à tout moment. La vue de départ reste la **Saisie** ; l'accueil est hors de la séquence d'onglets.
+
+### 👆 Gestes de navigation — swipe (W44)
+**Balayage gauche/droite** (pointer events) pour passer d'un onglet à l'autre, avec **transition latérale** directionnelle, en complément de la barre d'onglets (`js/swipe.js`). Garde-fous : geste nettement horizontal uniquement, zones interactives ignorées (cartes, formulaires, sélecteurs), bord gauche réservé au geste « retour » natif iOS.
+
+### 🔴 Badges de notification sur les onglets (W45)
+Des **pastilles** attirent l'attention sans forcer l'ouverture des vues (`js/badges.js`) :
+- **⚙️ Réglages** : point si aucune alerte prix n'est configurée (et que les notifications sont possibles) ;
+- **📜 Historique** : **compteur** des pleins importés non encore consultés (persistant — se vide à l'ouverture) ;
+- **🗺️ Carte** : point si un « moins cher du secteur » a été relevé aujourd'hui (se vide à l'ouverture, réarmé chaque jour).
+
 ### ⛽ Carte multi-carburant (W47 + W48)
 - La carte des stations habituelles propose un **sélecteur E85 / Gazole / SP98** : le classement (par prix moyen payé) et la mini-carte suivent le carburant choisi.
 - **Présélection** = carburant du **dernier plein du véhicule courant** ; se ré-ajuste au changement de véhicule. Un carburant sans plein affiche un message dédié plutôt que de masquer la carte.
+- **Station favorite ⭐ (W36)** : une station habituelle est marquée ⭐ « favorite » dès `FAVORITE_MIN_PLEINS` pleins (défaut 4, `config.js`), distinct du ★ « meilleur prix ». Un **bouton de tri 💶 Prix ↔ ⭐ Fréquentation** (persisté) classe la liste par prix moyen ou par nombre de pleins.
 - **« 🏆 Moins cher du secteur »** (W48) : prix live du jour pour le carburant sélectionné, relevé chaque matin (~7h) par le backend dans 15 km autour de votre dernière position + vos stations habituelles — utile même sans historique de pleins.
 
 ### 📊 Stats étendues — budget, CO₂, comparatif (W39 → W41)
@@ -265,7 +278,9 @@ suivi-e85/
 │
 ├── js/                              # ── Web app (ES Modules) ────────────
 │   ├── main.js                      # Point d'entrée
-│   ├── router.js                    # W42 navigation par vues (onglets + hash #/saisie…)
+│   ├── router.js                    # W42 navigation par vues (onglets + hash #/saisie…) + W43 accueil
+│   ├── swipe.js                     # W44 gestes de navigation (swipe gauche/droite)
+│   ├── badges.js                    # W45 pastilles de notification sur les onglets
 │   ├── pullrefresh.js               # W46 pull-to-refresh (tirer vers le bas → recharge)
 │   ├── config.js                    # APP_VERSION, FUEL_CONFIG, GAS_URL, GS_SHEET_ID, APP_TOKEN (S6)
 │   ├── state.js                     # État partagé (currentType, _stationPrices…)

@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '3.11.0.1';
+export const APP_VERSION       = '3.12.0.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 
 // S6 — Token secret partagé avec les endpoints GAS et la macro VBA.
@@ -29,6 +29,13 @@ export const KIT_PRIX_KEY      = 'suivi_e85_kit_prix';
 export const SECTOR_CACHE_KEY  = 'suivi_e85_sector_cache';  // W38 — prix secteur quotidien (cache)
 export const WRAPPED_SCOPE_KEY = 'suivi_e85_wrapped_scope'; // W37 — périmètre Wrapped (vehicule|all)
 export const BUDGET_KEY        = 'suivi_e85_budget_mensuel'; // W39 — objectif budget carburant mensuel (€)
+export const STATION_SORT_KEY  = 'suivi_e85_station_sort';   // W36 — tri carte stations : 'prix' | 'freq'
+export const HIST_SEEN_KEY     = 'suivi_e85_hist_seen';      // W45 — nb de pleins déjà consultés (badge Historique)
+export const CARTE_SEEN_KEY    = 'suivi_e85_carte_seen';     // W45 — jour de dernière ouverture de la Carte (badge secteur)
+
+// W36 — Station favorite : une station habituelle devient « favorite » (badge ⭐)
+// à partir de ce nombre de pleins. Distinct du ★ « meilleur prix ». Configurable.
+export const FAVORITE_MIN_PLEINS = 4;
 
 // W40 — Empreinte CO₂ E85 vs essence (combustion, tank-to-wheel).
 // Référence essence : SP95-E10 ≈ 2,21 kg CO₂/L. L'E85 émet ≈ −50 % à la
