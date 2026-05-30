@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.4.0.5] — 2026-05-30
+
+### Fixed
+- **Carte habituelles — marqueur d'une station placé sur une ville homonyme** (`js/stationsmap.js`) : le géocodage prenait le **1er résultat** de l'API pour la ville extraite du nom (ex. « Carrefour - Flers » → plusieurs « Flers » en France : Orne, Escrebieux…), plaçant parfois le marqueur à des centaines de km (hors carte, ex. constaté sur iPhone). Désormais le candidat retenu est le **plus proche d'un point de référence** (position de l'utilisateur, sinon barycentre des stations choisies à la main). Les coordonnées auto-géocodées **aberrantes** déjà en cache (> 80 km de la référence) sont **re-géocodées automatiquement** ; les coordonnées choisies manuellement (`src:'pick'`) restent intactes. `cacheStationCoords()` gagne un paramètre `src` (`'pick'`/`'geo'`).
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.4.0.5`.
+
 ## [3.4.0.4] — 2026-05-30
 
 ### Added

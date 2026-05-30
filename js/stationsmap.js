@@ -1,6 +1,6 @@
 /* ─── Carte statique Stations habituelles + prix moyens E85 ─── */
 import { getAllRecords }  from './historique.js';
-import { escHtml, getCoords } from './utils.js';
+import { escHtml, getCoords, haversine } from './utils.js';
 import { PRIX_API }       from './config.js';
 import { state }          from './state.js';
 
@@ -29,6 +29,7 @@ function _ensureUserPos() {
     pos => {
       _userPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
       state.userLat = _userPos.lat; state.userLon = _userPos.lon;
+      _geocodeTried.clear();   // re-géocode avec la position comme référence fiable
       renderStationsCard();
     },
     () => { /* refus / indisponible — pas de marqueur utilisateur */ },
@@ -47,12 +48,13 @@ function latToGlobalPx(lat, z) {
 
 // ── Cache coordonnées ────────────────────────────────────────────────────────
 
-/** Persiste lat/lon d'une station sélectionnée pour la carte statique. */
-export function cacheStationCoords(name, lat, lon) {
+/** Persiste lat/lon d'une station pour la carte statique.
+ *  src : 'pick' = choisie par l'utilisateur (fiable) · 'geo' = géocodée auto. */
+export function cacheStationCoords(name, lat, lon, src) {
   if (!name || !lat || !lon) return;
   try {
     const cache = JSON.parse(localStorage.getItem(COORD_CACHE_KEY) || '{}');
-    cache[name] = { lat: +lat, lon: +lon };
+    cache[name] = { lat: +lat, lon: +lon, src: src || 'pick' };
     localStorage.setItem(COORD_CACHE_KEY, JSON.stringify(cache));
   } catch (_) { /* quota / navigation privée — silencieux */ }
 }
@@ -89,14 +91,27 @@ export function renderStationsCard() {
   card.classList.remove('hidden');
 
   const coordCache = _loadCoordCache();
+
+  // Point de référence pour lever l'ambiguïté de villes homonymes (ex. plusieurs
+  // « Flers ») et repérer les coordonnées aberrantes : position de l'utilisateur,
+  // sinon barycentre des stations choisies à la main, sinon de toutes.
+  const ref = _refPoint(coordCache);
+  const MAX_DIST_M = 80000;   // au-delà → coord auto. jugée aberrante → re-géocodage
+
+  // À (re)géocoder : stations sans coord, ou auto-géocodées trop loin de la référence.
+  const toGeocode = avgs.filter(s => {
+    if (_geocodeTried.has(s.name)) return false;
+    const c = coordCache[s.name];
+    if (!c) return true;                               // aucune coord connue
+    if (c.src === 'pick') return false;               // choisie par l'utilisateur → fiable
+    return ref && haversine(c.lat, c.lon, ref.lat, ref.lon) > MAX_DIST_M; // aberrante
+  });
+  if (toGeocode.length) _geocodeMissing(toGeocode, ref);
+
+  // N'affiche QUE les coords plausibles (cache à jour sauf re-géocodage en cours)
   const mapStations = avgs
     .filter(s => coordCache[s.name])
     .map(s => ({ ...coordCache[s.name], name: s.name, avg: s.avg, count: s.count }));
-
-  // Stations habituelles sans coordonnées connues → géocodage en tâche de fond
-  // (parse la ville depuis le nom, résout via l'API gouv.) puis re-rendu de la card.
-  const missing = avgs.filter(s => !coordCache[s.name] && !_geocodeTried.has(s.name));
-  if (missing.length) _geocodeMissing(missing);
 
   const minAvg = avgs[0]?.avg ?? 0;
 
@@ -226,11 +241,13 @@ function _villeFromName(name) {
 }
 
 /**
- * Résout les coordonnées des stations manquantes via l'API gouv. (1 requête par
- * station, sur la ville), persiste dans le cache, puis re-rend la card une fois
- * terminé. Tolérant aux erreurs réseau (chaque station marquée « tentée »).
+ * Résout les coordonnées des stations via l'API gouv. (requête sur la ville).
+ * Parmi les candidats (villes homonymes), retient celui le plus proche du point
+ * de référence `ref` (position utilisateur / barycentre) pour éviter les faux
+ * positifs (ex. « Flers » dans l'Orne vs « Flers-en-Escrebieux » près de Douai).
+ * Persiste avec src:'geo' puis re-rend la card. Tolérant aux erreurs réseau.
  */
-async function _geocodeMissing(stations) {
+async function _geocodeMissing(stations, ref) {
   let resolved = 0;
   for (const s of stations) {
     _geocodeTried.add(s.name);
@@ -240,16 +257,38 @@ async function _geocodeMissing(stations) {
       const url = PRIX_API + '?' + new URLSearchParams({
         where:  `e85_prix is not null and ville like "${ville.replace(/"/g, '')}%"`,
         select: 'geom',
-        limit:  '1'
+        limit:  '20'
       });
       const resp = await fetch(url);
       if (!resp.ok) continue;
       const data = await resp.json();
-      const c = data.results?.[0] ? getCoords(data.results[0]) : null;
-      if (c && c.lat && c.lon) { cacheStationCoords(s.name, c.lat, c.lon); resolved++; }
+      const cands = (data.results || []).map(getCoords).filter(c => c && c.lat && c.lon);
+      if (!cands.length) continue;
+      const best = ref
+        ? cands.reduce((a, b) =>
+            haversine(b.lat, b.lon, ref.lat, ref.lon) < haversine(a.lat, a.lon, ref.lat, ref.lon) ? b : a)
+        : cands[0];
+      cacheStationCoords(s.name, best.lat, best.lon, 'geo');
+      resolved++;
     } catch (_) { /* réseau indisponible — réessai possible plus tard */ }
   }
   if (resolved) renderStationsCard();   // re-rendu avec les nouveaux marqueurs
+}
+
+/** Point de référence : position utilisateur, sinon barycentre des coords
+ *  choisies à la main ('pick'), sinon de toutes les coords connues. */
+function _refPoint(coordCache) {
+  if (state.userLat != null && state.userLon != null) {
+    return { lat: state.userLat, lon: state.userLon };
+  }
+  const all   = Object.values(coordCache).filter(c => c && isFinite(c.lat) && isFinite(c.lon));
+  const picks = all.filter(c => c.src === 'pick');
+  const pool  = picks.length ? picks : all;
+  if (!pool.length) return null;
+  return {
+    lat: pool.reduce((s, c) => s + c.lat, 0) / pool.length,
+    lon: pool.reduce((s, c) => s + c.lon, 0) / pool.length
+  };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
