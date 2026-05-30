@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.4.0.4] — 2026-05-30
+
+### Added
+- **Carte « Stations habituelles » — marqueur de la position de l'utilisateur** (`js/stationsmap.js` + `css/style.css`) : pastille bleue avec **icône du véhicule courant** (🏍️ moto / 🚗 voiture, déduite du nom du véhicule via `_vehicleIcon`). Position récupérée depuis `state.userLat/userLon` (bouton 📍) ou demandée une fois en arrière-plan (`_ensureUserPos`). Le cadrage de la carte inclut désormais la position pour qu'elle reste visible avec les stations.
+
+### Changed
+- **Push prix E85 — seuil propre à chaque appareil (S10)** (`RefreshPrix.gs` + `WebPush.gs`) : `envoyerPushPrixBas()` n'envoie à un abonné que si le prix ≤ **son** seuil (colonne `Seuil` de `_PushSubs`, alimentée par le réglage du toggle dans l'app), avec repli sur la propriété `SEUIL_PUSH_E85` puis `SEUIL_PUSH_E85_DEFAULT`. Un seul réglage (toggle de l'app) pilote alertes locales **et** push. `testEnvoyerPush()` force l'envoi (ignore le seuil).
+- **`js/config.js`** — `APP_VERSION` → `3.4.0.4`.
+
 ## [3.4.0.3] — 2026-05-30
 
 ### Changed

@@ -1204,6 +1204,26 @@ body.no-share .hist-share { display: none; }
   font-size: 13px;
 }
 
+/* Marqueur position utilisateur : pastille bleue + icône véhicule (🏍️ / 🚗) */
+.smap-user {
+  position: absolute;
+  transform: translate(-50%, -50%);    /* centré sur le point */
+  z-index: 11;
+  pointer-events: none;
+}
+.smap-user-pin {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  background: #2563EB;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(37,99,235,.25), 0 2px 5px rgba(0,0,0,.4);
+}
+
 /* Liste des stations */
 .smap-list {
   display: flex;

@@ -94,16 +94,16 @@ function refreshPrixCarburants() {
   Logger.log('Refresh : ' + rows.length + ' prix loggés. Min E85 = ' +
     (isFinite(bestPrix) ? bestPrix.toFixed(3) + ' (' + bestStation + ')' : 'n/d'));
 
-  // ── S8 — détection prix bas → mémorisation + push ──
-  const seuil = Number(PropertiesService.getScriptProperties().getProperty('SEUIL_PUSH_E85'))
-             || SEUIL_PUSH_E85_DEFAULT;
-
-  if (isFinite(bestPrix) && bestPrix > 0 && bestPrix <= seuil) {
+  // ── S8/S10 — mémorisation du prix mini + push filtrée PAR ABONNÉ ──
+  // On mémorise toujours le meilleur prix (le Service Worker le lit via
+  // ?action=lowprice). L'envoi est ensuite filtré par le seuil propre à
+  // chaque abonné (colonne Seuil de _PushSubs), repli sur SEUIL_PUSH_E85.
+  if (isFinite(bestPrix) && bestPrix > 0) {
     PropertiesService.getScriptProperties().setProperty('LAST_LOW_PRICE',
-      JSON.stringify({ station: bestStation, prix: bestPrix, date: today, seuil: seuil }));
+      JSON.stringify({ station: bestStation, prix: bestPrix, date: today }));
 
     if (typeof envoyerPushPrixBas === 'function') {
-      envoyerPushPrixBas(bestStation, bestPrix);
+      envoyerPushPrixBas(bestStation, bestPrix);   // chaque abonné notifié selon SON seuil
     } else {
       Logger.log('WebPush.gs absent — push non envoyée.');
     }

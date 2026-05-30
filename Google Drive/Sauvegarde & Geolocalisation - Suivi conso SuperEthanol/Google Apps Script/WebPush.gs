@@ -78,11 +78,14 @@ function generateVapidKeys() {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Envoie la push « prix E85 bas » à tous les abonnés.
+//  Envoie la push « prix E85 bas ».
+//  Chaque abonné n'est notifié que si le prix <= SON seuil (colonne
+//  Seuil de _PushSubs, repli sur la propriété SEUIL_PUSH_E85 puis
+//  SEUIL_PUSH_E85_DEFAULT). force=true ignore le filtre (test).
 //  Charge jsrsasign UNE fois, signe + poste chaque abonnement.
 //  Appelé par refreshPrixCarburants() (RefreshPrix.gs).
 // ─────────────────────────────────────────────────────────────
-function envoyerPushPrixBas(station, prix) {
+function envoyerPushPrixBas(station, prix, force) {
   var props   = PropertiesService.getScriptProperties();
   var prvHex  = props.getProperty('VAPID_PRIVATE');
   var pubB64  = props.getProperty('VAPID_PUBLIC');
@@ -90,6 +93,11 @@ function envoyerPushPrixBas(station, prix) {
              || ('mailto:' + (Session.getEffectiveUser().getEmail() || 'no-reply@example.com'));
 
   if (!prvHex || !pubB64) { Logger.log('VAPID non configuré — exécuter generateVapidKeys().'); return; }
+
+  // Seuil de repli (abonné sans seuil renseigné) : propriété SEUIL_PUSH_E85
+  // sinon la constante par défaut de RefreshPrix.gs.
+  var globalSeuil = Number(props.getProperty('SEUIL_PUSH_E85'))
+    || (typeof SEUIL_PUSH_E85_DEFAULT !== 'undefined' ? SEUIL_PUSH_E85_DEFAULT : 0.700);
 
   var subs = _readPushSubs();
   if (!subs.length) { Logger.log('Aucun abonné push.'); return; }
@@ -111,8 +119,11 @@ function envoyerPushPrixBas(station, prix) {
     return KJUR.jws.JWS.sign('ES256', header, payload, prvKey);
   }
 
-  var ok = 0, gone = 0, err = 0;
+  var ok = 0, gone = 0, err = 0, skip = 0;
   subs.forEach(function (s) {
+    // Filtre par seuil propre à l'abonné (sauf en mode test force=true)
+    var seuil = Number(s.seuil) > 0 ? Number(s.seuil) : globalSeuil;
+    if (!force && !(Number(prix) <= seuil)) { skip++; return; }
     try {
       var m = String(s.endpoint).match(/^(https?:\/\/[^\/]+)/);
       var audience = m ? m[1] : s.endpoint;
@@ -136,12 +147,12 @@ function envoyerPushPrixBas(station, prix) {
   });
 
   Logger.log('Push prix bas (' + station + ' ' + Number(prix).toFixed(3) + ' €/L) : '
-    + ok + ' ok, ' + gone + ' expirés, ' + err + ' erreurs.');
+    + ok + ' ok, ' + gone + ' expirés, ' + err + ' erreurs, ' + skip + ' ignorés (seuil non atteint).');
 }
 
-// Test manuel : envoie une push aux abonnés avec un prix fictif.
+// Test manuel : force l'envoi aux abonnés (ignore leur seuil) avec un prix fictif.
 function testEnvoyerPush() {
-  envoyerPushPrixBas('Test station', 0.689);
+  envoyerPushPrixBas('Test station', 0.689, true);
 }
 
 // ─────────────────────────────────────────────────────────────

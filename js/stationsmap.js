@@ -2,6 +2,7 @@
 import { getAllRecords }  from './historique.js';
 import { escHtml, getCoords } from './utils.js';
 import { PRIX_API }       from './config.js';
+import { state }          from './state.js';
 
 const COORD_CACHE_KEY = 'suivi_e85_station_coords';
 const TILE_SZ = 256;
@@ -9,6 +10,31 @@ const TILE_SZ = 256;
 // Noms déjà géocodés (ou tentés sans succès) durant cette session — évite de
 // re-lancer une requête réseau à chaque rendu de la card.
 const _geocodeTried = new Set();
+
+// Position courante de l'utilisateur (session) + garde anti-redemande géoloc.
+let _userPos = null;
+let _userPosTried = false;
+
+/** Icône utilisateur selon le véhicule courant : 🏍️ moto / 🚗 voiture. */
+function _vehicleIcon(name) {
+  return /moto|scooter|deux.?roues|\bbike\b|cbr|scoot|harley|yamaha|kawasaki|ducati/i
+    .test(String(name || '')) ? '🏍️' : '🚗';
+}
+
+/** Récupère la position courante (une fois/session) puis re-rend la card. */
+function _ensureUserPos() {
+  if (_userPos || _userPosTried || !navigator.geolocation) return;
+  _userPosTried = true;
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      _userPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+      state.userLat = _userPos.lat; state.userLon = _userPos.lon;
+      renderStationsCard();
+    },
+    () => { /* refus / indisponible — pas de marqueur utilisateur */ },
+    { timeout: 8000, maximumAge: 300000 }
+  );
+}
 
 // ── Projection Mercator : coordonnée pixel GLOBALE (origine = coin NO du monde) ─
 function lonToGlobalPx(lon, z) {
@@ -84,6 +110,13 @@ export function renderStationsCard() {
     </div>`;
   }).join('');
 
+  // Position utilisateur : connue (bouton 📍) ou demandée une fois en arrière-plan.
+  if (state.userLat != null && state.userLon != null) {
+    _userPos = { lat: state.userLat, lon: state.userLon };
+  } else {
+    _ensureUserPos();
+  }
+
   const mapDiv = mapStations.length >= 1
     ? `<div id="staticStationMap" class="static-map"></div>` : '';
 
@@ -93,12 +126,12 @@ export function renderStationsCard() {
     <div class="smap-list">${listHtml}</div>
   `;
 
-  if (mapStations.length >= 1) _renderStaticMap(mapStations);
+  if (mapStations.length >= 1) _renderStaticMap(mapStations, _userPos);
 }
 
 // ── Rendu mini-carte statique ────────────────────────────────────────────────
 
-function _renderStaticMap(stations) {
+function _renderStaticMap(stations, userPos) {
   const container = document.getElementById('staticStationMap');
   if (!container) return;
 
@@ -108,13 +141,16 @@ function _renderStaticMap(stations) {
   // Marges réservées aux marqueurs (le pin monte au-dessus du point, badge prix large)
   const PAD_X = 30;   // demi-largeur badge prix
   const PAD_TOP = 50; // hauteur badge + pin ⛽ au-dessus du point
-  const PAD_BOT = 10;
+  const PAD_BOT = 16;
+
+  // Points à cadrer = stations habituelles (+ position utilisateur si connue)
+  const fitPts = userPos ? stations.concat([{ lat: userPos.lat, lon: userPos.lon }]) : stations;
 
   // Choix du zoom : le plus détaillé où l'empreinte des marqueurs tient dans la carte
   let z = 9;
   for (let zz = 16; zz >= 9; zz--) {
-    const xs = stations.map(s => lonToGlobalPx(s.lon, zz));
-    const ys = stations.map(s => latToGlobalPx(s.lat, zz));
+    const xs = fitPts.map(s => lonToGlobalPx(s.lon, zz));
+    const ys = fitPts.map(s => latToGlobalPx(s.lat, zz));
     const spanX = Math.max(...xs) - Math.min(...xs);
     const spanY = Math.max(...ys) - Math.min(...ys);
     if (spanX <= W - 2 * PAD_X && spanY <= H - PAD_TOP - PAD_BOT) { z = zz; break; }
@@ -123,8 +159,10 @@ function _renderStaticMap(stations) {
   // Coordonnées pixel globales des stations au zoom retenu
   const gx = stations.map(s => lonToGlobalPx(s.lon, z));
   const gy = stations.map(s => latToGlobalPx(s.lat, z));
-  const minX = Math.min(...gx), maxX = Math.max(...gx);
-  const minY = Math.min(...gy), maxY = Math.max(...gy);
+  const fitX = fitPts.map(s => lonToGlobalPx(s.lon, z));
+  const fitY = fitPts.map(s => latToGlobalPx(s.lat, z));
+  const minX = Math.min(...fitX), maxX = Math.max(...fitX);
+  const minY = Math.min(...fitY), maxY = Math.max(...fitY);
 
   // Origine écran (pixel global du coin haut-gauche) : centre l'empreinte des marqueurs…
   let originX = (minX + maxX) / 2 - W / 2;
@@ -159,6 +197,16 @@ function _renderStaticMap(stations) {
         <span class="smap-marker-pin"><span>⛽</span></span>
       </div>`;
   });
+
+  // ── Marqueur position utilisateur : icône véhicule (🏍️ / 🚗) ──
+  if (userPos) {
+    const ux = Math.max(16, Math.min(W - 16, Math.round(lonToGlobalPx(userPos.lon, z) - originX)));
+    const uy = Math.max(16, Math.min(H - 16, Math.round(latToGlobalPx(userPos.lat, z) - originY)));
+    html += `
+      <div class="smap-user" style="left:${ux}px;top:${uy}px" title="Votre position">
+        <span class="smap-user-pin">${_vehicleIcon(state.currentVehiculeNom)}</span>
+      </div>`;
+  }
 
   html += `<a href="https://www.openstreetmap.org" target="_blank" rel="noopener"
     style="position:absolute;bottom:3px;right:5px;background:rgba(255,255,255,.8);
