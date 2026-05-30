@@ -614,6 +614,12 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
    W42 — Navigation par vues (onglets + hash)
 ═══════════════════════════════════════ */
 
+/* W44 — Réserve les gestes horizontaux au swipe JS.
+   Sans ceci, au moindre mouvement vertical le navigateur démarre le scroll
+   natif et annule le pointer (pointercancel) → le balayage ne se déclenche
+   jamais. pan-y + pinch-zoom conservent le scroll vertical et le zoom. */
+#app-main { touch-action: pan-y pinch-zoom; }
+
 /* Une vue = une "page". Masquée par défaut, affichée quand active. */
 .view { display: none; }
 .view.view--active { display: block; animation: viewIn .18s ease; }

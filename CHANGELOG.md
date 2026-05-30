@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.12.3.0] — 2026-05-30
+
+### Fixed
+- **Swipe inopérant entre les vues (W44)** — le balayage horizontal gauche/droite ne changeait jamais de page. Cause : `#app-main` n'avait pas de `touch-action`, donc au moindre mouvement vertical le navigateur démarrait le scroll natif et **annulait le pointer** (`pointercancel` → `tracking = false`), si bien que `pointerup` ne déclenchait jamais `navigateRelative`. Correctif : `#app-main { touch-action: pan-y pinch-zoom; }` (`css/style.css`) — le scroll vertical et le pinch-zoom restent natifs, les gestes **horizontaux** sont réservés au JS du swipe. Vérifié en preview : `saisie → stats` (gauche) et `stats → saisie` (droite), vue/onglet/titre synchronisés. Rappel des sens : **balayage vers la gauche = vue suivante**, vers la droite = précédente.
+
 ## [3.12.2.0] — 2026-05-30
 
 ### Added

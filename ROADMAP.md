@@ -202,6 +202,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.12.2.0 | **Synchro de version dans `commit.sh` (T9)** — extraction du `[vX.Y.Z.W]` du message → avertit si `APP_VERSION` (`config.js`) diverge et aligne `package.json` automatiquement (corrige le désalignement historique 3.11.0.0 ↔ 3.12.x) |
 | v3.12.2.0 | **Tests parsing OCR `ticket.js` (T10)** — `tests/ticket.test.js` (22 cas, jsdom, tesseract mocké) sur `parseOCRText` : dates (5 formats), volume, prix €/L (+ artefact OCR), montant total + fallbacks, km, station, mapping carburant ; **71 → 93 tests Vitest** |
 | v3.12.2.0 | **Lint strict `--max-warnings=0` (T11)** — 7 warnings résorbés (catch binding optionnel + import `FUEL_KEYS` retiré) puis CI/`commit.sh`/local échouent au moindre warning |
+| v3.12.3.0 | **Fix swipe inopérant entre les vues (W44)** — `#app-main` sans `touch-action` → le navigateur annulait le pointer au moindre mouvement vertical (`pointercancel`), le balayage ne se déclenchait jamais ; `touch-action: pan-y pinch-zoom` réserve les gestes horizontaux au JS (scroll vertical + pinch conservés) |
 
 ---
 

@@ -1,6 +1,6 @@
 {
   "name": "suivi-e85",
-  "version": "3.12.2.0",
+  "version": "3.12.3.0",
   "description": "Formulaire mobile de saisie des pleins E85/SP98 — GitHub Pages + Google Sheets",
   "type": "module",
   "scripts": {
