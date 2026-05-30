@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.3.0.3] — 2026-05-30
+
+### Changed
+- **Messages en barre d'état plutôt que MsgBox** (`vba/modFeatures.bas`) : tous les `MsgBox` (succès, erreurs non bloquantes) remplacés par un helper `Statut` qui écrit dans `Application.StatusBar` (retour discret, non bloquant, sans clic). `RafraichirFeatures`, `AppliquerMFCPrix` et `CreerSuiviAuto` n'interrompent plus le flux.
+- **`js/config.js`** — `APP_VERSION` → `3.3.0.3`.
+
 ## [3.3.0.2] — 2026-05-30
 
 ### Fixed

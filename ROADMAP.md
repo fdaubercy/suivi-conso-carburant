@@ -154,6 +154,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.3.0.0 | **Rapport mensuel automatique (X16)** — `Google Apps Script/RapportMensuel.gs` : trigger temporel le **1er du mois** → `MailApp.sendEmail()` avec le bilan du mois écoulé (nb pleins, total €, litres, distance, conso moyenne, économie E85 vs SP98 surconsommation +20 % incluse) ; `installerTriggerRapportMensuel()` une fois, `testRapportMensuel()` pour tester |
 | v3.3.0.0 | **Formulaire de saisie d'un plein (VBA)** — `vba/modSaisie.bas` `NouveauPlein` : UserForm `frmPleinE85` construit par code (Véhicule/Carburant/Date/Km/Litres/Prix/Station, listes auto, coût live, validation km rétrograde, détection de doublon) ; ajout dans `GS_Pleins` avec `Horodatage` + `sync_id` UUID ; bouton « + Nouveau plein » |
 | v3.3.0.2 | **Fix MFC Erreur 5 (Excel FR)** — `FormatConditions.Add` rejetait la formule à séparateurs US ; helpers `AjouterRegleMFC` + `TraduireFormuleLocale` (essai anglais → repli formule localisée via `FormulaLocal`) ; MFC « Prix €/L » robuste FR/US |
+| v3.3.0.3 | **Messages barre d'état (VBA)** — helper `Statut` (`Application.StatusBar`) remplace les `MsgBox` de `modFeatures.bas` : retour discret non bloquant pour `RafraichirFeatures`/`AppliquerMFCPrix`/`CreerSuiviAuto` |
 
 ---
 
