@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.3.0.0] — 2026-05-30
+
+### Added
+- **Mise en forme conditionnelle « Prix €/L » (X4)** — `vba/modFeatures.bas` : `AppliquerMFCPrix` colore la colonne Prix en **vert** si le prix de la ligne est inférieur à la moyenne des 30 jours précédents pour le **même carburant**, en **rouge** s'il est supérieur. Appliquée sur `GS_Pleins` **et** `Suivi Carburant` (détection des colonnes Date/Type/Prix par en-tête, formule `AVERAGEIFS` glissante).
+- **Onglet « Suivi (auto) » — vue dérivée (X14)** — `vba/modFeatures.bas` : `CreerSuiviAuto` reconstruit une table en **lecture seule** (formules `INDEX` sur le tableau de `GS_Pleins`) : Date, Type, Véhicule, Km, Nb km, Litres, Prix, Coût plein, L/100 km, Station. Source unique de vérité, plus de double saisie. Bouton « ↻ Rafraîchir » intégré ; `RafraichirFeatures` lance MFC + vue d'un coup.
+- **Formulaire de saisie d'un plein** — `vba/modSaisie.bas` : `NouveauPlein` construit par code le UserForm `frmPleinE85` (Véhicule/Carburant/Date/Km/Litres/Prix/Station) avec listes déroulantes auto (feuilles `Vehicules`/`Stations` ∪ valeurs distinctes de `GS_Pleins`), coût live, **validation km rétrograde** + **détection de doublon** (date+km+litres), puis ajoute la ligne dans `GS_Pleins` avec `Horodatage` + `sync_id` UUID. `AjouterBoutonSaisie` place un bouton « + Nouveau plein ». Nécessite « Accès approuvé au modèle objet du projet VBA ».
+- **Rapport mensuel automatique (X16)** — `Google Apps Script/RapportMensuel.gs` : trigger temporel le **1er du mois** → `MailApp.sendEmail()` avec le bilan du mois écoulé (nb pleins, total €, litres, distance, conso moyenne, économie E85 vs SP98 surconsommation +20 % incluse). `installerTriggerRapportMensuel()` à exécuter une fois ; `testRapportMensuel()` pour tester ; destinataire = compte du script (ou `RAPPORT_EMAIL`).
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.3.0.0`.
+
 ## [3.2.0.1] — 2026-05-29
 
 ### Added

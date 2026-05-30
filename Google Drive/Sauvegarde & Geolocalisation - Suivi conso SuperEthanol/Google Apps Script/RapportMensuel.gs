@@ -1,0 +1,218 @@
+// ============================================================
+//  SUIVI CONSO E85 — Rapport mensuel automatique     v3.3.0.0
+//  Roadmap X16
+//
+//  Trigger temporel (1er du mois) -> MailApp.sendEmail() avec
+//  resume du mois ECOULE : nb pleins, total EUR, conso moyenne,
+//  economie E85 vs SP98 (surconsommation +20% prise en compte,
+//  meme methode que l'app web / le dashboard Excel).
+//
+//  INSTALLATION (une seule fois) :
+//    1. Coller ce fichier dans le projet Apps Script (Code.gs voisin).
+//    2. Executer  installerTriggerRapportMensuel()  une fois
+//       (autoriser l'acces Gmail demande).
+//    3. Tester immediatement avec  testRapportMensuel().
+//
+//  Destinataire : compte qui execute le script
+//  (Session.getEffectiveUser). Pour forcer une autre adresse,
+//  renseigner RAPPORT_EMAIL ci-dessous.
+// ============================================================
+
+// Laisser '' pour envoyer au compte du script, ou mettre une adresse.
+const RAPPORT_EMAIL = '';
+
+// Surconsommation E85 par defaut si pas de donnees S98 (cellule J7 Excel).
+const RAPPORT_SURCONSO = 0.20;
+
+// ─────────────────────────────────────────────────────────────
+//  Installer le declencheur mensuel (1er du mois, ~8h).
+//  Idempotent : supprime un ancien trigger du meme handler avant.
+// ─────────────────────────────────────────────────────────────
+function installerTriggerRapportMensuel() {
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === 'envoyerRapportMensuel') {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+  ScriptApp.newTrigger('envoyerRapportMensuel')
+    .timeBased()
+    .onMonthDay(1)
+    .atHour(8)
+    .create();
+  Logger.log('Trigger mensuel installe (1er du mois, 8h).');
+}
+
+// Retire le declencheur (si besoin de desactiver le rapport).
+function supprimerTriggerRapportMensuel() {
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === 'envoyerRapportMensuel') {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+  Logger.log('Trigger mensuel supprime.');
+}
+
+// Test manuel : envoie le rapport du mois precedent tout de suite.
+function testRapportMensuel() {
+  envoyerRapportMensuel();
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Handler du trigger : calcule + envoie le rapport du mois ecoule.
+// ─────────────────────────────────────────────────────────────
+function envoyerRapportMensuel() {
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = getOrCreateSheet(ss);
+  const tz    = ss.getSpreadsheetTimeZone();
+  const data  = sheet.getDataRange().getValues();
+  if (data.length <= 1) {
+    Logger.log('Rapport mensuel : aucune donnee.');
+    return;
+  }
+
+  // Fenetre = mois precedent
+  const now   = new Date();
+  const debut = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const fin   = new Date(now.getFullYear(), now.getMonth(), 1); // 1er du mois courant (exclu)
+  const moisLabel = Utilities.formatDate(debut, tz, 'MMMM yyyy');
+
+  const stats = calculerStatsRapport(data, debut, fin);
+
+  const dest = RAPPORT_EMAIL || Session.getEffectiveUser().getEmail();
+  if (!dest) {
+    Logger.log('Rapport mensuel : aucun destinataire resolu.');
+    return;
+  }
+
+  const sujet = '[Suivi E85] Rapport mensuel — ' + moisLabel;
+  const html  = construireCorpsRapport(moisLabel, stats);
+
+  MailApp.sendEmail({
+    to: dest,
+    subject: sujet,
+    htmlBody: html,
+    name: 'Suivi E85'
+  });
+  Logger.log('Rapport mensuel envoye a ' + dest + ' (' + stats.nbPleins + ' pleins).');
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Calcule les indicateurs du mois sur les lignes [debut, fin[.
+//  Index colonnes (schema A..P) : B Date, C Type, D Km,
+//  E Litres, F Prix, J SP98 station.
+// ─────────────────────────────────────────────────────────────
+function calculerStatsRapport(data, debut, fin) {
+  const headers = data[0].map(String);
+  const idx = (name, fallback) => {
+    const i = headers.indexOf(name);
+    return i >= 0 ? i : fallback;
+  };
+  const cDate = idx('Date', 1);
+  const cType = idx('Type', 2);
+  const cKm   = idx('Km compteur', 3);
+  const cLit  = idx('Nb. Litres', 4);
+  const cPrix = idx('Prix €/L', 5);
+  const cSp98 = idx('SP98 station (€/L)', 9);
+
+  const toNum = v => {
+    const n = Number(String(v).replace(',', '.'));
+    return isFinite(n) ? n : 0;
+  };
+  const isE85 = t => /e85|ethanol/i.test(String(t));
+
+  const rows = data.slice(1).filter(r => {
+    const v = r[cDate];
+    const d = v instanceof Date ? v : new Date(String(v));
+    return !isNaN(d.getTime()) && d >= debut && d < fin;
+  });
+
+  let nbPleins = 0, totalCout = 0, totalLitres = 0;
+  let nbE85 = 0;
+  let kmMin = Infinity, kmMax = -Infinity;
+  let coutE85 = 0, coutSp98Equiv = 0;
+
+  // Prix SP98 moyen connu (repli pour pleins E85 sans SP98) — sur le mois
+  const sp98Connus = rows
+    .filter(r => isE85(r[cType]) && toNum(r[cSp98]) > 0)
+    .map(r => toNum(r[cSp98]));
+  const sp98Moyen = sp98Connus.length
+    ? sp98Connus.reduce((s, p) => s + p, 0) / sp98Connus.length
+    : 0;
+
+  rows.forEach(r => {
+    const lit  = toNum(r[cLit]);
+    const prix = toNum(r[cPrix]);
+    const km   = toNum(r[cKm]);
+    if (lit > 0 && prix > 0) { nbPleins++; totalCout += lit * prix; totalLitres += lit; }
+    if (km > 0) { kmMin = Math.min(kmMin, km); kmMax = Math.max(kmMax, km); }
+
+    if (isE85(r[cType]) && lit > 0 && prix > 0) {
+      nbE85++;
+      coutE85 += lit * prix;
+      const sp98 = toNum(r[cSp98]) || sp98Moyen;
+      if (sp98 > 0) coutSp98Equiv += (lit / (1 + RAPPORT_SURCONSO)) * sp98;
+    }
+  });
+
+  const kmParcourus = (kmMax > kmMin) ? (kmMax - kmMin) : 0;
+  const consoMoy = kmParcourus > 0 ? (totalLitres / kmParcourus) * 100 : 0;
+  const ecoBrute = coutSp98Equiv - coutE85;
+
+  return {
+    nbPleins,
+    nbE85,
+    totalCout,
+    totalLitres,
+    kmParcourus,
+    consoMoy,
+    ecoBrute
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Construit le corps HTML du mail (style aligne sur l'app).
+// ─────────────────────────────────────────────────────────────
+function construireCorpsRapport(moisLabel, s) {
+  const eur = n => n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const f2  = n => n.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const ecoColor = s.ecoBrute >= 0 ? '#1D9E75' : '#E24B4A';
+  const ecoSign  = s.ecoBrute >= 0 ? '+' : '';
+
+  if (s.nbPleins === 0) {
+    return '<div style="font-family:Arial,sans-serif;color:#333">' +
+      '<h2 style="color:#1B3A5C">⛽ Suivi E85 — ' + moisLabel + '</h2>' +
+      '<p>Aucun plein enregistre sur cette periode.</p></div>';
+  }
+
+  const ligne = (label, val) =>
+    '<tr>' +
+    '<td style="padding:8px 12px;border-bottom:1px solid #eee;color:#6B7280">' + label + '</td>' +
+    '<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;' +
+    'font-weight:700;color:#1B3A5C">' + val + '</td></tr>';
+
+  return '' +
+    '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#333;max-width:520px">' +
+      '<h2 style="color:#1B3A5C;border-bottom:2px solid #1D9E75;padding-bottom:6px">' +
+        '⛽ Suivi E85 — ' + moisLabel +
+      '</h2>' +
+      '<p>Voici le bilan de vos pleins pour <strong>' + moisLabel + '</strong> :</p>' +
+      '<table style="border-collapse:collapse;width:100%">' +
+        ligne('Nombre de pleins', s.nbPleins + (s.nbE85 ? ' (dont ' + s.nbE85 + ' E85)' : '')) +
+        ligne('Total depense', eur(s.totalCout) + ' €') +
+        ligne('Litres consommes', f2(s.totalLitres) + ' L') +
+        ligne('Distance parcourue', eur(s.kmParcourus) + ' km') +
+        ligne('Consommation moyenne', (s.consoMoy > 0 ? f2(s.consoMoy) + ' L/100 km' : 'n/d')) +
+        '<tr>' +
+          '<td style="padding:8px 12px;color:#6B7280">Économie E85 vs SP98</td>' +
+          '<td style="padding:8px 12px;text-align:right;font-weight:700;color:' + ecoColor + '">' +
+            ecoSign + eur(s.ecoBrute) + ' €' +
+          '</td>' +
+        '</tr>' +
+      '</table>' +
+      '<p style="font-size:11px;color:#999;margin-top:18px;border-top:1px solid #eee;padding-top:8px">' +
+        'Économie brute (surconsommation E85 +' + Math.round(RAPPORT_SURCONSO * 100) + '% prise en compte), ' +
+        'hors amortissement du kit. Rapport genere automatiquement le ' +
+        Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy à HH:mm') + '.' +
+      '</p>' +
+    '</div>';
+}

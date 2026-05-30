@@ -22,7 +22,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi |
 |---|---|---|
 | X1 | **Bouton "Synchroniser"** sur la feuille `GS_Pleins` qui appelle `SyncManuel` | Pas besoin d'Alt+F11 pour lancer le sync |
-| X4 | **Mise en forme conditionnelle** sur colonne "Prix €/L" : vert si < moyenne 30 j, rouge si > | Visuel rentabilité immédiat |
 
 ### 🎯 Onglet "Tableau de bord"
 
@@ -37,8 +36,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|
 | X11 | **Onglet `_SyncLog`** : chaque sync ajoute une ligne (date, ←N, →N, durée) | Debug, historique des syncs |
 | X12 | **Backup auto** dans `Google Drive/Sauvegardes/Suivi conso E85_YYYYMMDD.xlsm` avant chaque sync majeure | Filet de sécurité |
-| X14 | **Onglet "Suivi des pleins" reconstruit depuis `_ImportGS`** : la table de suivi devient une vue dérivée du tableau de données (Power Query ou formules dynamiques sur `Tableau2`) au lieu d'être saisie manuellement | Source unique de vérité ; plus de double saisie ni de désynchronisation entre l'app web et le tableau Excel |
-| X16 | **Rapport mensuel automatique** : trigger GAS (1er du mois) → `MailApp.sendEmail()` avec résumé nb pleins, total €, conso moy, éco E85 vs SP98 | Bilan mensuel passif, zéro action requise · effort 1 j |
 
 ---
 
@@ -151,6 +148,11 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.1.0.12 | **Dédup immunisée + nettoyage doublons** — `PleinKey` = `km\|litres\|prix` (sans date, robuste aux dates mal parsées) + macro `NettoyerDoublons()` qui purge les doublons existants en gardant la 1ʳᵉ occurrence |
 | v3.1.0.13 | **Sparkline tous carburants + rechargement forcé** — bouton 🔄 dans l'en-tête du graphique vide le cache localStorage et force un rechargement complet depuis le GAS ; seuil d'affichage abaissé à 1 point (au lieu de 2) pour que SP95/E10/Gazole/GPLc apparaissent dès la première donnée |
 | v3.2.0.0 | **Économie brute / nette E85 (alignée Excel)** — surconsommation dynamique (conso E85 / conso S98 − 1, défaut 20 %), litres SP98 = litres / (1 + surconso) ; tuile « éco. brute E85 » + ligne « 💰 Économie nette » (brute − prix du kit) ; champ « Prix du kit E85 » dans Paramètres (défaut 514,54 € = cellule B5) |
+| v3.2.0.1 | **Champ « Prix du kit E85 » visible dans Paramètres** — `#kitPrix` inséré dans la carte ⚙️ (la v3.2.0.0 avait la logique mais l'ancre HTML manquait) ; repli prix SP98 moyen quand la cellule SP98 d'un plein E85 est vide |
+| v3.3.0.0 | **Mise en forme conditionnelle « Prix €/L » (X4)** — `vba/modFeatures.bas` `AppliquerMFCPrix` : colonne Prix en **vert** si le prix de la ligne < moyenne des 30 j précédents du **même carburant**, **rouge** si supérieur ; appliquée sur `GS_Pleins` **et** `Suivi Carburant` (colonnes Date/Type/Prix détectées par en-tête, formule `AVERAGEIFS` glissante) |
+| v3.3.0.0 | **Onglet « Suivi (auto) » — vue dérivée (X14)** — `vba/modFeatures.bas` `CreerSuiviAuto` : table en lecture seule reconstruite par formules `INDEX` sur le tableau de `GS_Pleins` (Date, Type, Véhicule, Km, Nb km, Litres, Prix, Coût plein, L/100 km, Station) ; source unique de vérité, fin de la double saisie ; bouton « ↻ Rafraîchir » ; `RafraichirFeatures` lance MFC + vue |
+| v3.3.0.0 | **Rapport mensuel automatique (X16)** — `Google Apps Script/RapportMensuel.gs` : trigger temporel le **1er du mois** → `MailApp.sendEmail()` avec le bilan du mois écoulé (nb pleins, total €, litres, distance, conso moyenne, économie E85 vs SP98 surconsommation +20 % incluse) ; `installerTriggerRapportMensuel()` une fois, `testRapportMensuel()` pour tester |
+| v3.3.0.0 | **Formulaire de saisie d'un plein (VBA)** — `vba/modSaisie.bas` `NouveauPlein` : UserForm `frmPleinE85` construit par code (Véhicule/Carburant/Date/Km/Litres/Prix/Station, listes auto, coût live, validation km rétrograde, détection de doublon) ; ajout dans `GS_Pleins` avec `Horodatage` + `sync_id` UUID ; bouton « + Nouveau plein » |
 
 ---
 

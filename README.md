@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v3.0.0.3**
+> 🔖 Version courante : **v3.3.0.0**
 
 ## 🌐 Accès
 
@@ -238,6 +238,10 @@ suivi-e85/
 │   ├── GS_Pleins_snippet.bas        # Module feuille GS_Pleins (F1-F4 : auto sync_id,
 │   │                                #   dirty flag, validation km, doublons)
 │   ├── modDashboard.bas             # Tableau de bord : 10 KPIs + graphiques X7/X8
+│   ├── modFeatures.bas              # X4 MFC « Prix €/L » (vert<moy30j/rouge) +
+│   │                                #   X14 onglet « Suivi (auto) » (vue dérivée INDEX)
+│   ├── modSaisie.bas                # UserForm frmPleinE85 (saisie plein, listes auto,
+│   │                                #   coût live, validation km, anti-doublon)
 │   └── ThisWorkbook_snippet.bas     # Snippet Workbook_Open à coller
 │
 ├── .github/
@@ -260,6 +264,7 @@ suivi-e85/
 │   └── Sauvegarde & Geolocalisation - Suivi conso SuperEthanol/
 │       └── Google Apps Script/
 │           ├── Code.gs              # Backend GAS v2.16.0.0 (16 col + sync bidir. + ?since= + rate limiting)
+│           ├── RapportMensuel.gs    # X16 trigger 1er du mois → MailApp.sendEmail() bilan mensuel
 │           ├── index.html           # Page HTML servie par GAS (standalone)
 │           └── GAS_UPDATE.md        # Doc : actions doPost, schéma 16 cols, migrations
 │
@@ -381,6 +386,43 @@ GAS Editor → exécuter migrateSyncId() une seule fois (UUID sur lignes existan
 - **JSON parser** : minimaliste maison (Split sur `},{` — suffisant pour le JSON plat exporté)
 - **Format dates** : `dd/mm/yyyy hh:mm:ss` appliqué automatiquement sur colonnes Horodatage et Date
 - **Heure locale** : GAS exporte via `Utilities.formatDate(v, tz, "yyyy-MM-dd HH:mm:ss")` (timezone du Sheet, pas UTC)
+
+---
+
+## 📊 Analyse Excel — MFC, vue dérivée & saisie (v3.3.0.0)
+
+Module `vba/modFeatures.bas` (X4 + X14) et `vba/modSaisie.bas` (formulaire).
+
+### X4 — Mise en forme conditionnelle « Prix €/L »
+`AppliquerMFCPrix` colore la colonne **Prix €/L** selon la rentabilité immédiate :
+- 🟩 **vert** si le prix de la ligne est **inférieur** à la moyenne des **30 jours précédents** pour le **même carburant** ;
+- 🟥 **rouge** s'il est **supérieur**.
+
+Les colonnes Date / Type / Prix sont détectées **par en-tête** (pas d'index figé), la moyenne glissante est une formule `AVERAGEIFS` (prix du même type sur `[date−30 ; date]`). Appliquée sur **`GS_Pleins`** *et* **`Suivi Carburant`**.
+
+### X14 — Onglet « Suivi (auto) » (vue dérivée)
+`CreerSuiviAuto` reconstruit une table **en lecture seule** dont la **source unique de vérité** est le tableau de `GS_Pleins` : chaque cellule est une formule `INDEX(Tbl[Col]; k)`. Plus de double saisie ni de désynchronisation. Colonnes : Date · Type · Véhicule · Km compteur · Nb km · Litres · Prix €/L · Coût plein · L/100 km · Station. Bouton **« ↻ Rafraîchir »** intégré. `RafraichirFeatures` lance MFC + vue d'un coup.
+
+### Formulaire de saisie d'un plein
+`NouveauPlein` génère par code le UserForm **`frmPleinE85`** (Véhicule / Carburant / Date / Km / Litres / Prix / Station) : listes déroulantes auto (feuilles `Vehicules`/`Stations` ∪ valeurs distinctes de `GS_Pleins`), coût calculé en direct, **validation km rétrograde** et **détection de doublon** (date + km + litres), puis ajout dans `GS_Pleins` avec `Horodatage` + `sync_id` UUID. `AjouterBoutonSaisie` pose un bouton « + Nouveau plein ».
+
+> ⚠️ La génération du UserForm par code nécessite **« Accès approuvé au modèle objet du projet VBA »** (Fichier → Options → Centre de gestion de la confidentialité → Paramètres des macros).
+
+---
+
+## 📧 Rapport mensuel automatique (X16)
+
+Module `Google Apps Script/RapportMensuel.gs` : un **trigger temporel** (le **1er du mois**, ~8 h) appelle `envoyerRapportMensuel()` qui calcule le bilan du **mois écoulé** et l'envoie par **`MailApp.sendEmail()`** (corps HTML).
+
+Indicateurs : nombre de pleins (dont E85), total €, litres consommés, distance parcourue, consommation moyenne, **économie E85 vs SP98** (surconsommation +20 % prise en compte, même méthode que l'app web / le dashboard Excel).
+
+| Fonction | Usage |
+|---|---|
+| `installerTriggerRapportMensuel()` | À exécuter **une fois** (autorise l'accès Gmail) |
+| `testRapportMensuel()` | Envoie immédiatement le rapport du mois précédent |
+| `supprimerTriggerRapportMensuel()` | Désactive le rapport |
+
+Destinataire = compte qui exécute le script (`Session.getEffectiveUser`) ou adresse forcée via `RAPPORT_EMAIL`.
 
 ---
 
