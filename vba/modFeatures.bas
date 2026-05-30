@@ -1,6 +1,6 @@
 Attribute VB_Name = "modFeatures"
 ' ============================================================
-'  SUIVI E85 - Fonctionnalites X4 + X14            v3.3.0.4
+'  SUIVI E85 - Fonctionnalites X4 + X14            v3.3.0.5
 '
 '  X4  : Mise en forme conditionnelle "Prix EUR/L"
 '        vert si < moyenne 30 j (meme carburant), rouge si >
@@ -95,7 +95,9 @@ Private Function MFCSurFeuille(nomFeuille As String) As Long
     Dim colDate As Long, colType As Long, colPrix As Long
     Dim headerRow As Long, firstData As Long, lastRow As Long
     If Not DetecterColonnes(ws, colDate, colType, colPrix, headerRow) Then
-        Debug.Print "[MFC] Colonnes introuvables sur " & nomFeuille
+        Debug.Print "[MFC] Colonnes introuvables sur " & nomFeuille & _
+                    " (Date=" & colDate & " Type=" & colType & " Prix=" & colPrix & _
+                    ") -- en-tetes ligne " & headerRow & " : " & ListerEntetes(ws, headerRow)
         MFCSurFeuille = 0
         Exit Function
     End If
@@ -205,31 +207,69 @@ Private Function TraduireFormuleLocale(ws As Worksheet, formuleEN As String) As 
     On Error GoTo 0
 End Function
 
-' Detecte les colonnes Date / Type / Prix par en-tete (lignes 1 a 20).
+' Detecte les colonnes Date / Type / Prix par en-tete (lignes 1 a 25).
+' Detection SOUPLE :
+'   Date  : "date" exact, ou contient "date" (hors "horodatage").
+'   Type  : contient "type", ou "carburant".
+'   Prix  : contient "prix" (hors station/s98/sp98) ; priorite a "/l".
 Private Function DetecterColonnes(ws As Worksheet, ByRef colDate As Long, _
                                    ByRef colType As Long, ByRef colPrix As Long, _
                                    ByRef headerRow As Long) As Boolean
     Dim r As Long, c As Long
     Dim val As String
+    Dim prixStrict As Long, prixLache As Long
     colDate = 0: colType = 0: colPrix = 0: headerRow = 0
+    prixStrict = 0: prixLache = 0
 
-    For r = 1 To 20
-        For c = 1 To 30
+    For r = 1 To 25
+        For c = 1 To 40
             val = LCase$(Trim$(CStr(ws.Cells(r, c).Value)))
             If val <> "" Then
-                If colDate = 0 And val = "date" Then colDate = c: headerRow = r
-                If colType = 0 And val = "type" Then colType = c: headerRow = r
-                If colPrix = 0 And (InStr(val, "prix") > 0 And InStr(val, "/l") > 0 _
-                                    And InStr(val, "station") = 0 And InStr(val, "s98") = 0 _
-                                    And InStr(val, "sp98") = 0) Then
-                    colPrix = c: headerRow = r
+                ' Date
+                If colDate = 0 Then
+                    If val = "date" Or (InStr(val, "date") > 0 And InStr(val, "horo") = 0) Then
+                        colDate = c: headerRow = r
+                    End If
+                End If
+                ' Type / Carburant
+                If colType = 0 Then
+                    If InStr(val, "type") > 0 Or val = "carburant" Then
+                        colType = c: headerRow = r
+                    End If
+                End If
+                ' Prix (hors prix station/S98/SP98)
+                If InStr(val, "prix") > 0 And InStr(val, "station") = 0 _
+                   And InStr(val, "s98") = 0 And InStr(val, "sp98") = 0 Then
+                    If InStr(val, "/l") > 0 Then
+                        If prixStrict = 0 Then prixStrict = c: headerRow = r
+                    Else
+                        If prixLache = 0 Then prixLache = c
+                    End If
                 End If
             End If
         Next c
-        If colDate > 0 And colType > 0 And colPrix > 0 Then Exit For
+        If colDate > 0 And colType > 0 And (prixStrict > 0 Or prixLache > 0) Then Exit For
     Next r
 
+    If prixStrict > 0 Then
+        colPrix = prixStrict
+    ElseIf prixLache > 0 Then
+        colPrix = prixLache
+    End If
+    If headerRow = 0 And colPrix > 0 Then headerRow = 1
+
     DetecterColonnes = (colDate > 0 And colType > 0 And colPrix > 0)
+End Function
+
+' Liste les en-tetes non vides d'une ligne (diagnostic Immediate Window).
+Private Function ListerEntetes(ws As Worksheet, ByVal r As Long) As String
+    If r < 1 Then r = 1
+    Dim c As Long, s As String, v As String
+    For c = 1 To 40
+        v = Trim$(CStr(ws.Cells(r, c).Value))
+        If v <> "" Then s = s & "[" & ColLettre(c) & "]" & v & " "
+    Next c
+    ListerEntetes = Trim$(s)
 End Function
 
 

@@ -156,6 +156,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.3.0.2 | **Fix MFC Erreur 5 (Excel FR)** — `FormatConditions.Add` rejetait la formule à séparateurs US ; helpers `AjouterRegleMFC` + `TraduireFormuleLocale` (essai anglais → repli formule localisée via `FormulaLocal`) ; MFC « Prix €/L » robuste FR/US |
 | v3.3.0.3 | **Messages barre d'état (VBA)** — helper `Statut` (`Application.StatusBar`) remplace les `MsgBox` de `modFeatures.bas` : retour discret non bloquant pour `RafraichirFeatures`/`AppliquerMFCPrix`/`CreerSuiviAuto` |
 | v3.3.0.4 | **Barre d'état généralisée (VBA)** — tous les `MsgBox` non bloquants (`modFeatures`/`modSaisie`/`modDashboard`/`ModuleImportGS`/`GS_Pleins_snippet`) passent par le helper public `SetStatus` existant (doublon `Statut` supprimé) ; `MsgBox` réservé aux confirmations Oui/Non et au gate d'accès VBA |
+| v3.3.0.5 | **Fix MFC « Colonnes introuvables sur GS_Pleins »** — `DetecterColonnes` assouplie (Date/Type/Prix par sous-chaîne, scan 25×40) + diagnostic `ListerEntetes` qui dump la ligne d'en-tête réelle dans l'Immediate Window |
 
 ---
 

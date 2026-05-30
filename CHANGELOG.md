@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.3.0.5] — 2026-05-30
+
+### Fixed
+- **MFC « Prix €/L » : « Colonnes introuvables sur GS_Pleins »** (`vba/modFeatures.bas`) — `DetecterColonnes` exigeait des en-têtes exacts (`date`, `type`) et un prix contenant `/l`. Détection assouplie : Date = `date` ou contient « date » (hors « horodatage ») ; Type = contient « type » ou « carburant » ; Prix = contient « prix » (hors station/S98/SP98), priorité aux en-têtes avec « /l » et repli sinon. Plage de scan élargie (25 lignes × 40 colonnes).
+- **Diagnostic d'échec amélioré** — en cas de non-détection, l'Immediate Window (Ctrl+G) liste désormais les index trouvés (Date/Type/Prix) **et** le contenu réel de la ligne d'en-tête (helper `ListerEntetes`).
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.3.0.5`.
+
 ## [3.3.0.4] — 2026-05-30
 
 ### Changed
