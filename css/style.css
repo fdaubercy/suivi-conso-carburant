@@ -1420,7 +1420,8 @@ body.no-share .hist-share { display: none; }
 .econ-net-sub{flex-basis:100%;font-size:10px;color:var(--muted);}
 
 /* ─── S11 — Popup infos station + itinéraire (Waze / Google Maps) ─── */
-.smap-marker { cursor: pointer; }
+/* Réactive le clic sur le marqueur (la règle de base le met à pointer-events:none). */
+.smap-marker { cursor: pointer; pointer-events: auto; }
 .stpop-overlay {
   position: fixed; inset: 0; z-index: 1000;
   display: flex; align-items: center; justify-content: center;

@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.5.0.1] — 2026-05-30
+
+### Fixed
+- **Clic sans effet sur les marqueurs de la carte « stations habituelles »** (Windows + iPhone) (`css/style.css`) : la règle de base `.smap-marker { pointer-events: none; }` (héritée de l'époque où ces marqueurs n'étaient pas interactifs) laissait les clics traverser vers les tuiles OSM, donc la popup d'itinéraire S11 ne s'ouvrait jamais. Ajout de `pointer-events: auto` sur `.smap-marker`. La carte recherche/géoloc n'était pas concernée.
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.5.0.1`.
+
 ## [3.5.0.0] — 2026-05-30
 
 ### Added

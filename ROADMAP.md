@@ -168,6 +168,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | v3.4.0.4 | **Carte habituelles — position utilisateur + push par seuil** — marqueur position courante avec icône véhicule (🏍️/🚗) ; push prix E85 filtrée par le seuil propre à chaque appareil (`_PushSubs.Seuil`) au lieu d'un seuil global |
 | v3.4.0.0 | **Renommage « Suivi Conso. Carburants »** — titre de la page web + app (`index.html`, `manifest.json`, `Code.gs`) et rapport mensuel envoyé (`RapportMensuel.gs` : sujet, expéditeur, en-têtes) ; rapport mensuel déjà consultable dans l'app (carte X16) |
 | v3.5.0.0 | **Itinéraire au clic sur un marqueur (S11)** — `js/itineraire.js` : popup d'infos station (nom, prix, distance, adresse) au clic d'un marqueur (carte habituelles **et** carte recherche/géoloc), avec demande de confirmation puis **itinéraire Waze** (`waze.com/ul?…&navigate=yes`, départ position GPS) et repli **Google Maps** |
+| v3.5.0.1 | **Fix clic marqueurs carte habituelles** — `.smap-marker` était en `pointer-events:none` : les clics traversaient vers les tuiles et la popup S11 ne s'ouvrait pas (Windows + iPhone) ; `pointer-events:auto` rétabli |
 
 ---
 
