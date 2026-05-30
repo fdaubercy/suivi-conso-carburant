@@ -442,7 +442,7 @@ Module `Google Apps Script/RefreshPrix.gs` : un **trigger temporel quotidien** (
 | `testRefreshPrix()` | Lance le refresh immédiatement |
 | `supprimerTriggerRefreshPrix()` | Désactive le refresh |
 
-**Notification push (S10)** — module `Google Apps Script/WebPush.gs` : quand le refresh détecte un prix E85 **≤ seuil** (`SEUIL_PUSH_E85`, défaut 0,700 €/L), une **Web Push VAPID** est envoyée aux appareils abonnés **même app fermée**. Implémentation **sans dépendance** : JWT **ES256 / courbe P-256** en pur JS (BigInt), push **sans payload** (le Service Worker récupère le détail via `?action=lowprice`).
+**Notification push (S10)** — module `Google Apps Script/WebPush.gs` : quand le refresh détecte un prix E85 **≤ seuil** (`SEUIL_PUSH_E85`, défaut 0,700 €/L), une **Web Push VAPID** est envoyée aux appareils abonnés **même app fermée**. Push **sans payload** (le Service Worker récupère le détail via `?action=lowprice`) ; le JWT **ES256 / P-256** est signé via la librairie **jsrsasign** chargée à la volée (Apps Script ne supportant pas `BigInt`).
 
 Mise en place (une fois) :
 

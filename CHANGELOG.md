@@ -4,11 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.4.0.1] — 2026-05-30
+
+### Fixed
+- **`WebPush.gs` — « parse error : unexpected token illegal » à l'enregistrement** : Apps Script (V8) **ne supporte pas `BigInt`** ; les littéraux `…n` de l'implémentation P-256 maison cassaient le script. Signature ECDSA **ES256/P-256 déléguée à la librairie [jsrsasign](https://github.com/kjur/jsrsasign)** chargée à la volée depuis cdnjs (`eval`) — `KEYUTIL.generateKeypair` pour `generateVapidKeys()`, `KJUR.jws.JWS.sign('ES256', …)` pour le JWT VAPID. Plus aucun `BigInt`.
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.4.0.1`.
+
 ## [3.4.0.0] — 2026-05-30
 
 ### Added
 - **Refresh quotidien des prix (S8)** — nouveau `Google Apps Script/RefreshPrix.gs` : trigger temporel `ScriptApp.newTrigger('refreshPrixCarburants').timeBased().everyDays(1).atHour(7)` qui parcourt l'onglet `Stations`, extrait la ville de chaque nom (`Enseigne - Ville`), fetch le prix **E85 le plus bas** de la ville via l'API gouv (`order_by=e85_prix asc`), et logue chaque résultat dans un nouvel onglet **`_PrixHistory`** (Station, Date, Type, Prix €/L). `installerTriggerRefreshPrix()` (une fois) + `testRefreshPrix()`.
-- **Notification push depuis GAS (S10)** — nouveau `Google Apps Script/WebPush.gs` : **Web Push VAPID sans payload** (RFC 8030). JWT **ES256 / courbe P-256** implémenté en **pur JS (BigInt)** — aucune librairie externe (signature ECDSA, multiplication scalaire, inverse modulaire). Quand `refreshPrixCarburants()` détecte un prix E85 ≤ seuil (`SEUIL_PUSH_E85`, défaut 0,700 €/L), il mémorise le meilleur prix (`LAST_LOW_PRICE`) et appelle `envoyerPushPrixBas()` → push à tous les abonnés, **app fermée**. `generateVapidKeys()` (une fois) génère la paire et stocke la privée dans les Propriétés du script.
+- **Notification push depuis GAS (S10)** — nouveau `Google Apps Script/WebPush.gs` : **Web Push VAPID sans payload** (RFC 8030). JWT **ES256 / courbe P-256** signé via la librairie **jsrsasign** (cf. correctif 3.4.0.1). Quand `refreshPrixCarburants()` détecte un prix E85 ≤ seuil (`SEUIL_PUSH_E85`, défaut 0,700 €/L), il mémorise le meilleur prix (`LAST_LOW_PRICE`) et appelle `envoyerPushPrixBas()` → push à tous les abonnés, **app fermée**. `generateVapidKeys()` (une fois) génère la paire et stocke la privée dans les Propriétés du script.
   - Côté client (`js/notifications.js`) : `registerPushSubscription()` s'abonne au `PushManager` (clé `VAPID_PUBLIC_KEY`) et envoie l'abonnement à GAS (`action=savePushSub`, stocké dans l'onglet `_PushSubs`) à l'activation des alertes, au démarrage et au changement de seuil ; `unregisterPushSubscription()` au désabonnement.
   - Service Worker (`public/sw.js`) : handlers `push` (push sans payload → `fetch ?action=lowprice` pour enrichir la notification avec station + prix) et `notificationclick` (focus/ouverture de l'app).
   - `Code.gs` : routes `doPost action=savePushSub` (→ `handleSavePushSub`) et `doGet ?action=lowprice`.
