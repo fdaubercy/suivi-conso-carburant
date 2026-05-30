@@ -12,6 +12,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi |
 |---|---|---|
 | W25 | **Export CSV de l'historique** : bouton "📥 Exporter" dans la carte historique → télécharge tous les enregistrements en `.csv` (via `?action=export` + `Blob` + `URL.createObjectURL`) | Justificatif remboursement employeur / fiscalité · zéro backend · effort 1 h |
+| W36 | **Notion de station favorite** (aujourd'hui inexistante : `computeStationAverages` agrège *toutes* les stations E85, top 8 par prix, sans seuil). Pistes : (a) seuil auto configurable dans `config.js` — favorite à partir de N pleins, badge ⭐ distinct du ★ meilleur prix ; (b) favori manuel épinglé (⭐ cliquable, localStorage), indépendant du prix ; (c) tri optionnel par fréquence (nb de pleins) en plus du tri par prix | Mettre en avant les stations réellement fréquentées, pas seulement les moins chères · effort < 2 h |
 
 ---
 
