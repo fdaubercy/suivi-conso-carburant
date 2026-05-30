@@ -4,7 +4,7 @@ import { state } from './state.js';
 import { haversine, odsUrl } from './utils.js';
 import { setS98Status, showCpSearch, hideCpSearch, setFieldPrice, updateCout } from './ui.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
-import { checkPrixE85Alert } from './notifications.js';
+import { checkPrixAlert, ALERT_FUELS } from './notifications.js';
 
 /* ─── Cache requêtes ODS (clé lat,lon,rayon — TTL 5 min) ─── */
 const _odsCache = new Map();
@@ -76,16 +76,17 @@ export function applyPricesResult(data) {
 
   updateRentabilite();
 
-  /* ── Alerte notification prix E85 ──────────────────────────────────
-   * Vérifie si le prix E85 de la station est sous le seuil configuré.
-   * La station sélectionnée est récupérée depuis le select.             */
-  if (state._stationPrices.E85) {
-    const stationEl = document.getElementById('stationSel');
-    const station   = stationEl?.value && stationEl.value !== '__autre'
-      ? stationEl.value
-      : (document.getElementById('fAutre')?.value || '');
-    checkPrixE85Alert(state._stationPrices.E85, station);
-  }
+  /* ── Alertes notification par carburant (W49) ──────────────────────
+   * Vérifie chaque carburant alertable (E85/Gazole/SP98) de la station
+   * contre son seuil. La station sélectionnée vient du select.          */
+  const stationEl = document.getElementById('stationSel');
+  const station   = stationEl?.value && stationEl.value !== '__autre'
+    ? stationEl.value
+    : (document.getElementById('fAutre')?.value || '');
+  ALERT_FUELS.forEach(f => {
+    const p = state._stationPrices[f.key];
+    if (p) checkPrixAlert(f.key, p, station);
+  });
 }
 
 /** Cherche les prix autour de (lat, lon) par cercles croissants (500 m → 2 km → 5 km).

@@ -34,9 +34,14 @@ L'application est organisée en **5 vues** (pages) accessibles via une **barre d
 - **Routeur par hash** (`js/router.js`) : chaque vue a son URL (`#/saisie`, `#/stats`, `#/carte`, `#/historique`, `#/params`) → le **bouton retour** du navigateur et de l'OS fonctionne nativement, et l'URL est partageable. Aucun fallback serveur nécessaire (compatible GitHub Pages).
 - **Ouverture directe sur la Saisie** (rapide à la pompe), onglet actif surligné, titre du header mis à jour selon la vue.
 
-### ⛽ Carte multi-carburant (W47)
+### ⛽ Carte multi-carburant (W47 + W48)
 - La carte des stations habituelles propose un **sélecteur E85 / Gazole / SP98** : le classement (par prix moyen payé) et la mini-carte suivent le carburant choisi.
 - **Présélection** = carburant du **dernier plein du véhicule courant** ; se ré-ajuste au changement de véhicule. Un carburant sans plein affiche un message dédié plutôt que de masquer la carte.
+- **« 🏆 Moins cher du secteur »** (W48) : prix live du jour pour le carburant sélectionné, relevé chaque matin (~7h) par le backend dans 15 km autour de votre dernière position + vos stations habituelles — utile même sans historique de pleins.
+
+### 🔔 Alertes prix par carburant (W11 → W49)
+- **Un interrupteur + un seuil par carburant** (E85 / Gazole / SP98) dans ⚙️ Réglages.
+- **Foreground** (app ouverte) : alerte dès qu'un prix relevé passe sous son seuil. **Background** : push planifiée (~7h) via le Service Worker, qui lit les meilleurs prix du jour par carburant et vos seuils, app fermée. *(Nécessite le backend GAS redéployé et le Web Push configuré.)*
 
 ### 🔄 Pull-to-refresh (W46)
 - **Tirer la page vers le bas** en haut d'écran affiche un indicateur ↻ qui suit le doigt ; au-delà du seuil, le relâchement **recharge l'application** (`js/pullrefresh.js`).

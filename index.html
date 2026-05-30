@@ -296,7 +296,7 @@
     </div>
   </div>
 
-  <!-- Notifications prix E85 -->
+  <!-- Alertes prix par carburant (W49) -->
   <div id="notifIOS" class="s98-status" hidden>
     📲 Sur iPhone, les alertes nécessitent l'app installée — Safari → Partager → <em>Sur l'écran d'accueil</em> (iOS ≥ 16.4).
   </div>
@@ -307,26 +307,8 @@
     🚫 Notifications bloquées — autorisez-les dans les paramètres du navigateur, puis rechargez la page.
   </div>
 
-  <div class="notif-row">
-    <div>
-      <span class="notif-label">🔔 Alertes prix E85</span>
-      <span class="notif-sub">Notification quand le prix E85 passe sous votre seuil</span>
-    </div>
-    <label class="switch" title="Activer les alertes prix E85">
-      <input type="checkbox" id="notifToggle">
-      <span class="switch-track"></span>
-    </label>
-  </div>
-
-  <div class="seuil-row" id="notifSeuilRow" hidden>
-    <label for="notifSeuil" class="notif-label">Seuil d'alerte</label>
-    <div style="display:flex;align-items:center;gap:6px">
-      <input type="number" id="notifSeuil" class="seuil-input"
-             step="0.001" min="0.5" max="2.0" value="0.850"
-             inputmode="decimal">
-      <span class="seuil-unit">€/L</span>
-    </div>
-  </div>
+  <!-- Lignes toggle + seuil par carburant (E85/Gazole/SP98), générées par notifications.js -->
+  <div id="notifFuelRows"></div>
 
   <div class="seuil-row" id="kitPrixRow">
     <label for="kitPrix" class="notif-label">Prix du kit E85</label>

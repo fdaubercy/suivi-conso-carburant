@@ -4,6 +4,7 @@ import { escHtml, getCoords, haversine } from './utils.js';
 import { PRIX_API, FUEL_CONFIG } from './config.js';
 import { state }          from './state.js';
 import { showStationPopup } from './itineraire.js';
+import { getSectorToday, loadSectorPrices } from './secteur.js';   // W48 prix secteur par carburant
 
 const COORD_CACHE_KEY = 'suivi_e85_station_coords';
 const TILE_SZ = 256;
@@ -39,6 +40,9 @@ let _userPosTried = false;
 
 // Stations actuellement affichées sur la mini-carte (pour le clic → popup S11).
 let _renderedStations = [];
+
+// W48 — carburants dont le prix secteur a déjà été chargé (réseau) cette session.
+const _sectorFetched = new Set();
 
 /** Icône utilisateur selon le véhicule courant : 🏍️ moto / 🚗 voiture. */
 function _vehicleIcon(name) {
@@ -203,6 +207,13 @@ export function renderStationsCard() {
     }).join('')
   }</div>`;
 
+  // W48 — « moins cher du secteur » (relevé quotidien) pour le carburant choisi.
+  const sect = getSectorToday(_selectedFuel);
+  const sectorHtml = (sect && sect.prix != null)
+    ? `<div class="smap-sector">🏆 Moins cher du secteur : <b>${Number(sect.prix).toFixed(3)} €/L</b>${
+        sect.station ? ` · ${escHtml(String(sect.station).replace(/^Secteur - /, ''))}` : ''}</div>`
+    : '';
+
   const body = listHtml
     ? `${mapDiv}<div class="smap-list">${listHtml}</div>`
     : `<p class="smap-empty">Aucun plein ${escHtml(short)} enregistré pour ce véhicule.</p>`;
@@ -210,10 +221,20 @@ export function renderStationsCard() {
   card.innerHTML = `
     <p class="section-title">Stations ${escHtml(short)} habituelles</p>
     ${fuelSel}
+    ${sectorHtml}
     ${body}
   `;
 
   if (listHtml && mapStations.length >= 1) _renderStaticMap(mapStations, _userPos);
+
+  // Charge le prix secteur du carburant (1×/session) puis re-rend si toujours actif.
+  if (!_sectorFetched.has(_selectedFuel)) {
+    const fuel = _selectedFuel;
+    _sectorFetched.add(fuel);
+    loadSectorPrices(fuel).then(d => {
+      if (d && _selectedFuel === fuel) renderStationsCard();
+    });
+  }
 }
 
 // ── Rendu mini-carte statique ────────────────────────────────────────────────

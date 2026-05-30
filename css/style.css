@@ -1365,6 +1365,17 @@ body.no-share .hist-share { display: none; }
   text-align: center;
   padding: 14px 8px;
 }
+/* W48 — ligne « moins cher du secteur » (prix live) sous le sélecteur */
+.smap-sector {
+  font-size: 12.5px;
+  color: var(--text);
+  background: var(--green-light);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+.smap-sector b { color: var(--green); font-weight: 700; }
+[data-theme="dark"] .smap-sector { color: var(--text); }
 
 .smap-list {
   display: flex;

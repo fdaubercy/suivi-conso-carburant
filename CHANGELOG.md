@@ -4,6 +4,28 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.10.0.0] — 2026-05-30
+
+> ⚠️ **Redéploiement Google Apps Script requis** (3 fichiers) — voir `Google Apps Script/GAS_UPDATE.md` § v3.10.0.0. Sans redéploiement, l'E85 continue de fonctionner ; Gazole/SP98 (secteur + push) restent inactifs.
+
+### Added
+- **« Moins cher du secteur » par carburant (W48)** — le relevé quotidien GAS (~7h) couvre désormais **E85, Gazole et SP98**.
+  - `RefreshPrix.gs` : boucle sur les 3 carburants (`fetchPricesForVille_` + `scanGeoAllFuels_`, 1 requête API par ville / par scan géo), log dans `_PrixHistory` avec le bon `Type`, `SECTOR_BEST_TODAY` / `LAST_LOW_PRICES` deviennent des objets **par carburant**.
+  - `Code.gs` : `?action=sectorPrices&fuel=E85|GAZOLE|SP98` (défaut E85) + nouvelle `?action=lowprices` (meilleurs prix du jour par carburant, lue par le Service Worker).
+  - Front : la **vue Carte** affiche « 🏆 Moins cher du secteur » pour le carburant du sélecteur (W47), prix live — utile même sans historique de pleins. `js/secteur.js` gère un cache par carburant (E85 garde l'ancienne clé/comportement pour la carte Saisie et l'écart par plein).
+- **Alertes push par carburant (W49)** — l'alerte prix bas planifiée passe de l'E85 seul à **un interrupteur + un seuil indépendants par carburant** (E85/Gazole/SP98).
+  - Réglages : 3 lignes toggle + seuil (générées par `js/notifications.js`, conteneur `#notifFuelRows`) ; seuils par défaut 0,850 / 1,600 / 1,800 €/L.
+  - `WebPush.gs` : `envoyerPushPrixBasMulti(best)` réveille un abonné dès qu'un carburant passe sous **son** seuil ; `_PushSubs` gagne 3 colonnes `SeuilE85/SeuilGazole/SeuilSP98` (migration automatique, colonne `Seuil` héritée = E85).
+  - `public/sw.js` : à la réception du push, lit `?action=lowprices` + les seuils mis en cache par l'app (`caches['suivi-prefs']['/_push_thresholds']`) et affiche **une notification par carburant** sous son seuil ; clic → vue Carte.
+  - Alertes **foreground** (app ouverte) généralisées aux 3 carburants (`prix.js` → `checkPrixAlert(fuel, prix, station)`).
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.10.0.0`.
+- **`eslint.config.js`** — globals navigateur ajoutés (`Response`, `caches`, `Notification`, `atob`) : corrige aussi des `no-undef` préexistants.
+
+### Migration
+- `_PrixHistory` : aucune (colonne `Type` déjà présente). `_PushSubs` : colonnes seuils ajoutées au 1er ré-abonnement. Anciens lecteurs E85 (`?action=lowprice`, format plat) toujours servis.
+
 ## [3.9.0.0] — 2026-05-30
 
 ### Added

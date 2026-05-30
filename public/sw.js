@@ -8,9 +8,21 @@
 
 const CACHE = 'suivi-e85-shell-v__SW_VERSION__';
 
-/* GAS — endpoint du dernier prix E85 bas détecté (push sans payload) */
-const GAS_LOWPRICE_URL =
-  'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec?action=lowprice';
+/* GAS — meilleurs prix du jour par carburant (push sans payload).
+   W49 : ?action=lowprices → { E85:{station,prix,date}, GAZOLE:{...}, SP98:{...} } */
+const GAS_LOWPRICES_URL =
+  'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec?action=lowprices';
+
+/* Carburants pris en charge par les alertes (libellés pour la notification). */
+const PUSH_FUELS = {
+  E85:    { label: 'E85',    icon: '🌿' },
+  GAZOLE: { label: 'Gazole', icon: '⚫' },
+  SP98:   { label: 'SP98',   icon: '💧' },
+};
+/* Seuils mis en cache par l'app (notifications.js) : caches['suivi-prefs']['/_push_thresholds']
+   → { E85:{enabled,seuil}, GAZOLE:{...}, SP98:{...} } */
+const PREFS_CACHE = 'suivi-prefs';
+const THRESHOLDS_URL = '/_push_thresholds';
 
 /* ── Install : prendre la main immédiatement ─────────────────────────── */
 self.addEventListener('install', event => {
@@ -89,43 +101,73 @@ self.addEventListener('message', event => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-/* ── S8 — Push : alerte prix E85 bas envoyée par GAS (refresh quotidien) ─ *
- *  Push sans payload (VAPID) : on récupère le détail du prix bas auprès    *
- *  de GAS (?action=lowprice) pour enrichir la notification.               */
+/* ── W49 — Push : alerte prix bas PAR CARBURANT (refresh quotidien GAS) ── *
+ *  Push sans payload (VAPID). GAS « réveille » l'appareil ; on récupère    *
+ *  les meilleurs prix du jour (?action=lowprices) et les seuils mis en     *
+ *  cache par l'app, et on affiche une notification par carburant sous son  *
+ *  seuil. L'appareil filtre lui-même avec SES seuils locaux.               */
+async function _readCachedThresholds() {
+  try {
+    const c = await caches.open(PREFS_CACHE);
+    const r = await c.match(THRESHOLDS_URL);
+    if (r) return await r.json();
+  } catch (_) { /* pas de cache — repli */ }
+  return null;
+}
+
 self.addEventListener('push', event => {
   event.waitUntil((async () => {
-    const title = '🌿 Prix E85 avantageux !';
-    let   body  = 'Un prix E85 bas a été détecté près de vos stations habituelles.';
-
-    /* Payload éventuel (si le push en contient un) sinon fetch GAS */
-    let info = null;
-    try { info = event.data ? event.data.json() : null; } catch (_) { info = null; }
-    if (!info || info.prix == null) {
+    /* Meilleurs prix du jour par carburant */
+    let low = null;
+    try { low = event.data ? event.data.json() : null; } catch (_) { low = null; }
+    if (!low) {
       try {
-        const resp = await fetch(GAS_LOWPRICE_URL, { cache: 'no-store' });
-        if (resp.ok) info = await resp.json();
-      } catch (_) { /* hors-ligne — notification générique */ }
+        const resp = await fetch(GAS_LOWPRICES_URL, { cache: 'no-store' });
+        if (resp.ok) low = await resp.json();
+      } catch (_) { /* hors-ligne */ }
     }
-    if (info && info.prix != null) {
-      body = `⛽ E85 à ${Number(info.prix).toFixed(3)} €/L`
-           + (info.station ? `\n📍 ${info.station}` : '');
+    const thr = await _readCachedThresholds();
+
+    /* Carburants à notifier : prix connu ET (seuil local activé & atteint).
+       Sans seuils en cache, repli E85 si un prix E85 est disponible. */
+    const toShow = [];
+    Object.keys(PUSH_FUELS).forEach(k => {
+      const rec = low && low[k];
+      if (!rec || rec.prix == null) return;
+      if (thr) {
+        const t = thr[k];
+        if (t && t.enabled && Number(rec.prix) <= Number(t.seuil)) toShow.push({ k, rec });
+      } else if (k === 'E85') {
+        toShow.push({ k, rec });
+      }
+    });
+
+    if (!toShow.length) {
+      /* Réveil sans cible identifiable (seuils inconnus) → notification générique */
+      await self.registration.showNotification('⛽ Prix bas détecté', {
+        body:  'Un carburant suivi est passé sous votre seuil près de vos stations.',
+        icon:  'icons/icon.svg', badge: 'icons/icon.svg',
+        tag:   'price-push', renotify: true, data: { url: './#/carte' },
+      });
+      return;
     }
 
-    await self.registration.showNotification(title, {
-      body,
-      icon:  'icons/icon.svg',
-      badge: 'icons/icon.svg',
-      tag:   'e85-price-push',
-      renotify: true,
-      data:  { url: './' }
-    });
+    await Promise.all(toShow.map(({ k, rec }) => {
+      const f = PUSH_FUELS[k];
+      return self.registration.showNotification(`${f.icon} ${f.label} avantageux !`, {
+        body:  `${f.icon} ${f.label} à ${Number(rec.prix).toFixed(3)} €/L`
+             + (rec.station ? `\n📍 ${String(rec.station).replace(/^Secteur - /, '')}` : ''),
+        icon:  'icons/icon.svg', badge: 'icons/icon.svg',
+        tag:   'price-push-' + k, renotify: true, data: { url: './#/carte' },
+      });
+    }));
   })());
 });
 
-/* ── S8 — Clic sur la notification : focus l'app ou l'ouvre ───────────── */
+/* ── Clic sur la notification : focus l'app (vue Carte) ou l'ouvre ─────── */
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  const target = event.notification.data?.url || './';
+  const target = event.notification.data?.url || './#/carte';
   event.waitUntil((async () => {
     const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const c of all) {

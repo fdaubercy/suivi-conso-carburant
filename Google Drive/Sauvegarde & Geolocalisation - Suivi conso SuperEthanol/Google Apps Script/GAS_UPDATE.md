@@ -202,10 +202,51 @@ Retourne :
 
 ---
 
+## 🆕 v3.10.0.0 — Prix secteur & alertes push MULTI-CARBURANT (W48 / W49)
+
+Étend le relevé quotidien, le secteur et le push de l'**E85 seul** à **E85 + Gazole + SP98**.
+
+### Fichiers à recoller dans l'éditeur Apps Script
+1. **`RefreshPrix.gs`** — relevé des 3 carburants, `SECTOR_BEST_TODAY` / `LAST_LOW_PRICES` par carburant, push multi.
+2. **`WebPush.gs`** — `envoyerPushPrixBasMulti`, `_PushSubs` avec seuils par carburant.
+3. **`Code.gs`** — `action=sectorPrices&fuel=…`, nouvelle `action=lowprices`.
+
+### Étapes de redéploiement
+1. Recoller les 3 fichiers ci-dessus dans l'éditeur (Extensions → Apps Script).
+2. **Déployer → Gérer les déploiements → (crayon) → Nouvelle version → Déployer**
+   *(garder le même ID de déploiement → `GAS_URL` inchangé).*
+3. Exécuter une fois **`testRefreshPrix()`** → vérifier dans les logs :
+   `E85=0.xxx  GAZOLE=1.xxx  SP98=1.xxx` et des lignes ajoutées à `_PrixHistory`.
+4. (Optionnel) **`testEnvoyerPush()`** → force une push de test (E85/Gazole/SP98) à tous les abonnés.
+5. Le trigger quotidien (`installerTriggerRefreshPrix`) reste valide — rien à refaire.
+
+### Migration automatique (transparente)
+- `_PrixHistory` : **aucune migration** (la colonne `Type` existait déjà ; on y écrit `E85`/`GAZOLE`/`SP98`).
+- `_PushSubs` : 3 colonnes ajoutées automatiquement au 1er enregistrement d'abonnement
+  (`F SeuilE85 · G SeuilGazole · H SeuilSP98`) ; la colonne `D Seuil` (héritée) reste le seuil E85.
+- `SECTOR_BEST_TODAY` (ancien format plat E85) est lu en repli → E85 jusqu'au 1er nouveau refresh.
+
+### Nouvelles actions `doGet`
+| Paramètre | Comportement |
+|---|---|
+| `?action=sectorPrices&fuel=GAZOLE` | byDate + meilleur prix du jour pour le carburant (défaut `E85`) |
+| `?action=lowprices` | Meilleurs prix du jour par carburant `{ E85:{…}, GAZOLE:{…}, SP98:{…} }` (lu par le Service Worker) |
+| `?action=lowprice` | _(rétrocompat)_ dernier prix E85 bas, format plat |
+
+### `savePushSub` (doPost) — seuils par carburant
+```json
+{ "action": "savePushSub", "subscription": { "...": "..." },
+  "seuils": { "E85": 0.85, "GAZOLE": 1.60, "SP98": null } }
+```
+`null` = carburant désactivé (pas d'alerte). L'ancien champ `"seuil"` reste accepté (→ E85).
+
+---
+
 ## Historique des versions GAS
 
 | Version   | Date       | Changements                                                         |
 |-----------|------------|---------------------------------------------------------------------|
+| 3.10.0.0  | 2026-05-30 | Multi-carburant : relevé/secteur/push E85+Gazole+SP98 ; `lowprices`, `sectorPrices&fuel`, `_PushSubs` seuils par carburant |
 | 2.9.0.0   | 2026-05-26 | Sync bidir. : `bulkUpdate` (Excel → GS, upsert par sync_id)        |
 | 2.5.0.0   | —          | `bulkAdd`, `handleExport`, `action=export` doGet, Gemini scan       |
 | 2.3.0.0   | —          | Suppression col G "Prix S98 jour" — `migrateRemoveS98()`            |

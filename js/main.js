@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════
-   Suivi Conso E85 — Point d'entrée v3.9.0.0
+   Suivi Conso E85 — Point d'entrée v3.10.0.0
    ES Module : chargé en defer automatique
 ═══════════════════════════════════════ */
 import { APP_VERSION, FUEL_CONFIG } from './config.js';

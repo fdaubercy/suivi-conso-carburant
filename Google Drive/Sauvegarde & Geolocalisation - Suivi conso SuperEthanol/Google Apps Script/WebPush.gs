@@ -78,14 +78,17 @@ function generateVapidKeys() {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Envoie la push « prix E85 bas ».
-//  Chaque abonné n'est notifié que si le prix <= SON seuil (colonne
-//  Seuil de _PushSubs, repli sur la propriété SEUIL_PUSH_E85 puis
-//  SEUIL_PUSH_E85_DEFAULT). force=true ignore le filtre (test).
-//  Charge jsrsasign UNE fois, signe + poste chaque abonnement.
-//  Appelé par refreshPrixCarburants() (RefreshPrix.gs).
+//  W49 — Envoie la push « prix bas » par carburant.
+//  best = { E85:{station,prix}, GAZOLE:{...}, SP98:{...} } (clés
+//  éventuellement absentes). Un abonné est « réveillé » (push sans
+//  payload) dès qu'AU MOINS un carburant passe sous SON seuil pour ce
+//  carburant (colonnes SeuilE85/SeuilGazole/SeuilSP98 de _PushSubs ;
+//  un seuil absent / ≤ 0 = carburant désactivé pour cet abonné).
+//  Le Service Worker lit ensuite ?action=lowprices + ses seuils locaux
+//  pour afficher la (les) notification(s) du/des bon(s) carburant(s).
+//  force=true ignore les seuils (test).
 // ─────────────────────────────────────────────────────────────
-function envoyerPushPrixBas(station, prix, force) {
+function envoyerPushPrixBasMulti(best, force) {
   var props   = PropertiesService.getScriptProperties();
   var prvHex  = props.getProperty('VAPID_PRIVATE');
   var pubB64  = props.getProperty('VAPID_PUBLIC');
@@ -94,13 +97,12 @@ function envoyerPushPrixBas(station, prix, force) {
 
   if (!prvHex || !pubB64) { Logger.log('VAPID non configuré — exécuter generateVapidKeys().'); return; }
 
-  // Seuil de repli (abonné sans seuil renseigné) : propriété SEUIL_PUSH_E85
-  // sinon la constante par défaut de RefreshPrix.gs.
-  var globalSeuil = Number(props.getProperty('SEUIL_PUSH_E85'))
-    || (typeof SEUIL_PUSH_E85_DEFAULT !== 'undefined' ? SEUIL_PUSH_E85_DEFAULT : 0.700);
-
   var subs = _readPushSubs();
   if (!subs.length) { Logger.log('Aucun abonné push.'); return; }
+
+  var FUEL_KEYS = (typeof FUELS !== 'undefined')
+    ? FUELS.map(function (f) { return f.key; })
+    : ['E85', 'GAZOLE', 'SP98'];
 
   // jsrsasign référence navigator/window au chargement → shims (scope partagé par eval)
   var navigator = { appName: 'Netscape', userAgent: 'GAS', appVersion: '5.0' };
@@ -111,7 +113,6 @@ function envoyerPushPrixBas(station, prix, force) {
 
   var prvKey = new KJUR.crypto.ECDSA({ curve: 'secp256r1', prv: prvHex });
 
-  // Construit + signe un JWT VAPID pour une audience (origine du endpoint).
   function buildJwt(audience) {
     var header  = JSON.stringify({ typ: 'JWT', alg: 'ES256' });
     var exp     = Math.floor(Date.now() / 1000) + 12 * 3600;   // < 24 h (RFC 8292)
@@ -121,9 +122,13 @@ function envoyerPushPrixBas(station, prix, force) {
 
   var ok = 0, gone = 0, err = 0, skip = 0;
   subs.forEach(function (s) {
-    // Filtre par seuil propre à l'abonné (sauf en mode test force=true)
-    var seuil = Number(s.seuil) > 0 ? Number(s.seuil) : globalSeuil;
-    if (!force && !(Number(prix) <= seuil)) { skip++; return; }
+    // Carburants déclenchés pour CET abonné (prix du jour <= son seuil > 0).
+    var hit = force || FUEL_KEYS.some(function (k) {
+      var seuil = Number(s.seuils && s.seuils[k]);
+      var rec   = best && best[k];
+      return seuil > 0 && rec && Number(rec.prix) <= seuil;
+    });
+    if (!hit) { skip++; return; }
     try {
       var m = String(s.endpoint).match(/^(https?:\/\/[^\/]+)/);
       var audience = m ? m[1] : s.endpoint;
@@ -146,18 +151,32 @@ function envoyerPushPrixBas(station, prix, force) {
     } catch (e) { err++; Logger.log('push err : ' + e.message); }
   });
 
-  Logger.log('Push prix bas (' + station + ' ' + Number(prix).toFixed(3) + ' €/L) : '
-    + ok + ' ok, ' + gone + ' expirés, ' + err + ' erreurs, ' + skip + ' ignorés (seuil non atteint).');
+  var resume = FUEL_KEYS.filter(function (k) { return best && best[k]; })
+    .map(function (k) { return k + ' ' + Number(best[k].prix).toFixed(3); }).join(', ');
+  Logger.log('Push prix bas [' + resume + '] : '
+    + ok + ' ok, ' + gone + ' expirés, ' + err + ' erreurs, ' + skip + ' ignorés (aucun seuil atteint).');
 }
 
-// Test manuel : force l'envoi aux abonnés (ignore leur seuil) avec un prix fictif.
+// Rétrocompat : ancienne signature E85. station/prix → best={E85:...}.
+function envoyerPushPrixBas(station, prix, force) {
+  envoyerPushPrixBasMulti({ E85: { station: station, prix: prix } }, force);
+}
+
+// Test manuel : force l'envoi aux abonnés (ignore les seuils) avec des prix fictifs.
 function testEnvoyerPush() {
-  envoyerPushPrixBas('Test station', 0.689, true);
+  envoyerPushPrixBasMulti({
+    E85:    { station: 'Test E85',    prix: 0.689 },
+    GAZOLE: { station: 'Test Gazole', prix: 1.559 },
+    SP98:   { station: 'Test SP98',   prix: 1.799 },
+  }, true);
 }
 
 // ─────────────────────────────────────────────────────────────
 //  Stockage des abonnements (_PushSubs) — appelé depuis doPost.
 // ─────────────────────────────────────────────────────────────
+//  Colonnes _PushSubs : A Endpoint · B p256dh · C auth · D Seuil(E85 hérité) ·
+//  E Date · F SeuilE85 · G SeuilGazole · H SeuilSP98.
+//  La colonne D (héritée) reste écrite = SeuilE85 pour rétrocompat.
 function handleSavePushSub(ss, payload) {
   var sub = payload.subscription;
   if (!sub || !sub.endpoint) return jsonResponse({ success: false, error: 'subscription manquante' });
@@ -165,11 +184,20 @@ function handleSavePushSub(ss, payload) {
   var sh   = _getPushSubsSheet(ss);
   var data = sh.getDataRange().getValues();
   var keys = sub.keys || {};
-  var row  = [sub.endpoint, keys.p256dh || '', keys.auth || '', payload.seuil || '', new Date()];
+
+  // Seuils par carburant : payload.seuils {E85,GAZOLE,SP98}. Rétrocompat :
+  // ancien payload.seuil → E85 uniquement. '' = carburant désactivé.
+  var seuils = payload.seuils || {};
+  var sE85   = (seuils.E85    != null) ? seuils.E85    : (payload.seuil != null ? payload.seuil : '');
+  var sGAZ   = (seuils.GAZOLE != null) ? seuils.GAZOLE : '';
+  var sSP98  = (seuils.SP98   != null) ? seuils.SP98   : '';
+
+  var row = [sub.endpoint, keys.p256dh || '', keys.auth || '',
+             sE85 || '', new Date(), sE85 || '', sGAZ || '', sSP98 || ''];
 
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][0]) === sub.endpoint) {
-      sh.getRange(i + 1, 1, 1, 5).setValues([row]);
+      sh.getRange(i + 1, 1, 1, 8).setValues([row]);
       return jsonResponse({ success: true, updated: true });
     }
   }
@@ -181,10 +209,16 @@ function _getPushSubsSheet(ss) {
   var sh = ss.getSheetByName(PUSHSUBS_SHEET);
   if (!sh) {
     sh = ss.insertSheet(PUSHSUBS_SHEET);
-    sh.appendRow(['Endpoint', 'p256dh', 'auth', 'Seuil', 'Date']);
-    sh.getRange(1, 1, 1, 5)
+    sh.appendRow(['Endpoint', 'p256dh', 'auth', 'Seuil', 'Date', 'SeuilE85', 'SeuilGazole', 'SeuilSP98']);
+    sh.getRange(1, 1, 1, 8)
       .setFontWeight('bold').setBackground('#1B3A5C').setFontColor('#FFFFFF');
     sh.setFrozenRows(1);
+    return sh;
+  }
+  // Migration douce : ajoute les colonnes seuil par carburant si absentes.
+  if (sh.getLastColumn() < 8) {
+    sh.getRange(1, 6, 1, 3).setValues([['SeuilE85', 'SeuilGazole', 'SeuilSP98']])
+      .setFontWeight('bold').setBackground('#1B3A5C').setFontColor('#FFFFFF');
   }
   return sh;
 }
@@ -196,7 +230,14 @@ function _readPushSubs() {
   return sh.getDataRange().getValues().slice(1)
     .filter(function (r) { return r[0]; })
     .map(function (r) {
-      return { endpoint: String(r[0]), keys: { p256dh: String(r[1] || ''), auth: String(r[2] || '') }, seuil: r[3] };
+      // Seuils par carburant (F,G,H) ; repli E85 sur l'ancienne colonne D.
+      var sE85 = (r[5] !== '' && r[5] != null) ? r[5] : r[3];
+      return {
+        endpoint: String(r[0]),
+        keys: { p256dh: String(r[1] || ''), auth: String(r[2] || '') },
+        seuil: r[3],                                   // rétrocompat
+        seuils: { E85: sE85, GAZOLE: r[6], SP98: r[7] }
+      };
     });
 }
 

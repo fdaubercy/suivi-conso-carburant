@@ -109,15 +109,27 @@ function doGet(e) {
     return handleExport(e);
   }
 
-  // S8 — dernier prix E85 bas détecté (pour enrichir un push sans payload)
+  // S8 — dernier prix E85 bas détecté (rétrocompat, push E85 sans payload)
   if (e.parameter.action === 'lowprice') {
     const raw = PropertiesService.getScriptProperties().getProperty('LAST_LOW_PRICE');
     return jsonResponse(raw ? JSON.parse(raw) : {});
   }
 
-  // W38 — prix mini E85 du secteur par jour + meilleur prix du jour
+  // W49 — meilleurs prix du jour PAR CARBURANT (lus par le Service Worker)
+  // → { E85:{station,prix,date}, GAZOLE:{...}, SP98:{...} }
+  if (e.parameter.action === 'lowprices') {
+    const props = PropertiesService.getScriptProperties();
+    const raw   = props.getProperty('LAST_LOW_PRICES');
+    if (raw) return jsonResponse(JSON.parse(raw));
+    // Repli : ancienne propriété E85 seule.
+    const e85 = props.getProperty('LAST_LOW_PRICE');
+    return jsonResponse(e85 ? { E85: JSON.parse(e85) } : {});
+  }
+
+  // W38/W48 — prix mini du secteur par jour + meilleur prix du jour, par
+  // carburant via &fuel=E85|GAZOLE|SP98 (défaut E85).
   if (e.parameter.action === 'sectorPrices') {
-    return handleSectorPrices();
+    return handleSectorPrices(e);
   }
 
   const isMobile = (e.parameter.v === 'mobile');
@@ -547,7 +559,20 @@ function handleSaveLastGeo(payload) {
 //  Permet à l'app d'afficher, pour chaque plein, l'écart vs le moins
 //  cher du secteur le jour du plein, et la station la moins chère du jour.
 // ─────────────────────────────────────────────────────────────
-function handleSectorPrices() {
+function handleSectorPrices(e) {
+  // Carburant demandé (défaut E85). Jetons de reconnaissance du champ Type.
+  const fuel = String((e && e.parameter && e.parameter.fuel) || 'E85').toUpperCase();
+  const TOKENS = {
+    E85:    ['E85', 'ETHANOL'],
+    GAZOLE: ['GAZOLE', 'DIESEL', 'GASOIL'],
+    SP98:   ['SP98', 'SUPER 98', '98'],
+  };
+  const want = TOKENS[fuel] || TOKENS.E85;
+  const matchType = function (t) {
+    const u = String(t || '').toUpperCase();
+    return want.some(function (tok) { return u.indexOf(tok) >= 0; });
+  };
+
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sh = ss.getSheetByName('_PrixHistory');
   const byDate = {};
@@ -562,8 +587,7 @@ function handleSectorPrices() {
 
     for (let i = 1; i < data.length; i++) {
       const row  = data[i];
-      const type = String(row[iType] || '').toUpperCase();
-      if (type && type.indexOf('E85') < 0) continue;     // E85 uniquement
+      if (!matchType(row[iType])) continue;              // carburant demandé
       let d = row[iDate];
       const dStr = (d instanceof Date)
         ? Utilities.formatDate(d, tz, 'yyyy-MM-dd')
@@ -574,10 +598,17 @@ function handleSectorPrices() {
     }
   }
 
+  // SECTOR_BEST_TODAY : objet par carburant (nouveau) ou plat E85 (ancien).
   const rawToday = PropertiesService.getScriptProperties().getProperty('SECTOR_BEST_TODAY');
-  const today    = rawToday ? JSON.parse(rawToday) : null;
+  let today = null;
+  if (rawToday) {
+    const parsed = JSON.parse(rawToday);
+    today = (parsed && parsed.prix != null)        // ancien format plat = E85
+      ? (fuel === 'E85' ? parsed : null)
+      : (parsed ? parsed[fuel] || null : null);
+  }
 
-  return jsonResponse({ byDate, today });
+  return jsonResponse({ byDate, today, fuel });
 }
 
 // ─────────────────────────────────────────────────────────────
