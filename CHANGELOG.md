@@ -4,6 +4,28 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [3.11.0.0] — 2026-05-30
+
+### Added
+- **Budget carburant mensuel (W39)** — objectif € configurable dans ⚙️ Réglages (`#budgetMensuel`, clé `suivi_e85_budget_mensuel`).
+  - `js/stats.js` : `getBudgetMensuel()` + `buildBudgetBar()` affiche une **barre de progression** dans la carte Stats comparant la dépense du **mois en cours** (véhicule sélectionné, réutilise `buildMonthlyReport`) à l'objectif ; 3 états — vert (< 80 %), orange (≥ 80 %), **rouge + « ⚠️ +X € au-dessus »** au dépassement. `initBudgetSetting()` câble le champ (vide = désactivé).
+  - Alerte **visuelle uniquement** (zéro permission, zéro réseau).
+- **Empreinte CO₂ E85 vs essence (W40)** — tuile « 🌱 X kg CO₂ évités » dans la carte Stats.
+  - Référence essence **SP95-E10 ≈ 2,21 kg CO₂/L** ; E85 ≈ **−50 % à la combustion** (`config.js` : `CO2_ESSENCE_PER_L`, `CO2_E85_RATIO`, `CO2_E85_PER_L`).
+  - Calcul **à distance égale** : litres essence équivalents = litres E85 / (1 + surconsommation dynamique), `CO₂ évité = essenceEquiv × CO2_ESSENCE − litresE85 × CO2_E85` (cumul de tous les pleins E85). Méthodologie affichée en sous-texte.
+- **Comparaison entre véhicules (W41)** — nouveau module `js/comparatif.js` + carte `#comparatifCard` (vue Stats).
+  - `computeVehicleComparison()` agrège **tous les véhicules** de l'historique : conso (L/100 km) et coût (€/100 km) ; barres horizontales normalisées (SVG/CSS pur, aucune librairie), véhicule courant surligné, « plus économe » mis en avant. Masquée tant que **< 2 véhicules** ont des données exploitables. `renderComparatif()` appelée depuis `renderStats()` (toujours à jour).
+- **Tests des modules récents (T6)** — `jsdom` ajouté (devDependency) ; environnement `// @vitest-environment jsdom` par fichier.
+  - `tests/itineraire.test.js` (10 cas) : popup station, liens Waze/Google Maps, échappement HTML, distance, fermetures (Échap / fond / ×), remplacement.
+  - `tests/notifications.test.js` (13 cas) : seuils (défauts, bornes), activation par carburant, déclenchement foreground `checkPrixAlert` (Notification mockée).
+  - `tests/stationsmap.test.js` (10 cas) : `computeStationAverages` (moyennes, tri, filtre carburant, robustesse) + `cacheStationCoords` (`getAllRecords` mocké). **71 tests au total, tous au vert.**
+
+### Changed
+- **`js/config.js`** — `APP_VERSION` → `3.11.0.0` ; ajout `BUDGET_KEY` + constantes CO₂.
+- **`js/stats.js`** — `computeStats` retourne `co2Evite` / `totLitresE85` ; `renderStats` insère tuile CO₂ + barre budget + déclenche le comparatif.
+- **`css/style.css`** — styles `.co2-tile`, `.budget-box`/`.budget-fill`, `.cmp-*` (+ dark mode).
+- **`package.json`** — `version` → `3.11.0.0`, `jsdom` en devDependencies.
+
 ## [3.10.0.0] — 2026-05-30
 
 > ⚠️ **Redéploiement Google Apps Script requis** (3 fichiers) — voir `Google Apps Script/GAS_UPDATE.md` § v3.10.0.0. Sans redéploiement, l'E85 continue de fonctionner ; Gazole/SP98 (secteur + push) restent inactifs.

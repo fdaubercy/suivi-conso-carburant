@@ -212,6 +212,9 @@
   <div id="statsBox"><div class="stats-msg">Chargement…</div></div>
 </div>
 
+<!-- ─── W41 Comparaison entre véhicules (multi-véhicules) ─── -->
+<div class="card hidden" id="comparatifCard"></div>
+
 <!-- ─── Rapport mensuel consultable (X16) ─── -->
 <div class="card rapport-card">
   <div class="hist-header">
@@ -320,6 +323,18 @@
     </div>
   </div>
   <p class="notif-sub" style="margin-top:4px">Sert au calcul de l'économie nette (brute − prix du kit). Défaut : 514,54 € (cellule B5 Excel).</p>
+
+  <!-- W39 — Objectif de budget carburant mensuel -->
+  <div class="seuil-row" id="budgetRow">
+    <label for="budgetMensuel" class="notif-label">🎯 Budget mensuel</label>
+    <div style="display:flex;align-items:center;gap:6px">
+      <input type="number" id="budgetMensuel" class="seuil-input"
+             step="10" min="0" placeholder="ex. 150"
+             inputmode="decimal">
+      <span class="seuil-unit">€</span>
+    </div>
+  </div>
+  <p class="notif-sub" style="margin-top:4px">Barre de progression + alerte de dépassement dans la carte Stats (mois en cours, véhicule sélectionné). Laisser vide pour désactiver.</p>
 </div>
 
 </section><!-- /view-params -->

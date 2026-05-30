@@ -1,13 +1,28 @@
 /* ─── Stats live : conso, coût, économies E85 vs SP98 + sparkline prix multi-carburant + prédiction ─── */
 import { state } from './state.js';
-import { FUEL_CONFIG, DEFAULT_SURCONSO, KIT_PRIX_KEY, DEFAULT_KIT_PRIX } from './config.js';
+import { FUEL_CONFIG, DEFAULT_SURCONSO, KIT_PRIX_KEY, DEFAULT_KIT_PRIX,
+         BUDGET_KEY, CO2_ESSENCE_PER_L, CO2_E85_PER_L } from './config.js';
 import { getAllRecords, forceRefreshHistorique } from './historique.js';
+import { renderComparatif } from './comparatif.js';
 
 /* ─── Prix du kit de conversion (localStorage, défaut = cellule B5 Excel) ─── */
 export function getKitPrix() {
   const raw = localStorage.getItem(KIT_PRIX_KEY);
   const n = Number(raw);
   return raw != null && raw !== '' && isFinite(n) && n >= 0 ? n : DEFAULT_KIT_PRIX;
+}
+
+/* ─── W39 — Objectif de budget carburant mensuel (€, localStorage) ───
+   0 / vide / invalide = budget désactivé (aucune barre affichée). */
+export function getBudgetMensuel() {
+  const n = Number(localStorage.getItem(BUDGET_KEY));
+  return isFinite(n) && n > 0 ? n : 0;
+}
+
+/** Clé 'YYYY-MM' du mois courant. */
+function _currentMonthKey() {
+  const t = new Date();
+  return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0');
 }
 
 /* ─── Surconsommation E85 dynamique (cellule J7 Excel) ───
@@ -295,6 +310,13 @@ function computeStats() {
   const kitPrix   = getKitPrix();                    // = B5
   const econNette = econBrute - kitPrix;             // = J31
 
+  // W40 — CO₂ évité par l'E85 vs essence, à distance égale (cumul tous pleins E85).
+  //   litres essence équivalents = litres E85 / (1 + surconso) ;
+  //   CO₂ évité = essenceEquiv × CO2_ESSENCE − litresE85 × CO2_E85.
+  const totLitresE85 = e85Pleins.reduce((s, r) => s + (Number(r['Nb. Litres']) || 0), 0);
+  const essenceEquivL = totLitresE85 / (1 + surconso);
+  const co2Evite = essenceEquivL * CO2_ESSENCE_PER_L - totLitresE85 * CO2_E85_PER_L;
+
   return {
     fuelKey,
     fuelShort: fuelCfg?.short || '',
@@ -306,6 +328,8 @@ function computeStats() {
     econNette,
     kitPrix,
     surconso,
+    co2Evite,
+    totLitresE85,
     nbPleins: recent.length,
     vehiculeName: veh || 'tous véhicules'
   };
@@ -459,9 +483,56 @@ export function renderStats() {
       <span class="econ-net-val">${netSign}${s.econNette.toFixed(0)} €</span>
       <span class="econ-net-sub">brute ${s.econBrute.toFixed(0)} € − kit ${s.kitPrix.toFixed(2)} € · surconso +${Math.round(s.surconso * 100)}% · total</span>
     </div>
+    ${buildCO2Tile(s)}
+    ${buildBudgetBar()}
     ${buildPrixSparkline()}
     ${buildPrediction()}
   `;
+
+  renderComparatif();   // W41 — graphe comparatif inter-véhicules (vue Stats)
+}
+
+/* ─── W40 — Tuile « kg CO₂ évités » (cumul des pleins E85) ─── */
+function buildCO2Tile(s) {
+  if (!s || !(s.totLitresE85 > 0) || !(s.co2Evite > 0)) return '';
+  const kg = s.co2Evite;
+  const val = kg >= 1000 ? (kg / 1000).toFixed(2) + ' t' : kg.toFixed(0) + ' kg';
+  return `
+    <div class="co2-tile">
+      <span class="co2-ico">🌱</span>
+      <div class="co2-content">
+        <div class="co2-main"><strong>${val}</strong> de CO₂ évités</div>
+        <div class="co2-sub">E85 vs essence (≈ −50 % à la combustion) · ${s.totLitresE85.toFixed(0)} L E85 · distance égale</div>
+      </div>
+    </div>`;
+}
+
+/* ─── W39 — Barre de progression du budget carburant mensuel ───
+   Compare la dépense du mois courant (véhicule sélectionné) à l'objectif €. */
+function buildBudgetBar() {
+  const budget = getBudgetMensuel();
+  if (!budget) return '';
+
+  const r = buildMonthlyReport(_currentMonthKey());
+  const spent = r.nbPleins ? (r.totalCout || 0) : 0;
+  const pct   = (spent / budget) * 100;
+  const over  = spent > budget;
+  const cls   = over ? 'over' : (pct >= 80 ? 'warn' : 'ok');
+  const w     = Math.min(100, Math.max(0, pct)).toFixed(0);
+
+  const right = over
+    ? `<span class="budget-over">⚠️ +${(spent - budget).toFixed(0)} € au-dessus</span>`
+    : `<span class="budget-left">reste ${(budget - spent).toFixed(0)} €</span>`;
+
+  return `
+    <div class="budget-box ${cls}">
+      <div class="budget-head">
+        <span class="budget-label">🎯 Budget ${r.label}</span>
+        <span class="budget-amount">${spent.toFixed(0)} / ${budget.toFixed(0)} €</span>
+      </div>
+      <div class="budget-track"><div class="budget-fill" style="width:${w}%"></div></div>
+      <div class="budget-foot">${right} · ${Math.round(pct)} %</div>
+    </div>`;
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -657,6 +728,27 @@ export function initKitSetting() {
       el.value = getKitPrix();
     } else {
       localStorage.setItem(KIT_PRIX_KEY, String(v));
+    }
+    renderStats();
+  });
+}
+
+/**
+ * W39 — Câble le champ « budget carburant mensuel » de la carte Paramètres.
+ * 0 / vide désactive la barre ; toute valeur > 0 l'affiche dans les stats.
+ */
+export function initBudgetSetting() {
+  const el = document.getElementById('budgetMensuel');
+  if (!el) return;
+  const cur = getBudgetMensuel();
+  el.value = cur > 0 ? cur : '';
+  el.addEventListener('change', () => {
+    const v = Number(el.value);
+    if (el.value === '' || !isFinite(v) || v <= 0) {
+      localStorage.removeItem(BUDGET_KEY);
+      el.value = '';
+    } else {
+      localStorage.setItem(BUDGET_KEY, String(v));
     }
     renderStats();
   });

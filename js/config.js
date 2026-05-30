@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '3.10.0.0';
+export const APP_VERSION       = '3.11.0.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 
 // S6 — Token secret partagé avec les endpoints GAS et la macro VBA.
@@ -28,6 +28,15 @@ export const CLIENT_ID_KEY     = 'suivi_e85_client_id';
 export const KIT_PRIX_KEY      = 'suivi_e85_kit_prix';
 export const SECTOR_CACHE_KEY  = 'suivi_e85_sector_cache';  // W38 — prix secteur quotidien (cache)
 export const WRAPPED_SCOPE_KEY = 'suivi_e85_wrapped_scope'; // W37 — périmètre Wrapped (vehicule|all)
+export const BUDGET_KEY        = 'suivi_e85_budget_mensuel'; // W39 — objectif budget carburant mensuel (€)
+
+// W40 — Empreinte CO₂ E85 vs essence (combustion, tank-to-wheel).
+// Référence essence : SP95-E10 ≈ 2,21 kg CO₂/L. L'E85 émet ≈ −50 % à la
+// combustion → CO2_E85 ≈ 1,105 kg CO₂/L. Le CO₂ évité est calculé à distance
+// égale : litres essence équivalents = litres E85 / (1 + surconsommation).
+export const CO2_ESSENCE_PER_L = 2.21;                       // kg CO₂/L (SP95-E10)
+export const CO2_E85_RATIO     = 0.50;                       // E85 ≈ −50 % à la combustion
+export const CO2_E85_PER_L     = CO2_ESSENCE_PER_L * CO2_E85_RATIO; // ≈ 1,105 kg CO₂/L
 
 // Économie E85 vs SP98 — aligné sur le dashboard Excel (feuille « Suivi Carburant »).
 // Surconsommation calculée dynamiquement (conso E85 / conso S98 − 1, cellule J7) ;

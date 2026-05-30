@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════
-   Suivi Conso E85 — Point d'entrée v3.10.0.0
+   Suivi Conso E85 — Point d'entrée v3.11.0.0
    ES Module : chargé en defer automatique
 ═══════════════════════════════════════ */
 import { APP_VERSION, FUEL_CONFIG } from './config.js';
@@ -18,7 +18,7 @@ import { onStationChange, onKmInput, submitForm, resetForm, checkDuplicate, save
 import { chargerStations, mergeHistoryStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
 import { chargerHistorique, dupliquerDernier, voirTout, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords, rerenderHistorique } from './historique.js';
-import { renderStats, initSparkToggles, getNextKmPrediction, initKitSetting, initRapport } from './stats.js';
+import { renderStats, initSparkToggles, getNextKmPrediction, initKitSetting, initBudgetSetting, initRapport } from './stats.js';
 import { loadSectorPrices, renderSectorBestCard } from './secteur.js';
 import { initWrapped, renderWrapped } from './wrapped.js';
 import { initScanner }       from './ticket.js';
@@ -152,6 +152,7 @@ initHistoireShare();   // historique.js — W26 Web Share API
 initHistoireDelete();  // historique.js — suppression d'un plein (UI + GoogleSheet)
 initSparkToggles();    // stats.js — W34 filtres sparkline multi-carburant
 initKitSetting();      // stats.js — prix du kit pour l'economie nette
+initBudgetSetting();   // stats.js — W39 objectif budget carburant mensuel
 initRapport();         // stats.js — rapport mensuel consultable (sélecteur de mois)
 initVoiceKm();         // formulaire.js — W35 dictée vocale km
 initRouter();          // router.js — W42 navigation par vues (onglets + hash)

@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v3.6.0.0**
+> 🔖 Version courante : **v3.11.0.0**
 
 ## 🌐 Accès
 
@@ -26,10 +26,10 @@ L'application est organisée en **5 vues** (pages) accessibles via une **barre d
 | Onglet | Contenu |
 |---|---|
 | ⛽ **Saisie** | Formulaire, véhicule, carburant, scan ticket, station, comparateur, secteur, « Enregistrer » |
-| 📊 **Stats** | Statistiques live, rapport mensuel, bilan annuel « Wrapped » |
+| 📊 **Stats** | Statistiques live, **budget mensuel** (W39), **CO₂ évité** (W40), **comparatif véhicules** (W41), rapport mensuel, bilan annuel « Wrapped » |
 | 🗺️ **Carte** | Carte des stations habituelles + prix moyens, **sélecteur E85/Gazole/SP98** (W47) |
 | 📜 **Historique** | 5 derniers pleins + historique complet filtrable |
-| ⚙️ **Réglages** | Notifications, mode hors-ligne, prix du kit |
+| ⚙️ **Réglages** | Notifications, mode hors-ligne, prix du kit, **objectif budget mensuel** |
 
 - **Routeur par hash** (`js/router.js`) : chaque vue a son URL (`#/saisie`, `#/stats`, `#/carte`, `#/historique`, `#/params`) → le **bouton retour** du navigateur et de l'OS fonctionne nativement, et l'URL est partageable. Aucun fallback serveur nécessaire (compatible GitHub Pages).
 - **Ouverture directe sur la Saisie** (rapide à la pompe), onglet actif surligné, titre du header mis à jour selon la vue.
@@ -38,6 +38,11 @@ L'application est organisée en **5 vues** (pages) accessibles via une **barre d
 - La carte des stations habituelles propose un **sélecteur E85 / Gazole / SP98** : le classement (par prix moyen payé) et la mini-carte suivent le carburant choisi.
 - **Présélection** = carburant du **dernier plein du véhicule courant** ; se ré-ajuste au changement de véhicule. Un carburant sans plein affiche un message dédié plutôt que de masquer la carte.
 - **« 🏆 Moins cher du secteur »** (W48) : prix live du jour pour le carburant sélectionné, relevé chaque matin (~7h) par le backend dans 15 km autour de votre dernière position + vos stations habituelles — utile même sans historique de pleins.
+
+### 📊 Stats étendues — budget, CO₂, comparatif (W39 → W41)
+- **🎯 Budget carburant mensuel (W39)** — fixez un objectif € dans ⚙️ Réglages : la carte Stats affiche une **barre de progression** de la dépense du mois en cours (véhicule sélectionné) et passe en **rouge avec alerte** dès le dépassement. Laisser le champ vide désactive la barre.
+- **🌱 CO₂ évité (W40)** — tuile « kg CO₂ évités » par l'E85 vs essence (SP95-E10 ≈ 2,21 kg/L ; E85 ≈ −50 % à la combustion), calculée **à distance égale** (litres essence équivalents = litres E85 / (1 + surconsommation)) sur l'ensemble de vos pleins E85.
+- **🚗🏍️ Comparaison entre véhicules (W41)** — quand au moins **2 véhicules** ont des données, un graphe croise leur **consommation (L/100 km)** et leur **coût (€/100 km)** en barres normalisées ; le véhicule courant est surligné et le plus économe mis en avant. (Les autres stats restent mono-véhicule.)
 
 ### 🔔 Alertes prix par carburant (W11 → W49)
 - **Un interrupteur + un seuil par carburant** (E85 / Gazole / SP98) dans ⚙️ Réglages.
@@ -238,7 +243,7 @@ npm run test:e2e:report   # ouvre le rapport HTML
 ### 🔁 CI — GitHub Actions (W13 + S9)
 Quatre jobs automatiques sur chaque `push` / `pull_request` :
 - **ESLint** : lint de tous les fichiers `js/` (règles `no-var`, `no-unused-vars`, `no-undef`…)
-- **Tests Vitest** : 38 cas unitaires (utils, prix)
+- **Tests Vitest** : 71 cas unitaires (utils, prix, **itineraire, notifications, stationsmap** — T6, env `jsdom`)
 - **npm audit** (S9) : signale les vulnérabilités `moderate+` sur les dépendances — non-bloquant (`continue-on-error: true`)
 - **Version check** : compare `APP_VERSION` dans `config.js` au dernier tag Git — avertissement si divergence
 
