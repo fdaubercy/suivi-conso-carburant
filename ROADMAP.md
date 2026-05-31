@@ -45,11 +45,15 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | X15 | **Graphique scatter Prix E85/L vs L/100 km** : nuage de points pour voir si la conso augmente quand le prix baisse (comportemental) | Corrélation prix/comportement · effort ½ j · pure formule Excel |
 | X20 | **Interrupteur « graphiques auto »** : cellule paramètre (ex. `Graphiques!B4` Oui/Non) lue par `SyncCore` avant l'appel auto v4.5.0.0 | Laisser l'utilisateur désactiver le recalcul auto sur un gros historique (sync plus rapide) |
 | X21 | **Horodatage de dernière génération** sur l'onglet Graphiques (ex. `Graphiques!B5`) renseigné par `CreerGraphiquesWeb` | Savoir d'un coup d'œil si le tableau de bord reflète le dernier sync |
+| X23 | **Export PDF/image du tableau de bord** : bouton « 📄 Exporter » sur l'onglet Graphiques → `ExportAsFixedFormat` (PDF dans `Google Drive/…`) ou copie presse-papiers de la zone graphiques | Partager / archiver le bilan sans envoyer le `.xlsm` |
+| X24 | **Sélecteur d'année du bilan annuel** : cellule paramètre (ex. `Graphiques!B6`) lue par `BuildAggregates` au lieu de l'année max figée (`anneeMax`) → KPIs + jauge CO₂ recalculés pour l'année choisie | Comparer les bilans d'une année à l'autre (2025 vs 2026) |
 
 ### 🛠️ Robustesse
 
 | # | Idée | Pourquoi |
 |---|---|---|
+| X22 | **Garde-fou « onglet Graphiques pré-existant »** : l'appel auto v4.5.0.0 (`SyncCore`) ne déclenche `CreerGraphiquesWeb` que si l'onglet « Graphiques » existe déjà ; sinon il faut un premier clic manuel | Évite que la synchro crée seule l'onglet + les 8 graphes sur un classeur où l'utilisateur ne s'en sert pas |
+| X25 | **Rafraîchissement incrémental des graphiques** : au lieu de `ClearAllCharts` + recréation complète, ne réécrire que `SetSourceData` (et le bloc `_GraphData`) des `ChartObjects` existants ; recréation totale uniquement si leur nombre/type a changé | Appel auto plus rapide et sans clignotement à chaque sync, surtout sur gros historique |
 | X11 | **Onglet `_SyncLog`** : chaque sync ajoute une ligne (date, ←N, →N, durée) | Debug, historique des syncs |
 | X12 | **Backup auto** dans `Google Drive/Sauvegardes/Suivi Conso Carburants_YYYYMMDD.xlsm` avant chaque sync majeure | Filet de sécurité |
 | X17 | **Garde-fou de version du classeur** : `Workbook_Open` compare une constante `WB_VERSION` à la version attendue et avertit en barre d'état si le `.xlsm` est en retard sur le dépôt | Évite la dérive silencieuse `.xlsm` ↔ `vba/*.bas` (cf. retard token S6 / `modFeatures` constaté en v4.3.0.4) |
