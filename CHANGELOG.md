@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.3.0.6] — 2026-05-31
+
+### Changed
+- **Power Query `GS_Pleins` : tri chronologique ascendant par Date** (`powerquery/GS_Pleins.m`). Le CSV gviz renvoie les dates en **format US `M/d/yyyy h:mm:ss`** et **n'est pas trié** (vérifié : ligne 1 = 22/05, ligne 2 = 19/04). Un tri **texte** serait donc faux (`"10/1/2025" < "5/22/2026"`). Ajout d'une colonne technique `_tri` parsée en **culture en-US** (`DateTime.From([Date], "en-US")`), tri ascendant, puis retrait de la colonne. La vue dérivée `Tableau2` (« Suivi Carburant »), qui tire les lignes de `GS_Pleins` par position (`INDEX … ROW()-…`), est ainsi chronologique → calculs de **Δkm / conso / cumul** cohérents.
+
+### Fixed
+- **`Tableau2` col N « Économie cumulée (€) » : `#VALEUR!` sur la 1ʳᵉ ligne quand c'est un plein E85.** La formule du cumul référence la ligne précédente : pour la **1ʳᵉ ligne de données (16)**, `N15` est la **cellule d'en-tête** (texte). Le test `IF(N15<>"" ; N15+… ; …)` était donc **vrai** → `texte + nombre = #VALEUR!`. Exposé par le tri ascendant (la plus ancienne ligne, désormais en tête, peut être un E85). **Correctif** : remplacer `N15<>""` par **`ISNUMBER(N15)`** (l'en-tête texte → on démarre le cumul au lieu de l'additionner) — comportement identique pour les lignes normales, plus de `#VALEUR!`. Formule de colonne (tableau) à coller dans **N16** :
+  ```
+  =IF(Tableau2[[#This Row],[Type]]<>"SuperEthanol E85","",
+     IF(Tableau2[[#This Row],[Coût Plein (€)]]="","",
+        IF(ISNUMBER(N15),
+           N15+(L16-Tableau2[[#This Row],[Coût Plein (€)]]),
+           L16-Tableau2[[#This Row],[Coût Plein (€)]])))
+  ```
+  *(Formules de calcul de `Tableau2` non versionnées : `SyncTableau2DepuisGS` ne régénère que les colonnes brutes et préserve les colonnes de calcul.)*
+
 ## [4.3.0.5] — 2026-05-31
 
 ### Added

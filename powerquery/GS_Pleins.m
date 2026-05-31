@@ -1,5 +1,5 @@
 // ═════════════════════════════════════════════════════════════════════════
-//  Requête Power Query : GS_Pleins                              v4.3.0.5
+//  Requête Power Query : GS_Pleins                              v4.3.0.6
 //  Source de vérité de la requête M (miroir du classeur excel/*.xlsm).
 //
 //  Lit le CSV de l'onglet Google Sheets « _ImportGS » et alimente les
@@ -28,6 +28,8 @@
 //    en v2.3.0.0) qui décalait tout le mapping à partir de la col 7.
 //  • v4.3.0.5 : ajout de la colonne « Photo ticket » (col P du Sheet),
 //    importée dans la col P du classeur ; Modifie_local déplacé en col Q.
+//  • v4.3.0.6 : tri chronologique ascendant par Date (parsing culture en-US,
+//    car le CSV gviz est en M/d/yyyy et non trié).
 //
 //  Endpoint gviz (cible l'onglet par son NOM, comme vba/ModuleImportGS.bas).
 // ═════════════════════════════════════════════════════════════════════════
@@ -91,6 +93,18 @@ let
         {"GPLc station",    type number},
         {"sync_id",         type text},
         {"Photo ticket",    type text}
-    }, "en-US")
+    }, "en-US"),
+
+    // Tri chronologique ASCENDANT (v4.3.0.6). Le CSV gviz renvoie les dates
+    // en format US « M/d/yyyy h:mm:ss » et n'est PAS trié -> un tri TEXTE
+    // serait faux (« 10/1/2025 » < « 5/22/2026 »). On parse donc en culture
+    // en-US sur une colonne technique « _tri », puis on la retire.
+    Sorted = Table.Sort(
+        Table.AddColumn(Typed, "_tri",
+            each try DateTime.From([Date], "en-US") otherwise null,
+            type nullable datetime),
+        {{"_tri", Order.Ascending}}
+    ),
+    Result = Table.RemoveColumns(Sorted, {"_tri"})
 in
-    Typed
+    Result
