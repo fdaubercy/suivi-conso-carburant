@@ -498,11 +498,13 @@ Le module `GS_Pleins_snippet.bas` ajoute un `Worksheet_Change` qui se déclenche
 
 ### Installation
 ```
-Alt+F11 → Fichier → Importer → vba/modSyncGS.bas  +  vba/modGraphiques.bas
+Alt+F11 → Fichier → Importer → vba/modSyncGS.bas + vba/modGraphiques.bas
+                              + vba/modDashboardGraphiques.bas + vba/modDashboardKPI.bas + vba/modPrixStation.bas
 Dans Microsoft Excel Objects → GS_Pleins : coller vba/GS_Pleins_snippet.bas
-Dans Microsoft Excel Objects → Graphiques : coller vba/Graphiques_snippet.bas (refresh auto onglet)
+Dans Microsoft Excel Objects → Graphiques : coller vba/Graphiques_snippet.bas (refresh auto onglet + recalcul KPI au changement B5/B6)
 Dans "ThisWorkbook" : coller vba/ThisWorkbook_snippet.bas
 Power Query → GS_Pleins → Éditeur avancé : coller powerquery/GS_Pleins.m
+Power Query → Requête vide « PrixHistory » → Éditeur avancé : coller powerquery/PrixHistory.m (conserver le nom de table « PrixHistory »)
 GAS Editor → exécuter migrateSyncId() une seule fois (UUID sur lignes existantes)
 GAS → Déployer → Nouvelle version (S3/S5 : colonnes Q/R ajoutées au 1ᵉ appel)
 Boutons (facultatif) : assigner SupprimerPleinExcel et ForceResync (modSyncGS) à des shapes
@@ -582,7 +584,17 @@ Destinataire = compte qui exécute le script (`Session.getEffectiveUser`) ou adr
 
 ## 🔄 Refresh quotidien des prix + Web Push (S8 + S10)
 
-Module `Google Apps Script/RefreshPrix.gs` : un **trigger temporel quotidien** (`everyDays(1)`, ~7 h) appelle `refreshPrixCarburants()` qui parcourt l'onglet **`Stations`**, extrait la ville de chaque nom (`Enseigne - Ville`), récupère le **prix E85 le plus bas** de la commune via l'API gouv, et logue chaque relevé dans un onglet **`_PrixHistory`** (Station, Date, Type, Prix €/L) → historique exploitable pour des graphiques d'évolution.
+Module `Google Apps Script/RefreshPrix.gs` : un **trigger temporel quotidien** (`everyDays(1)`, ~7 h) appelle `refreshPrixCarburants()` qui parcourt l'onglet **`Stations`**, extrait la ville de chaque nom (`Enseigne - Ville`), récupère le **prix le plus bas** de la commune (E85/Gazole/SP98) via l'API gouv + un scan 15 km autour de la dernière position, et logue chaque relevé dans un onglet **`_PrixHistory`** (Station, Date, Type, Prix €/L) → historique exploitable pour des graphiques d'évolution.
+
+#### Côté Excel — prix marché (X30/X31/X34)
+
+La requête Power Query **`PrixHistory`** (`powerquery/PrixHistory.m`) importe cet onglet `_PrixHistory` (gviz CSV `sheet=_PrixHistory`) dans une table locale `PrixHistory` (Station | Date | Type | Prix), **source de vérité des prix marché** côté classeur (accessible hors-ligne, rafraîchie à la demande). Elle alimente :
+- le **graphique `gPrice`** « Évolution du prix » — `modGraphiques.BuildAggregates` reconstruit le bloc prix (`_GraphData!G:J`) à partir de `PrixHistory` (prix le moins cher du jour par carburant), avec **repli automatique** sur les prix des pleins si la table est absente ;
+- la **feuille « Prix par Station »** — `modPrixStation.MAJ_PrixParStation` y écrit le **dernier prix marché** par couple Station × Carburant (`max(Date)`), plus une colonne « Maj le ».
+
+#### Sélecteurs & KPI dynamiques de l'onglet « Graphiques » (X32/X33)
+
+Deux listes déroulantes en **`B5` (véhicule)** et **`B6` (carburant)** — alimentées par les valeurs distinctes de `GS_Pleins`, défaut = **dernier plein** — pilotent le recalcul des 3 cartes KPI **Conso moyenne**, **Coût aux 100 km** et **Économies E85 vs SP98** (`modDashboardKPI.ComputeKPIs`, calcul à la volée depuis `GS_Pleins`, surconso E85 lue dans `Suivi Carburant!J7`). Le `Worksheet_Change` de la feuille relance le recalcul à chaque changement de sélection.
 
 | Fonction | Usage |
 |---|---|

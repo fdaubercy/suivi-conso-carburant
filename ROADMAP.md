@@ -42,11 +42,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| X30 | **`gPrice` lit `_PrixHistory`** : alimenter le graphique « Évolution du prix » depuis l'historique marché (`_PrixHistory` du Google Sheet) au lieu des prix des pleins (Tableau2) — via import Power Query `_PrixHistory` → pivot Date×Type, puis brancher le bloc prix de `BuildAggregates` (`_GraphData!G:J`) dessus | Courbe prix = vrai marché quotidien E85/Gazole/SP98, pas seulement les jours de plein |
-| X31 | **Feuille « Prix pr station » depuis `_PrixHistory`** : remplacer les prix tirés des pleins par le dernier prix marché par carburant (`_PrixHistory`, `max(Date)` par Station+Type) via Power Query | Prix station cohérents avec le marché, rafraîchis tous les jours |
-| X32 | **Sélecteurs véhicule + carburant (Slicers) sur « Graphiques »** : 2 segments Excel ; défaut = véhicule & carburant du dernier plein ; recalcul des KPI/graphes au changement | Vue filtrable multi-véhicule / multi-carburant |
-| X33 | **KPI dynamiques filtrés véhicule+carburant** : Conso moyenne, Coût aux 100 km, Économies E85 vs SP98 (`dash_kpivalue`) recalculés depuis « Pleins » selon les segments X32 | Les 3 KPI reflètent la sélection, plus des cellules globales figées |
-| X34 | **Import Power Query `_PrixHistory`** : nouvelle requête (gviz CSV `sheet=_PrixHistory`) → table locale `PrixHistory` (offline, source de X30/X31), sur le modèle de `powerquery/GS_Pleins.m` | Données prix locales, rapides, hors-ligne |
 | X9 | **Économies cumulées E85 vs SP98** (calcul rétroactif depuis colonne J SP98 station) | Le ROI E85 chiffré |
 | X15 | **Graphique scatter Prix E85/L vs L/100 km** : nuage de points pour voir si la conso augmente quand le prix baisse (comportemental) | Corrélation prix/comportement · effort ½ j · pure formule Excel |
 | X20 | **Interrupteur « graphiques auto »** : cellule paramètre (ex. `Graphiques!B5` Oui/Non) lue par `SyncCore` avant l'appel auto v4.5.0.0 | Laisser l'utilisateur désactiver le recalcul auto sur un gros historique (sync plus rapide) |
