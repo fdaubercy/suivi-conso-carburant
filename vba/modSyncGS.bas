@@ -552,6 +552,14 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     Dim pushedStations As Long
     pushedStations = PushStationsToGS()
 
+    ' P1 : synchro des parametres metier (onglet "Parametres") <-> GS.
+    ' Module autonome ; ne bloque pas la sync des pleins en cas d'echec.
+    SetStatus "Sync parametres metier..."
+    On Error Resume Next
+    Dim paramSync As Long
+    paramSync = modSyncParametres.SyncParametres()
+    On Error GoTo ErrHandler
+
     ' Bilan
     Dim msg As String
     msg = "OK :"
@@ -561,6 +569,7 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     msg = msg & " / ->" & sentToGS & " nouv."
     If sentUpdToGS > 0 Then msg = msg & " +" & sentUpdToGS & " MAJ"
     If pushedStations >= 0 Then msg = msg & " / stations:" & pushedStations
+    If paramSync > 0 Then msg = msg & " / params:" & paramSync
     SetStatus msg
 
     ' v2.9.1 : recreation automatique des graphiques si des donnees ont

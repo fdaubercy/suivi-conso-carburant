@@ -112,6 +112,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v4.10.0.0 | **P1 — Paramètres métier partagés (Phase 1)** — onglet `Parametres` du Google Sheet (`cle\|valeur\|modifie_le`) comme source de vérité unique des réglages métier (kit, budget, objectif CO₂, surconso, seuils d'alerte) ; synchro **last-write-wins par clé** app ⇆ Excel. GAS : endpoints `getParametres`/`setParametres` (⚠️ redéploiement). App : `js/parametres.js` (`syncParametres`/`pushParam`), câblé dans `stats.js`/`notifications.js`/`main.js`. Excel : `vba/modSyncParametres.bas` (mapping cellules `B5`/`J7`/`Graphiques!B2`/`B3`, horodatage UTC, garde-fou formule), branché dans `SyncCore` |
 | v4.8.0.0 | **Suppression bidirectionnelle + force resync + conflits par timestamp (S3/S4/S5)** — **S3** soft-delete par tombstone (col R `Supprimé` du GS), `handleExport` exclut les supprimés et renvoie `deleted:[…]`, action GAS `bulkDelete`, macro VBA `SupprimerPleinExcel`, purge cache web (`historique.js`) ; **S4** `ForceResync` (vide `GS_Pleins` + ré-import total) ; **S5** col GS `Modifié_le`, arbitrage du plus récent (Excel col Q vs GS) côté VBA *et* côté serveur (`handleBulkUpdate`). `Code.gs` v3.8.0.0 (⚠️ redéploiement), `modSyncGS.bas` v2.10.0.0 |
 | v4.9.0.3 | **X35** — `gPrice` : PrixHistory filtre sur les carburants des pleins ; plus d'injection de séries non utilisées |
 | v4.9.0.2 | **X32 fix** — centrage horizontal Véhicule/Carburant (B5:B6) dans le panneau Paramètres de l'onglet Graphiques |

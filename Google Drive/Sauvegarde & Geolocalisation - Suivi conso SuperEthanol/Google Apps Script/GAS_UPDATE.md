@@ -9,6 +9,8 @@
 
 > ⚠️ **v3.7.0.0 (S12)** : l'endpoint `?action=stats` n'est actif **qu'après un redéploiement** (étape 3, *Nouvelle version*). Tant que ce n'est pas fait, l'app web bascule automatiquement sur son **calcul local** (aucune erreur visible, le résumé annuel reste affiché via le repli).
 
+> ⚠️ **P1 (app v4.10.0.0)** : nouveaux endpoints `?action=getParametres` (GET) et `action=setParametres` (POST) pour les **paramètres métier partagés** (onglet `Parametres`, créé automatiquement au 1ᵉ appel). Actifs **qu'après un redéploiement** (*Nouvelle version*). Tant que ce n'est pas fait, l'app et Excel continuent d'utiliser leurs valeurs locales (aucune erreur visible, simplement pas de synchro des réglages).
+
 ---
 
 ## Configuration requise
@@ -19,6 +21,10 @@
 | `SHEET_NAME`    | `_ImportGS` (créé automatiquement)             |
 | `STATIONS_SHEET`| `Stations`                                    |
 | `VEHICULES_SHEET`| `Vehicules`                                  |
+| `PARAMS_SHEET`  | `Parametres` (créé automatiquement — P1)       |
+
+### Onglet `Parametres` (P1 — paramètres métier partagés app ⇆ Excel)
+Table `cle | valeur | modifie_le` (horodatage epoch ms UTC). Source de vérité unique, synchronisée par **last-write-wins par clé**. Clés autorisées (constante `PARAM_KEYS`) : `kit_prix`, `budget_mensuel`, `objectif_co2`, `surconso`, `seuil_E85/GAZOLE/SP98` (+ `_enabled`). Endpoints : `getParametres` (lecture) / `setParametres` (upsert, n'écrase que si `modifie_le` entrant ≥ stocké).
 
 ### Clé Gemini (optionnel — scan ticket)
 Extensions → Apps Script → Paramètres du projet → Propriétés de script  

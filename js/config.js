@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '4.9.0.3';
+export const APP_VERSION       = '4.10.0.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 
 // S6 — Token secret partagé avec les endpoints GAS et la macro VBA.
@@ -39,6 +39,8 @@ export const CARTE_SEEN_KEY    = 'suivi_e85_carte_seen';     // W45 — jour de 
 export const START_VIEW_KEY    = 'suivi_e85_start_view';     // U4 — vue d'ouverture : 'accueil' | 'saisie' | 'last'
 export const LAST_VIEW_KEY     = 'suivi_e85_last_view';      // U4/U5 — dernière vue consultée (pour 'last' + tuile « reprendre »)
 export const COLLAPSE_PREFIX   = 'suivi_e85_collapse_';      // U6 — état replié des blocs Réglages (préfixe + clé de bloc)
+export const SURCONSO_KEY      = 'suivi_e85_surconso';      // P1 — surconso métier partagée (Excel J7) : défaut quand pas de données S98
+export const PARAMS_META_KEY   = 'suivi_e85_params_meta';   // P1 — horodatages locaux par clé pour la synchro LWW des paramètres
 
 // U4 — vue d'ouverture par défaut quand aucune préférence n'est enregistrée.
 export const DEFAULT_START_VIEW = 'accueil';

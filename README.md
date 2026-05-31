@@ -481,6 +481,26 @@ Chaque enregistrement est identifié par un **UUID** (`sync_id`, colonne O). À 
 
 **Résolution de conflits (S5, v4.8.0.0)** : si une ligne est modifiée des deux côtés, on garde le **plus récent** par horodatage — col Q Excel (`Modifie_local`) comparée au champ GS `Modifié_le`. L'arbitrage se fait côté VBA (`ImportGSToExcel`) **et** côté serveur (`handleBulkUpdate` n'écrase que si `modifiedAt` reçu ≥ `Modifié_le` existant). **`ForceResync`** (S4) vide la table locale et ré-importe tout depuis GS.
 
+### P1 — Paramètres métier partagés (onglet `Parametres`)
+
+Depuis **v4.10.0.0**, les paramètres **métier** modifiables par l'utilisateur ne vivent plus uniquement en `localStorage` (app) ou dans des cellules Excel : ils sont centralisés dans un **onglet `Parametres` du Google Sheet** (table `cle | valeur | modifie_le`), **source de vérité unique** synchronisée entre l'app web et le classeur Excel.
+
+| Clé Sheet | App (`localStorage`) | Excel (cellule) |
+|---|---|---|
+| `kit_prix` | `suivi_e85_kit_prix` | `Suivi Carburant!B5` |
+| `budget_mensuel` | `suivi_e85_budget_mensuel` | `Graphiques!B2` |
+| `objectif_co2` | `suivi_e85_objectif_co2` | `Graphiques!B3` |
+| `surconso` | `suivi_e85_surconso` (repli) | `Suivi Carburant!J7` |
+| `seuil_E85/GAZOLE/SP98` (+`_enabled`) | `notif_<F>_seuil` / `_enabled` | onglet `Parametres` (miroir) |
+
+- **Méthode : last-write-wins par clé** sur un horodatage epoch (ms **UTC**) — la même logique que la sync des pleins. Chaque côté conserve un horodatage local par clé (app : `suivi_e85_params_meta` ; Excel : colonne `modifie_le` de l'onglet `Parametres`). À la synchro, pour chaque clé la valeur la plus récente l'emporte ; les valeurs locales plus récentes sont poussées vers le Sheet.
+- **App** : `syncParametres()` au démarrage (`js/parametres.js`) + `pushParam()` à chaque édition d'un réglage (kit/budget/objectif CO₂/seuils). L'UI se rafraîchit via l'événement `parametres-synced`.
+- **Excel** : `modSyncParametres.SyncParametres()`, appelé en fin de `SyncCore` (`modSyncGS`). Écriture traversante vers les cellules du dashboard (garde-fou : une cellule contenant une **formule** n'est jamais écrasée). Horodatage UTC via `SWbemDateTime`.
+- **Endpoints GAS** : `?action=getParametres` (lecture) et `action=setParametres` (upsert LWW, clés métier filtrées). ⚠️ Nécessite un **redéploiement** du Web App.
+- **Hors périmètre** (volontairement local à l'appareil) : thème, vue de départ, blocs repliés, tri carte, séparateur CSV. Les **véhicules** gardent leur propre onglet `Vehicules`.
+
+> Note de migration : les réglages saisis dans l'app **avant** la v4.10.0.0 n'ont pas d'horodatage ; ils ne sont pas écrasés mais ne remontent au Sheet qu'à leur **prochaine modification**. Idem pour les valeurs par défaut des cellules Excel (seedées avec un horodatage `0`, donc l'app/le Sheet font foi).
+
 ### Col Q (Excel) — dirty flag · cols Q/R (GS) — S3/S5
 La colonne **Q `Modifie_local`** (Excel, interne) est un horodatage `Now()` posé automatiquement par le module feuille `GS_Pleins` à chaque modification (A:N). Elle signale à `ExportModificationsToGS` que la ligne doit être propagée vers GS, sert d'horodatage de conflit (S5) et est effacée après confirmation du serveur (`status:'ok'`).
 
@@ -498,7 +518,7 @@ Le module `GS_Pleins_snippet.bas` ajoute un `Worksheet_Change` qui se déclenche
 
 ### Installation
 ```
-Alt+F11 → Fichier → Importer → vba/modSyncGS.bas + vba/modGraphiques.bas
+Alt+F11 → Fichier → Importer → vba/modSyncGS.bas + vba/modSyncParametres.bas + vba/modGraphiques.bas
                               + vba/modDashboardGraphiques.bas + vba/modDashboardKPI.bas + vba/modPrixStation.bas
 Dans Microsoft Excel Objects → GS_Pleins : coller vba/GS_Pleins_snippet.bas
 Dans Microsoft Excel Objects → Graphiques : coller vba/Graphiques_snippet.bas (refresh auto onglet + recalcul KPI au changement B5/B6)

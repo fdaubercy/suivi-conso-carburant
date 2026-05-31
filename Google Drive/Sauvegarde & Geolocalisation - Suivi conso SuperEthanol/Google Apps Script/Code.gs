@@ -63,7 +63,16 @@ const SPREADSHEET_ID    = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 const SHEET_NAME        = '_ImportGS';
 const STATIONS_SHEET    = 'Stations';
 const VEHICULES_SHEET   = 'Vehicules';
+const PARAMS_SHEET      = 'Parametres';   // P1 — paramètres métier partagés app ⇆ Excel
 const TICKET_FOLDER_NAME = 'Suivi E85 - Tickets';
+
+// P1 — clés métier autorisées dans l'onglet Parametres (filtre anti-pollution).
+// Source de vérité unique synchronisée par horodatage (last-write-wins par clé).
+const PARAM_KEYS = [
+  'kit_prix', 'budget_mensuel', 'objectif_co2', 'surconso',
+  'seuil_E85', 'seuil_GAZOLE', 'seuil_SP98',
+  'seuil_E85_enabled', 'seuil_GAZOLE_enabled', 'seuil_SP98_enabled'
+];
 
 const HEADERS = [
   'Horodatage', 'Date', 'Type', 'Km compteur',         // A B C D
@@ -183,6 +192,12 @@ function doGet(e) {
   //   ?action=stats[&veh=Nom][&year=2026] — réponse JSON compacte, cache 1 h.
   if (e.parameter.action === 'stats') {
     return handleStats(e);
+  }
+
+  // P1 — paramètres métier partagés (lus par l'app et par Excel/VBA)
+  //   ?action=getParametres → { params: [{cle, valeur, modifie_le}] }
+  if (e.parameter.action === 'getParametres') {
+    return handleGetParametres();
   }
 
   const isMobile = (e.parameter.v === 'mobile');
@@ -306,6 +321,13 @@ function doPost(e) {
       }
     }
     return jsonResponse({ success: true });
+  }
+
+  // P1 — paramètres métier partagés : upsert last-write-wins par clé.
+  //   body { action:'setParametres', params:[{cle, valeur, modifie_le}] }
+  //   → renvoie l'état autoritatif fusionné pour réconciliation côté client.
+  if (payload.action === 'setParametres') {
+    return handleSetParametres(ss, payload.params || []);
   }
 
   // ── Suppression d'un plein par sync_id (col O, index 14) ──
@@ -832,6 +854,77 @@ function getOrCreateTicketFolder() {
   const folders = DriveApp.getFoldersByName(TICKET_FOLDER_NAME);
   if (folders.hasNext()) return folders.next();
   return DriveApp.createFolder(TICKET_FOLDER_NAME);
+}
+
+// ─────────────────────────────────────────────────────────────
+//  P1 — Paramètres métier partagés (onglet « Parametres »)
+//  Table clé/valeur/horodatage : cle | valeur | modifie_le (epoch ms).
+//  Source de vérité unique pour l'app web ET le classeur Excel.
+//  Synchro = last-write-wins par clé sur modifie_le.
+// ─────────────────────────────────────────────────────────────
+function getOrCreateParamsSheet_(ss) {
+  let sheet = ss.getSheetByName(PARAMS_SHEET);
+  if (!sheet) sheet = ss.insertSheet(PARAMS_SHEET);
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['cle', 'valeur', 'modifie_le']);
+    sheet.getRange(1, 1, 1, 3)
+      .setFontWeight('bold')
+      .setBackground('#1B3A5C')
+      .setFontColor('#FFFFFF');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+// Lit l'onglet Parametres → { cle: { valeur, modifie_le } } (clés métier seules).
+function readParamsMap_(sheet) {
+  const data = sheet.getDataRange().getValues();
+  const map  = {};
+  for (let i = 1; i < data.length; i++) {
+    const cle = String(data[i][0] || '').trim();
+    if (!cle || PARAM_KEYS.indexOf(cle) < 0) continue;
+    map[cle] = { row: i + 1, valeur: data[i][1], modifie_le: Number(data[i][2]) || 0 };
+  }
+  return map;
+}
+
+function handleGetParametres() {
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = getOrCreateParamsSheet_(ss);
+  const map   = readParamsMap_(sheet);
+  const params = Object.keys(map).map(cle => ({
+    cle: cle, valeur: map[cle].valeur, modifie_le: map[cle].modifie_le
+  }));
+  return jsonResponse({ params: params });
+}
+
+function handleSetParametres(ss, incoming) {
+  const sheet  = getOrCreateParamsSheet_(ss);
+  const map    = readParamsMap_(sheet);
+
+  (incoming || []).forEach(function (p) {
+    const cle = String(p && p.cle || '').trim();
+    if (!cle || PARAM_KEYS.indexOf(cle) < 0) return;          // clé hors périmètre → ignorée
+    const ts  = Number(p.modifie_le) || 0;
+    const cur = map[cle];
+    if (cur) {
+      // Last-write-wins : on n'écrase que si l'entrant est plus récent.
+      if (ts >= cur.modifie_le) {
+        sheet.getRange(cur.row, 2).setValue(p.valeur);
+        sheet.getRange(cur.row, 3).setValue(ts);
+        cur.valeur = p.valeur; cur.modifie_le = ts;
+      }
+    } else {
+      sheet.appendRow([cle, p.valeur, ts]);
+      map[cle] = { row: sheet.getLastRow(), valeur: p.valeur, modifie_le: ts };
+    }
+  });
+
+  // État autoritatif fusionné (pour réconciliation immédiate côté client).
+  const params = Object.keys(map).map(function (cle) {
+    return { cle: cle, valeur: map[cle].valeur, modifie_le: map[cle].modifie_le };
+  });
+  return jsonResponse({ success: true, params: params });
 }
 
 function getOrCreateSheet(ss) {

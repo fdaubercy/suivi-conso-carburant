@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.10.0.0] — 2026-05-31
+
+### Ajouté
+- **P1 — Paramètres métier partagés (Phase 1)** : les paramètres modifiables par l'utilisateur étaient jusqu'ici cloisonnés dans 3 silos non synchronisés (localStorage de l'app web, cellules du classeur Excel, rien dans le Google Sheet sauf les véhicules). Ils sont désormais centralisés dans un **onglet `Parametres` du Google Sheet** (table `cle | valeur | modifie_le`) servant de **source de vérité unique**, synchronisé entre l'app et le classeur Excel par **last-write-wins** sur horodatage epoch (ms UTC), clé par clé.
+  - Périmètre **métier uniquement** : `kit_prix`, `budget_mensuel`, `objectif_co2`, `surconso`, `seuil_E85/GAZOLE/SP98` (+ `_enabled`). Les préférences d'affichage propres à l'appareil (thème, vue de départ, blocs repliés, tri carte, séparateur CSV) restent locales. Les véhicules conservent leur mécanisme existant (onglet `Vehicules`).
+  - **GAS** (`Code.gs`) : nouvel onglet `Parametres` + endpoints `doGet ?action=getParametres` et `doPost action=setParametres` (upsert LWW filtré sur les clés métier autorisées). ⚠️ **Redéploiement du Web App requis**.
+  - **App** (`js/parametres.js` nouveau) : mapping clés Sheet ↔ localStorage, horodatages locaux par clé (`suivi_e85_params_meta`), `pushParam()` (envoi à l'édition) et `syncParametres()` (réconciliation au démarrage). Câblé dans `stats.js` (kit/budget/objectif CO₂), `notifications.js` (seuils + activation) et `main.js` (sync au démarrage + rafraîchissement UI sur l'événement `parametres-synced`). La surconso synchronisée sert désormais de **valeur de repli** dans `getSurconsoFallback()` quand l'app n'a pas de données SP98.
+  - **Excel/VBA** (`vba/modSyncParametres.bas` nouveau) : onglet technique `Parametres` (miroir cle/valeur/ts), `SyncParametres()` (pull/push LWW, horodatage UTC via `SWbemDateTime`), mapping vers les cellules `Suivi Carburant!B5` (kit) / `J7` (surconso) et `Graphiques!B2` (budget) / `B3` (objectif CO₂) avec garde-fou anti-écrasement de formule. Branché en fin de `SyncCore` (`modSyncGS.bas`).
+
 ## [4.9.0.1] — 2026-05-31
 
 ### Changed

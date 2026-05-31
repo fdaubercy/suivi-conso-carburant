@@ -26,7 +26,8 @@ import { initWrapped, renderWrapped } from './wrapped.js';
 import { initScanner }       from './ticket.js';
 import { initPWA }           from './pwa.js';
 import { initOffline, syncQueue } from './offline.js';
-import { initNotifications } from './notifications.js';
+import { initNotifications, updateNotifUI, registerPushSubscription } from './notifications.js';
+import { syncParametres } from './parametres.js';
 import { initRouter, navigate } from './router.js';
 import { initPullRefresh } from './pullrefresh.js';
 import { initSwipe } from './swipe.js';
@@ -103,6 +104,21 @@ initOffline();
 
 /* ─── Notifications prix E85 ─── */
 initNotifications();
+
+/* ─── P1 — Synchronisation des paramètres métier (app ⇆ Sheet ⇆ Excel) ───
+   Pull serveur + réconciliation LWW au démarrage ; sur changement appliqué
+   localement, on rafraîchit les stats et l'UI des alertes. */
+window.addEventListener('parametres-synced', e => {
+  const changed = e.detail?.changed || [];
+  if (!changed.length) return;
+  if (changed.some(c => c.startsWith('seuil_'))) {
+    updateNotifUI();
+    refreshBadges();
+    registerPushSubscription();   // re-propage les seuils au cache / serveur push
+  }
+  renderStats();                  // kit / budget / objectif CO₂ / surconso
+});
+if (navigator.onLine) syncParametres();
 
 /* Sync au démarrage si des pleins sont en attente et qu'on est en ligne */
 if (navigator.onLine) syncQueue();

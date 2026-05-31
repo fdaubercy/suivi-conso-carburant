@@ -2,7 +2,9 @@
 import { state } from './state.js';
 import { FUEL_CONFIG, DEFAULT_SURCONSO, KIT_PRIX_KEY, DEFAULT_KIT_PRIX,
          BUDGET_KEY, CO2_ESSENCE_PER_L, CO2_E85_PER_L,
-         CO2_OBJECTIF_KEY, DEFAULT_CO2_OBJECTIF, CO2_THERMIQUE_PER_KM, CO2_ARBRE_PAR_AN } from './config.js';
+         CO2_OBJECTIF_KEY, DEFAULT_CO2_OBJECTIF, CO2_THERMIQUE_PER_KM, CO2_ARBRE_PAR_AN,
+         SURCONSO_KEY } from './config.js';
+import { pushParam } from './parametres.js';
 import { getAllRecords, forceRefreshHistorique } from './historique.js';
 import { renderComparatif } from './comparatif.js';
 import { getCachedServerStats, getServerStats } from './statsApi.js';
@@ -27,6 +29,16 @@ export function getObjectifCo2() {
   const raw = localStorage.getItem(CO2_OBJECTIF_KEY);
   const n = Number(raw);
   return raw != null && raw !== '' && isFinite(n) && n > 0 ? n : DEFAULT_CO2_OBJECTIF;
+}
+
+/* ─── P1 — Surconso de repli (partagée avec Excel via l'onglet Parametres) ───
+   Quand l'app ne peut PAS calculer la surconso dynamiquement (pas de pleins
+   S98), elle utilise la valeur saisie côté Excel (cellule J7) si elle a été
+   synchronisée, sinon DEFAULT_SURCONSO. */
+function getSurconsoFallback() {
+  const raw = localStorage.getItem(SURCONSO_KEY);
+  const n = Number(raw);
+  return raw != null && raw !== '' && isFinite(n) && n > 0 ? n : DEFAULT_SURCONSO;
 }
 
 /** Clé 'YYYY-MM' du mois courant. */
@@ -57,10 +69,10 @@ function computeSurconso(records) {
     if (matchType(sorted[i].Type, 'E85')) consoE85.push(conso);
     else if (matchType(sorted[i].Type, 'SP98')) consoS98.push(conso);
   }
-  if (!consoE85.length || !consoS98.length) return DEFAULT_SURCONSO;
+  if (!consoE85.length || !consoS98.length) return getSurconsoFallback();
   const avg = a => a.reduce((s, v) => s + v, 0) / a.length;
   const s = avg(consoE85) / avg(consoS98) - 1;
-  return isFinite(s) && s > 0 ? s : DEFAULT_SURCONSO;
+  return isFinite(s) && s > 0 ? s : getSurconsoFallback();
 }
 
 const MONTHS_WINDOW = 6;
@@ -1080,6 +1092,7 @@ export function initKitSetting() {
     } else {
       localStorage.setItem(KIT_PRIX_KEY, String(v));
     }
+    pushParam('kit_prix');   // P1 — propage vers le Sheet (et Excel)
     renderStats();
   });
 }
@@ -1101,6 +1114,7 @@ export function initBudgetSetting() {
     } else {
       localStorage.setItem(BUDGET_KEY, String(v));
     }
+    pushParam('budget_mensuel');   // P1 — propage vers le Sheet (et Excel)
     renderStats();
   });
 }
@@ -1121,6 +1135,7 @@ export function initCo2ObjectifSetting() {
     } else {
       localStorage.setItem(CO2_OBJECTIF_KEY, String(v));
     }
+    pushParam('objectif_co2');   // P1 — propage vers le Sheet (et Excel)
     renderStats();
   });
 }

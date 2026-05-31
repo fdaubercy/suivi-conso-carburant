@@ -18,6 +18,7 @@
 ═══════════════════════════════════════════════════════════════════════ */
 
 import { GAS_URL, APP_TOKEN, VAPID_PUBLIC_KEY } from './config.js';
+import { pushParam } from './parametres.js';
 
 // Carburants alertables (clé interne, libellé, icône, seuil par défaut €/L).
 export const ALERT_FUELS = [
@@ -71,7 +72,10 @@ export function getSeuil(fuel) {
 
 export function setSeuil(fuel, val) {
   const v = parseFloat(val);
-  if (isFinite(v) && v > 0 && v < 3.5) localStorage.setItem(_kSeuil(fuel), v.toFixed(3));
+  if (isFinite(v) && v > 0 && v < 3.5) {
+    localStorage.setItem(_kSeuil(fuel), v.toFixed(3));
+    pushParam('seuil_' + fuel);   // P1 — propage le seuil vers le Sheet (et Excel)
+  }
 }
 
 /* ─── Permission (globale) ───────────────────────────────────────────── */
@@ -90,6 +94,7 @@ export async function toggleFuel(fuel, enable) {
 
   if (!enable) {
     localStorage.removeItem(_kEnabled(fuel));
+    pushParam('seuil_' + fuel + '_enabled');   // P1 — propage l'état (désactivé)
     if (isAnyEnabled()) registerPushSubscription();   // met à jour seuils + cache
     else { unregisterPushSubscription(); writeThresholdsToCache(); }
     updateNotifUI();
@@ -100,6 +105,7 @@ export async function toggleFuel(fuel, enable) {
   if (!granted) { updateNotifUI(); return false; }
 
   localStorage.setItem(_kEnabled(fuel), '1');
+  pushParam('seuil_' + fuel + '_enabled');   // P1 — propage l'état (activé)
   registerPushSubscription();
   updateNotifUI();
   return true;
