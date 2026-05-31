@@ -13,7 +13,7 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
   - `rPriceCols` (nombre de colonnes carburant) transmis à l'appelant pour que le graphique `gPrice` soit dimensionné dynamiquement (`Resize(rPrice, 1 + rPriceCols)`).
   - `FuelKey` étendu : SP95, E10, GPL, et libellé brut conservé pour les carburants inconnus (HVO, GNV…).
 
-## [4.9.0.1] — 2026-05-31
+## [4.9.0.3] — 2026-05-31
 
 ### Changed
 - **X35 — `gPrice` : carburants filtrés sur ceux présents dans les pleins** (`vba/modGraphiques.bas`) : la source `PrixHistory` (marché quotidien) enrichit maintenant **uniquement** les séries de carburants déjà présents dans les pleins (`Tableau2` / `GS_Pleins`). Avant : PrixHistory pouvait introduire des séries supplémentaires (ex. Gazole) même si l'utilisateur n'en avait jamais fait le plein → graphique pollué. Après : `fuelSet` est défini exclusivement par les pleins ; PrixHistory ne fait qu'apporter plus de points de données pour ces carburants (dates plus denses, comblant les jours sans plein). Changement d'une seule ligne dans `BuildPriceBlockMerged`.
