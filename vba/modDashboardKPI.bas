@@ -220,6 +220,33 @@ Public Sub ComputeKPIs(ByVal veh As String, ByVal fuel As String, _
     Dim eco As Double
     litres = 0: cout = 0: eco = 0: haveKm = False
 
+    ' === PASSE 1 : trouver kmMin (plein de reference full-to-full) ===
+    ' Methodologie full-to-full : le 1er plein etablit le point de depart.
+    ' Son volume represente du carburant consomme AVANT notre fenetre de mesure
+    ' (km inconnu -> kmMin) ; on l'exclut du cumul litres/cout.
+    ' Les pleins suivants representent la consommation reelle sur kmMin->kmMax.
+    For i = 1 To UBound(a, 1)
+        If filtVeh And ciVeh > 0 Then
+            If StrComp(Trim$(CStr(a(i, ciVeh))), veh, vbTextCompare) <> 0 Then GoTo P1NX
+        End If
+        Dim fk0 As String: fk0 = ""
+        If ciType > 0 Then fk0 = FuelKeyK(CStr(a(i, ciType)))
+        If filtFuel Then If fk0 <> fuel Then GoTo P1NX
+        Dim km0 As Double: km0 = Nz(a(i, ciKm))
+        If km0 > 0 Then
+            If Not haveKm Then
+                kmMin = km0: kmMax = km0: haveKm = True
+            Else
+                If km0 < kmMin Then kmMin = km0
+                If km0 > kmMax Then kmMax = km0
+            End If
+        End If
+P1NX:
+    Next i
+
+    If Not haveKm Then GoTo CalcFin
+
+    ' === PASSE 2 : accumule litres/cout/eco en excluant le plein de reference ===
     For i = 1 To UBound(a, 1)
         ' -- filtres --
         If filtVeh And ciVeh > 0 Then
@@ -236,30 +263,26 @@ Public Sub ComputeKPIs(ByVal veh As String, ByVal fuel As String, _
         Dim li As Double: li = Nz(a(i, ciLit))
         Dim pr As Double: pr = Nz(a(i, ciPrix))
 
+        ' Exclut le plein de reference (km = kmMin) : methode full-to-full.
+        If km = kmMin Then GoTo NX
+
         litres = litres + li
         cout = cout + li * pr
-        If km > 0 Then
-            If Not haveKm Then
-                kmMin = km: kmMax = km: haveKm = True
-            Else
-                If km < kmMin Then kmMin = km
-                If km > kmMax Then kmMax = km
-            End If
-        End If
 
         ' -- economie E85 vs SP98 (ligne E85 uniquement) --
         If fk = "E85" And li > 0 Then
             Dim prixSP98 As Double: prixSP98 = 0
             If ciSP98 > 0 Then prixSP98 = Nz(a(i, ciSP98))
-            If prixSP98 <= 0 Then prixSP98 = DernierPrixSP98()   ' repli marche
+            If prixSP98 <= 0 Then prixSP98 = DernierPrixSP98()
             If prixSP98 > 0 Then
-                Dim essEq As Double: essEq = li / (1 + sc)        ' litres SP98 equivalents
+                Dim essEq As Double: essEq = li / (1 + sc)
                 eco = eco + (essEq * prixSP98) - (li * pr)
             End If
         End If
 NX:
     Next i
 
+CalcFin:
     Dim dist As Double: dist = 0
     If haveKm Then dist = kmMax - kmMin
     If dist > 0 Then

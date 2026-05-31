@@ -13,6 +13,11 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
   - `rPriceCols` (nombre de colonnes carburant) transmis à l'appelant pour que le graphique `gPrice` soit dimensionné dynamiquement (`Resize(rPrice, 1 + rPriceCols)`).
   - `FuelKey` étendu : SP95, E10, GPL, et libellé brut conservé pour les carburants inconnus (HVO, GNV…).
 
+## [4.9.0.5] — 2026-05-31
+
+### Fixed
+- **KPI Conso moyenne / Coût 100 km — méthode full-to-full** (`vba/modDashboardKPI.bas`) : `ComputeKPIs` exclut désormais le **1er plein** (plein de référence) du cumul litres/coût. Le 1er plein établit le km de départ mais son volume représente du carburant consommé avant la fenêtre de mesure (km inconnu → kmMin). Les pleins suivants couvrent exactement la distance kmMin → kmMax. Passage à 2 passes : passe 1 = trouver kmMin, passe 2 = cumuler en excluant le plein à kmMin. Impact sur Z900+E85 : 7,4 → **6,6 L/100 km**.
+
 ## [4.9.0.3] — 2026-05-31
 
 ### Changed
