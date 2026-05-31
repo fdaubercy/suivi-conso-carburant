@@ -389,7 +389,7 @@ Private Sub StyleParamsPanel(ws As Worksheet)
     End With
     ws.Range("B2:B4").NumberFormat = "0"        ' Budget / CO2 / Année
     ws.Range("B5:B6").NumberFormat = "@"        ' Véhicule / Carburant (texte)
-    ws.Range("B5:B6").HorizontalAlignment = xlLeft
+    ws.Range("B5:B6").HorizontalAlignment = xlCenter
     ' Bordures du panneau
     With ws.Range("A1:B6")
         .Borders.LineStyle = xlContinuous
