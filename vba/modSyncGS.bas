@@ -552,7 +552,8 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     Dim pushedStations As Long
     pushedStations = PushStationsToGS()
 
-    ' P1 : synchro des parametres metier (onglet "Parametres") <-> GS.
+    ' P1 : synchro des parametres metier (miroir local = bloc F/G/H de
+    ' l'onglet "Notes") <-> onglet "Parametres" du Google Sheet.
     ' Module autonome ; ne bloque pas la sync des pleins en cas d'echec.
     SetStatus "Sync parametres metier..."
     On Error Resume Next

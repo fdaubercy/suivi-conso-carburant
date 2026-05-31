@@ -16,10 +16,13 @@ Attribute VB_Name = "modSyncParametres"
 '    budget_mensuel   <-> "Graphiques"!B2
 '    objectif_co2     <-> "Graphiques"!B3
 '    surconso         <-> "Suivi Carburant"!J7
-'    seuil_E85/GAZOLE/SP98 (+ _enabled)  -> stockes dans l'onglet
-'      "Parametres" (geres cote app ; le classeur les conserve).
+'    seuil_E85/GAZOLE/SP98 (+ _enabled)  -> stockes dans le miroir local
+'      (geres cote app ; le classeur les conserve).
 '
-'  Onglet local "Parametres" (cree au besoin) : miroir cle/valeur/ts.
+'  Miroir local = bloc cle/valeur/ts dans l'onglet TECHNIQUE "Notes"
+'  (deja masque, contient deja tbl_carburant col B et tbl_stationEssence
+'  col D) -> colonnes libres F (cle) / G (valeur) / H (modifie_le),
+'  en-tete ligne 2. Pas de nouvel onglet : on reutilise "Notes".
 '  Les 4 parametres mappes sont en plus ecrits dans leur cellule de
 '  tableau de bord (ecriture traversante) et relus pour detecter une
 '  edition locale (cellule != miroir => horodatage = maintenant).
@@ -35,7 +38,12 @@ Option Explicit
 Private Const GAS_URL   As String = "https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec"
 Private Const APP_TOKEN As String = "e85_a7f3c9e21b8d4f60a5c3e8b7d12f6049"
 
-Private Const WS_PARAMS As String = "Parametres"
+' Miroir local des parametres : onglet technique "Notes", colonnes libres F/G/H.
+Private Const WS_MIRROR    As String = "Notes"
+Private Const COL_CLE      As Long = 6     ' F
+Private Const COL_VAL      As Long = 7     ' G
+Private Const COL_TS       As Long = 8     ' H
+Private Const HDR_ROW      As Long = 2     ' en-tete (aligne sur tbl_carburant / tbl_stationEssence)
 Private Const WS_CARB   As String = "Suivi Carburant"
 Private Const WS_GRAPH  As String = "Graphiques"
 
@@ -81,7 +89,8 @@ Public Function SyncParametres() As Long
     On Error GoTo EH
 
     defs = ParamDefs()
-    Set ws = EnsureParamsSheet()
+    Set ws = EnsureParamsBlock()
+    If ws Is Nothing Then SyncParametres = -1: Exit Function
 
     Set dRow = CreateObject("Scripting.Dictionary")
     Set dVal = CreateObject("Scripting.Dictionary")
@@ -195,36 +204,40 @@ Private Function Mk(cle As String, wsName As String, cellAddr As String, isBool 
 End Function
 
 ' ============================================================
-'  ONGLET MIROIR "Parametres"
+'  MIROIR LOCAL = bloc F/G/H de l'onglet technique "Notes"
 ' ============================================================
-Private Function EnsureParamsSheet() As Worksheet
+' Renvoie l'onglet "Notes" et s'assure que l'en-tete cle/valeur/ts existe
+' en F2:H2 (sans toucher tbl_carburant col B ni tbl_stationEssence col D).
+Private Function EnsureParamsBlock() As Worksheet
     Dim ws As Worksheet
     On Error Resume Next
-    Set ws = ThisWorkbook.Worksheets(WS_PARAMS)
+    Set ws = ThisWorkbook.Worksheets(WS_MIRROR)
     On Error GoTo 0
-    If ws Is Nothing Then
-        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
-        ws.Name = WS_PARAMS
-        ws.Range("A1:C1").Value = Array("cle", "valeur", "modifie_le")
-        ws.Range("A1:C1").Font.Bold = True
-        ws.Range("A1:C1").Interior.color = RGB(27, 58, 92)
-        ws.Range("A1:C1").Font.color = RGB(255, 255, 255)
-        ws.Columns("A").ColumnWidth = 22
-        ws.Columns("C").ColumnWidth = 16
-        ws.Visible = xlSheetHidden          ' onglet technique
+    If ws Is Nothing Then Exit Function       ' "Notes" introuvable -> abandon propre
+    If Trim(CStr(ws.Cells(HDR_ROW, COL_CLE).Value)) = "" Then
+        ws.Cells(HDR_ROW, COL_CLE).Value = "Parametre (cle)"
+        ws.Cells(HDR_ROW, COL_VAL).Value = "Valeur"
+        ws.Cells(HDR_ROW, COL_TS).Value = "Modifie_le (ms)"
+        With ws.Range(ws.Cells(HDR_ROW, COL_CLE), ws.Cells(HDR_ROW, COL_TS))
+            .Font.Bold = True
+            .Interior.color = RGB(27, 58, 92)
+            .Font.color = RGB(255, 255, 255)
+        End With
+        ws.Columns(COL_CLE).ColumnWidth = 22
+        ws.Columns(COL_TS).ColumnWidth = 16
     End If
-    Set EnsureParamsSheet = ws
+    Set EnsureParamsBlock = ws
 End Function
 
 Private Sub ReadMirror(ws As Worksheet, dRow As Object, dVal As Object, dTs As Object)
     Dim last As Long, r As Long, cle As String
-    last = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
-    For r = 2 To last
-        cle = Trim(CStr(ws.Cells(r, 1).Value))
+    last = ws.Cells(ws.Rows.Count, COL_CLE).End(xlUp).Row
+    For r = HDR_ROW + 1 To last
+        cle = Trim(CStr(ws.Cells(r, COL_CLE).Value))
         If cle <> "" Then
             dRow(cle) = r
-            dVal(cle) = ws.Cells(r, 2).Value
-            dTs(cle) = Val(CStr(ws.Cells(r, 3).Value))
+            dVal(cle) = ws.Cells(r, COL_VAL).Value
+            dTs(cle) = Val(CStr(ws.Cells(r, COL_TS).Value))
         End If
     Next r
 End Sub
@@ -235,13 +248,13 @@ Private Sub UpsertMirror(ws As Worksheet, dRow As Object, dVal As Object, dTs As
     If dRow.Exists(cle) Then
         r = dRow(cle)
     Else
-        r = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1
-        If r < 2 Then r = 2
-        ws.Cells(r, 1).Value = cle
+        r = ws.Cells(ws.Rows.Count, COL_CLE).End(xlUp).Row + 1
+        If r < HDR_ROW + 1 Then r = HDR_ROW + 1
+        ws.Cells(r, COL_CLE).Value = cle
         dRow(cle) = r
     End If
-    ws.Cells(r, 2).Value = valeur
-    ws.Cells(r, 3).Value = Format(ts, "0")
+    ws.Cells(r, COL_VAL).Value = valeur
+    ws.Cells(r, COL_TS).Value = Format(ts, "0")
     dVal(cle) = valeur
     dTs(cle) = ts
 End Sub

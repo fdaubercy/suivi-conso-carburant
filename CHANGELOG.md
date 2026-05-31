@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.10.0.1] — 2026-05-31
+
+### Changed
+- **P1 — Miroir local des paramètres dans l'onglet `Notes`** (`vba/modSyncParametres.bas`) : au lieu de créer un nouvel onglet `Parametres` dans le classeur, le miroir local `cle | valeur | modifie_le` est désormais stocké dans les **colonnes libres F/G/H de l'onglet technique `Notes`** (déjà masqué, qui contient déjà `tbl_carburant` en col B et `tbl_stationEssence` en col D). En-tête en ligne 2, aligné sur les tables voisines. Aucun nouvel onglet créé ; `tbl_carburant`/`tbl_stationEssence` intacts. L'onglet `Parametres` du **Google Sheet** (source de vérité cloud) reste inchangé.
+
 ## [4.10.0.0] — 2026-05-31
 
 ### Ajouté
