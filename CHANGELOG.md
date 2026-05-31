@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.3.0.7] — 2026-05-31
+
+### Fixed
+- **Colonne « Date » de `Tableau2` (Suivi Carburant) affichée en texte US au lieu de `JJ/MM/AAAA`.** La requête typait `Date` en **texte**, et le CSV gviz la renvoie en **`M/d/yyyy h:mm:ss`** (US) ; `Tableau2` tirant `GS_Pleins[Date]` par `INDEX`, la cellule contenait alors du **texte** (« 5/22/2026 2:00:00 ») auquel le format `dd/mm/yyyy` ne peut **pas** s'appliquer. **Correctif** (`powerquery/GS_Pleins.m`) : `Date` est désormais **convertie en vraie date** (sans heure, culture en-US) via `Date.From(DateTime.From(_, "en-US"))` → la colonne s'affiche en **JJ/MM/AAAA** dans `Tableau2`. Le **tri** chronologique se fait directement sur cette vraie date (colonne technique `_tri` supprimée, devenue inutile).
+
 ## [4.3.0.6] — 2026-05-31
 
 ### Changed

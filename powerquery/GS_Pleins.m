@@ -1,5 +1,5 @@
 // ═════════════════════════════════════════════════════════════════════════
-//  Requête Power Query : GS_Pleins                              v4.3.0.6
+//  Requête Power Query : GS_Pleins                              v4.3.0.7
 //  Source de vérité de la requête M (miroir du classeur excel/*.xlsm).
 //
 //  Lit le CSV de l'onglet Google Sheets « _ImportGS » et alimente les
@@ -30,6 +30,8 @@
 //    importée dans la col P du classeur ; Modifie_local déplacé en col Q.
 //  • v4.3.0.6 : tri chronologique ascendant par Date (parsing culture en-US,
 //    car le CSV gviz est en M/d/yyyy et non trié).
+//  • v4.3.0.7 : Date convertie en VRAIE DATE (au lieu de texte) -> affichage
+//    JJ/MM/AAAA dans Tableau2 ; tri direct sur la date (colonne _tri retirée).
 //
 //  Endpoint gviz (cible l'onglet par son NOM, comme vba/ModuleImportGS.bas).
 // ═════════════════════════════════════════════════════════════════════════
@@ -95,16 +97,18 @@ let
         {"Photo ticket",    type text}
     }, "en-US"),
 
-    // Tri chronologique ASCENDANT (v4.3.0.6). Le CSV gviz renvoie les dates
-    // en format US « M/d/yyyy h:mm:ss » et n'est PAS trié -> un tri TEXTE
-    // serait faux (« 10/1/2025 » < « 5/22/2026 »). On parse donc en culture
-    // en-US sur une colonne technique « _tri », puis on la retire.
-    Sorted = Table.Sort(
-        Table.AddColumn(Typed, "_tri",
-            each try DateTime.From([Date], "en-US") otherwise null,
-            type nullable datetime),
-        {{"_tri", Order.Ascending}}
-    ),
-    Result = Table.RemoveColumns(Sorted, {"_tri"})
+    // Date : le CSV gviz renvoie un TEXTE au format US « M/d/yyyy h:mm:ss ».
+    // On le convertit en VRAIE DATE (sans heure, culture en-US) pour que :
+    //   • la vue Tableau2 (« Suivi Carburant »), qui tire GS_Pleins[Date] par
+    //     INDEX, affiche bien JJ/MM/AAAA (le format dd/mm/yyyy ne s'applique
+    //     qu'à une date, jamais à du texte) ;
+    //   • le tri chronologique soit numérique (un tri texte serait faux,
+    //     ex. « 10/1/2025 » < « 5/22/2026 »).
+    DateParsed = Table.TransformColumns(Typed, {
+        {"Date", each try Date.From(DateTime.From(_, "en-US")) otherwise null, type date}
+    }),
+
+    // Tri chronologique ASCENDANT (v4.3.0.6) sur la vraie date.
+    Sorted = Table.Sort(DateParsed, {{"Date", Order.Ascending}})
 in
-    Result
+    Sorted
