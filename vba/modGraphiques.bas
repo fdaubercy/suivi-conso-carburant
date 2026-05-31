@@ -1,6 +1,6 @@
 Attribute VB_Name = "modGraphiques"
 ' ============================================================
-'  SUIVI CONSO CARBURANTS — Graphiques du tableau de bord     v4.8.0.0
+'  SUIVI CONSO CARBURANTS — Graphiques du tableau de bord     v4.9.0.1
 '
 '  v4.8.0.0 (X27/X28/X29) :
 '    • Charte graphique alignee sur l'app web (vert #1D9E75, bleu fonce
@@ -1045,10 +1045,12 @@ Private Function BuildPriceBlockMerged(wsD As Worksheet, t2 As ListObject, _
                         Dim dkH As String: dkH = Format(CDate(aH(iH, ciDH)), "yyyy-mm-dd")
                         Dim fkH As String: fkH = FuelKey(CStr(aH(iH, ciTH)))
                         Dim pH As Double: pH = NumOr0(aH(iH, ciPH))
-                        If Len(fkH) > 0 And pH > 0 Then
+                        ' X35 : PrixHistory enrichit uniquement les carburants
+                        ' deja presents dans les pleins (fuelSet) ; ne cree pas
+                        ' de nouvelles series pour des carburants non utilises.
+                        If Len(fkH) > 0 And pH > 0 And fuelSet.Exists(fkH) Then
                             SetMin prixData, dkH & "|" & fkH, pH
                             If Not ordDates.Exists(dkH) Then ordDates(dkH) = 1
-                            If Not fuelSet.Exists(fkH) Then fuelSet(fkH) = True
                         End If
                     End If
                 Next iH
