@@ -61,7 +61,8 @@ Attribute VB_Name = "modGraphiques"
 Option Explicit
 
 ' ── Feuilles / tables ──
-Private Const WS_GRAPH As String = "Graphiques"
+Private Const WS_GRAPH  As String = "Graphiques"
+Private Const PH_TABLE  As String = "PrixHistory"   ' X30/X35 : table Power Query _PrixHistory
 Private Const WS_CARB  As String = "Suivi Carburant"
 Private Const WS_DATA  As String = "_GraphData"
 Private Const T2_NAME  As String = "Tableau2"
@@ -976,14 +977,6 @@ Private Function SheetByName(nm As String) As Worksheet
     Set SheetByName = ThisWorkbook.Worksheets(nm)
     On Error GoTo 0
 End Function
-
-' ============================================================
-'  X30/X34 — Bloc prix depuis la table Power Query "PrixHistory"
-'  (_PrixHistory du Google Sheet : Station | Date | Type | Prix).
-'  Prix MARCHE releves quotidiennement (RefreshPrix.gs), en
-'  remplacement des prix tires des pleins.
-' ============================================================
-Private Const PH_TABLE As String = "PrixHistory"
 
 ' ============================================================
 '  X30/X35 — BuildPriceBlockMerged
