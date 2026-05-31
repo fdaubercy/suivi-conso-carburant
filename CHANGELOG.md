@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.10.0.3] — 2026-05-31
+
+### Added
+- **C6 — Renouvellement automatique du token OAuth** : section `oauth` ajoutée dans `.claude/gas-config.json` (`client_id`, `client_secret`, `refresh_token`, `token_endpoint`) ; l'artifact GAS Manager renouvelle automatiquement le token via `POST oauth2.googleapis.com/token` sur erreur 401. Guide d'obtention dans `_howto`.
+- **C7 — Historique des déploiements** : section `deployHistory` ajoutée dans `.claude/gas-config.json` (date, version X.Y.Z.W, versionNumber GAS, description) ; onglet Historique dans `/gasManager`.
+- **C10 — Hook PostToolUse Chrome** : second matcher `mcp__.*__navigate` ajouté dans `.claude/settings.json` ; détecte les navigations vers `script.google.com` et suggère de mettre à jour `deployHistory` si l'URL contient `deployments`.
+
+### Changed
+- **`gasManager.md`** : commande mise à jour pour le renouvellement auto du token, l'onglet Historique et le badge de statut `renouvellement…`.
+
 ## [4.10.0.2] — 2026-05-31
 
 ### Added

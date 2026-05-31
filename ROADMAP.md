@@ -33,13 +33,14 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | C3 | **Sécurité `.gitignore`** — `gas-config.json` exclu de git (scriptId, sheetId, deployId) | v4.10.0.2 |
 | C1 | **Skill `gas-api`** — `.claude/skills/gas-api/SKILL.md` dédiée aux appels API REST GAS+Sheets | v4.10.0.2 |
 | C2 | **Commande `/gasManager`** — `.claude/commands/gasManager.md` recharge l’artifact GAS Manager sans ressaisie | v4.10.0.2 |
+| C6 | **Renouvellement automatique du token OAuth** — section `oauth` dans `gas-config.json` (`client_id`/`client_secret`/`refresh_token`) ; artifact GAS Manager renouvelle via `oauth2/token` sur 401 | v4.10.0.3 |
+| C7 | **Historique des déploiements** — section `deployHistory` dans `gas-config.json` + onglet dédié dans `/gasManager` | v4.10.0.3 |
+| C10 | **Hook PostToolUse Chrome** — matcher `mcp__.*__navigate` dans `settings.json` détecte les navigations GAS et suggère de mettre à jour `deployHistory` | v4.10.0.3 |
 
 ### 🔧 À faire
 
 | # | Idée | Pourquoi | Effort |
 |---|---|---|---|
-| C6 | **Renouvellement automatique du token OAuth** — `client_id` + `refresh_token` dans `gas-config.json` ; l’artifact GAS Manager se renouvelle via `oauth2/token` sans action manuelle | Évite la friction des 1h de validité | ~2h |
-| C7 | **Historique des déploiements dans `gas-config.json`** — section `deployHistory` (date, description, versionNumber) | Cohérence avec le versioning X.Y.Z.W et le CHANGELOG | < 1h |
 | C8 | **Sync GAS → GitHub via clasp** — script `sync-gas.sh` : `clasp pull` + `git add` + commit auto pour versionner le code GAS dans le repo | Traçabilité complète du code GAS dans git | ~3h |
 | C9 | **Service account Google** — remplacer le token OAuth Playground (1h, lié au compte perso) par un compte de service JSON credentials | Authentification stable sans renouvellement manuel | ~2h |
 
