@@ -348,9 +348,34 @@ Actions validées dans ce projet :
 
 | Action | Comportement |
 |---|---|
-| Commit + push Git | Automatique après chaque modification, sans confirmation |
-| Mise à jour CHANGELOG / README / ROADMAP | Automatique à chaque fonctionnalité / bug corrigé |
+| Commit + push Git | Automatique après mise à jour README / CHANGELOG / ROADMAP, sans confirmation |
+| Mise à jour CHANGELOG / README / ROADMAP | Obligatoire avant chaque commit, en fonction des fonctionnalités implémentées |
 | Incrémentation de version X.Y.Z.W | Automatique selon les règles ci-dessus |
+
+---
+
+# ❓ QUESTIONS AVANT IMPLÉMENTATION
+
+Avant de coder toute fonctionnalité non triviale :
+
+1. **Poser les questions nécessaires** à l'utilisateur pour lever les ambiguïtés (choix technique, source de données, comportement attendu, périmètre).
+2. Ne pas supposer — demander explicitement si plusieurs approches sont possibles.
+3. Regrouper les questions en une seule interaction (pas de questions une par une).
+
+---
+
+# 💡 PROPOSITIONS D'AMÉLIORATIONS
+
+À chaque session de travail, si des améliorations pertinentes sont identifiées :
+
+1. **Les proposer à l'utilisateur** (sans les implémenter d'office).
+2. **Les ajouter dans `ROADMAP.md`** dans le tableau approprié (Quick wins / Features / Tech debt) avec la justification.
+3. Format : `| Xnn | **Titre** : description courte | Bénéfice attendu |`
+
+Cela s'applique notamment quand :
+- Une fonctionnalité existante pourrait être améliorée (ex : méthodologie de calcul)
+- Un bug potentiel est détecté sans être le sujet principal
+- Une optimisation technique est visible en passant sur le code
 
 ---
 
