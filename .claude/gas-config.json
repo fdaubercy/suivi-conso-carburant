@@ -1,0 +1,24 @@
+{
+  "_comment": "Paramètres Google Apps Script — utilisés par l'interface GAS Manager (Claude artifact)",
+  "_doc": "Token à renouveler toutes les heures via https://developers.google.com/oauthplayground",
+  "_scopes": [
+    "https://www.googleapis.com/auth/script.projects",
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+  ],
+
+  "scriptId": "1-cAG9uPw4aMNbPKqVFnj4kdj1fx1hOAuIxO-DMmQVCCp09eT8e8LBXlP",
+  "sheetId": "1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE",
+  "deployId": "AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA",
+
+  "accessToken": "⚠️ À renouveler — valable 1h uniquement. Ne pas versionner avec un token actif.",
+
+  "endpoints": {
+    "readScript":    "GET  https://script.googleapis.com/v1/projects/{scriptId}/content",
+    "saveScript":    "PUT  https://script.googleapis.com/v1/projects/{scriptId}/content",
+    "createVersion": "POST https://script.googleapis.com/v1/projects/{scriptId}/versions",
+    "redeploy":      "PUT  https://script.googleapis.com/v1/projects/{scriptId}/deployments/{deployId}",
+    "readSheet":     "GET  https://sheets.googleapis.com/v4/spreadsheets/{sheetId}/values/{range}",
+    "writeSheet":    "PUT  https://sheets.googleapis.com/v4/spreadsheets/{sheetId}/values/{range}?valueInputOption=USER_ENTERED"
+  }
+}
