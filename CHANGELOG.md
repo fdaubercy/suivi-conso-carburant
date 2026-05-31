@@ -4,6 +4,29 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.4.0.0] — 2026-05-31
+
+### Added
+- **Tableau de bord graphique Excel — `vba/modGraphiques.bas` (macro `CreerGraphiquesWeb`)** — recrée sur l'onglet **« Graphiques » (remis à zéro)** les visualisations de l'app web, en **graphiques natifs Excel**, alimentés par `Tableau2` / `GS_Pleins` :
+  1. **Évolution du prix** (une courbe par carburant E85 / Gazole / SP98, X = Date) ;
+  2. **Coût mensuel** (histogramme, agrégat des `Coût Plein` par mois) ;
+  3. **Tendance dépenses 6 mois + objectif** (barres + ligne budget) ;
+  4. **Comparaison véhicules** (barres horizontales conso L/100 km & coût €/100 km, km = max−min compteur par véhicule, depuis `GS_Pleins`) ;
+  5. **CO₂ évité — cumul mensuel** vs trajectoire d'objectif (constantes alignées sur `js/config.js` : 2,21 kg/L essence, 1,105 kg/L E85, surconso = `Suivi Carburant!J7`) ;
+  6. **Jauge objectif CO₂ annuel** (réalisé vs objectif) ;
+  7. **Consommation L/100 km** (refonte) ;
+  8. **Bilan annuel — KPIs** (année, pleins, litres, € dépensés, km, station préférée).
+  - **Agrégats calculés en VBA** (lecture des tables en tableaux + `Scripting.Dictionary`) et écrits dans une feuille technique **`_GraphData`** (très masquée) ; aucun onglet métier pollué.
+  - **Paramètres pilotables** sur l'onglet Graphiques : `B2` = **Budget mensuel (€)** (vide = pas de ligne objectif), `B3` = **Objectif CO₂ annuel (kg)** (défaut 200). La surconso reste `Suivi Carburant!J7`.
+  - **Rejouable** : bouton **« Recréer les graphiques »** (lié à `CreerGraphiquesWeb`) ; supprime/recrée tous les `ChartObjects` + cartes KPI, préserve le bouton.
+  - **Robustesse import** : aucun emoji ni `€` littéral (le `€` et les caractères accentués des libellés de colonnes — ex. « Coût Plein (€) » — passent par `ChrW`), pour un import `.bas` ANSI sans corruption ; gestion d'erreur avec `MsgBox` + barre d'état.
+
+### ⚠️ Installation dans le classeur
+1. `Alt+F11` → **Fichier → Importer un fichier…** → `vba/modGraphiques.bas`.
+2. Exécuter **`CreerGraphiquesWeb`** (ou cliquer le bouton créé sur l'onglet Graphiques).
+3. Renseigner éventuellement **Budget mensuel** (Graphiques `B2`) ; l'objectif CO₂ `B3` se pré-remplit à 200.
+   *(Pré-requis : `Tableau2` à jour — lancer `SyncTableau2DepuisGS` au besoin ; `GS_Pleins` pour la comparaison véhicules.)*
+
 ## [4.3.0.7] — 2026-05-31
 
 ### Fixed

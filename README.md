@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v4.3.0.7**
+> 🔖 Version courante : **v4.4.0.0**
 
 ## 🌐 Accès
 
