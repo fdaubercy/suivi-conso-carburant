@@ -265,6 +265,10 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Workshee
 
     wsD.Cells.Clear
 
+    ' X30/X34 : prix depuis la table marche "PrixHistory" si disponible
+    ' (releve quotidien _PrixHistory) ; sinon repli sur les prix des pleins.
+    Dim usePH As Boolean: usePH = HasPriceHistory()
+
     ' En-tetes des blocs
     Dim eu As String: eu = ChrW(8364)
     wsD.Range("A1:E1").Value = Array("Mois", "Cout (" & eu & ")", "CO2 evite (kg)", "CO2 cumule (kg)", "Objectif cumule (kg)")
@@ -348,11 +352,15 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Workshee
         If Not moisOrder.Exists(mKey) Then moisOrder(mKey) = 1
 
         ' -- prix par carburant (X = Date) --
-        rP = rP + 1
-        wsD.Cells(rP, 7).Value = d
-        If fk = "E85" Then wsD.Cells(rP, 8).Value = prix
-        If fk = "GAZOLE" Then wsD.Cells(rP, 9).Value = prix
-        If fk = "SP98" Then wsD.Cells(rP, 10).Value = prix
+        ' X30 : si la table PrixHistory existe, le bloc prix vient du marche
+        '       (rempli apres la boucle) ; sinon repli sur les prix des pleins.
+        If Not usePH Then
+            rP = rP + 1
+            wsD.Cells(rP, 7).Value = d
+            If fk = "E85" Then wsD.Cells(rP, 8).Value = prix
+            If fk = "GAZOLE" Then wsD.Cells(rP, 9).Value = prix
+            If fk = "SP98" Then wsD.Cells(rP, 10).Value = prix
+        End If
 
         ' -- conso (X = Date) --
         If conso > 0 Then
@@ -398,7 +406,12 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Workshee
         nbP = nbP + 1
 NextRow:
     Next i
-    rPrice = rP
+    ' X30 : bloc prix depuis PrixHistory (marche) si dispo ; sinon pleins (rP).
+    If usePH Then
+        rPrice = BuildPriceBlockFromHistory(wsD)
+    Else
+        rPrice = rP
+    End If
     rConso = rCo
     rKit = rK
     rCoutKm = rCk
@@ -983,6 +996,112 @@ Private Function SheetByName(nm As String) As Worksheet
     Set SheetByName = ThisWorkbook.Worksheets(nm)
     On Error GoTo 0
 End Function
+
+' ============================================================
+'  X30/X34 — Bloc prix depuis la table Power Query "PrixHistory"
+'  (_PrixHistory du Google Sheet : Station | Date | Type | Prix).
+'  Prix MARCHE releves quotidiennement (RefreshPrix.gs), en
+'  remplacement des prix tires des pleins.
+' ============================================================
+Private Const PH_TABLE As String = "PrixHistory"
+
+' Vrai si la table locale PrixHistory existe et contient des donnees.
+Private Function HasPriceHistory() As Boolean
+    Dim lo As ListObject
+    Set lo = FindListObject(PH_TABLE)
+    If lo Is Nothing Then Exit Function
+    HasPriceHistory = Not (lo.DataBodyRange Is Nothing)
+End Function
+
+' Cherche un ListObject par nom sur toutes les feuilles du classeur.
+Private Function FindListObject(nm As String) As ListObject
+    Dim ws As Worksheet, lo As ListObject
+    For Each ws In ThisWorkbook.Worksheets
+        For Each lo In ws.ListObjects
+            If LCase$(Trim$(lo.Name)) = LCase$(Trim$(nm)) Then
+                Set FindListObject = lo
+                Exit Function
+            End If
+        Next lo
+    Next ws
+    Set FindListObject = Nothing
+End Function
+
+' Remplit le bloc prix _GraphData!G:J (Date, E85, Gazole, SP98) depuis
+' PrixHistory : pour chaque jour, prix le moins cher releve par carburant
+' (ligne "marche"). Retourne le nombre de lignes ecrites (en-tete inclus).
+Private Function BuildPriceBlockFromHistory(wsD As Worksheet) As Long
+    BuildPriceBlockFromHistory = 1
+    Dim lo As ListObject
+    Set lo = FindListObject(PH_TABLE)
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+
+    Dim ciDate As Long, ciType As Long, ciPrix As Long
+    ciDate = LCIdx(lo, "Date")
+    ciType = LCIdx(lo, "Type")
+    ciPrix = LCIdx(lo, "Prix")
+    If ciPrix = 0 Then ciPrix = LCIdx(lo, "Prix " & ChrW(8364) & "/L")
+    If ciDate = 0 Or ciType = 0 Or ciPrix = 0 Then Exit Function
+
+    Dim a As Variant: a = lo.DataBodyRange.Value
+    Dim n As Long: n = UBound(a, 1)
+
+    Dim e85 As Object, gaz As Object, s98 As Object, ord As Object
+    Set e85 = CreateObject("Scripting.Dictionary")
+    Set gaz = CreateObject("Scripting.Dictionary")
+    Set s98 = CreateObject("Scripting.Dictionary")
+    Set ord = CreateObject("Scripting.Dictionary")
+
+    Dim i As Long
+    For i = 1 To n
+        If IsDate(a(i, ciDate)) Then
+            Dim dk As String: dk = Format(CDate(a(i, ciDate)), "yyyy-mm-dd")
+            Dim fk As String: fk = FuelKey(CStr(a(i, ciType)))
+            Dim p As Double: p = NumOr0(a(i, ciPrix))
+            If p > 0 Then
+                If Not ord.Exists(dk) Then ord(dk) = 1
+                Select Case fk
+                    Case "E85":    SetMin e85, dk, p
+                    Case "GAZOLE": SetMin gaz, dk, p
+                    Case "SP98":   SetMin s98, dk, p
+                End Select
+            End If
+        End If
+    Next i
+
+    If ord.count = 0 Then Exit Function
+
+    Dim keys() As String, idx As Long: idx = 0
+    ReDim keys(0 To ord.count - 1)
+    Dim kk As Variant
+    For Each kk In ord.keys
+        keys(idx) = CStr(kk): idx = idx + 1
+    Next kk
+    TriStr keys
+
+    ' Nettoie l'ancien bloc prix puis ecrit G:J.
+    wsD.Range(wsD.Cells(2, 7), wsD.Cells(wsD.Rows.count, 10)).ClearContents
+    Dim r As Long
+    For r = 0 To UBound(keys)
+        Dim dk2 As String: dk2 = keys(r)
+        wsD.Cells(r + 2, 7).Value = CDate(dk2)                          ' G: Date
+        If e85.Exists(dk2) Then wsD.Cells(r + 2, 8).Value = e85(dk2)    ' H: E85
+        If gaz.Exists(dk2) Then wsD.Cells(r + 2, 9).Value = gaz(dk2)    ' I: Gazole
+        If s98.Exists(dk2) Then wsD.Cells(r + 2, 10).Value = s98(dk2)   ' J: SP98
+    Next r
+
+    BuildPriceBlockFromHistory = UBound(keys) + 2   ' en-tete (1) + lignes data
+End Function
+
+' Memorise le minimum d'une valeur par cle dans un dictionnaire.
+Private Sub SetMin(d As Object, k As String, v As Double)
+    If Not d.Exists(k) Then
+        d(k) = v
+    ElseIf v < d(k) Then
+        d(k) = v
+    End If
+End Sub
 
 Private Function LCIdx(lo As ListObject, nm As String) As Long
     On Error Resume Next

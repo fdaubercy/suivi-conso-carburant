@@ -24,6 +24,6 @@ Private Sub Worksheet_Activate()
     End If
     mLastRefresh = now
 
-    modGraphiques.CreerGraphiquesWeb silent:=True
+    modDashboardGraphiques.MAJ_Dashboard_Graphiques
     On Error GoTo 0
 End Sub

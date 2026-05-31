@@ -19,6 +19,12 @@
 '---------------------------------------------------------------------------
 Option Explicit
 
+'---- Sélecteurs X32 (cellules libres : modGraphiques n'utilise que B2/B3/B4) --
+Private Const CELL_SEL_VEH  As String = "B5"   ' Véhicule sélectionné
+Private Const CELL_SEL_FUEL As String = "B6"   ' Carburant sélectionné
+Private Const COL_LIST_VEH  As Long = 52       ' colonne technique AZ (liste véhicules)
+Private Const COL_LIST_FUEL As Long = 53       ' colonne technique BA (liste carburants)
+
 '---- Palette (miroir de css/style.css de l'app) ---------------------------
 Private Function cBlueDark() As Long:  cBlueDark = RGB(27, 58, 92):    End Function
 Private Function cBlueMid() As Long:   cBlueMid = RGB(46, 117, 182):   End Function
@@ -250,11 +256,24 @@ Private Function BuildHeaderAndKPIs(ws As Worksheet) As Single
     vObjCo2 = ws.Range("B3").value
     On Error GoTo 0
 
-    ' -- Panneau Paramètres ÉDITABLE (cellules A1:B3) --
+    ' -- Panneau Paramètres + sélecteurs ÉDITABLES (cellules A1:B6) --
     StyleParamsPanel ws
+    EnsureSelectors ws        ' X32 : listes véhicule (B5) / carburant (B6)
+
+    ' -- X33 : KPI dynamiques filtrés par véhicule + carburant sélectionnés --
+    Dim selVeh As String, selFuel As String
+    selVeh = CStr(ws.Range(CELL_SEL_VEH).value)
+    selFuel = CStr(ws.Range(CELL_SEL_FUEL).value)
+    Dim kConso As Double, kCoutKm100 As Double, kEco As Double
+    modDashboardKPI.ComputeKPIs selVeh, selFuel, kConso, kCoutKm100, kEco
+    If kCoutKm100 > 0 Then
+        vConso = kConso
+        vCoutKm = kCoutKm100 / 100      ' la carte COÛT multiplie par 100
+    End If
+    vEcon = kEco
 
     ' -- Bandeau d'en-tête (à droite du panneau Paramètres) --
-    Dim rowsBottom As Single: rowsBottom = ws.Range("A4").Top
+    Dim rowsBottom As Single: rowsBottom = ws.Range("A7").Top
     Dim hT As Single: hT = 2
     Dim hH As Single: hH = rowsBottom - hT - 2
     Dim bnLeft As Single: bnLeft = ws.Range("C1").Left + GAP
@@ -269,14 +288,18 @@ Private Function BuildHeaderAndKPIs(ws As Worksheet) As Single
     Dim cardW As Single: cardW = (WTOT - 3 * GAP) / 4
     Dim x As Single: x = L0
 
+    ' Sous-titre commun : périmètre de filtrage (X33)
+    Dim sScope As String
+    sScope = SelLabel(selVeh, "tous véhicules") & " · " & SelLabel(selFuel, "tous carburants")
+
     AddKpiCard ws, x, kpiTop, cardW, kpiH, cGreen, "CONSO MOYENNE", _
-               Format(vConso, "0.0"), "L / 100 km"
+               Format(vConso, "0.0"), "L / 100 km · " & sScope
     x = x + cardW + GAP
     AddKpiCard ws, x, kpiTop, cardW, kpiH, cBlueMid, "COÛT AUX 100 KM", _
-               Format(vCoutKm * 100, "0.00") & " €", "prix moyen pondéré"
+               Format(vCoutKm * 100, "0.00") & " €", sScope
     x = x + cardW + GAP
     AddKpiCard ws, x, kpiTop, cardW, kpiH, cGreen, "ÉCONOMIES E85 vs SP98", _
-               Format(vEcon, "0") & " €", "estimées"
+               Format(vEcon, "0") & " €", "estimées · " & SelLabel(selVeh, "tous véhicules")
     x = x + cardW + GAP
     AddKpiCard ws, x, kpiTop, cardW, kpiH, cAmber, "CO2 ÉVITÉ", _
                Format(vCo2, "0") & " kg", "vs essence · objectif " & Format(vObjCo2, "0") & " kg"
@@ -340,10 +363,10 @@ End Sub
 Private Sub StyleParamsPanel(ws As Worksheet)
     On Error Resume Next
     ws.Columns("A").ColumnWidth = 27
-    ws.Columns("B").ColumnWidth = 11
+    ws.Columns("B").ColumnWidth = 13
     ws.Rows(1).RowHeight = 22
-    ws.Rows(2).RowHeight = 21
-    ws.Rows(3).RowHeight = 21
+    Dim rr As Long
+    For rr = 2 To 6: ws.Rows(rr).RowHeight = 21: Next rr
 
     ' Titre (ligne 1)
     With ws.Range("A1:B1")
@@ -352,27 +375,121 @@ Private Sub StyleParamsPanel(ws As Worksheet)
         .Font.Name = FONT_UI: .Font.Size = 10: .Font.bold = True: .Font.color = cWhite
         .HorizontalAlignment = xlLeft: .VerticalAlignment = xlCenter: .IndentLevel = 1
     End With
-    ' Libellés (A2:A3)
-    With ws.Range("A2:A3")
+    ' Libellés (A2:A6)
+    With ws.Range("A2:A6")
         .Interior.color = RGB(248, 250, 252)
         .Font.Name = FONT_UI: .Font.Size = 10: .Font.bold = False: .Font.color = cMuted
         .HorizontalAlignment = xlLeft: .VerticalAlignment = xlCenter: .IndentLevel = 1
     End With
-    ' Valeurs éditables (B2:B3) — surlignées bleu clair
-    With ws.Range("B2:B3")
+    ' Valeurs éditables (B2:B6) — surlignées bleu clair
+    With ws.Range("B2:B6")
         .Interior.color = cBlueLight
         .Font.Name = FONT_UI: .Font.Size = 11: .Font.bold = True: .Font.color = cBlueDark
         .HorizontalAlignment = xlCenter: .VerticalAlignment = xlCenter
-        .NumberFormat = "0"
     End With
+    ws.Range("B2:B4").NumberFormat = "0"        ' Budget / CO2 / Année
+    ws.Range("B5:B6").NumberFormat = "@"        ' Véhicule / Carburant (texte)
+    ws.Range("B5:B6").HorizontalAlignment = xlLeft
     ' Bordures du panneau
-    With ws.Range("A1:B3")
+    With ws.Range("A1:B6")
         .Borders.LineStyle = xlContinuous
         .Borders.color = cBorder
         .Borders.Weight = xlThin
     End With
     On Error GoTo 0
 End Sub
+
+'---- Sélecteurs Véhicule (B5) / Carburant (B6) — X32 -----------------------
+'  Listes alimentées par les valeurs distinctes de GS_Pleins (modDashboardKPI).
+'  Valeurs écrites dans des colonnes techniques masquées (AZ/BA) servant de
+'  source de validation. Défaut = véhicule & carburant du dernier plein.
+Private Sub EnsureSelectors(ws As Worksheet)
+    On Error Resume Next
+
+    ws.Range("A5").value = "Véhicule"
+    ws.Range("A6").value = "Carburant"
+
+    ws.Columns(COL_LIST_VEH).ClearContents
+    ws.Columns(COL_LIST_FUEL).ClearContents
+
+    Dim vehs() As String, fuels() As String
+    vehs = modDashboardKPI.KPIVehiculeList()
+    fuels = modDashboardKPI.KPICarburantList()
+
+    Dim nVeh As Long, nFuel As Long, i As Long
+    ws.Cells(1, COL_LIST_VEH).value = modDashboardKPI.KPI_TOUS
+    nVeh = 1
+    For i = LBound(vehs) To UBound(vehs)
+        If Len(vehs(i)) > 0 Then
+            nVeh = nVeh + 1
+            ws.Cells(nVeh, COL_LIST_VEH).value = vehs(i)
+        End If
+    Next i
+    ws.Cells(1, COL_LIST_FUEL).value = modDashboardKPI.KPI_TOUS
+    nFuel = 1
+    For i = LBound(fuels) To UBound(fuels)
+        If Len(fuels(i)) > 0 Then
+            nFuel = nFuel + 1
+            ws.Cells(nFuel, COL_LIST_FUEL).value = fuels(i)
+        End If
+    Next i
+
+    ' Colonnes techniques masquées (sources de validation)
+    ws.Columns(COL_LIST_VEH).Hidden = True
+    ws.Columns(COL_LIST_FUEL).Hidden = True
+
+    ' Validation listes déroulantes
+    ApplyListValidation ws.Range(CELL_SEL_VEH), ws, COL_LIST_VEH, nVeh
+    ApplyListValidation ws.Range(CELL_SEL_FUEL), ws, COL_LIST_FUEL, nFuel
+
+    ' Défauts (dernier plein) si cellule vide ou hors liste
+    If Not InTechList(ws, COL_LIST_VEH, nVeh, CStr(ws.Range(CELL_SEL_VEH).value)) Then
+        Dim dv As String: dv = modDashboardKPI.KPIDefautVehicule()
+        If Len(dv) = 0 Then dv = modDashboardKPI.KPI_TOUS
+        ws.Range(CELL_SEL_VEH).value = dv
+    End If
+    If Not InTechList(ws, COL_LIST_FUEL, nFuel, CStr(ws.Range(CELL_SEL_FUEL).value)) Then
+        Dim df As String: df = modDashboardKPI.KPIDefautCarburant()
+        If Len(df) = 0 Then df = modDashboardKPI.KPI_TOUS
+        ws.Range(CELL_SEL_FUEL).value = df
+    End If
+
+    On Error GoTo 0
+End Sub
+
+Private Sub ApplyListValidation(target As Range, ws As Worksheet, col As Long, count As Long)
+    On Error Resume Next
+    If count < 1 Then Exit Sub
+    Dim addr As String
+    addr = "=" & ws.Name & "!" & ws.Range(ws.Cells(1, col), ws.Cells(count, col)).Address
+    With target.Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:=addr
+        .IgnoreBlank = True
+        .InCellDropdown = True
+    End With
+    On Error GoTo 0
+End Sub
+
+Private Function InTechList(ws As Worksheet, col As Long, count As Long, val As String) As Boolean
+    Dim i As Long
+    If Len(Trim$(val)) = 0 Then Exit Function
+    For i = 1 To count
+        If StrComp(CStr(ws.Cells(i, col).value), val, vbTextCompare) = 0 Then
+            InTechList = True
+            Exit Function
+        End If
+    Next i
+End Function
+
+' Libellé court d'une sélection ("(tous)" -> texte par défaut fourni).
+Private Function SelLabel(sel As String, allLabel As String) As String
+    If Len(Trim$(sel)) = 0 Or sel = modDashboardKPI.KPI_TOUS Then
+        SelLabel = allLabel
+    Else
+        SelLabel = sel
+    End If
+End Function
 
 '---- Carte KPI : rect blanc + barre d'accent + 3 lignes de texte -----------
 Private Sub AddKpiCard(ws As Worksheet, x As Single, y As Single, w As Single, h As Single, _

@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.9.0.0] — 2026-05-31
+
+### Ajouté
+- **X34 — Requête Power Query `PrixHistory`** (`powerquery/PrixHistory.m`) : importe l'onglet `_PrixHistory` du Google Sheet (relevé quotidien ~7h, alimenté par `RefreshPrix.gs → refreshPrixCarburants`) dans une table Excel locale `PrixHistory` (colonnes Station | Date | Type | Prix). Source de vérité des **prix marché** dans le classeur, accessible hors-ligne.
+- **X32 — Sélecteurs Véhicule / Carburant** dans l'onglet « Graphiques » : listes déroulantes en `B5` (véhicule) et `B6` (carburant), alimentées par les valeurs distinctes de `GS_Pleins`. Valeur par défaut = véhicule et carburant du **dernier plein**. Sources de validation stockées dans des colonnes techniques masquées (AZ/BA).
+- **X33 — KPI dynamiques filtrés** (`vba/modDashboardKPI.bas`, nouveau module) : les cartes **Conso moyenne**, **Coût aux 100 km** et **Économies E85 vs SP98** dépendent désormais du véhicule + carburant sélectionnés. Calcul à la volée depuis `GS_Pleins` (`ComputeKPIs`), surconso E85 lue dans `Suivi Carburant!J7` (défaut 0,20). Le périmètre de filtrage est rappelé en sous-titre de chaque carte.
+
+### Modifié
+- **X30 — Graphique `gPrice` (évolution du prix)** : l'historique des prix provient maintenant de la table marché `PrixHistory` (prix le moins cher par jour et par carburant) au lieu des prix tirés des pleins. Repli automatique sur les prix des pleins si la table `PrixHistory` est absente (`modGraphiques` : `HasPriceHistory` / `BuildPriceBlockFromHistory`).
+- **X31 — Feuille « Prix par Station »** (`vba/modPrixStation.bas`, nouveau module) : affiche désormais le **dernier prix marché** par couple Station + Carburant lu dans `PrixHistory` (tableau pivot Station × Carburant + colonne « Maj le »), au lieu des prix tirés des pleins.
+- **Onglet « Graphiques » — rafraîchissement automatique** (`vba/Graphiques_snippet.bas`) : `Worksheet_Activate` régénère le tableau de bord à l'ouverture de l'onglet (anti-rebond 15 s) ; `Worksheet_Change` recalcule les KPI dès qu'on change le véhicule (B5) ou le carburant (B6). Panneau Paramètres étendu aux lignes 1→6.
+
 ## [4.8.0.0] — 2026-05-31
 
 ### Added
