@@ -158,9 +158,9 @@ Public Sub CreerGraphiquesWeb(Optional silent As Boolean = False)
     ' -- Calcul des agregats -> _GraphData --
     SetStatusG "Graphiques : calcul des agregats..."
     Dim rMonth As Long, rPrice As Long, rConso As Long, rVeh As Long, rBudg As Long
-    Dim rKit As Long, rCoutKm As Long
+    Dim rKit As Long, rCoutKm As Long, rPriceCols As Long
     BuildAggregates t2, gsT, wsD, surconso, co2Obj, budget, anneeSel, coutKit, _
-                    rMonth, rPrice, rConso, rVeh, rBudg, rKit, rCoutKm
+                    rMonth, rPrice, rConso, rVeh, rBudg, rKit, rCoutKm, rPriceCols
 
     ' -- Bandeau-titre (dashboard) --
     EnsureHeaderBand wsG
@@ -174,8 +174,8 @@ Public Sub CreerGraphiquesWeb(Optional silent As Boolean = False)
     L1 = 10: L2 = L1 + w + 24
 
     ' ── Colonne gauche ──
-    If rPrice > 1 Then
-        AddChartXY wsG, "gPrice", wsD.Range("G1").Resize(rPrice, 4), xlLine, _
+    If rPrice > 1 And rPriceCols > 0 Then
+        AddChartXY wsG, "gPrice", wsD.Range("G1").Resize(rPrice, 1 + rPriceCols), xlLine, _
             "Evolution du prix par carburant (" & ChrW(8364) & "/L)", L1, topBase, w, h, True
     Else
         DeleteChartByName wsG, "gPrice"
@@ -261,18 +261,14 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Workshee
                             anneeSel As Long, coutKit As Double, _
                             ByRef rMonth As Long, ByRef rPrice As Long, _
                             ByRef rConso As Long, ByRef rVeh As Long, ByRef rBudg As Long, _
-                            ByRef rKit As Long, ByRef rCoutKm As Long)
+                            ByRef rKit As Long, ByRef rCoutKm As Long, ByRef rPriceCols As Long)
 
     wsD.Cells.Clear
-
-    ' X30/X34 : prix depuis la table marche "PrixHistory" si disponible
-    ' (releve quotidien _PrixHistory) ; sinon repli sur les prix des pleins.
-    Dim usePH As Boolean: usePH = HasPriceHistory()
 
     ' En-tetes des blocs
     Dim eu As String: eu = ChrW(8364)
     wsD.Range("A1:E1").Value = Array("Mois", "Cout (" & eu & ")", "CO2 evite (kg)", "CO2 cumule (kg)", "Objectif cumule (kg)")
-    wsD.Range("G1:J1").Value = Array("Date", "E85", "Gazole", "SP98")
+    ' G1:... : en-tete prix ecrit dynamiquement par BuildPriceBlockMerged
     wsD.Range("L1:M1").Value = Array("Date", "L/100 km")
     wsD.Range("O1:Q1").Value = Array("Vehicule", "Conso L/100km", "Cout " & eu & "/100km")
     wsD.Range("S1:U1").Value = Array("Mois", "Depense (" & eu & ")", "Objectif (" & eu & ")")
@@ -315,7 +311,7 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Workshee
 
     Dim i As Long, n As Long
     n = UBound(a, 1)
-    Dim rP As Long: rP = 1   ' lignes ecrites bloc prix
+    ' rP supprime : bloc prix gere par BuildPriceBlockMerged
     Dim rCo As Long: rCo = 1 ' lignes ecrites bloc conso
     Dim rK As Long: rK = 1   ' lignes ecrites bloc rentabilite kit (AF/AG/AH)
     Dim rCk As Long: rCk = 1 ' lignes ecrites bloc cout/km par plein (AJ/AK)
@@ -350,17 +346,6 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Workshee
             moisCO2(mKey) = NumDict(moisCO2, mKey) + co2
         End If
         If Not moisOrder.Exists(mKey) Then moisOrder(mKey) = 1
-
-        ' -- prix par carburant (X = Date) --
-        ' X30 : si la table PrixHistory existe, le bloc prix vient du marche
-        '       (rempli apres la boucle) ; sinon repli sur les prix des pleins.
-        If Not usePH Then
-            rP = rP + 1
-            wsD.Cells(rP, 7).Value = d
-            If fk = "E85" Then wsD.Cells(rP, 8).Value = prix
-            If fk = "GAZOLE" Then wsD.Cells(rP, 9).Value = prix
-            If fk = "SP98" Then wsD.Cells(rP, 10).Value = prix
-        End If
 
         ' -- conso (X = Date) --
         If conso > 0 Then
@@ -406,12 +391,8 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Workshee
         nbP = nbP + 1
 NextRow:
     Next i
-    ' X30 : bloc prix depuis PrixHistory (marche) si dispo ; sinon pleins (rP).
-    If usePH Then
-        rPrice = BuildPriceBlockFromHistory(wsD)
-    Else
-        rPrice = rP
-    End If
+    ' X30/X35 : fusion PrixHistory (marche) + pleins, tous carburants detectes.
+    rPrice = BuildPriceBlockMerged(wsD, t2, rPriceCols)
     rConso = rCo
     rKit = rK
     rCoutKm = rCk
@@ -468,8 +449,7 @@ NextRow:
     wsD.Range("AC2").Value = "Depense": wsD.Range("AD2").Value = Round(coutAnnee, 0)
     wsD.Range("AC3").Value = "Objectif": wsD.Range("AD3").Value = Round(budget * 12, 0)
 
-    ' Format colonnes Date
-    wsD.Columns(7).NumberFormat = "dd/mm/yyyy"
+    ' Format colonne Date conso (col G est formatee dans BuildPriceBlockMerged)
     wsD.Columns(12).NumberFormat = "dd/mm/yyyy"
 End Sub
 
@@ -1005,12 +985,129 @@ End Function
 ' ============================================================
 Private Const PH_TABLE As String = "PrixHistory"
 
-' Vrai si la table locale PrixHistory existe et contient des donnees.
-Private Function HasPriceHistory() As Boolean
-    Dim lo As ListObject
-    Set lo = FindListObject(PH_TABLE)
-    If lo Is Nothing Then Exit Function
-    HasPriceHistory = Not (lo.DataBodyRange Is Nothing)
+' ============================================================
+'  X30/X35 — BuildPriceBlockMerged
+'  Fusionne DEUX sources de prix :
+'    1. Tableau2 (pleins saisis) — historique long, tous carburants
+'    2. PrixHistory (table Power Query, marche quotidien) — si dispo
+'  Pour chaque jour+carburant : prix minimum des deux sources.
+'  Carburants detectes dynamiquement ; colonnes G: Date, H:...: carburants.
+'  Retourne le nb de lignes ecrites (en-tete inclus).
+'  nCols recoit le nb de colonnes carburant (sans Date).
+' ============================================================
+Private Function BuildPriceBlockMerged(wsD As Worksheet, t2 As ListObject, _
+                                       ByRef nCols As Long) As Long
+    BuildPriceBlockMerged = 1
+    nCols = 0
+
+    Dim prixData As Object: Set prixData = CreateObject("Scripting.Dictionary")
+    Dim ordDates As Object: Set ordDates = CreateObject("Scripting.Dictionary")
+    Dim fuelSet As Object: Set fuelSet = CreateObject("Scripting.Dictionary")
+
+    ' === SOURCE 1 : Tableau2 (pleins) ===
+    If Not t2 Is Nothing Then
+        If Not t2.DataBodyRange Is Nothing Then
+            Dim ciD2 As Long: ciD2 = LCIdx(t2, "Date")
+            Dim ciT2 As Long: ciT2 = LCIdx(t2, "Type")
+            Dim ciP2 As Long: ciP2 = LCIdx(t2, "Prix " & ChrW(8364) & "/L")
+            If ciD2 > 0 And ciT2 > 0 And ciP2 > 0 Then
+                Dim a2 As Variant: a2 = t2.DataBodyRange.Value
+                Dim i2 As Long
+                For i2 = 1 To UBound(a2, 1)
+                    If IsDate(a2(i2, ciD2)) Then
+                        Dim dk2 As String: dk2 = Format(CDate(a2(i2, ciD2)), "yyyy-mm-dd")
+                        Dim fk2 As String: fk2 = FuelKey(CStr(a2(i2, ciT2)))
+                        Dim p2 As Double: p2 = NumOr0(a2(i2, ciP2))
+                        If Len(fk2) > 0 And p2 > 0 Then
+                            SetMin prixData, dk2 & "|" & fk2, p2
+                            If Not ordDates.Exists(dk2) Then ordDates(dk2) = 1
+                            If Not fuelSet.Exists(fk2) Then fuelSet(fk2) = True
+                        End If
+                    End If
+                Next i2
+            End If
+        End If
+    End If
+
+    ' === SOURCE 2 : PrixHistory (marche quotidien) ===
+    Dim lo As ListObject: Set lo = FindListObject(PH_TABLE)
+    If Not lo Is Nothing Then
+        If Not lo.DataBodyRange Is Nothing Then
+            Dim ciDH As Long: ciDH = LCIdx(lo, "Date")
+            Dim ciTH As Long: ciTH = LCIdx(lo, "Type")
+            Dim ciPH As Long: ciPH = LCIdx(lo, "Prix")
+            If ciPH = 0 Then ciPH = LCIdx(lo, "Prix " & ChrW(8364) & "/L")
+            If ciDH > 0 And ciTH > 0 And ciPH > 0 Then
+                Dim aH As Variant: aH = lo.DataBodyRange.Value
+                Dim iH As Long
+                For iH = 1 To UBound(aH, 1)
+                    If IsDate(aH(iH, ciDH)) Then
+                        Dim dkH As String: dkH = Format(CDate(aH(iH, ciDH)), "yyyy-mm-dd")
+                        Dim fkH As String: fkH = FuelKey(CStr(aH(iH, ciTH)))
+                        Dim pH As Double: pH = NumOr0(aH(iH, ciPH))
+                        If Len(fkH) > 0 And pH > 0 Then
+                            SetMin prixData, dkH & "|" & fkH, pH
+                            If Not ordDates.Exists(dkH) Then ordDates(dkH) = 1
+                            If Not fuelSet.Exists(fkH) Then fuelSet(fkH) = True
+                        End If
+                    End If
+                Next iH
+            End If
+        End If
+    End If
+
+    If ordDates.count = 0 Then Exit Function
+
+    ' === Tri chronologique des dates ===
+    Dim dates() As String, dIdx As Long: dIdx = 0
+    ReDim dates(0 To ordDates.count - 1)
+    Dim kk As Variant
+    For Each kk In ordDates.Keys: dates(dIdx) = CStr(kk): dIdx = dIdx + 1: Next kk
+    TriStr dates
+
+    ' === Ordre prefere des carburants ===
+    Dim prefOrder As Variant
+    prefOrder = Array("E85", "SP98", "GAZOLE", "SP95", "E10", "GPL")
+    Dim fuels() As String, fIdx As Long: fIdx = 0
+    ReDim fuels(0 To fuelSet.count - 1)
+    Dim seen As Object: Set seen = CreateObject("Scripting.Dictionary")
+    Dim fo As Variant
+    For Each fo In prefOrder
+        If fuelSet.Exists(CStr(fo)) Then
+            fuels(fIdx) = CStr(fo): fIdx = fIdx + 1
+            seen(CStr(fo)) = True
+        End If
+    Next fo
+    Dim fkR As Variant
+    For Each fkR In fuelSet.Keys
+        If Not seen.Exists(CStr(fkR)) Then
+            fuels(fIdx) = CStr(fkR): fIdx = fIdx + 1
+        End If
+    Next fkR
+    If fIdx = 0 Then Exit Function
+    ReDim Preserve fuels(0 To fIdx - 1)
+    nCols = fIdx
+
+    ' === En-tete dynamique G1: Date + carburants ===
+    wsD.Range(wsD.Cells(1, 7), wsD.Cells(1, 7 + nCols)).ClearContents
+    wsD.Cells(1, 7).Value = "Date"
+    Dim c As Long
+    For c = 0 To nCols - 1: wsD.Cells(1, 8 + c).Value = fuels(c): Next c
+
+    ' === Lignes de donnees ===
+    wsD.Range(wsD.Cells(2, 7), wsD.Cells(wsD.Rows.count, 7 + nCols)).ClearContents
+    Dim r As Long
+    For r = 0 To UBound(dates)
+        Dim dk3 As String: dk3 = dates(r)
+        wsD.Cells(r + 2, 7).Value = CDate(dk3)
+        For c = 0 To nCols - 1
+            Dim pkey As String: pkey = dk3 & "|" & fuels(c)
+            If prixData.Exists(pkey) Then wsD.Cells(r + 2, 8 + c).Value = prixData(pkey)
+        Next c
+    Next r
+
+    wsD.Columns(7).NumberFormat = "dd/mm/yyyy"
+    BuildPriceBlockMerged = UBound(dates) + 2
 End Function
 
 ' Cherche un ListObject par nom sur toutes les feuilles du classeur.
@@ -1025,73 +1122,6 @@ Private Function FindListObject(nm As String) As ListObject
         Next lo
     Next ws
     Set FindListObject = Nothing
-End Function
-
-' Remplit le bloc prix _GraphData!G:J (Date, E85, Gazole, SP98) depuis
-' PrixHistory : pour chaque jour, prix le moins cher releve par carburant
-' (ligne "marche"). Retourne le nombre de lignes ecrites (en-tete inclus).
-Private Function BuildPriceBlockFromHistory(wsD As Worksheet) As Long
-    BuildPriceBlockFromHistory = 1
-    Dim lo As ListObject
-    Set lo = FindListObject(PH_TABLE)
-    If lo Is Nothing Then Exit Function
-    If lo.DataBodyRange Is Nothing Then Exit Function
-
-    Dim ciDate As Long, ciType As Long, ciPrix As Long
-    ciDate = LCIdx(lo, "Date")
-    ciType = LCIdx(lo, "Type")
-    ciPrix = LCIdx(lo, "Prix")
-    If ciPrix = 0 Then ciPrix = LCIdx(lo, "Prix " & ChrW(8364) & "/L")
-    If ciDate = 0 Or ciType = 0 Or ciPrix = 0 Then Exit Function
-
-    Dim a As Variant: a = lo.DataBodyRange.Value
-    Dim n As Long: n = UBound(a, 1)
-
-    Dim e85 As Object, gaz As Object, s98 As Object, ord As Object
-    Set e85 = CreateObject("Scripting.Dictionary")
-    Set gaz = CreateObject("Scripting.Dictionary")
-    Set s98 = CreateObject("Scripting.Dictionary")
-    Set ord = CreateObject("Scripting.Dictionary")
-
-    Dim i As Long
-    For i = 1 To n
-        If IsDate(a(i, ciDate)) Then
-            Dim dk As String: dk = Format(CDate(a(i, ciDate)), "yyyy-mm-dd")
-            Dim fk As String: fk = FuelKey(CStr(a(i, ciType)))
-            Dim p As Double: p = NumOr0(a(i, ciPrix))
-            If p > 0 Then
-                If Not ord.Exists(dk) Then ord(dk) = 1
-                Select Case fk
-                    Case "E85":    SetMin e85, dk, p
-                    Case "GAZOLE": SetMin gaz, dk, p
-                    Case "SP98":   SetMin s98, dk, p
-                End Select
-            End If
-        End If
-    Next i
-
-    If ord.count = 0 Then Exit Function
-
-    Dim keys() As String, idx As Long: idx = 0
-    ReDim keys(0 To ord.count - 1)
-    Dim kk As Variant
-    For Each kk In ord.keys
-        keys(idx) = CStr(kk): idx = idx + 1
-    Next kk
-    TriStr keys
-
-    ' Nettoie l'ancien bloc prix puis ecrit G:J.
-    wsD.Range(wsD.Cells(2, 7), wsD.Cells(wsD.Rows.count, 10)).ClearContents
-    Dim r As Long
-    For r = 0 To UBound(keys)
-        Dim dk2 As String: dk2 = keys(r)
-        wsD.Cells(r + 2, 7).Value = CDate(dk2)                          ' G: Date
-        If e85.Exists(dk2) Then wsD.Cells(r + 2, 8).Value = e85(dk2)    ' H: E85
-        If gaz.Exists(dk2) Then wsD.Cells(r + 2, 9).Value = gaz(dk2)    ' I: Gazole
-        If s98.Exists(dk2) Then wsD.Cells(r + 2, 10).Value = s98(dk2)   ' J: SP98
-    Next r
-
-    BuildPriceBlockFromHistory = UBound(keys) + 2   ' en-tete (1) + lignes data
 End Function
 
 ' Memorise le minimum d'une valeur par cle dans un dictionnaire.
@@ -1118,15 +1148,21 @@ Private Function NumDict(d As Object, k As String) As Double
 End Function
 
 Private Function FuelKey(t As String) As String
-    Dim u As String: u = UCase(t)
+    Dim u As String: u = UCase$(Trim$(t))
     If InStr(u, "E85") > 0 Or InStr(u, "ETHANOL") > 0 Then
         FuelKey = "E85"
     ElseIf InStr(u, "GAZOLE") > 0 Or InStr(u, "DIESEL") > 0 Or InStr(u, "GASOIL") > 0 Then
         FuelKey = "GAZOLE"
-    ElseIf InStr(u, "98") > 0 Then
+    ElseIf InStr(u, "SP98") > 0 Or InStr(u, "S98") > 0 Then
         FuelKey = "SP98"
-    Else
-        FuelKey = "AUTRE"
+    ElseIf InStr(u, "SP95") > 0 Or InStr(u, "S95") > 0 Then
+        FuelKey = "SP95"
+    ElseIf InStr(u, "E10") > 0 Then
+        FuelKey = "E10"
+    ElseIf InStr(u, "GPL") > 0 Then
+        FuelKey = "GPL"
+    ElseIf Len(u) > 0 Then
+        FuelKey = u      ' conserve le libelle brut (ex : "HVO", "GNV"…)
     End If
 End Function
 

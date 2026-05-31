@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.9.0.1] — 2026-05-31
+
+### Changed
+- **X35 — Graphique `gPrice` : fusion des sources de prix + tous carburants** (`vba/modGraphiques.bas`) :
+  - `BuildPriceBlockMerged` remplace `BuildPriceBlockFromHistory` : **union** des prix de `PrixHistory` (marché quotidien) **et** des prix des pleins (`Tableau2`) — pour chaque jour × carburant, le minimum des deux sources est retenu. L'historique couvre désormais tout l'historique des pleins + les relevés quotidiens.
+  - Carburants **détectés dynamiquement** (plus de colonnes fixes E85/Gazole/SP98) : l'en-tête `_GraphData!G1:…` est écrit à la volée selon les carburants présents ; ordre préféré E85 → SP98 → GAZOLE → SP95 → E10 → GPL → autres.
+  - `rPriceCols` (nombre de colonnes carburant) transmis à l'appelant pour que le graphique `gPrice` soit dimensionné dynamiquement (`Resize(rPrice, 1 + rPriceCols)`).
+  - `FuelKey` étendu : SP95, E10, GPL, et libellé brut conservé pour les carburants inconnus (HVO, GNV…).
+
 ## [4.9.0.0] — 2026-05-31
 
 ### Ajouté
