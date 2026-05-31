@@ -16,3 +16,6 @@ test-results/
 
 # Journal direct de commit.sh
 commit.log
+
+# Config GAS — contient scriptId, sheetId, deployId (données sensibles)
+.claude/gas-config.json

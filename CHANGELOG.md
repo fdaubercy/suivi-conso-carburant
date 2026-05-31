@@ -4,6 +4,21 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.10.0.2] — 2026-05-31
+
+### Added
+- **C1 — Skill `gas-api`** : nouvelle skill `.claude/skills/gas-api/SKILL.md` dédiée aux appels API REST Google Apps Script et Sheets API (distincte de `gas-sync` qui couvre l'éditeur web et clasp) ; pattern complet modifier → versionner → redéployer ; référence `gas-config.json`.
+- **C2 — Commande `/gasManager`** : `.claude/commands/gasManager.md` recharge l'artifact GAS Manager avec les IDs de `.claude/gas-config.json` sans ressaisie.
+- **C3 — Sécurité `.gitignore`** : ajout de `.claude/gas-config.json` pour éviter la publication des IDs GAS (scriptId, sheetId, deployId) sur GitHub.
+
+## [4.10.0.1] — 2026-05-31
+
+# Changelog
+
+Toutes les modifications notables de ce projet sont documentées ici.
+
+Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
+
 ## [4.10.0.1] — 2026-05-31
 
 ### Changed

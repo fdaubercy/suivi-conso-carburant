@@ -269,3 +269,4 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 ---
 
 > ✏️ Les améliorations réalisées sont retirées de leur tableau d'origine et ajoutées au tableau ci-dessus.
+| v4.10.0.2 | **Outillage Claude — quick wins sécurité et ergonomie (C1/C2/C3)** — skill `gas-api` (API REST GAS+Sheets), commande `/gasManager` (artifact sans ressaisie), `gas-config.json` exclu de git (sécurité IDs) |
