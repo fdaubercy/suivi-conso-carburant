@@ -26,7 +26,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| _(aucune en attente)_ | — | T8–T11 implémentés en v3.12.2.0 |
+| _(aucune en attente)_ | — | T8–T11 implémentés en v3.12.2.0 · streaming `commit.sh`/lint/vitest en v4.8.0.0 |
 
 ---
 
@@ -64,9 +64,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| S3 | **Suppression bidirectionnelle** : flag `_deleted` au lieu de hard delete, sync efface l'autre côté | Cohérence si on corrige une erreur |
-| S4 | **Bouton "Force resync"** : vide `GS_Pleins`, ré-importe tout depuis GS | Reset si désalignement |
-| S5 | **Conflict resolution avancée** : si même `sync_id` modifié des 2 côtés, garder le plus récent (timestamp) plutôt qu'Excel-wins systématique | Édition simultanée web/Excel sans perte |
+| _(aucune en attente)_ | — | S3/S4/S5 implémentés en v4.8.0.0 |
 
 ### 🛡️ Sécurité
 
@@ -103,10 +101,10 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | 1 | **X1** — Bouton "Synchroniser" sur la feuille GS_Pleins | 15 min | Ergonomie immédiate, plus besoin d'ouvrir l'IDE |
 | 2 | **X9** — Économies cumulées E85 vs SP98 | ½ j | ROI E85 chiffré depuis les données existantes |
 | 3 | **X15** — Graphique scatter Prix E85/L vs L/100 km | ½ j | Corrélation prix/comportement, pure formule Excel |
-| 4 | **S5** — Conflict resolution avancée (timestamp) | — | Édition simultanée web/Excel sans perte |
+| 4 | **X20** — Interrupteur « graphiques auto » (cellule param) | ½ j | Désactiver le recalcul auto sur un gros historique |
 | 5 | **X11** — Onglet `_SyncLog` (date, ←N, →N, durée) | — | Debug, historique des syncs |
 
-> ✅ W52/W55/W56 (top 3-5 précédents) implémentés en v4.3.0.0 — voir le tableau ci-dessous.
+> ✅ S3/S4/S5 (suppression bidir., force resync, conflits par timestamp) implémentés en v4.8.0.0 — voir le tableau ci-dessous.
 
 ---
 
@@ -114,6 +112,9 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v4.8.0.0 | **Suppression bidirectionnelle + force resync + conflits par timestamp (S3/S4/S5)** — **S3** soft-delete par tombstone (col R `Supprimé` du GS), `handleExport` exclut les supprimés et renvoie `deleted:[…]`, action GAS `bulkDelete`, macro VBA `SupprimerPleinExcel`, purge cache web (`historique.js`) ; **S4** `ForceResync` (vide `GS_Pleins` + ré-import total) ; **S5** col GS `Modifié_le`, arbitrage du plus récent (Excel col Q vs GS) côté VBA *et* côté serveur (`handleBulkUpdate`). `Code.gs` v3.8.0.0 (⚠️ redéploiement), `modSyncGS.bas` v2.10.0.0 |
+| v4.8.0.0 | **Tableau de bord Excel — dashboard moderne + 3 graphiques rentabilité kit + boutons image (X27/X28/X29)** — `vba/modGraphiques.bas` v4.8.0.0 : restauration depuis l'ancien classeur de **l'économie cumulée vs coût du kit** (courbe+seuil `Suivi Carburant!B5`), du **coût au km c€/km par plein** (barres) et de la **projection de rentabilité** (scatter + tendance linéaire 5 pleins) ; mise en page dashboard (bandeau-titre, params espacés des boutons, graphiques décalés `TOP_BASE` 150) ; **charte alignée sur l'app** ; **boutons PNG cliquables** (`excel/assets/`, repli Shape) ; **auto-refresh à l'ouverture de l'onglet** (`vba/Graphiques_snippet.bas`, `Worksheet_Activate`) |
+| v4.8.0.0 | **`commit.sh` verbeux en direct** — tee `commit.log` + line-buffering `stdbuf` des étapes npm + `vitest --reporter=verbose` : les étapes (lint, tests) s'affichent au fil de l'eau dans l'interface au lieu d'apparaître seulement à la fin |
 | v4.7.0.0 | **Agrégats serveur + résumé annuel + thème sombre + jauge budget Excel (S12/W59/U8/X26)** — **S12** endpoint GAS `?action=stats[&veh=&year=]` pré-agrège mensuel (coût/litres/CO₂), KPIs annuels et comparatif véhicules, cache `CacheService` ~1 h (`Code.gs` v3.7.0.0, ⚠️ redéploiement requis) ; **W59** client `js/statsApi.js` (cache localStorage TTL 1 h, `prewarmServerStats` au démarrage, helpers purs testés `tests/statsApi.test.js`) + carte « Bilan annuel ⚡ serveur » (`#serverSummary`) avec repli local si endpoint absent ; **U8** thème sombre confirmé (`js/theme.js` + `[data-theme="dark"]`) étendu au nouveau bloc ; **X26** mini-jauge budget annuel `gBudgetYear` (dépense année cible vs Budget mensuel × 12, rouge si dépassement) dans `vba/modGraphiques.bas` v4.7.0.0 |
 | v4.6.0.0 | **Tableau de bord — export PDF, sélecteur d'année, refresh incrémental, garde-fou auto (X22-X25)** — `vba/modGraphiques.bas` + `vba/modSyncGS.bas` : **X23** bouton « Exporter en PDF » (`ExporterGraphiquesPDF` → `ExportAsFixedFormat` daté à côté du classeur) ; **X24** cellule `Graphiques!B4` « Année bilan » (vide = année récente) → KPIs + jauge CO₂ recalculés pour l'année choisie (`anneeCible`) ; **X25** graphiques/cartes nommés (`gPrice`…`gGauge`, `kpiTitle`/`kpiCard1..5`) **réutilisés** (`EnsureChart`/`EnsureShape`) au lieu de tout supprimer/recréer, `PurgeUnknown` ne nettoie que les objets inconnus ; **X22** l'appel auto en fin de `SyncCore` ne se déclenche que si l'onglet « Graphiques » existe déjà (`GraphSheetExists`) |
 | v4.5.0.0 | **Graphiques recréés automatiquement après synchro (X19)** — `vba/modSyncGS.bas` appelle `modGraphiques.CreerGraphiquesWeb(silent:=True)` en fin de `SyncCore`, donc à l'ouverture (`SyncOnOpen`) **et** après un `SyncManuel`, **uniquement si des données ont changé** (`addedFromGS + updFromGS + sentToGS + sentUpdToGS > 0`) ; nouveau paramètre `silent` sur `CreerGraphiquesWeb` (pas de `MsgBox` bloquante en auto, barre d'état seulement ; le bouton « Recréer » garde la `MsgBox`) ; appel encadré par `On Error Resume Next` pour ne jamais casser la synchro |

@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v4.7.0.0**
+> 🔖 Version courante : **v4.8.0.0**
 
 ## 🌐 Accès
 
@@ -349,9 +349,13 @@ suivi-conso-carburant/
 │   ├── GS_Pleins_snippet.bas        # Module feuille GS_Pleins (F1-F4 : auto sync_id,
 │   │                                #   dirty flag, validation km, doublons)
 │   ├── modDashboard.bas             # Tableau de bord : 10 KPIs + graphiques X7/X8
-│   ├── modGraphiques.bas            # Onglet « Graphiques » : 8 graphes natifs + KPIs
-│   │                                #   (CreerGraphiquesWeb) — auto-recréé en fin de sync,
-│   │                                #   refresh incrémental, export PDF, sélecteur d'année B4
+│   ├── modGraphiques.bas            # Onglet « Graphiques » : 11 graphes natifs + KPIs
+│   │                                #   (CreerGraphiquesWeb) — dashboard moderne (bandeau,
+│   │                                #   charte app), 3 graphes « rentabilité kit » (X27/X28/X29),
+│   │                                #   boutons PNG cliquables, auto-recréé en fin de sync +
+│   │                                #   à l'ouverture de l'onglet, refresh incrémental, export PDF
+│   ├── Graphiques_snippet.bas       # Snippet feuille « Graphiques » : Worksheet_Activate
+│   │                                #   → refresh auto à l'ouverture (anti-rebond 15 s)
 │   ├── modFeatures.bas              # X4 MFC « Prix €/L » + X14 « Suivi (auto) » +
 │   │                                #   Tableau2 vue dérivée + VerifierInstallation
 │   ├── modSaisie.bas                # Moteur saisie (ValiderSaisie/EstDoublon/EnregistrerPlein
@@ -418,12 +422,14 @@ Actions `doPost` disponibles :
 | `syncStations` | App web | Remplacement complet de l'onglet `Stations` |
 | `addVehicule` | App web | Ajout d'un véhicule dans l'onglet `Vehicules` |
 | `removeVehicule` | App web | Suppression d'un véhicule |
+| `deletePlein` | App web | **S3** — suppression d'un plein : *soft-delete* (tombstone col R `Supprimé`), propagée aux autres clients via `deleted:[…]` |
+| `bulkDelete` | VBA Excel | **S3** — suppressions en lot Excel → GS (`ids[]` → tombstones) |
 | `bulkAdd` | VBA Excel | Import initial Excel → GS (dédupliqué par `sync_id`) |
-| `bulkUpdate` | VBA Excel | MAJ bidirectionnelle : lignes modifiées Excel → GS |
+| `bulkUpdate` | VBA Excel | MAJ bidirectionnelle Excel → GS — **S5** : arbitrage par horodatage (`modifiedAt` vs col Q `Modifié_le`) |
 | `scanTicket` | App web | Analyse IA du ticket via Gemini 2.0 Flash → JSON (date, km, litres, prix/L, total, type, station) ; moteur principal du scan, fallback Tesseract.js côté navigateur si indisponible |
 | `saveLastGeo` | App web | W38 — mémorise la dernière position connue (`LAST_GEO`) pour le scan 15 km du refresh ~7h |
 
-Actions `doGet` (données) : `export` (historique JSON, `?since=`), `lowprice` (dernier prix E85 bas), `sectorPrices` (W38 — prix mini secteur par jour + meilleur prix du jour).
+Actions `doGet` (données) : `export` (historique JSON, `?since=` ; renvoie `records` actifs **+ `deleted:[sync_id…]`** pour la suppression bidirectionnelle S3), `lowprice` (dernier prix E85 bas), `sectorPrices` (W38 — prix mini secteur par jour + meilleur prix du jour), `stats` (S12 — agrégats pré-calculés).
 
 > 🔐 **S6 — Token** : si la **propriété de script** `APP_TOKEN` est définie (Apps Script → Paramètres → Propriétés du script), toutes les actions de données exigent le même token (`?token=` en GET, champ `token` en POST). À défaut, aucun contrôle (rétrocompatible). Coller la même valeur dans `js/config.js` (`APP_TOKEN`) **et** `vba/modSyncGS.bas`.
 
@@ -461,20 +467,24 @@ export const CLIENT_ID_KEY  = 'suivi_e85_client_id';    // UUID client rate limi
 
 ## 🔄 Synchronisation bidirectionnelle Excel ↔ Google Sheets
 
-Depuis v2.9.0.0, le classeur `excel/Suivi Conso Carburants.xlsm` synchronise en **4 directions** son onglet `GS_Pleins` avec `_ImportGS` :
+Depuis v2.9.0.0 (suppression bidirectionnelle S3 en v4.8.0.0), le classeur `excel/Suivi Conso Carburants.xlsm` synchronise son onglet `GS_Pleins` avec `_ImportGS` :
 
 ### Principe
 Chaque enregistrement est identifié par un **UUID** (`sync_id`, colonne O). À la saisie comme au sync, la macro VBA :
 
+0. **Suppressions GS → Excel (S3)** : `handleExport` renvoie `deleted:[sync_id…]` (lignes *tombstone* col R `Supprimé` côté GS) → `ApplyGSDeletions` retire les lignes locales correspondantes
 1. **GS → Excel (nouvelles lignes)** : lignes présentes dans GS et absentes d'Excel → `appendRow`
-2. **GS → Excel (MAJ)** : lignes existantes non modifiées localement (col P vide) + valeurs GS différentes → `UpdateRowFromGS`
+2. **GS → Excel (MAJ)** : lignes existantes non modifiées localement (col Q `Modifie_local` vide) + valeurs GS différentes → `UpdateRowFromGS`
 3. **Excel → GS (nouvelles lignes)** : lignes locales absentes de GS → POST `action=bulkAdd`
-4. **Excel → GS (modifications)** : lignes modifiées localement (col P renseignée) et connues de GS → POST `action=bulkUpdate` ; col P effacée après succès
+4. **Excel → GS (modifications)** : lignes modifiées localement (col Q renseignée) et connues de GS → POST `action=bulkUpdate` ; col Q effacée après succès
+5. **Excel → GS (suppression, S3)** : `SupprimerPleinExcel` → POST `action=bulkDelete` (`ids[]`) puis suppression de la ligne locale
 
-**Résolution de conflits** : si une ligne est modifiée des deux côtés, **Excel gagne** (col P renseignée = priorité locale).
+**Résolution de conflits (S5, v4.8.0.0)** : si une ligne est modifiée des deux côtés, on garde le **plus récent** par horodatage — col Q Excel (`Modifie_local`) comparée au champ GS `Modifié_le`. L'arbitrage se fait côté VBA (`ImportGSToExcel`) **et** côté serveur (`handleBulkUpdate` n'écrase que si `modifiedAt` reçu ≥ `Modifié_le` existant). **`ForceResync`** (S4) vide la table locale et ré-importe tout depuis GS.
 
-### Col P — dirty flag
-La colonne P (`Modifie_local`) est un horodatage `Now()` posé automatiquement par le module feuille `GS_Pleins` à chaque modification (A:N). Elle signale à `ExportModificationsToGS` que la ligne doit être propagée vers GS. Elle est effacée après confirmation du serveur (`status:'ok'`).
+### Col Q (Excel) — dirty flag · cols Q/R (GS) — S3/S5
+La colonne **Q `Modifie_local`** (Excel, interne) est un horodatage `Now()` posé automatiquement par le module feuille `GS_Pleins` à chaque modification (A:N). Elle signale à `ExportModificationsToGS` que la ligne doit être propagée vers GS, sert d'horodatage de conflit (S5) et est effacée après confirmation du serveur (`status:'ok'`).
+
+Côté **Google Sheet** (`_ImportGS`), v4.8.0.0 ajoute deux colonnes (créées automatiquement par `ensureSyncColumns_`) : **Q `Modifié_le`** (horodatage serveur de dernière modif — arbitrage S5) et **R `Supprimé`** (tombstone *soft-delete* S3 ; vide = actif). ⚠️ Ne pas confondre la col Q **Excel** (`Modifie_local`, hors schéma GS) et la col Q **GS** (`Modifié_le`).
 
 ### Événements temps réel dans GS_Pleins (v2.9.0.0)
 Le module `GS_Pleins_snippet.bas` ajoute un `Worksheet_Change` qui se déclenche à chaque saisie :
@@ -488,11 +498,15 @@ Le module `GS_Pleins_snippet.bas` ajoute un `Worksheet_Change` qui se déclenche
 
 ### Installation
 ```
-Alt+F11 → Fichier → Importer → vba/modSyncGS.bas
+Alt+F11 → Fichier → Importer → vba/modSyncGS.bas  +  vba/modGraphiques.bas
 Dans Microsoft Excel Objects → GS_Pleins : coller vba/GS_Pleins_snippet.bas
+Dans Microsoft Excel Objects → Graphiques : coller vba/Graphiques_snippet.bas (refresh auto onglet)
 Dans "ThisWorkbook" : coller vba/ThisWorkbook_snippet.bas
 Power Query → GS_Pleins → Éditeur avancé : coller powerquery/GS_Pleins.m
 GAS Editor → exécuter migrateSyncId() une seule fois (UUID sur lignes existantes)
+GAS → Déployer → Nouvelle version (S3/S5 : colonnes Q/R ajoutées au 1ᵉ appel)
+Boutons (facultatif) : assigner SupprimerPleinExcel et ForceResync (modSyncGS) à des shapes
+Boutons PNG dashboard : garder le dossier excel/assets/ à côté du classeur (repli Shape sinon)
 Token S6 : coller la valeur APP_TOKEN (js/config.js) dans vba/modSyncGS.bas
           ET dans GAS → Propriétés du script → APP_TOKEN (sinon le contrôle reste désactivé)
 ```

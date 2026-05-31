@@ -4,6 +4,28 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.8.0.0] — 2026-05-31
+
+### Added
+- **Tableau de bord Excel — 3 graphiques « Rentabilité du kit » restaurés** (`vba/modGraphiques.bas` v4.8.0.0, repris de l'ancien classeur `Suivi conso E85_v2.xlsm`) :
+  - **X27 — Économie cumulée vs coût du kit** (courbe + seuil) : économie cumulée par plein E85 (`Tableau2[Économie cumulée (€)]`) avec ligne-seuil **coût du kit** (`Suivi Carburant!B5`, repli recherche du libellé « kit », défaut 514,54 €).
+  - **X28 — Coût au km c€/km par plein** (barres) : `Tableau2[Coût c€/km]` par numéro de plein.
+  - **X29 — Projection de rentabilité du kit** (nuage de points + **tendance linéaire projetée** de 5 pleins) pour estimer le point de rentabilité.
+- **Boutons du tableau de bord en VRAIES IMAGES cliquables** (`excel/assets/btn_recreer.png`, `btn_export_pdf.png`, générés par `excel/assets/_make_buttons.ps1`). La macro insère les PNG via `AddPicture` (`OnAction` conservé) avec **repli automatique sur une Shape stylée** si le fichier est absent.
+- **Rafraîchissement auto à l'ouverture de l'onglet** (`vba/Graphiques_snippet.bas`, nouveau) : `Worksheet_Activate` relance `CreerGraphiquesWeb(silent:=True)` (anti-rebond 15 s) → le dashboard est à jour **sans aucune manipulation**.
+- **S3 — Suppression bidirectionnelle Excel ↔ Google Sheets** (`Code.gs` v3.8.0.0, `vba/modSyncGS.bas` v2.10.0.0, `js/historique.js`). Soft-delete via **tombstone** (col R `Supprimé`) au lieu d'un hard delete ; `handleExport` exclut les lignes supprimées de `records` et renvoie `deleted:[sync_id…]`. Nouvelle action GAS `bulkDelete` + macro VBA **`SupprimerPleinExcel`** (supprime le plein sélectionné et propage à GS). L'app web purge son cache des `sync_id` supprimés.
+- **S4 — `ForceResync` (VBA)** : vide la table `GS_Pleins` et **ré-importe tout** depuis Google Sheets (reset en cas de désalignement, confirmation requise).
+- **S5 — Résolution de conflit par horodatage** (`Code.gs`, `vba/modSyncGS.bas`). Nouvelle colonne GS Q `Modifié_le` ; en cas de modification du même `sync_id` des 2 côtés, on garde le **plus récent** (col Q Excel vs `Modifié_le` GS) au lieu d'un *Excel-wins* systématique. `modifiedAt` envoyé dans `bulkUpdate` → arbitrage aussi côté serveur.
+
+### Changed
+- **Dashboard Excel — mise en page « moderne »** : **bandeau-titre**, bloc **paramètres espacé des boutons**, **graphiques décalés vers le bas** (`TOP_BASE` 90 → 150), et **charte graphique alignée sur l'app web** (vert `#1D9E75`, bleu foncé `#1B3A5C`, bleu `#2E75B6`, ambre `#F0A500`, rouge `#E24B4A`).
+- **`commit.sh` — sortie verbeuse EN DIRECT** : tee vers un journal `commit.log` + line-buffering (`stdbuf`) des étapes npm, et **vitest en `--reporter=verbose`** → les étapes (lint, tests) s'affichent au fil de l'eau dans l'interface au lieu d'apparaître seulement à la fin.
+- **Versions** : `js/config.js` `APP_VERSION` 4.8.0.0 · `Code.gs` v3.8.0.0 · `modGraphiques.bas` v4.8.0.0 · `modSyncGS.bas` v2.10.0.0.
+
+### ⚠️ Installation
+1. **Apps Script** : copier `Code.gs` puis **Déployer → Gérer les déploiements → ✏️ → Nouvelle version → Déployer** (S3/S5 : ajoute les colonnes Q `Modifié_le` et R `Supprimé` automatiquement au 1ᵉ appel).
+2. **Excel** : réimporter `vba/modGraphiques.bas` et `vba/modSyncGS.bas` ; coller `vba/Graphiques_snippet.bas` dans le module de la **feuille** `Graphiques`. Garder le dossier `excel/assets/` à côté du classeur pour les boutons PNG (sinon repli Shape). `CreerGraphiquesWeb` régénère le tableau de bord ; `SupprimerPleinExcel` / `ForceResync` assignables à des boutons.
+
 ## [4.7.0.0] — 2026-05-31
 
 ### Added

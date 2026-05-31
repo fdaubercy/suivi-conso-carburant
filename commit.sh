@@ -22,6 +22,26 @@ set -euo pipefail
 # --- Se placer à la racine du dépôt (emplacement du script) ---
 cd "$(dirname "$0")"
 
+# ─── Sortie EN DIRECT (verbeuse, non bufferisée) ──────────────
+# Probleme resolu : lance via un pipe (Claude Code / CI), la sortie de
+# npm/eslint/vitest etait bufferisee et n'apparaissait qu'a la fin.
+#   • LIVE_LOG : journal en direct (tail -f possible, lu par l'agent).
+#   • UNBUF    : force le line-buffering des sous-process si stdbuf existe.
+#   • stdout/stderr du script entier sont aussi tee-es vers LIVE_LOG.
+LIVE_LOG="${COMMIT_LOG:-commit.log}"
+: > "$LIVE_LOG" 2>/dev/null || true
+# Tee de tout le script vers le log (et garde la sortie console).
+exec > >(tee -a "$LIVE_LOG") 2>&1
+
+if command -v stdbuf >/dev/null 2>&1; then
+  UNBUF="stdbuf -oL -eL"
+else
+  UNBUF=""
+fi
+# Force aussi les libs JS a ne pas bufferiser / desactive les spinners TTY.
+export FORCE_COLOR=1
+export CI=""
+
 # ─── Helpers d'affichage (étapes verbeuses) ───────────────────
 TOTAL_STEPS=9
 SECONDS=0   # chrono bash : nombre de secondes écoulées depuis le début
@@ -37,7 +57,7 @@ info() { printf '   ℹ️  %s\n' "$1"; }
 warn() { printf '   ⚠️  %s\n' "$1"; }
 die()  { printf '\n❌ %s\n' "$1" >&2; exit 1; }
 
-printf '\n🚀 commit.sh — démarrage\n'
+printf '\n🚀 commit.sh — démarrage (journal direct : %s)\n' "$LIVE_LOG"
 
 # --- 1. Message de commit obligatoire ---
 step 1 "📨" "Vérification du message de commit"
@@ -87,12 +107,15 @@ fi
 
 # --- 4. Lint ---
 step 4 "🔍" "ESLint (npm run lint)"
-npm run lint || die "ESLint a échoué (erreurs ou warnings). Commit annulé."
+info "Analyse des fichiers js/ en cours…"
+$UNBUF npm run lint || die "ESLint a échoué (erreurs ou warnings). Commit annulé."
 ok "Lint propre — 0 erreur, 0 warning."
 
 # --- 5. Tests unitaires ---
-step 5 "🧪" "Tests unitaires (vitest)"
-npm test || die "Les tests ont échoué. Commit annulé."
+step 5 "🧪" "Tests unitaires (vitest — sortie en direct)"
+info "Exécution des suites vitest…"
+# --reporter=verbose : chaque fichier/test s'affiche au fil de l'eau (live)
+$UNBUF npm test -- --reporter=verbose || die "Les tests ont échoué. Commit annulé."
 ok "Tous les tests passent."
 
 # --- 6. Add ---

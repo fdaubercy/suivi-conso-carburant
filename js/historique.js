@@ -71,6 +71,16 @@ export async function chargerHistorique() {
       allRecords = incoming;
     }
 
+    // S3 — suppression bidirectionnelle : purge les pleins effacés ailleurs
+    // (Excel / autre client). Le serveur renvoie « deleted:[sync_id,…] ».
+    const deletedIds = Array.isArray(data.deleted) ? data.deleted.map(String) : [];
+    if (deletedIds.length) {
+      const delSet = new Set(deletedIds);
+      allRecords = allRecords.filter(
+        r => !delSet.has(String(r.sync_id || r['sync_id'] || ''))
+      );
+    }
+
     // Mettre à jour le cache et le timestamp de dernière sync
     _saveCache(allRecords);
     _saveSince(new Date().toISOString());

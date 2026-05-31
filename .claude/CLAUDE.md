@@ -39,6 +39,72 @@ Avant toute modification :
 
 ---
 
+# 🤖 MULTI-AGENT — AGENTS SPÉCIALISÉS
+
+## Agents disponibles (`.claude/agents/`)
+
+| Agent | Fichier | Périmètre |
+|---|---|---|
+| **js-feature** | `js-feature.md` | `app.js` — logique JS, géoloc, graphiques |
+| **bug-fix** | `bug-fix.md` | Tous fichiers — diagnostic et correction |
+| **css-ui** | `css-ui.md` | `style.css`, `index.html` — UI et responsive |
+| **gas-sync** | `gas-sync.md` | `*.gs` — Google Apps Script, sync Sheets |
+| **doc-writer** | `doc-writer.md` | `README.md`, `CHANGELOG.md`, `ROADMAP.md` |
+
+## Quand utiliser les agents en parallèle
+
+Déclencher plusieurs agents simultanément quand les tâches sont **indépendantes** :
+
+✅ Parallélisable :
+- Ajouter une fonctionnalité JS + mettre à jour la doc
+- Corriger un bug JS + améliorer le CSS + mettre à jour le CHANGELOG
+- Modifier le GAS + mettre à jour le README
+
+❌ Ne pas paralléliser :
+- Deux agents modifiant `app.js` en même temps
+- Un agent lisant une version pendant qu'un autre la modifie
+- `doc-writer` avant que `js-feature` ou `bug-fix` ait terminé (version non finale)
+
+## Comment déclencher le mode multi-agent
+
+Formule ta demande en listant explicitement les agents et leurs tâches :
+
+```
+Lance ces agents en parallèle :
+- js-feature : ajoute le filtre par période (semaine / mois / tout)
+- css-ui : améliore le responsive du tableau de bord sur mobile
+- doc-writer : mets à jour CHANGELOG et ROADMAP pour la v1.X.Y.Z
+```
+
+## Règle de coordination inter-agents
+
+- Chaque agent écrit uniquement dans son périmètre défini
+- La version X.Y.Z.W est fixée par l'agent principal de la tâche (js-feature ou bug-fix)
+- `doc-writer` reçoit la version finale APRÈS les agents de code
+- En cas de conflit sur un fichier partagé → traitement séquentiel obligatoire
+
+## 📊 Récapitulatif multi-agent obligatoire
+
+Quand plusieurs agents ont tourné en parallèle, fournir **obligatoirement** ce tableau en fin de réponse, avant le bloc commit :
+
+```
+─── AGENTS ──────────────────────────────────
+| Agent       | Statut       | Fichiers modifiés                  | Tokens  |
+|-------------|------------- |------------------------------------|---------|
+| js-feature  | ✅ Terminé   | `app.js`                           | ~48k    |
+| css-ui      | ✅ Terminé   | `style.css`                        | ~22k    |
+| doc-writer  | ✅ Terminé   | `CHANGELOG.md`, `ROADMAP.md`       | ~15k    |
+─────────────────────────────────────────────
+```
+
+Règles du tableau :
+- Statut : ✅ Terminé / ⚠️ Partiel (expliquer pourquoi) / ❌ Échec (expliquer pourquoi)
+- Toujours lister tous les fichiers réellement modifiés par chaque agent
+- Indiquer les tokens consommés par agent (estimation acceptée)
+- Ce tableau apparaît AVANT le bloc commit, APRÈS les fichiers complets
+
+---
+
 # ⛽ CONTEXTE MÉTIER (E85)
 
 Le projet traite des données de carburant E85 :
@@ -58,12 +124,20 @@ Priorités :
 
 # 📦 LIVRABLE OBLIGATOIRE
 
-À chaque tâche :
+À chaque tâche (agent unique) :
 
 1. Résumé court des changements
 2. Liste des fichiers modifiés
 3. FICHIERS COMPLETS modifiés
 4. Version mise à jour
+5. Commande de commit prête à copier-coller
+
+À chaque tâche **multi-agent** (agents en parallèle) :
+
+1. Résumé court des changements
+2. FICHIERS COMPLETS modifiés (par agent)
+3. Version mise à jour
+4. **Tableau récapitulatif agents** (statut, fichiers, tokens)
 5. Commande de commit prête à copier-coller
 
 ---
@@ -237,6 +311,7 @@ Avant de terminer :
 - vérifier README.md si l'architecture a changé
 - vérifier CHANGELOG.md
 - **vérifier ROADMAP.md — ajouter les items réalisés**
+- **si multi-agent : générer le tableau récapitulatif agents**
 - préparer le bloc commit
 
 ---

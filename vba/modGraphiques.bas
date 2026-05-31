@@ -1,6 +1,21 @@
 Attribute VB_Name = "modGraphiques"
 ' ============================================================
-'  SUIVI CONSO CARBURANTS — Graphiques du tableau de bord     v4.7.0.0
+'  SUIVI CONSO CARBURANTS — Graphiques du tableau de bord     v4.8.0.0
+'
+'  v4.8.0.0 (X27/X28/X29) :
+'    • Charte graphique alignee sur l'app web (vert #1D9E75, bleu fonce
+'      #1B3A5C, bleu #2E75B6, ambre #F0A500, rouge #E24B4A).
+'    • Mise en page "Dashboard" : bandeau-titre, bloc parametres espace
+'      des boutons, graphiques decales vers le bas (topBase plus grand).
+'    • Boutons "Recreer" / "Exporter PDF" en VRAIES IMAGES cliquables
+'      (PNG dans excel\assets\, repli Shape stylee si fichier absent).
+'    • 3 graphiques "Rentabilite du kit" restaures depuis l'ancien
+'      classeur : economie cumulee vs cout du kit (courbe + seuil),
+'      cout au km c{e}/km par plein (barres), projection de rentabilite
+'      (nuage de points + tendance lineaire). Donnees lues dans Tableau2
+'      (colonnes deja calculees) ; cout du kit = "Suivi Carburant"!B5.
+'    • Rafraichissement a l'ouverture de l'onglet (Worksheet_Activate,
+'      voir vba\Graphiques_snippet.bas).
 '
 '  Recree sur l'onglet "Graphiques" (remis a zero) les memes
 '  visualisations que l'app web, en graphiques NATIFS Excel :
@@ -63,15 +78,23 @@ Private Const CELL_BUDGET As String = "B2"
 Private Const CELL_CO2OBJ As String = "B3"
 Private Const CELL_ANNEE  As String = "B4"   ' X24 : annee bilan (vide = recente)
 
-' ── Couleurs ──
-Private Const C_E85    As Long = 3978097   ' vert  #71B53C (approx)
-Private Const C_GAZOLE As Long = 3289800   ' gris-bleu
-Private Const C_SP98   As Long = 13408512  ' bleu  #0080CC
-Private Const C_COUT   As Long = 2240204   ' bleu fonce #1B3A5C
-Private Const C_OBJ    As Long = 1085491   ' orange #F3A013 (BGR)
-Private Const C_CONSO  As Long = 12092939
-Private Const C_HEADER As Long = 6047027   ' #1B3A5C bleu fonce
-Private Const C_KPI    As Long = 6047027
+' ── Couleurs — alignees sur la charte de l'app web (css/style.css) ──
+'    valeur Long = RGB(r,g,b) = r + g*256 + b*65536
+Private Const C_E85    As Long = 7708189   ' vert        #1D9E75 (--green)
+Private Const C_GAZOLE As Long = 8417899   ' gris ardoise #6B7280 (--text-muted)
+Private Const C_SP98   As Long = 11957550  ' bleu        #2E75B6 (--blue-mid)
+Private Const C_COUT   As Long = 6044187   ' bleu fonce  #1B3A5C (--blue-dark)
+Private Const C_OBJ    As Long = 42480     ' ambre       #F0A500 (--amber)
+Private Const C_CONSO  As Long = 11957550  ' bleu        #2E75B6
+Private Const C_RED    As Long = 4869090   ' rouge       #E24B4A (--red)
+Private Const C_HEADER As Long = 6044187   ' bleu fonce  #1B3A5C
+Private Const C_KPI    As Long = 6044187
+Private Const C_CARD   As Long = 16250098  ' fond carte  #F2F5F8 (clair)
+
+' ── Mise en page (v4.8) ──
+Private Const TOP_BASE As Double = 150     ' decalage vertical des graphiques (bandeau + params)
+Private Const CHART_W  As Double = 460
+Private Const CHART_H  As Double = 250
 
 ' ============================================================
 '  POINT D'ENTREE
@@ -128,19 +151,29 @@ Public Sub CreerGraphiquesWeb(Optional silent As Boolean = False)
     ' -- Feuille de donnees technique --
     Set wsD = EnsureDataSheet()
 
+    ' -- Cout du kit ethanol (Suivi Carburant!B5, repli recherche libelle) --
+    Dim coutKit As Double
+    coutKit = KitCost(wsC)
+
     ' -- Calcul des agregats -> _GraphData --
     SetStatusG "Graphiques : calcul des agregats..."
     Dim rMonth As Long, rPrice As Long, rConso As Long, rVeh As Long, rBudg As Long
-    BuildAggregates t2, gsT, wsD, surconso, co2Obj, budget, anneeSel, _
-                    rMonth, rPrice, rConso, rVeh, rBudg
+    Dim rKit As Long, rCoutKm As Long
+    BuildAggregates t2, gsT, wsD, surconso, co2Obj, budget, anneeSel, coutKit, _
+                    rMonth, rPrice, rConso, rVeh, rBudg, rKit, rCoutKm
+
+    ' -- Bandeau-titre (dashboard) --
+    EnsureHeaderBand wsG
 
     ' -- Creation / rafraichissement incremental des graphiques (X25) --
     SetStatusG "Graphiques : creation..."
     Dim L1 As Double, L2 As Double, w As Double, h As Double, topBase As Double
-    w = 460: h = 250: topBase = 90
-    L1 = 10: L2 = L1 + w + 20
+    Dim stepY As Double
+    w = CHART_W: h = CHART_H: topBase = TOP_BASE
+    stepY = h + 24
+    L1 = 10: L2 = L1 + w + 24
 
-    ' Col gauche
+    ' ── Colonne gauche ──
     If rPrice > 1 Then
         AddChartXY wsG, "gPrice", wsD.Range("G1").Resize(rPrice, 4), xlLine, _
             "Evolution du prix par carburant (" & ChrW(8364) & "/L)", L1, topBase, w, h, True
@@ -149,47 +182,64 @@ Public Sub CreerGraphiquesWeb(Optional silent As Boolean = False)
     End If
     If rMonth > 1 Then
         AddChartXY wsG, "gCost", wsD.Range("A1").Resize(rMonth, 2), xlColumnClustered, _
-            "Cout mensuel du carburant (" & ChrW(8364) & ")", L1, topBase + (h + 20), w, h, False
+            "Cout mensuel du carburant (" & ChrW(8364) & ")", L1, topBase + stepY, w, h, False
     Else
         DeleteChartByName wsG, "gCost"
     End If
     If rConso > 1 Then
         AddChartXY wsG, "gConso", wsD.Range("L1").Resize(rConso, 2), xlLine, _
-            "Consommation (L/100 km)", L1, topBase + 2 * (h + 20), w, h, True
+            "Consommation (L/100 km)", L1, topBase + 2 * stepY, w, h, True
     Else
         DeleteChartByName wsG, "gConso"
     End If
     If rVeh > 1 Then
         AddChartXY wsG, "gVeh", wsD.Range("O1").Resize(rVeh, 3), xlBarClustered, _
-            "Comparaison vehicules (conso & cout /100 km)", L1, topBase + 3 * (h + 20), w, h, False
+            "Comparaison vehicules (conso & cout /100 km)", L1, topBase + 3 * stepY, w, h, False
     Else
         DeleteChartByName wsG, "gVeh"
     End If
     ' X26 : jauge budget annuel (si budget mensuel renseigne)
     If budget > 0 Then
-        AddBudgetYearGauge wsG, "gBudgetYear", wsD, L1, topBase + 4 * (h + 20), w, h
+        AddBudgetYearGauge wsG, "gBudgetYear", wsD, L1, topBase + 4 * stepY, w, h
     Else
         DeleteChartByName wsG, "gBudgetYear"
     End If
+    ' X27 : rentabilite kit — economie cumulee vs cout du kit (courbe + seuil)
+    If rKit > 1 Then
+        AddKitCumulChart wsG, "gKitCumul", wsD, rKit, L1, topBase + 5 * stepY, w, h
+    Else
+        DeleteChartByName wsG, "gKitCumul"
+    End If
 
-    ' Col droite
+    ' ── Colonne droite ──
     If rBudg > 1 Then
         AddBudgetTrendChart wsG, "gBudget", wsD, rBudg, L2, topBase, w, h
     Else
         DeleteChartByName wsG, "gBudget"
     End If
     If rMonth > 1 Then
-        AddCo2MonthlyChart wsG, "gCo2", wsD, rMonth, L2, topBase + (h + 20), w, h
+        AddCo2MonthlyChart wsG, "gCo2", wsD, rMonth, L2, topBase + stepY, w, h
     Else
         DeleteChartByName wsG, "gCo2"
     End If
-    AddCo2GaugeChart wsG, "gGauge", wsD, co2Obj, L2, topBase + 2 * (h + 20), w, h
-    BuildKPICards wsG, wsD, L2, topBase + 3 * (h + 20)
+    AddCo2GaugeChart wsG, "gGauge", wsD, co2Obj, L2, topBase + 2 * stepY, w, h
+    BuildKPICards wsG, wsD, L2, topBase + 3 * stepY
+    ' X28 : cout au km c{e}/km par plein (barres)
+    If rCoutKm > 1 Then
+        AddCoutKmChart wsG, "gCoutKm", wsD, rCoutKm, L2, topBase + 4 * stepY, w, h
+    Else
+        DeleteChartByName wsG, "gCoutKm"
+    End If
+    ' X29 : projection de rentabilite du kit (nuage de points + tendance)
+    If rKit > 1 Then
+        AddKitProjChart wsG, "gKitProj", wsD, rKit, L2, topBase + 5 * stepY, w, h
+    Else
+        DeleteChartByName wsG, "gKitProj"
+    End If
 
     ' -- Purge des objets inconnus (anciennes versions) + boutons --
     PurgeUnknown wsG
-    EnsureButton wsG
-    EnsureExportButton wsG
+    EnsureButtons wsG
 
     Application.Calculation = xlCalculationAutomatic
     Application.ScreenUpdating = True
@@ -208,9 +258,10 @@ End Sub
 ' ============================================================
 Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Worksheet, _
                             surconso As Double, co2Obj As Double, budget As Double, _
-                            anneeSel As Long, _
+                            anneeSel As Long, coutKit As Double, _
                             ByRef rMonth As Long, ByRef rPrice As Long, _
-                            ByRef rConso As Long, ByRef rVeh As Long, ByRef rBudg As Long)
+                            ByRef rConso As Long, ByRef rVeh As Long, ByRef rBudg As Long, _
+                            ByRef rKit As Long, ByRef rCoutKm As Long)
 
     wsD.Cells.Clear
 
@@ -222,14 +273,19 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Workshee
     wsD.Range("O1:Q1").Value = Array("Vehicule", "Conso L/100km", "Cout " & eu & "/100km")
     wsD.Range("S1:U1").Value = Array("Mois", "Depense (" & eu & ")", "Objectif (" & eu & ")")
     wsD.Range("W1:X1").Value = Array("Indicateur", "Valeur")
+    ' X27/X29 : rentabilite kit (AF=N plein, AG=eco cumulee, AH=cout kit seuil)
+    wsD.Range("AF1:AH1").Value = Array("Plein n", "Economie cumulee (" & eu & ")", "Cout du kit (" & eu & ")")
+    ' X28 : cout au km par plein (AJ=N plein, AK=cout c{e}/km)
+    wsD.Range("AJ1:AK1").Value = Array("Plein n", "Cout c" & eu & "/km")
 
-    rMonth = 1: rPrice = 1: rConso = 1: rVeh = 1: rBudg = 1
+    rMonth = 1: rPrice = 1: rConso = 1: rVeh = 1: rBudg = 1: rKit = 1: rCoutKm = 1
 
     ' ---- Lecture Tableau2 ----
     If t2.DataBodyRange Is Nothing Then Exit Sub
     Dim a As Variant: a = t2.DataBodyRange.Value
     Dim ciDate As Long, ciType As Long, ciKm As Long, ciNbKm As Long
     Dim ciLitres As Long, ciPrix As Long, ciCout As Long, ciConso As Long, ciStation As Long
+    Dim ciNum As Long, ciCkm As Long, ciEcoCum As Long
     ciDate = LCIdx(t2, "Date")
     ciType = LCIdx(t2, "Type")
     ciKm = LCIdx(t2, "Km compteur")
@@ -239,6 +295,9 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Workshee
     ciCout = LCIdx(t2, "Co" & ChrW(251) & "t Plein (" & ChrW(8364) & ")")  ' "Coût Plein (€)"
     ciConso = LCIdx(t2, "Conso. (L/100km)")
     ciStation = LCIdx(t2, "Station essence")
+    ciNum = LCIdx(t2, "N" & ChrW(176))                                       ' "N°"
+    ciCkm = LCIdx(t2, "Co" & ChrW(251) & "t c" & ChrW(8364) & "/km")          ' "Coût c€/km"
+    ciEcoCum = LCIdx(t2, ChrW(201) & "conomie cumul" & ChrW(233) & "e (" & ChrW(8364) & ")") ' "Économie cumulée (€)"
 
     Dim moisCost As Object, moisCO2 As Object, stationCnt As Object
     Set moisCost = CreateObject("Scripting.Dictionary")
@@ -254,6 +313,8 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Workshee
     n = UBound(a, 1)
     Dim rP As Long: rP = 1   ' lignes ecrites bloc prix
     Dim rCo As Long: rCo = 1 ' lignes ecrites bloc conso
+    Dim rK As Long: rK = 1   ' lignes ecrites bloc rentabilite kit (AF/AG/AH)
+    Dim rCk As Long: rCk = 1 ' lignes ecrites bloc cout/km par plein (AJ/AK)
 
     ' 1er passage : determiner l'annee la plus recente
     For i = 1 To n
@@ -300,6 +361,27 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Workshee
             wsD.Cells(rCo, 13).Value = conso
         End If
 
+        ' -- rentabilite kit : economie cumulee par plein E85 (AF/AG/AH) --
+        If ciNum > 0 And ciEcoCum > 0 Then
+            If IsNumeric(a(i, ciNum)) And IsNumeric(a(i, ciEcoCum)) Then
+                rK = rK + 1
+                wsD.Cells(rK, 32).Value = CDbl(a(i, ciNum))      ' AF
+                wsD.Cells(rK, 33).Value = NumOr0(a(i, ciEcoCum)) ' AG
+                wsD.Cells(rK, 34).Value = coutKit                ' AH (seuil constant)
+            End If
+        End If
+
+        ' -- cout au km c{e}/km par plein (AJ/AK) --
+        If ciNum > 0 And ciCkm > 0 Then
+            If IsNumeric(a(i, ciNum)) And IsNumeric(a(i, ciCkm)) Then
+                If NumOr0(a(i, ciCkm)) > 0 Then
+                    rCk = rCk + 1
+                    wsD.Cells(rCk, 36).Value = CDbl(a(i, ciNum))  ' AJ
+                    wsD.Cells(rCk, 37).Value = NumOr0(a(i, ciCkm)) ' AK
+                End If
+            End If
+        End If
+
         ' -- station preferee + KPIs (annee cible : B4 ou plus recente) --
         If Year(d) = anneeCible Then
             Dim st As String: st = Trim(CStr(a(i, ciStation)))
@@ -318,6 +400,8 @@ NextRow:
     Next i
     rPrice = rP
     rConso = rCo
+    rKit = rK
+    rCoutKm = rCk
 
     ' -- bloc mensuel (trie) + CO2 cumule + objectif cumule --
     Dim keys() As String, k As Long
@@ -570,6 +654,109 @@ Private Sub AddBudgetYearGauge(ws As Worksheet, key As String, wsD As Worksheet,
 End Sub
 
 ' ============================================================
+'  RENTABILITE DU KIT (3 graphiques restaures de l'ancien classeur)
+' ============================================================
+' X27 : economie cumulee par plein E85 vs cout du kit (courbe + seuil)
+Private Sub AddKitCumulChart(ws As Worksheet, key As String, wsD As Worksheet, rKit As Long, _
+                             L As Double, t As Double, w As Double, h As Double)
+    Dim co As ChartObject
+    Set co = EnsureChart(ws, key, L, t, w, h)
+    With co.Chart
+        .ChartType = xlLine
+        ' AF (plein) + AG (eco cumulee) + AH (cout kit)
+        .SetSourceData Source:=wsD.Range("AF1").Resize(rKit, 3), PlotBy:=xlColumns
+        .HasTitle = True
+        .ChartTitle.Text = "Rentabilite du kit : economie cumulee vs cout"
+        .ChartTitle.Font.Size = 11: .ChartTitle.Font.bold = True
+        On Error Resume Next
+        ' serie 1 = eco cumulee (vert), serie 2 = cout kit (seuil ambre pointille)
+        .SeriesCollection(1).Format.Line.ForeColor.RGB = C_E85
+        .SeriesCollection(1).Format.Line.Weight = 2.25
+        If .SeriesCollection.Count >= 2 Then
+            .SeriesCollection(2).Format.Line.ForeColor.RGB = C_OBJ
+            .SeriesCollection(2).Format.Line.DashStyle = msoLineDash
+        End If
+        .HasLegend = True: .Legend.Position = xlLegendPositionBottom
+        .ChartArea.Border.LineStyle = xlNone
+        On Error GoTo 0
+    End With
+End Sub
+
+' X28 : cout au km c{e}/km par plein (barres)
+Private Sub AddCoutKmChart(ws As Worksheet, key As String, wsD As Worksheet, rCoutKm As Long, _
+                           L As Double, t As Double, w As Double, h As Double)
+    Dim co As ChartObject
+    Set co = EnsureChart(ws, key, L, t, w, h)
+    With co.Chart
+        .ChartType = xlColumnClustered
+        .SetSourceData Source:=wsD.Range("AJ1").Resize(rCoutKm, 2), PlotBy:=xlColumns
+        .HasTitle = True
+        .ChartTitle.Text = "Cout au km (c" & ChrW(8364) & "/km) par plein"
+        .ChartTitle.Font.Size = 11: .ChartTitle.Font.bold = True
+        On Error Resume Next
+        .SeriesCollection(1).Format.Fill.ForeColor.RGB = C_SP98
+        .HasLegend = False
+        .ChartArea.Border.LineStyle = xlNone
+        On Error GoTo 0
+    End With
+End Sub
+
+' X29 : projection de rentabilite du kit (nuage de points + tendance lineaire)
+Private Sub AddKitProjChart(ws As Worksheet, key As String, wsD As Worksheet, rKit As Long, _
+                            L As Double, t As Double, w As Double, h As Double)
+    Dim co As ChartObject
+    Set co = EnsureChart(ws, key, L, t, w, h)
+    With co.Chart
+        .ChartType = xlXYScatter
+        ' X = plein (AF), Y = eco cumulee (AG)
+        .SetSourceData Source:=wsD.Range("AF1").Resize(rKit, 2), PlotBy:=xlColumns
+        .HasTitle = True
+        .ChartTitle.Text = "Projection de rentabilite du kit (avec tendance)"
+        .ChartTitle.Font.Size = 11: .ChartTitle.Font.bold = True
+        On Error Resume Next
+        ' garder seulement la serie eco cumulee (col AG) en points
+        Do While .SeriesCollection.Count > 1
+            .SeriesCollection(2).Delete
+        Loop
+        With .SeriesCollection(1)
+            .MarkerStyle = xlMarkerStyleCircle
+            .MarkerSize = 5
+            .Format.Fill.ForeColor.RGB = C_E85
+            .Format.Line.Visible = msoFalse
+            ' tendance lineaire projetee de 5 pleins -> seuil de rentabilite
+            Dim tl As Trendline
+            Set tl = .Trendlines.Add(Type:=xlLinear, Forward:=5, DisplayEquation:=False, DisplayRSquared:=False)
+            tl.Format.Line.ForeColor.RGB = C_OBJ
+            tl.Format.Line.DashStyle = msoLineDash
+        End With
+        .HasLegend = False
+        .ChartArea.Border.LineStyle = xlNone
+        On Error GoTo 0
+    End With
+End Sub
+
+' Cout du kit ethanol : "Suivi Carburant"!B5, repli recherche du libelle, defaut 514,54
+Private Function KitCost(wsC As Worksheet) As Double
+    Dim v As Double: v = 514.54
+    On Error Resume Next
+    If IsNumeric(wsC.Range("B5").Value) Then
+        If wsC.Range("B5").Value > 0 Then v = CDbl(wsC.Range("B5").Value)
+    End If
+    ' repli : chercher un libelle "Cout du kit" et lire la cellule a droite
+    If v = 514.54 Then
+        Dim f As Range
+        Set f = wsC.Cells.Find(What:="kit", LookIn:=xlValues, LookAt:=xlPart, MatchCase:=False)
+        If Not f Is Nothing Then
+            If IsNumeric(f.Offset(0, 1).Value) Then
+                If f.Offset(0, 1).Value > 0 Then v = CDbl(f.Offset(0, 1).Value)
+            End If
+        End If
+    End If
+    On Error GoTo 0
+    KitCost = v
+End Function
+
+' ============================================================
 '  KPIs (cartes)
 ' ============================================================
 Private Sub BuildKPICards(ws As Worksheet, wsD As Worksheet, L As Double, t As Double)
@@ -618,14 +805,25 @@ End Sub
 ' ============================================================
 Private Sub EnsureParamBlock(ws As Worksheet)
     On Error Resume Next
-    If CStr(ws.Range("A1").Value) = "" Then ws.Range("A1").Value = "Parametres"
+    ' Largeurs pour que le bloc parametres tienne a gauche du bandeau
+    ws.Columns("A").ColumnWidth = 24
+    ws.Columns("B").ColumnWidth = 12
+
+    ws.Range("A1").Value = "PARAMETRES"
     ws.Range("A1").Font.bold = True
+    ws.Range("A1").Font.Color = C_HEADER
     ws.Range("A2").Value = "Budget mensuel (" & ChrW(8364) & ")"
     ws.Range("A3").Value = "Objectif CO2 annuel (kg)"
     ws.Range("A4").Value = "Annee bilan (vide = recente)"   ' X24
     If CStr(ws.Range(CELL_CO2OBJ).Value) = "" Then ws.Range(CELL_CO2OBJ).Value = DEFAULT_CO2_OBJ
     ws.Range("A2:A4").Font.Italic = True
-    ws.Range(CELL_BUDGET & ":" & CELL_ANNEE).Interior.Color = RGB(255, 252, 230)
+    ws.Range("A2:A4").Font.Color = RGB(107, 114, 128)         ' --text-muted
+    ' Cellules de saisie : fond clair + cadre discret (carte)
+    With ws.Range(CELL_BUDGET & ":" & CELL_ANNEE)
+        .Interior.Color = RGB(255, 252, 230)
+        .Borders.Color = RGB(226, 232, 240)                   ' --border
+        .Borders.Weight = xlThin
+    End With
     On Error GoTo 0
 End Sub
 
@@ -669,10 +867,11 @@ Private Sub DeleteChartByName(ws As Worksheet, key As String)
 End Sub
 
 ' X25 : purge les graphiques/cartes inconnus (anciennes versions), garde
-' les objets nommes que l'on reutilise + les deux boutons.
+' les objets nommes que l'on reutilise + les boutons + le bandeau.
 Private Sub PurgeUnknown(ws As Worksheet)
-    Const OK_CHARTS As String = "|gPrice|gCost|gConso|gVeh|gBudget|gCo2|gGauge|gBudgetYear|"
-    Const OK_SHAPES As String = "|btnRecreerGraph|btnExportGraph|kpiTitle|" & _
+    Const OK_CHARTS As String = "|gPrice|gCost|gConso|gVeh|gBudget|gCo2|gGauge|gBudgetYear|" & _
+        "gKitCumul|gCoutKm|gKitProj|"
+    Const OK_SHAPES As String = "|hdrBand|btnRecreerGraph|btnExportGraph|kpiTitle|" & _
         "kpiCard1|kpiCard2|kpiCard3|kpiCard4|kpiCard5|"
     Dim i As Long
     For i = ws.ChartObjects.Count To 1 Step -1
@@ -681,25 +880,69 @@ Private Sub PurgeUnknown(ws As Worksheet)
     Dim sh As Shape
     For i = ws.Shapes.Count To 1 Step -1
         Set sh = ws.Shapes(i)
-        If sh.Type = msoAutoShape Then
+        ' AutoShapes (bandeau, cartes, boutons de repli) ET images (boutons PNG)
+        If sh.Type = msoAutoShape Or sh.Type = msoPicture Then
             If InStr(OK_SHAPES, "|" & sh.Name & "|") = 0 Then sh.Delete
         End If
     Next i
 End Sub
 
-Private Sub EnsureButton(ws As Worksheet)
+' v4.8 : bandeau-titre du tableau de bord (charte app)
+Private Sub EnsureHeaderBand(ws As Worksheet)
     Dim b As Shape
-    Set b = EnsureShape(ws, "btnRecreerGraph", msoShapeRoundedRectangle, 320, 8, 200, 26)
-    StyleShape b, "Recreer les graphiques", C_HEADER, RGB(255, 255, 255), 10, True
-    b.OnAction = "CreerGraphiquesWeb"
+    Set b = EnsureShape(ws, "hdrBand", msoShapeRoundedRectangle, 264, 6, 682, 30)
+    StyleShape b, "TABLEAU DE BORD  " & ChrW(8226) & "  Suivi Conso Carburants", _
+               C_HEADER, RGB(255, 255, 255), 13, True
+    On Error Resume Next
+    b.TextFrame2.TextRange.Font.Spacing = 1
+    On Error GoTo 0
 End Sub
 
-' X23 : bouton d'export PDF du tableau de bord
-Private Sub EnsureExportButton(ws As Worksheet)
-    Dim b As Shape
-    Set b = EnsureShape(ws, "btnExportGraph", msoShapeRoundedRectangle, 530, 8, 160, 26)
-    StyleShape b, "Exporter en PDF", C_HEADER, RGB(255, 255, 255), 10, True
-    b.OnAction = "ExporterGraphiquesPDF"
+' X27..X29 / boutons en VRAIES IMAGES cliquables (PNG dans excel\assets\),
+' repli sur une Shape stylee si le fichier image est absent.
+' Espaces des parametres (poses a gauche) et decales sous le bandeau.
+Private Sub EnsureButtons(ws As Worksheet)
+    EnsurePictureButton ws, "btnRecreerGraph", "btn_recreer.png", _
+        "Recreer les graphiques", C_E85, 560, 44, 190, 30, "CreerGraphiquesWeb"
+    EnsurePictureButton ws, "btnExportGraph", "btn_export_pdf.png", _
+        "Exporter en PDF", C_COUT, 760, 44, 170, 30, "ExporterGraphiquesPDF"
+End Sub
+
+Private Sub EnsurePictureButton(ws As Worksheet, nm As String, fileName As String, _
+                                fallbackTxt As String, fallbackFill As Long, _
+                                L As Double, t As Double, w As Double, h As Double, _
+                                action As String)
+    ' supprime l'objet existant (image ou repli) pour repartir propre
+    Dim s As Shape
+    For Each s In ws.Shapes
+        If s.Name = nm Then s.Delete: Exit For
+    Next s
+
+    Dim p As String
+    p = ThisWorkbook.Path & Application.PathSeparator & "assets" & _
+        Application.PathSeparator & fileName
+
+    Dim ok As Boolean: ok = False
+    On Error Resume Next
+    If Dir(p) <> "" Then
+        Dim pic As Shape
+        Set pic = ws.Shapes.AddPicture(p, msoFalse, msoTrue, L, t, w, h)
+        If Not pic Is Nothing Then
+            pic.Name = nm
+            pic.OnAction = action
+            ok = True
+        End If
+    End If
+    On Error GoTo 0
+
+    If Not ok Then
+        ' repli : bouton Shape stylee (charte)
+        Dim b As Shape
+        Set b = ws.Shapes.AddShape(msoShapeRoundedRectangle, L, t, w, h)
+        b.Name = nm
+        StyleShape b, fallbackTxt, fallbackFill, RGB(255, 255, 255), 10, True
+        b.OnAction = action
+    End If
 End Sub
 
 ' X23 : exporte l'onglet Graphiques en PDF (a cote du classeur, date du jour)

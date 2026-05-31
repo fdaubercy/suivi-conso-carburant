@@ -3,6 +3,22 @@ Attribute VB_Name = "modSyncGS"
 '  SUIVI E85 - Synchronisation bidirectionnelle
 '  Google Sheets (_ImportGS) <-> Excel (GS_Pleins)
 '
+'  v2.10.0.0 (S3 / S4 / S5)  [necessite Code.gs v3.8.0.0 + redeploiement]
+'    [S3] Suppression bidirectionnelle :
+'         - GS soft-delete (col R "Supprime" = horodatage tombstone).
+'         - handleExport renvoie un tableau "deleted":[sync_id,...] :
+'           le sync efface localement les lignes supprimees cote web/GS.
+'         - SupprimerPleinExcel : supprime le plein selectionne dans
+'           GS_Pleins, propage la suppression a GS (action=bulkDelete),
+'           puis retire la ligne locale.
+'    [S4] ForceResync : vide la table GS_Pleins et re-importe TOUT depuis
+'         GS (reset en cas de desalignement). Confirmation requise.
+'    [S5] Resolution de conflit par horodatage : si un meme sync_id est
+'         modifie des 2 cotes, on garde le plus recent (col Q Excel
+'         "Modifie_local" vs champ GS "Modifie_le") au lieu d'un
+'         Excel-wins systematique. modifiedAt est envoye dans le
+'         bulkUpdate pour que GAS arbitre aussi cote serveur.
+'
 '  v2.9.2.0
 '    [X22] Garde-fou : la recreation auto des graphiques ne se declenche
 '          que si l'onglet "Graphiques" existe deja (GraphSheetExists).
@@ -333,6 +349,135 @@ Public Sub SyncManuel()
     SyncCore a, s, False
 End Sub
 
+' ============================================================
+'  S3 — Suppression d'un plein cote Excel + propagation a GS
+'  A assigner a un bouton de la feuille GS_Pleins ou lancer
+'  apres avoir selectionne la ligne du plein a supprimer.
+' ============================================================
+Public Sub SupprimerPleinExcel()
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets(WS_NAME)
+
+    Dim r As Long
+    r = ActiveCell.Row
+    If ActiveSheet.Name <> WS_NAME Or r < 2 Then
+        MsgBox "Selectionnez d'abord une ligne de plein dans la feuille '" & WS_NAME & "'.", _
+               vbExclamation, "Supprimer un plein"
+        Exit Sub
+    End If
+    If Trim(CStr(ws.Cells(r, 1).Value)) = "" Then
+        MsgBox "Ligne vide : rien a supprimer.", vbExclamation, "Supprimer un plein"
+        Exit Sub
+    End If
+
+    Dim sid As String: sid = Trim(CStr(ws.Cells(r, COL_SYNC_ID).Value))
+    Dim dStr As String: dStr = ""
+    If IsDate(ws.Cells(r, 2).Value) Then dStr = Format(ws.Cells(r, 2).Value, "dd/mm/yyyy") & " - "
+
+    If MsgBox("Supprimer ce plein ?" & vbCrLf & vbCrLf & _
+              dStr & CStr(ws.Cells(r, 3).Value) & " - " & CStr(ws.Cells(r, 7).Value) & vbCrLf & vbCrLf & _
+              "La suppression sera propagee a Google Sheets.", _
+              vbYesNo + vbQuestion, "Supprimer un plein") <> vbYes Then Exit Sub
+
+    ' Propager a GS si le plein y est connu (sync_id present)
+    If sid <> "" Then
+        SetStatus "Suppression -> GS (sync_id " & Left(sid, 8) & ")..."
+        Dim payload As String
+        payload = "{""action"":""bulkDelete"",""token"":""" & APP_TOKEN & _
+                  """,""ids"":[""" & JEsc(sid) & """]}"
+        Dim resp As String: resp = HttpPost(GAS_URL, payload)
+        Dim okGs As Boolean
+        okGs = (resp <> "" And InStr(1, LCase(resp), "error") = 0)
+        If Not okGs Then
+            If MsgBox("Echec de la propagation a Google Sheets (GAS pas re-deploye ?)." & vbCrLf & _
+                      "Supprimer quand meme la ligne locale ?", _
+                      vbYesNo + vbExclamation, "Suppression GS") <> vbYes Then
+                SetStatus "Suppression annulee."
+                Exit Sub
+            End If
+        End If
+    End If
+
+    ' Supprimer la ligne locale (retire aussi la ligne du tableau)
+    Application.EnableEvents = False
+    ws.Rows(r).Delete
+    Application.EnableEvents = True
+
+    SetStatus "Plein supprime (local" & IIf(sid <> "", " + GS", "") & ")."
+End Sub
+
+' ============================================================
+'  S4 — Force resync : vide la table GS_Pleins et re-importe TOUT
+'  depuis Google Sheets. Reset en cas de desalignement.
+' ============================================================
+Public Sub ForceResync()
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets(WS_NAME)
+
+    If MsgBox("FORCE RESYNC" & vbCrLf & vbCrLf & _
+              "Vider entierement la table locale '" & WS_NAME & "' puis tout" & vbCrLf & _
+              "re-importer depuis Google Sheets ?" & vbCrLf & vbCrLf & _
+              "ATTENTION : les modifications locales NON synchronisees" & vbCrLf & _
+              "(col Q renseignee) seront perdues.", _
+              vbYesNo + vbExclamation, "Force resync") <> vbYes Then Exit Sub
+
+    On Error GoTo EH
+    Application.Cursor = xlWait
+    EnsureModifiedColHeader ws
+
+    SetStatus "Force resync : telechargement GS..."
+    Dim jsonStr As String
+    jsonStr = HttpGet(GAS_URL & "?action=export&token=" & APP_TOKEN)
+    If jsonStr = "" Or InStr(jsonStr, """records""") = 0 Then
+        Application.Cursor = xlDefault
+        MsgBox "Export GS inaccessible. Force resync annule (table preservee).", _
+               vbCritical, "Force resync"
+        SetStatus "Force resync annule : GS inaccessible."
+        Exit Sub
+    End If
+
+    ' Vider la table locale
+    SetStatus "Force resync : vidage de la table locale..."
+    Application.EnableEvents = False
+    Dim tbl As ListObject
+    If ws.ListObjects.Count > 0 Then Set tbl = ws.ListObjects(1)
+    If Not tbl Is Nothing Then
+        If Not tbl.DataBodyRange Is Nothing Then tbl.DataBodyRange.Delete
+    Else
+        Dim lastRow As Long
+        lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+        If lastRow >= 2 Then ws.Rows("2:" & lastRow).Delete
+    End If
+    Application.EnableEvents = True
+
+    ' Re-importer tout
+    SetStatus "Force resync : re-import complet..."
+    Dim gsRecs() As String: gsRecs = ParseRecords(jsonStr)
+    Dim localIds As Object: Set localIds = BuildLocalIndex(ws)
+    Dim upd As Long
+    Dim added As Long
+    added = ImportGSToExcel(ws, gsRecs, localIds, upd)
+
+    Application.Cursor = xlDefault
+    SetStatus "Force resync OK : " & added & " plein(s) re-importes."
+
+    If GraphSheetExists() Then
+        On Error Resume Next
+        CreerGraphiquesWeb silent:=True
+        On Error GoTo 0
+    End If
+
+    MsgBox "Force resync termine." & vbCrLf & _
+           added & " plein(s) re-importes depuis Google Sheets.", _
+           vbInformation, "Force resync"
+    Exit Sub
+EH:
+    Application.EnableEvents = True
+    Application.Cursor = xlDefault
+    SetStatus "Force resync ERREUR : " & Err.Description
+    MsgBox "Erreur force resync : " & Err.Description, vbCritical, "Force resync"
+End Sub
+
 ' X22 : vrai si l'onglet "Graphiques" existe deja dans le classeur
 Private Function GraphSheetExists() As Boolean
     Dim ws As Worksheet
@@ -379,6 +524,15 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
 
     SetStatus "Parsing JSON GS..."
     gsRecs = ParseRecords(jsonStr)
+
+    ' Direction 0 : suppressions GS -> Excel (S3). Les lignes tombstone
+    ' (col R "Supprime" cote GS) sont renvoyees dans "deleted":[sync_id,...].
+    SetStatus "Suppressions GS -> Excel..."
+    Dim delIds() As String
+    delIds = ParseDeletedIds(jsonStr)
+    Dim delFromGS As Long
+    delFromGS = ApplyGSDeletions(ws, delIds)
+
     Set localIds = BuildLocalIndex(ws)
 
     ' Direction 1 : GS -> Excel (nouvelles lignes + MAJ si non dirty)
@@ -403,6 +557,7 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     msg = "OK :"
     msg = msg & " <-" & addedFromGS & " nouv."
     If updFromGS   > 0 Then msg = msg & " +" & updFromGS   & " MAJ"
+    If delFromGS   > 0 Then msg = msg & " -" & delFromGS   & " suppr."
     msg = msg & " / ->" & sentToGS & " nouv."
     If sentUpdToGS > 0 Then msg = msg & " +" & sentUpdToGS & " MAJ"
     If pushedStations >= 0 Then msg = msg & " / stations:" & pushedStations
@@ -413,7 +568,7 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     ' aucune MsgBox bloquante meme a l'ouverture du classeur.
     ' X22 (v2.9.2) : on ne declenche QUE si l'onglet "Graphiques" existe
     ' deja -> pas de creation surprise sur un classeur qui ne s'en sert pas.
-    If (addedFromGS + updFromGS + sentToGS + sentUpdToGS) > 0 Then
+    If (addedFromGS + updFromGS + delFromGS + sentToGS + sentUpdToGS) > 0 Then
         If GraphSheetExists() Then
             On Error Resume Next
             SetStatus msg & " / maj graphiques..."
@@ -543,9 +698,34 @@ Private Function ImportGSToExcel(ws As Worksheet, gsRecs() As String, _
             If localRowMap.Exists(sid) Then rowNum = CLng(localRowMap(sid))
             If rowNum < 2 Then GoTo NextRec
 
-            If CStr(ws.Cells(rowNum, COL_MODIFIED).Value) <> "" Then GoTo NextRec
+            ' S5 : ligne locale "dirty" (col Q renseignee). On n'ignore plus
+            ' systematiquement GS : on compare les horodatages et on garde le
+            ' plus recent. Excel-wins seulement si GS n'est pas plus recent.
+            If CStr(ws.Cells(rowNum, COL_MODIFIED).Value) <> "" Then
+                Dim localTs As Date, gsTs As Date
+                Dim hasLocal As Boolean, hasGs As Boolean
+                hasLocal = IsDate(ws.Cells(rowNum, COL_MODIFIED).Value)
+                If hasLocal Then localTs = CDate(ws.Cells(rowNum, COL_MODIFIED).Value)
+                Dim gsModV As Variant: gsModV = ParseDt(JsonGet(rec, K("Modifi{e}_le")))
+                hasGs = IsDate(gsModV)
+                If hasGs Then gsTs = CDate(gsModV)
 
-            ' Comparer les champs cles : si GS differe, mettre a jour Excel
+                ' GS l'emporte seulement s'il est strictement plus recent
+                If hasGs And (Not hasLocal Or gsTs > localTs) Then
+                    If Not RowMatchesGS(ws, rowNum, rec) Then
+                        UpdateRowFromGS ws, rowNum, rec
+                        updFromGS = updFromGS + 1
+                    End If
+                    ' la version GS gagne : on abandonne la modif locale en attente
+                    Application.EnableEvents = False
+                    ws.Cells(rowNum, COL_MODIFIED).Value = ""
+                    Application.EnableEvents = True
+                End If
+                ' sinon : Excel >= GS -> on conserve la modif locale (bulkUpdate)
+                GoTo NextRec
+            End If
+
+            ' Ligne non dirty : MAJ GS->Excel si GS differe
             If Not RowMatchesGS(ws, rowNum, rec) Then
                 UpdateRowFromGS ws, rowNum, rec
                 updFromGS = updFromGS + 1
@@ -768,6 +948,7 @@ End Function
 Private Function RowToJson(ws As Worksheet, r As Long, sid As String) As String
     Dim ts As String
     Dim ds As String
+    Dim ms As String   ' S5 : horodatage de derniere modif (col Q, repli sur horodatage)
 
     If IsDate(ws.Cells(r, 1).Value) Then
         ts = Format(ws.Cells(r, 1).Value, "yyyy-mm-dd hh:mm:ss")
@@ -775,10 +956,16 @@ Private Function RowToJson(ws As Worksheet, r As Long, sid As String) As String
     If IsDate(ws.Cells(r, 2).Value) Then
         ds = Format(ws.Cells(r, 2).Value, "yyyy-mm-dd")
     End If
+    If IsDate(ws.Cells(r, COL_MODIFIED).Value) Then
+        ms = Format(ws.Cells(r, COL_MODIFIED).Value, "yyyy-mm-dd hh:mm:ss")
+    Else
+        ms = ts
+    End If
 
     RowToJson = "{" & _
         jS("sync_id",    sid)                                 & "," & _
         jS("horodatage", ts)                                  & "," & _
+        jS("modifiedAt", ms)                                  & "," & _
         jS("date",       ds)                                  & "," & _
         jS("type",       CStr(ws.Cells(r, 3).Value))          & "," & _
         jN("km",         ws.Cells(r, 4).Value)                & "," & _
@@ -884,6 +1071,80 @@ Private Function ParseRecords(jsonStr As String) As String()
     Next i
 
     ParseRecords = result
+End Function
+
+' S3 : extrait le tableau "deleted":[ "id", ... ] de la reponse export.
+' Place AVANT "records" cote GAS pour que ParseRecords (InStrRev "]")
+' continue de viser la fin du tableau records.
+Private Function ParseDeletedIds(jsonStr As String) As String()
+    Dim emp(0) As String: emp(0) = ""
+    Dim p As Long, endP As Long, arr As String
+    Const TAG As String = """deleted"":["
+
+    p = InStr(jsonStr, TAG)
+    If p = 0 Then ParseDeletedIds = emp: Exit Function
+    p = p + Len(TAG)
+    endP = InStr(p, jsonStr, "]")
+    If endP <= p Then ParseDeletedIds = emp: Exit Function
+
+    arr = Trim(Mid(jsonStr, p, endP - p))
+    If arr = "" Then ParseDeletedIds = emp: Exit Function
+
+    Dim parts() As String: parts = Split(arr, ",")
+    Dim i As Long, s As String
+    For i = 0 To UBound(parts)
+        s = Trim(parts(i))
+        If Left(s, 1) = """" Then s = Mid(s, 2)
+        If Right(s, 1) = """" Then s = Left(s, Len(s) - 1)
+        parts(i) = Trim(s)
+    Next i
+    ParseDeletedIds = parts
+End Function
+
+' S3 : supprime localement les lignes dont le sync_id figure dans la liste
+' des tombstones GS. Retourne le nombre de lignes supprimees.
+Private Function ApplyGSDeletions(ws As Worksheet, delIds() As String) As Long
+    Dim cnt As Long: cnt = 0
+    On Error GoTo Done
+    If UBound(delIds) < LBound(delIds) Then ApplyGSDeletions = 0: Exit Function
+
+    Dim del As Object
+    Set del = CreateObject("Scripting.Dictionary")
+    del.CompareMode = vbTextCompare
+    Dim i As Long
+    For i = LBound(delIds) To UBound(delIds)
+        If Trim(delIds(i)) <> "" Then del(Trim(delIds(i))) = True
+    Next i
+    If del.Count = 0 Then ApplyGSDeletions = 0: Exit Function
+
+    Dim tbl As ListObject
+    If ws.ListObjects.Count > 0 Then Set tbl = ws.ListObjects(1)
+
+    Application.EnableEvents = False
+    If Not tbl Is Nothing Then
+        Dim li As Long, sidL As String
+        For li = tbl.ListRows.Count To 1 Step -1
+            sidL = Trim(CStr(tbl.ListRows(li).Range.Cells(1, COL_SYNC_ID).Value))
+            If sidL <> "" Then
+                If del.Exists(sidL) Then tbl.ListRows(li).Delete: cnt = cnt + 1
+            End If
+        Next li
+    Else
+        Dim lastRow As Long, r As Long, sid As String
+        lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+        For r = lastRow To 2 Step -1
+            sid = Trim(CStr(ws.Cells(r, COL_SYNC_ID).Value))
+            If sid <> "" Then
+                If del.Exists(sid) Then ws.Rows(r).Delete: cnt = cnt + 1
+            End If
+        Next r
+    End If
+    Application.EnableEvents = True
+    ApplyGSDeletions = cnt
+    Exit Function
+Done:
+    Application.EnableEvents = True
+    ApplyGSDeletions = cnt
 End Function
 
 

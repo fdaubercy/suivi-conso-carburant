@@ -1,5 +1,19 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend               v3.7.0.0
+//  SUIVI CONSO E85 — Web App Backend               v3.8.0.0
+//
+//  v3.8.0.0 — S3 / S5 Sync : suppression bidirectionnelle + conflits
+//  ⚠️ Nécessite un REDÉPLOIEMENT de la Web App (nouvelle version).
+//  • Schéma _ImportGS étendu : col Q « Modifié_le » (S5, horodatage de
+//    dernière modif) et col R « Supprimé » (S3, tombstone soft-delete).
+//    ensureSyncColumns_() ajoute les en-têtes manquants automatiquement.
+//  • S3 — action=deletePlein devient un SOFT-delete (pose le tombstone
+//    col R au lieu de supprimer la ligne) ; nouvelle action=bulkDelete
+//    (ids[]) pour les suppressions venues d'Excel. handleExport exclut
+//    les lignes supprimées de « records » et renvoie « deleted:[…] »
+//    (placé AVANT records) pour que les autres clients effacent leur copie.
+//  • S5 — handleBulkUpdate arbitre par horodatage : une MAJ Excel n'écrase
+//    GS que si row.modifiedAt >= col Q existante (sinon le serveur, plus
+//    récent, gagne). Tout enregistrement/MAJ pose col Q.
 //
 //  v3.7.0.0 — S12 Endpoint stats pré-agrégé
 //  • action=stats[&veh=&year=] : agrégats mensuels (coût/litres/CO₂),
@@ -59,8 +73,34 @@ const HEADERS = [
   'SP95 station (€/L)', 'E10 station (€/L)',           // K L
   'Gazole station (€/L)', 'GPLc station (€/L)',        // M N
   'sync_id',                                            // O — identifiant unique
-  'Photo ticket'                                        // P — URL Drive photo ticket
+  'Photo ticket',                                       // P — URL Drive photo ticket
+  'Modifié_le',                                         // Q — S5 horodatage derniere modif (ISO)
+  'Supprimé'                                            // R — S3 tombstone soft-delete (ISO, vide = actif)
 ];
+
+// Index 0-based des colonnes dans les tableaux getValues()
+const IDX_SYNC     = 14;  // O
+const IDX_PHOTO    = 15;  // P
+const IDX_MODIFIED = 16;  // Q — S5
+const IDX_DELETED  = 17;  // R — S3
+
+// S3/S5 — garantit la presence des en-tetes Q (Modifié_le) et R (Supprimé)
+// sur un onglet _ImportGS deja existant (cree avant v3.8.0.0).
+function ensureSyncColumns_(sheet) {
+  const lastCol = sheet.getLastColumn();
+  if (lastCol < IDX_MODIFIED + 1) {
+    sheet.getRange(1, IDX_MODIFIED + 1).setValue('Modifié_le');
+  }
+  if (lastCol < IDX_DELETED + 1) {
+    sheet.getRange(1, IDX_DELETED + 1).setValue('Supprimé');
+  }
+}
+
+// Horodatage ISO local (timezone du classeur) — base de comparaison S5.
+function nowIso_(ss) {
+  const tz = (ss || SpreadsheetApp.openById(SPREADSHEET_ID)).getSpreadsheetTimeZone();
+  return Utilities.formatDate(new Date(), tz, "yyyy-MM-dd HH:mm:ss");
+}
 
 // ─────────────────────────────────────────────────────────────
 //  S6 — Token secret (souple)
@@ -159,6 +199,7 @@ function doGet(e) {
 function handleExport(e) {
   const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = getOrCreateSheet(ss);
+  ensureSyncColumns_(sheet);
   const data  = sheet.getDataRange().getValues();
   const tz    = ss.getSpreadsheetTimeZone();
 
@@ -167,12 +208,31 @@ function handleExport(e) {
   const sinceDate  = sinceParam ? new Date(sinceParam) : null;
   const hasSince   = sinceDate && !isNaN(sinceDate.getTime());
 
-  if (data.length <= 1) return jsonResponse({ records: [], since: sinceParam || null });
+  if (data.length <= 1) {
+    return jsonResponse({ since: sinceParam || null, deleted: [], records: [] });
+  }
 
   const headers = data[0].map(String);
   const horoIdx = headers.indexOf('Horodatage');
 
-  const records = data.slice(1)
+  const rows = data.slice(1);
+
+  // S3 — sync_id des lignes supprimées (tombstone col R). Filtré par since
+  // sur la date de suppression si elle est parseable (sinon toujours inclus).
+  const deleted = rows
+    .filter(row => String(row[IDX_DELETED] || '').trim() !== '')
+    .filter(row => {
+      if (!hasSince) return true;
+      const dv = row[IDX_DELETED];
+      const dd = dv instanceof Date ? dv : new Date(String(dv));
+      return isNaN(dd.getTime()) ? true : dd >= sinceDate;
+    })
+    .map(row => String(row[IDX_SYNC] || '').trim())
+    .filter(Boolean);
+
+  // records — lignes ACTIVES uniquement (col R vide)
+  const records = rows
+    .filter(row => String(row[IDX_DELETED] || '').trim() === '')
     .filter(row => {
       if (!hasSince || horoIdx < 0) return true;
       const v = row[horoIdx];
@@ -190,7 +250,9 @@ function handleExport(e) {
       return obj;
     });
 
-  return jsonResponse({ records, since: sinceParam || null });
+  // Ordre des clés : « records » EN DERNIER (le parseur VBA ParseRecords
+  // vise la dernière « ] » via InStrRev ; deleted doit donc précéder).
+  return jsonResponse({ since: sinceParam || null, deleted, records });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -247,8 +309,14 @@ function doPost(e) {
   }
 
   // ── Suppression d'un plein par sync_id (col O, index 14) ──
+  // S3 : soft-delete (tombstone col R) au lieu d'un hard delete.
   if (payload.action === 'deletePlein') {
     return handleDeletePlein(ss, payload.sync_id);
+  }
+
+  // ── S3 — suppression en lot depuis Excel (ids[]) → tombstones ──
+  if (payload.action === 'bulkDelete') {
+    return handleBulkDelete(ss, payload.ids || []);
   }
 
   if (payload.action === 'bulkAdd') {
@@ -308,6 +376,8 @@ function doPost(e) {
     sp.GPLC   ? Number(sp.GPLC)   : '',                 // N — GPLc station
     syncId,                                             // O — sync_id
     photoUrl,                                           // P — URL Drive photo ticket
+    new Date(),                                         // Q — Modifié_le (S5)
+    '',                                                 // R — Supprimé (S3, actif)
   ]);
 
   return jsonResponse({ success: true, sync_id: syncId });
@@ -412,23 +482,62 @@ function handleDeletePlein(ss, syncId) {
   if (!syncId) return jsonResponse({ success: false, error: 'sync_id manquant' });
 
   const sheet = getOrCreateSheet(ss);
+  ensureSyncColumns_(sheet);
   const data  = sheet.getDataRange().getValues();
   if (data.length <= 1) return jsonResponse({ success: false, error: 'Aucun plein enregistré' });
 
   // Retrouve la colonne sync_id par en-tête (comme handleExport), repli sur O (index 14)
   const headers  = data[0].map(String);
   let   syncIdx  = headers.indexOf('sync_id');
-  if (syncIdx < 0) syncIdx = 14;
+  if (syncIdx < 0) syncIdx = IDX_SYNC;
 
   const target = String(syncId).trim();
+  const stamp  = nowIso_(ss);
 
   for (let i = data.length - 1; i >= 1; i--) {
     if (String(data[i][syncIdx]).trim() === target) {
-      sheet.deleteRow(i + 1);
+      // S3 — soft-delete : pose le tombstone (col R) + horodatage modif (col Q)
+      // au lieu de supprimer physiquement la ligne, pour que la suppression
+      // se propage aux autres clients (Excel, app web) via handleExport.
+      sheet.getRange(i + 1, IDX_DELETED  + 1).setValue(stamp);
+      sheet.getRange(i + 1, IDX_MODIFIED + 1).setValue(stamp);
       return jsonResponse({ success: true });
     }
   }
   return jsonResponse({ success: false, error: 'Plein introuvable (sync_id inconnu)' });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  S3 — handleBulkDelete
+//  Suppressions en lot venues d'Excel (action=bulkDelete, ids[]).
+//  Soft-delete : pose le tombstone col R sur chaque sync_id trouvé.
+//  Retourne { status:'ok', deleted:N, missing:M }.
+// ─────────────────────────────────────────────────────────────
+function handleBulkDelete(ss, ids) {
+  if (!ids || ids.length === 0) {
+    return jsonResponse({ status: 'ok', deleted: 0, missing: 0 });
+  }
+  const sheet = getOrCreateSheet(ss);
+  ensureSyncColumns_(sheet);
+  const data  = sheet.getDataRange().getValues();
+
+  const want = new Set(ids.map(x => String(x).trim()).filter(Boolean));
+  const stamp = nowIso_(ss);
+
+  let deleted = 0;
+  for (let i = 1; i < data.length && want.size > 0; i++) {
+    const sid = String(data[i][IDX_SYNC] || '').trim();
+    if (sid && want.has(sid)) {
+      // ne re-tombstone pas une ligne déjà supprimée
+      if (String(data[i][IDX_DELETED] || '').trim() === '') {
+        sheet.getRange(i + 1, IDX_DELETED  + 1).setValue(stamp);
+        sheet.getRange(i + 1, IDX_MODIFIED + 1).setValue(stamp);
+        deleted++;
+      }
+      want.delete(sid);
+    }
+  }
+  return jsonResponse({ status: 'ok', deleted, missing: want.size });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -437,10 +546,11 @@ function handleDeletePlein(ss, syncId) {
 // ─────────────────────────────────────────────────────────────
 function handleBulkAdd(ss, rows) {
   const sheet = getOrCreateSheet(ss);
+  ensureSyncColumns_(sheet);
   const data  = sheet.getDataRange().getValues();
 
   const existingIds = new Set(
-    data.slice(1).map(r => r[14]).filter(id => id !== '' && id !== null && id !== undefined)
+    data.slice(1).map(r => r[IDX_SYNC]).filter(id => id !== '' && id !== null && id !== undefined)
   );
 
   let added = 0;
@@ -448,6 +558,9 @@ function handleBulkAdd(ss, rows) {
     if (!row.sync_id || existingIds.has(row.sync_id)) return;
 
     const sp = row.stationPrices || {};
+    // S5 — Modifié_le : horodatage fourni par Excel, repli sur l'horodatage
+    const modAt = row.modifiedAt ? new Date(row.modifiedAt)
+                : (row.horodatage ? new Date(row.horodatage) : new Date());
     sheet.appendRow([
       row.horodatage ? new Date(row.horodatage) : new Date(), // A
       new Date(row.date),                                      // B
@@ -464,6 +577,9 @@ function handleBulkAdd(ss, rows) {
       sp.GAZOLE ? Number(sp.GAZOLE) : '',                      // M
       sp.GPLC   ? Number(sp.GPLC)   : '',                      // N
       row.sync_id,                                             // O
+      '',                                                      // P — Photo ticket
+      modAt,                                                   // Q — Modifié_le (S5)
+      '',                                                      // R — Supprimé (S3)
     ]);
 
     existingIds.add(row.sync_id);
@@ -487,29 +603,35 @@ function handleBulkAdd(ss, rows) {
 // ─────────────────────────────────────────────────────────────
 function handleBulkUpdate(ss, rows) {
   if (!rows || rows.length === 0) {
-    return jsonResponse({ status: 'ok', updated: 0, added: 0 });
+    return jsonResponse({ status: 'ok', updated: 0, added: 0, skipped: 0 });
   }
 
   const sheet = getOrCreateSheet(ss);
+  ensureSyncColumns_(sheet);
   const data  = sheet.getDataRange().getValues();
 
-  // Construire la map sync_id → numéro de ligne dans le sheet (1-based)
-  // data[0] = en-têtes, data[1] = ligne 2 du sheet, etc.
-  const idToSheetRow = {};
+  // Map sync_id → infos ligne { sheetRow (1-based), modAt (Date|null), deleted }
+  const info = {};
   for (let i = 1; i < data.length; i++) {
-    const sid = String(data[i][14] || '').trim();
-    if (sid) idToSheetRow[sid] = i + 1;  // +1 : ligne 1 du sheet = data[0] (en-têtes)
+    const sid = String(data[i][IDX_SYNC] || '').trim();
+    if (!sid) continue;
+    const mv = data[i][IDX_MODIFIED];
+    info[sid] = {
+      sheetRow: i + 1,                                    // ligne 1 du sheet = en-têtes
+      modAt:    mv instanceof Date ? mv : (mv ? new Date(String(mv)) : null),
+      deleted:  String(data[i][IDX_DELETED] || '').trim() !== ''
+    };
   }
 
-  let updated = 0;
-  let added   = 0;
+  let updated = 0, added = 0, skipped = 0;
 
   rows.forEach(row => {
     if (!row.sync_id) return;
 
     const sp = row.stationPrices || {};
+    const incomingMod = row.modifiedAt ? new Date(row.modifiedAt) : new Date();
 
-    // Valeurs cols B–O (indices 1–14 du schema, cols 2–15 du sheet)
+    // Valeurs cols B–O (cols 2–15 du sheet)
     const colsBtoO = [
       row.date ? new Date(row.date) : '',           // B — Date
       row.type || '',                                // C — Type
@@ -527,25 +649,34 @@ function handleBulkUpdate(ss, rows) {
       row.sync_id,                                   // O — sync_id (inchangé)
     ];
 
-    if (idToSheetRow.hasOwnProperty(row.sync_id)) {
-      // ── Ligne existante : MAJ cols B–O, col A (horodatage) preservee ──
-      const sheetRow = idToSheetRow[row.sync_id];
-      sheet.getRange(sheetRow, 2, 1, colsBtoO.length)
-           .setValues([colsBtoO]);
+    const it = info[row.sync_id];
+    if (it) {
+      // S3 — ne pas ressusciter une ligne supprimée
+      if (it.deleted) { skipped++; return; }
+
+      // S5 — arbitrage : GS n'est écrasé que si Excel est aussi récent ou
+      // plus récent que la dernière modif serveur. Sinon le serveur gagne.
+      if (it.modAt && incomingMod < it.modAt) { skipped++; return; }
+
+      sheet.getRange(it.sheetRow, 2, 1, colsBtoO.length).setValues([colsBtoO]);
+      sheet.getRange(it.sheetRow, IDX_MODIFIED + 1).setValue(incomingMod);  // Q
       updated++;
 
     } else {
-      // ── Ligne absente (desync edge case) : upsert ──
+      // ── Ligne absente (desync edge case) : upsert complet A–R ──
       sheet.appendRow([
         row.horodatage ? new Date(row.horodatage) : new Date(),  // A
-        ...colsBtoO
+        ...colsBtoO,                                             // B–O
+        '',                                                       // P — Photo ticket
+        incomingMod,                                              // Q — Modifié_le
+        '',                                                       // R — Supprimé
       ]);
-      idToSheetRow[row.sync_id] = sheet.getLastRow();
+      info[row.sync_id] = { sheetRow: sheet.getLastRow(), modAt: incomingMod, deleted: false };
       added++;
     }
   });
 
-  return jsonResponse({ status: 'ok', updated, added });
+  return jsonResponse({ status: 'ok', updated, added, skipped });
 }
 
 // ─────────────────────────────────────────────────────────────

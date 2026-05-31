@@ -13,3 +13,6 @@ dist/
 # Playwright
 playwright-report/
 test-results/
+
+# Journal direct de commit.sh
+commit.log
