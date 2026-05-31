@@ -3,6 +3,10 @@ Attribute VB_Name = "modSyncGS"
 '  SUIVI E85 - Synchronisation bidirectionnelle
 '  Google Sheets (_ImportGS) <-> Excel (GS_Pleins)
 '
+'  v2.9.1.0
+'    [F6] Recreation auto des graphiques (modGraphiques.CreerGraphiquesWeb
+'         en mode silencieux) en fin de SyncCore si donnees changees.
+'
 '  v2.9.0.0
 '    [F1] Auto sync_id a la saisie   (dans GS_Pleins_snippet.bas)
 '    [F2] Col P = last_modified       marquage dirty pour sync bidir.
@@ -390,6 +394,17 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     If sentUpdToGS > 0 Then msg = msg & " +" & sentUpdToGS & " MAJ"
     If pushedStations >= 0 Then msg = msg & " / stations:" & pushedStations
     SetStatus msg
+
+    ' v2.9.1 : recreation automatique des graphiques si des donnees ont
+    ' change (ajout / MAJ dans un sens ou l'autre). Mode silencieux :
+    ' aucune MsgBox bloquante meme a l'ouverture du classeur.
+    If (addedFromGS + updFromGS + sentToGS + sentUpdToGS) > 0 Then
+        On Error Resume Next
+        SetStatus msg & " / maj graphiques..."
+        CreerGraphiquesWeb silent:=True
+        SetStatus msg
+        On Error GoTo 0
+    End If
 
 Cleanup:
     Application.Cursor = xlDefault

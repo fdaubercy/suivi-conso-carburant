@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.5.0.0] — 2026-05-31
+
+### Added
+- **Recréation automatique des graphiques après synchronisation** — `vba/modGraphiques.bas` + `vba/modSyncGS.bas`. La macro `CreerGraphiquesWeb` est désormais appelée **automatiquement en fin de `SyncCore`** (donc à l'ouverture du classeur via `SyncOnOpen` **et** après un `SyncManuel`), **uniquement si des données ont changé** (lignes ajoutées ou mises à jour, GS→Excel ou Excel→GS : `addedFromGS + updFromGS + sentToGS + sentUpdToGS > 0`). Plus besoin de cliquer « Recréer les graphiques » : le tableau de bord reflète les derniers pleins dès l'ouverture.
+
+### Changed
+- **`CreerGraphiquesWeb` gagne un paramètre optionnel `silent`** (`Optional silent As Boolean = False`). En **appel automatique** (`silent:=True`), aucune `MsgBox` bloquante n'est affichée — une éventuelle erreur est reportée **en barre d'état** seulement, pour ne jamais interrompre l'ouverture du classeur. Le **bouton « Recréer les graphiques »** (appel sans argument) conserve la `MsgBox` d'erreur.
+- **Garde-fou non bloquant côté sync** : l'appel auto est encadré par `On Error Resume Next` dans `SyncCore`, donc une erreur de génération de graphiques n'interrompt jamais la synchronisation.
+
+### ⚠️ Installation dans le classeur
+Réimporter **les deux modules** (`Alt+F11` → Fichier → Importer un fichier…) : `vba/modGraphiques.bas` **et** `vba/modSyncGS.bas`. Aucune autre action : à la prochaine synchro porteuse de changements, les graphiques se recréent seuls.
+
 ## [4.4.0.0] — 2026-05-31
 
 ### Added

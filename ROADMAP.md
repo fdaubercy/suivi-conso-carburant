@@ -43,6 +43,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|
 | X9 | **Économies cumulées E85 vs SP98** (calcul rétroactif depuis colonne J SP98 station) | Le ROI E85 chiffré |
 | X15 | **Graphique scatter Prix E85/L vs L/100 km** : nuage de points pour voir si la conso augmente quand le prix baisse (comportemental) | Corrélation prix/comportement · effort ½ j · pure formule Excel |
+| X20 | **Interrupteur « graphiques auto »** : cellule paramètre (ex. `Graphiques!B4` Oui/Non) lue par `SyncCore` avant l'appel auto v4.5.0.0 | Laisser l'utilisateur désactiver le recalcul auto sur un gros historique (sync plus rapide) |
+| X21 | **Horodatage de dernière génération** sur l'onglet Graphiques (ex. `Graphiques!B5`) renseigné par `CreerGraphiquesWeb` | Savoir d'un coup d'œil si le tableau de bord reflète le dernier sync |
 
 ### 🛠️ Robustesse
 
@@ -91,6 +93,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v4.5.0.0 | **Graphiques recréés automatiquement après synchro (X19)** — `vba/modSyncGS.bas` appelle `modGraphiques.CreerGraphiquesWeb(silent:=True)` en fin de `SyncCore`, donc à l'ouverture (`SyncOnOpen`) **et** après un `SyncManuel`, **uniquement si des données ont changé** (`addedFromGS + updFromGS + sentToGS + sentUpdToGS > 0`) ; nouveau paramètre `silent` sur `CreerGraphiquesWeb` (pas de `MsgBox` bloquante en auto, barre d'état seulement ; le bouton « Recréer » garde la `MsgBox`) ; appel encadré par `On Error Resume Next` pour ne jamais casser la synchro |
 | v4.4.0.0 | **Tableau de bord graphique Excel (`vba/modGraphiques.bas`)** — macro `CreerGraphiquesWeb` recréant sur l'onglet « Graphiques » les visualisations de l'app web en graphiques natifs : évolution prix multi-carburant, coût mensuel, tendance dépenses 6 mois + objectif, comparaison véhicules, CO₂ cumul mensuel, jauge CO₂ annuel, conso L/100 km, KPIs bilan annuel ; agrégats en VBA → feuille `_GraphData` masquée ; paramètres Budget/CO₂ sur l'onglet ; bouton de relance ; rejouable |
 | v4.3.0.7 | **Date en vraie date (affichage JJ/MM/AAAA)** — `powerquery/GS_Pleins.m` convertit la colonne Date du texte US gviz (`M/d/yyyy`) en vraie date (`Date.From(DateTime.From(_,"en-US"))`) ; `Tableau2` affiche enfin JJ/MM/AAAA (le format ne s'appliquait pas à du texte) et le tri se fait directement sur la date |
 | v4.3.0.6 | **Tri date ascendant de la requête `GS_Pleins` + fix cumul E85** — `powerquery/GS_Pleins.m` trie par Date en parsant le format US du CSV gviz (`DateTime.From(…, "en-US")`, sinon tri texte faux) ; corrige le `#VALEUR!` de la col N « Économie cumulée » de `Tableau2` sur la 1ʳᵉ ligne E85 (`N15<>""` → `ISNUMBER(N15)`, l'en-tête texte ne doit pas être additionné) |

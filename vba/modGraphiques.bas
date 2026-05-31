@@ -1,6 +1,6 @@
 Attribute VB_Name = "modGraphiques"
 ' ============================================================
-'  SUIVI CONSO CARBURANTS — Graphiques du tableau de bord     v4.4.0.0
+'  SUIVI CONSO CARBURANTS — Graphiques du tableau de bord     v4.5.0.0
 '
 '  Recree sur l'onglet "Graphiques" (remis a zero) les memes
 '  visualisations que l'app web, en graphiques NATIFS Excel :
@@ -25,6 +25,13 @@ Attribute VB_Name = "modGraphiques"
 '    • Surconso E85 : cellule J7 de "Suivi Carburant" (1+J7), defaut 0.20
 '
 '  Point d'entree : CreerGraphiquesWeb (rejouable + bouton "Recreer").
+'
+'  Appel automatique (v4.5.0.0) : modSyncGS.SyncCore appelle
+'  CreerGraphiquesWeb(silent:=True) en fin de sync UNIQUEMENT si des
+'  donnees ont change (lignes ajoutees / mises a jour, dans un sens
+'  ou l'autre). Couvre l'ouverture (SyncOnOpen) et le sync manuel.
+'  En mode silencieux, aucune MsgBox : l'erreur eventuelle est
+'  reportee en barre d'etat (le bouton "Recreer" garde la MsgBox).
 ' ============================================================
 Option Explicit
 
@@ -58,7 +65,7 @@ Private Const C_KPI    As Long = 6047027
 ' ============================================================
 '  POINT D'ENTREE
 ' ============================================================
-Public Sub CreerGraphiquesWeb()
+Public Sub CreerGraphiquesWeb(Optional silent As Boolean = False)
     Dim wsG As Worksheet, wsC As Worksheet, wsD As Worksheet
     Dim t2 As ListObject, gsT As ListObject
 
@@ -147,8 +154,9 @@ Public Sub CreerGraphiquesWeb()
 EH:
     Application.Calculation = xlCalculationAutomatic
     Application.ScreenUpdating = True
-    MsgBox "Erreur " & Err.Number & " : " & Err.Description, vbCritical, "modGraphiques"
     SetStatusG "Graphiques : ERREUR " & Err.Number & " - " & Err.Description
+    If Not silent Then _
+        MsgBox "Erreur " & Err.Number & " : " & Err.Description, vbCritical, "modGraphiques"
 End Sub
 
 ' ============================================================
