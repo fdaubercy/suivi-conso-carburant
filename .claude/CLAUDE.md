@@ -259,7 +259,7 @@ perf(app): requête OSM unique remplace Promise.all anti-429 [v1.9.6.0]
 - Toujours inclure la version entre crochets à la fin du message
 - Description en français ou anglais, cohérente avec le CHANGELOG
 - Un seul commit par réponse (grouper tous les fichiers modifiés)
-- Ne pas pusher automatiquement — laisser l'utilisateur valider
+- **Commit + push automatiquement** — l'utilisateur a validé ce comportement, ne plus demander confirmation
 
 ---
 
@@ -326,6 +326,38 @@ Chaque tâche doit produire :
 ✔ CHANGELOG à jour
 ✔ bloc commit prêt à copier-coller
 ✔ traçabilité complète
+
+---
+
+# 🔁 APPRENTISSAGE DES ERREURS
+
+Quand une erreur est commise (bug introduit, mauvaise pratique, choix incorrect) :
+
+1. **Immédiatement** après la correction, noter ce qu'il ne faut plus faire
+2. En déduire une règle de comportement générale
+3. Ajouter cette règle dans ce fichier ET/OU dans la mémoire (`~/.claude/projects/.../memory/`)
+4. Ne pas attendre que l'utilisateur le demande
+
+---
+
+# 🤝 COMMANDES DÉJÀ VALIDÉES
+
+Quand l'utilisateur a approuvé un type d'action une fois, **l'exécuter directement** sans redemander les fois suivantes.
+
+Actions validées dans ce projet :
+
+| Action | Comportement |
+|---|---|
+| Commit + push Git | Automatique après chaque modification, sans confirmation |
+| Mise à jour CHANGELOG / README / ROADMAP | Automatique à chaque fonctionnalité / bug corrigé |
+| Incrémentation de version X.Y.Z.W | Automatique selon les règles ci-dessus |
+
+---
+
+# 🛠️ RÈGLES VBA (apprises en session)
+
+- **`Private Const`, `Dim`, `Type`, `Enum` au niveau module** → toujours dans la **section de déclarations en tête de fichier**, avant la première `Sub`/`Function`. Les placer entre deux procédures provoque une erreur de compilation VBA.
+- **Après chaque import de `.bas`** → exécuter `Debug → Compiler VBAProject` avant tout `Alt+F8` pour détecter toutes les erreurs de tous les modules d'un coup.
 
 ---
 
