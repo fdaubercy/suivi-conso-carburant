@@ -11,13 +11,16 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| _(W52–W56 implémentés en v4.3.0.0)_ | — | voir « ✅ Idées déjà implémentées » |
+| W57 | **Partage image du bilan « Wrapped »** : rendu de la carte Wrapped sur un `<canvas>` → `toBlob()` → **Web Share API** (`navigator.share`) avec repli téléchargement PNG | Partager son bilan E85 en 1 tap (réseaux, message) sans capture d'écran |
+| W58 | **Prochain plein estimé** : à partir du rythme moyen (km/jour & autonomie), afficher « prochain plein ≈ le JJ/MM » dans la vue Stats + badge sur l'onglet | Anticiper le passage à la pompe |
+| W59 | **Recalcul léger via endpoint GAS `stats`** (cf. S12) : l'app consomme un JSON pré-agrégé au lieu de tout recalculer côté client | Démarrage plus rapide sur mobile, surtout gros historique |
 
 ### 🎨 UX / Ergonomie
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| _(U4–U7 implémentés en v4.2.0.0)_ | — | voir « ✅ Idées déjà implémentées » |
+| U8 | **Thème sombre** : variables CSS + bascule `prefers-color-scheme` persistée dans Réglages | Confort de nuit / cohérence OS, faible effort |
+| U9 | **Filtre véhicule global persistant** : un sélecteur en header applique le périmètre véhicule à toutes les vues (Stats/Carte/Historique) au lieu d'un réglage par carte | Cohérence multi-véhicules, moins de clics |
 
 ---
 
@@ -43,17 +46,14 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|
 | X9 | **Économies cumulées E85 vs SP98** (calcul rétroactif depuis colonne J SP98 station) | Le ROI E85 chiffré |
 | X15 | **Graphique scatter Prix E85/L vs L/100 km** : nuage de points pour voir si la conso augmente quand le prix baisse (comportemental) | Corrélation prix/comportement · effort ½ j · pure formule Excel |
-| X20 | **Interrupteur « graphiques auto »** : cellule paramètre (ex. `Graphiques!B4` Oui/Non) lue par `SyncCore` avant l'appel auto v4.5.0.0 | Laisser l'utilisateur désactiver le recalcul auto sur un gros historique (sync plus rapide) |
-| X21 | **Horodatage de dernière génération** sur l'onglet Graphiques (ex. `Graphiques!B5`) renseigné par `CreerGraphiquesWeb` | Savoir d'un coup d'œil si le tableau de bord reflète le dernier sync |
-| X23 | **Export PDF/image du tableau de bord** : bouton « 📄 Exporter » sur l'onglet Graphiques → `ExportAsFixedFormat` (PDF dans `Google Drive/…`) ou copie presse-papiers de la zone graphiques | Partager / archiver le bilan sans envoyer le `.xlsm` |
-| X24 | **Sélecteur d'année du bilan annuel** : cellule paramètre (ex. `Graphiques!B6`) lue par `BuildAggregates` au lieu de l'année max figée (`anneeMax`) → KPIs + jauge CO₂ recalculés pour l'année choisie | Comparer les bilans d'une année à l'autre (2025 vs 2026) |
+| X20 | **Interrupteur « graphiques auto »** : cellule paramètre (ex. `Graphiques!B5` Oui/Non) lue par `SyncCore` avant l'appel auto v4.5.0.0 | Laisser l'utilisateur désactiver le recalcul auto sur un gros historique (sync plus rapide) |
+| X21 | **Horodatage de dernière génération** sur l'onglet Graphiques (ex. `Graphiques!B6`) renseigné par `CreerGraphiquesWeb` | Savoir d'un coup d'œil si le tableau de bord reflète le dernier sync |
+| X26 | **Mini-jauge budget annuel** : 13ᵉ visuel = barre dépenses cumulées de l'année cible vs (Budget mensuel × 12), réutilise `Graphiques!B2`/`B4` | Vision « reste à dépenser » sur l'année sans quitter le classeur |
 
 ### 🛠️ Robustesse
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| X22 | **Garde-fou « onglet Graphiques pré-existant »** : l'appel auto v4.5.0.0 (`SyncCore`) ne déclenche `CreerGraphiquesWeb` que si l'onglet « Graphiques » existe déjà ; sinon il faut un premier clic manuel | Évite que la synchro crée seule l'onglet + les 8 graphes sur un classeur où l'utilisateur ne s'en sert pas |
-| X25 | **Rafraîchissement incrémental des graphiques** : au lieu de `ClearAllCharts` + recréation complète, ne réécrire que `SetSourceData` (et le bloc `_GraphData`) des `ChartObjects` existants ; recréation totale uniquement si leur nombre/type a changé | Appel auto plus rapide et sans clignotement à chaque sync, surtout sur gros historique |
 | X11 | **Onglet `_SyncLog`** : chaque sync ajoute une ligne (date, ←N, →N, durée) | Debug, historique des syncs |
 | X12 | **Backup auto** dans `Google Drive/Sauvegardes/Suivi Conso Carburants_YYYYMMDD.xlsm` avant chaque sync majeure | Filet de sécurité |
 | X17 | **Garde-fou de version du classeur** : `Workbook_Open` compare une constante `WB_VERSION` à la version attendue et avertit en barre d'état si le `.xlsm` est en retard sur le dépôt | Évite la dérive silencieuse `.xlsm` ↔ `vba/*.bas` (cf. retard token S6 / `modFeatures` constaté en v4.3.0.4) |
@@ -79,6 +79,27 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 ---
 
+## ☁️ Google Apps Script / Google Sheets
+
+### 🎯 Backend (GAS)
+
+| # | Idée | Pourquoi |
+|---|---|---|
+| S12 | **Endpoint `action=stats`** : le GAS pré-agrège (coût mensuel, conso, CO₂, KPIs) et renvoie un JSON compact, mis en cache `CacheService` ~1 h | Allège le client mobile et l'app web (cf. W59) ; une seule source de calcul |
+| S13 | **Rapport mensuel illustré** : `RapportMensuel.gs` insère des mini-graphes via URLs **QuickChart** (image dans l'email HTML) | Email plus parlant sans pièce jointe lourde |
+| S14 | **Sauvegarde quotidienne du classeur GS** : trigger journalier exporte le Google Sheet en `.xlsx` vers `Google Drive/Sauvegardes/` (rotation 30 j) | Filet de sécurité côté cloud, indépendant d'Excel |
+| S15 | **Alerte d'anomalie de saisie** : au refresh, détecter conso aberrante (> seuil) ou km rétrograde et notifier (push/email) | Qualité des données, détection rapide d'une faute de frappe |
+
+### 📋 Onglets Google Sheets
+
+| # | Idée | Pourquoi |
+|---|---|---|
+| G1 | **Validation de données** sur l'onglet de saisie GS (listes déroulantes Carburant / Véhicule / Station depuis l'onglet `Stations`) | Saisie web directe fiable, mêmes valeurs que l'app |
+| G2 | **MFC prix sur le Sheet** : dégradé couleur sur la colonne Prix €/L (vert = bas, rouge = haut) par carburant | Lecture rapide de l'historique directement dans le navigateur |
+| G3 | **Onglet `Dashboard` natif Sheets** : graphiques Google (prix, conso, CO₂) répliquant le tableau de bord Excel | Consulter le bilan sans ouvrir le `.xlsm` (mobile/web) |
+
+---
+
 ## 🏆 Top 5 recommandés en priorité
 
 | Rang | Item | Effort | Bénéfice |
@@ -97,6 +118,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v4.6.0.0 | **Tableau de bord — export PDF, sélecteur d'année, refresh incrémental, garde-fou auto (X22-X25)** — `vba/modGraphiques.bas` + `vba/modSyncGS.bas` : **X23** bouton « Exporter en PDF » (`ExporterGraphiquesPDF` → `ExportAsFixedFormat` daté à côté du classeur) ; **X24** cellule `Graphiques!B4` « Année bilan » (vide = année récente) → KPIs + jauge CO₂ recalculés pour l'année choisie (`anneeCible`) ; **X25** graphiques/cartes nommés (`gPrice`…`gGauge`, `kpiTitle`/`kpiCard1..5`) **réutilisés** (`EnsureChart`/`EnsureShape`) au lieu de tout supprimer/recréer, `PurgeUnknown` ne nettoie que les objets inconnus ; **X22** l'appel auto en fin de `SyncCore` ne se déclenche que si l'onglet « Graphiques » existe déjà (`GraphSheetExists`) |
 | v4.5.0.0 | **Graphiques recréés automatiquement après synchro (X19)** — `vba/modSyncGS.bas` appelle `modGraphiques.CreerGraphiquesWeb(silent:=True)` en fin de `SyncCore`, donc à l'ouverture (`SyncOnOpen`) **et** après un `SyncManuel`, **uniquement si des données ont changé** (`addedFromGS + updFromGS + sentToGS + sentUpdToGS > 0`) ; nouveau paramètre `silent` sur `CreerGraphiquesWeb` (pas de `MsgBox` bloquante en auto, barre d'état seulement ; le bouton « Recréer » garde la `MsgBox`) ; appel encadré par `On Error Resume Next` pour ne jamais casser la synchro |
 | v4.4.0.0 | **Tableau de bord graphique Excel (`vba/modGraphiques.bas`)** — macro `CreerGraphiquesWeb` recréant sur l'onglet « Graphiques » les visualisations de l'app web en graphiques natifs : évolution prix multi-carburant, coût mensuel, tendance dépenses 6 mois + objectif, comparaison véhicules, CO₂ cumul mensuel, jauge CO₂ annuel, conso L/100 km, KPIs bilan annuel ; agrégats en VBA → feuille `_GraphData` masquée ; paramètres Budget/CO₂ sur l'onglet ; bouton de relance ; rejouable |
 | v4.3.0.7 | **Date en vraie date (affichage JJ/MM/AAAA)** — `powerquery/GS_Pleins.m` convertit la colonne Date du texte US gviz (`M/d/yyyy`) en vraie date (`Date.From(DateTime.From(_,"en-US"))`) ; `Tableau2` affiche enfin JJ/MM/AAAA (le format ne s'appliquait pas à du texte) et le tri se fait directement sur la date |

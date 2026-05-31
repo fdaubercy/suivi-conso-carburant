@@ -3,6 +3,10 @@ Attribute VB_Name = "modSyncGS"
 '  SUIVI E85 - Synchronisation bidirectionnelle
 '  Google Sheets (_ImportGS) <-> Excel (GS_Pleins)
 '
+'  v2.9.2.0
+'    [X22] Garde-fou : la recreation auto des graphiques ne se declenche
+'          que si l'onglet "Graphiques" existe deja (GraphSheetExists).
+'
 '  v2.9.1.0
 '    [F6] Recreation auto des graphiques (modGraphiques.CreerGraphiquesWeb
 '         en mode silencieux) en fin de SyncCore si donnees changees.
@@ -329,6 +333,15 @@ Public Sub SyncManuel()
     SyncCore a, s, False
 End Sub
 
+' X22 : vrai si l'onglet "Graphiques" existe deja dans le classeur
+Private Function GraphSheetExists() As Boolean
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Worksheets("Graphiques")
+    On Error GoTo 0
+    GraphSheetExists = Not ws Is Nothing
+End Function
+
 
 ' ============================================================
 '  COEUR DU SYNC
@@ -398,12 +411,16 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     ' v2.9.1 : recreation automatique des graphiques si des donnees ont
     ' change (ajout / MAJ dans un sens ou l'autre). Mode silencieux :
     ' aucune MsgBox bloquante meme a l'ouverture du classeur.
+    ' X22 (v2.9.2) : on ne declenche QUE si l'onglet "Graphiques" existe
+    ' deja -> pas de creation surprise sur un classeur qui ne s'en sert pas.
     If (addedFromGS + updFromGS + sentToGS + sentUpdToGS) > 0 Then
-        On Error Resume Next
-        SetStatus msg & " / maj graphiques..."
-        CreerGraphiquesWeb silent:=True
-        SetStatus msg
-        On Error GoTo 0
+        If GraphSheetExists() Then
+            On Error Resume Next
+            SetStatus msg & " / maj graphiques..."
+            CreerGraphiquesWeb silent:=True
+            SetStatus msg
+            On Error GoTo 0
+        End If
     End If
 
 Cleanup:

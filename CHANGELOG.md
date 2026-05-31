@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.6.0.0] — 2026-05-31
+
+### Added
+- **X23 — Export PDF du tableau de bord** (`vba/modGraphiques.bas`). Nouveau bouton **« Exporter en PDF »** sur l'onglet Graphiques (`btnExportGraph`, à côté de « Recréer ») → macro `ExporterGraphiquesPDF` : `ExportAsFixedFormat` de l'onglet vers `Tableau de bord - AAAA-MM-JJ.pdf` dans le dossier du classeur (repli `Documents`), ouverture automatique après export.
+- **X24 — Sélecteur d'année du bilan annuel** (`vba/modGraphiques.bas`). Nouveau paramètre **`Graphiques!B4`** (« Année bilan », vide = année la plus récente) lu par `CreerGraphiquesWeb` puis `BuildAggregates` : les **KPIs** (pleins, litres, € dépensés, km, station préférée) et la **jauge CO₂** sont recalculés pour l'année choisie (`anneeCible`) au lieu de l'`anneeMax` figée. Permet de comparer 2025 vs 2026.
+
+### Changed
+- **X25 — Rafraîchissement incrémental des graphiques** (`vba/modGraphiques.bas`). Les 7 `ChartObjects` et les 6 cartes KPI sont désormais **nommés** (`gPrice`/`gCost`/`gConso`/`gVeh`/`gBudget`/`gCo2`/`gGauge`, `kpiTitle`/`kpiCard1..5`) puis **réutilisés** (repositionnement + `SetSourceData`) au lieu d'être supprimés/recréés à chaque passage (helpers `EnsureChart`/`EnsureShape`). `ClearAllCharts` (destruction totale) remplacé par `PurgeUnknown` qui ne supprime que les objets **inconnus** (anciennes versions). Résultat : appel auto plus rapide et sans clignotement, surtout sur gros historique. Un graphique dont les données disparaissent est retiré par `DeleteChartByName`.
+- **X22 — Garde-fou « onglet pré-existant »** (`vba/modSyncGS.bas`). La recréation automatique en fin de `SyncCore` (v4.5.0.0) ne se déclenche désormais que si l'onglet **« Graphiques » existe déjà** (`GraphSheetExists`) : la synchro ne crée plus seule l'onglet + les 8 graphes sur un classeur où l'utilisateur ne s'en sert pas. Premier affichage = un clic manuel sur « Recréer les graphiques ».
+
+### ⚠️ Installation dans le classeur
+Réimporter **les deux modules** (`Alt+F11` → Fichier → Importer un fichier…) : `vba/modGraphiques.bas` **et** `vba/modSyncGS.bas`. L'onglet Graphiques gagne le bouton « Exporter en PDF » et la cellule `B4` (année) au prochain `CreerGraphiquesWeb`.
+
 ## [4.5.0.0] — 2026-05-31
 
 ### Added

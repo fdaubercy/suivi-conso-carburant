@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v4.5.0.0**
+> 🔖 Version courante : **v4.6.0.0**
 
 ## 🌐 Accès
 
@@ -348,7 +348,8 @@ suivi-conso-carburant/
 │   │                                #   dirty flag, validation km, doublons)
 │   ├── modDashboard.bas             # Tableau de bord : 10 KPIs + graphiques X7/X8
 │   ├── modGraphiques.bas            # Onglet « Graphiques » : 8 graphes natifs + KPIs
-│   │                                #   (CreerGraphiquesWeb) — auto-recréé en fin de sync
+│   │                                #   (CreerGraphiquesWeb) — auto-recréé en fin de sync,
+│   │                                #   refresh incrémental, export PDF, sélecteur d'année B4
 │   ├── modFeatures.bas              # X4 MFC « Prix €/L » + X14 « Suivi (auto) » +
 │   │                                #   Tableau2 vue dérivée + VerifierInstallation
 │   ├── modSaisie.bas                # Moteur saisie (ValiderSaisie/EstDoublon/EnregistrerPlein
