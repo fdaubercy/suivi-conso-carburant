@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '4.6.0.0';
+export const APP_VERSION       = '4.7.0.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 
 // S6 — Token secret partagé avec les endpoints GAS et la macro VBA.
@@ -27,6 +27,7 @@ export const DRAFT_KEY         = 'suivi_e85_draft';
 export const CLIENT_ID_KEY     = 'suivi_e85_client_id';
 export const KIT_PRIX_KEY      = 'suivi_e85_kit_prix';
 export const SECTOR_CACHE_KEY  = 'suivi_e85_sector_cache';  // W38 — prix secteur quotidien (cache)
+export const STATS_CACHE_KEY   = 'suivi_e85_stats_cache';   // S12/W59 — agrégats serveur (cache TTL 1 h)
 export const WRAPPED_SCOPE_KEY = 'suivi_e85_wrapped_scope'; // W37 — périmètre Wrapped (vehicule|all)
 export const BUDGET_KEY        = 'suivi_e85_budget_mensuel'; // W39 — objectif budget carburant mensuel (€)
 export const CO2_OBJECTIF_KEY  = 'suivi_e85_objectif_co2';   // W51 — objectif CO₂ annuel évité (kg)

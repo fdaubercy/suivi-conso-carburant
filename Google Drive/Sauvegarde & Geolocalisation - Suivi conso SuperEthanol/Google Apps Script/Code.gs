@@ -1,5 +1,12 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend               v3.6.0.0
+//  SUIVI CONSO E85 — Web App Backend               v3.7.0.0
+//
+//  v3.7.0.0 — S12 Endpoint stats pré-agrégé
+//  • action=stats[&veh=&year=] : agrégats mensuels (coût/litres/CO₂),
+//    KPIs annuels (pleins/litres/€/km/station) et comparatif véhicules,
+//    calculés côté serveur et mis en cache CacheService ~1 h. Consommé
+//    par le client (W59, js/statsApi.js) pour un démarrage plus rapide.
+//    ⚠️ Nécessite un redéploiement de la Web App (nouvelle version).
 //
 //  v3.6.0.0 — S6 Token secret (souple) + W38 prix secteur
 //  • S6 : si la propriété de script APP_TOKEN est définie, toute requête
@@ -130,6 +137,12 @@ function doGet(e) {
   // carburant via &fuel=E85|GAZOLE|SP98 (défaut E85).
   if (e.parameter.action === 'sectorPrices') {
     return handleSectorPrices(e);
+  }
+
+  // S12 — agrégats pré-calculés (mensuel, KPIs annuels, comparatif véhicules)
+  //   ?action=stats[&veh=Nom][&year=2026] — réponse JSON compacte, cache 1 h.
+  if (e.parameter.action === 'stats') {
+    return handleStats(e);
   }
 
   const isMobile = (e.parameter.v === 'mobile');
@@ -712,6 +725,196 @@ function getOrCreateSheet(ss) {
     }
   }
   return sheet;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  S12 — agrégats pré-calculés côté serveur (allège le client : W59)
+//  Réponse : { generatedAt, year, surconso, co2Total,
+//              months:[{key,cost,litres,co2}],
+//              kpis:{year,pleins,litres,cost,km,station},
+//              vehicles:[{nom,litres,cost,km,consoPer100,costPer100}] }
+//  Cache CacheService (script) ~1 h, clé = veh|year|nbLignes.
+// ─────────────────────────────────────────────────────────────
+const CO2_ESSENCE_PER_L_GS = 2.21;   // aligné sur js/config.js
+const CO2_E85_PER_L_GS     = 1.105;
+const DEFAULT_SURCONSO_GS  = 0.2;
+
+function statsFuelKey_(type) {
+  const t = String(type || '').toLowerCase();
+  if (t.indexOf('e85') >= 0 || t.indexOf('ethanol') >= 0) return 'E85';
+  if (t.indexOf('gazole') >= 0 || t.indexOf('diesel') >= 0 || t.indexOf('gasoil') >= 0) return 'GAZOLE';
+  if (t.indexOf('98') >= 0) return 'SP98';
+  if (t.indexOf('e10') >= 0) return 'E10';
+  if (t.indexOf('95') >= 0) return 'SP95';
+  if (t.indexOf('gpl') >= 0) return 'GPLC';
+  return 'AUTRE';
+}
+
+function statsParseDate_(v) {
+  if (v instanceof Date) return v;
+  const d = new Date(String(v || '').replace(' ', 'T'));
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function statsMonthKey_(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+// Surconso E85 dynamique = avg(conso E85) / avg(conso SP98) − 1 (repli 0.2)
+function statsComputeSurconso_(recs) {
+  const sorted = recs.filter(r => Number(r.km) > 0)
+    .sort((a, b) => (a.date ? a.date.getTime() : 0) - (b.date ? b.date.getTime() : 0));
+  const e85 = [], s98 = [];
+  for (let i = 1; i < sorted.length; i++) {
+    const dk = Number(sorted[i].km) - Number(sorted[i - 1].km);
+    const lit = Number(sorted[i].litres);
+    if (dk <= 0 || lit <= 0) continue;
+    const conso = (lit / dk) * 100;
+    if (sorted[i].fuel === 'E85') e85.push(conso);
+    else if (sorted[i].fuel === 'SP98') s98.push(conso);
+  }
+  if (!e85.length || !s98.length) return DEFAULT_SURCONSO_GS;
+  const avg = a => a.reduce((s, v) => s + v, 0) / a.length;
+  const s = avg(e85) / avg(s98) - 1;
+  return isFinite(s) && s > 0 ? s : DEFAULT_SURCONSO_GS;
+}
+
+function handleStats(e) {
+  const veh  = e && e.parameter && e.parameter.veh  ? String(e.parameter.veh)  : '';
+  const year = e && e.parameter && e.parameter.year ? parseInt(e.parameter.year, 10) : 0;
+
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = getOrCreateSheet(ss);
+  const data  = sheet.getDataRange().getValues();
+
+  const cache    = CacheService.getScriptCache();
+  const cacheKey = 'stats_v1|' + veh + '|' + year + '|' + data.length;
+  const cached   = cache.get(cacheKey);
+  if (cached) return jsonResponse(JSON.parse(cached));
+
+  if (data.length <= 1) return jsonResponse({ months: [], kpis: null, vehicles: [], generatedAt: new Date().toISOString() });
+
+  const headers = data[0].map(String);
+  const idx = name => headers.indexOf(name);
+  const iDate = idx('Date'), iType = idx('Type'), iKm = idx('Km compteur'),
+        iLit = idx('Nb. Litres'), iPrix = idx('Prix €/L'),
+        iVeh = idx('Véhicule'), iStation = idx('Station essence'),
+        iSP98 = idx('SP98 station (€/L)'), iHoro = idx('Horodatage');
+
+  // Normalisation des lignes (filtre véhicule optionnel)
+  const recs = [];
+  for (let r = 1; r < data.length; r++) {
+    const row = data[r];
+    const vname = iVeh >= 0 ? String(row[iVeh] || '') : '';
+    if (veh && vname !== veh) continue;
+    const d = statsParseDate_(iDate >= 0 ? row[iDate] : (iHoro >= 0 ? row[iHoro] : ''));
+    recs.push({
+      date: d,
+      fuel: statsFuelKey_(iType >= 0 ? row[iType] : ''),
+      km: Number(iKm >= 0 ? row[iKm] : 0) || 0,
+      litres: Number(iLit >= 0 ? row[iLit] : 0) || 0,
+      prix: Number(iPrix >= 0 ? row[iPrix] : 0) || 0,
+      sp98: Number(iSP98 >= 0 ? row[iSP98] : 0) || 0,
+      veh: vname,
+      station: iStation >= 0 ? String(row[iStation] || '').trim() : ''
+    });
+  }
+
+  const surconso = statsComputeSurconso_(recs);
+
+  // Année cible : paramètre ou année la plus récente
+  let anneeMax = 0;
+  recs.forEach(r => { if (r.date && r.date.getFullYear() > anneeMax) anneeMax = r.date.getFullYear(); });
+  const anneeCible = year > 0 ? year : anneeMax;
+
+  // Agrégats mensuels + CO2
+  const months = {}, order = [];
+  let co2Total = 0;
+  recs.forEach(r => {
+    if (!r.date) return;
+    const k = statsMonthKey_(r.date);
+    if (!months[k]) { months[k] = { key: k, cost: 0, litres: 0, co2: 0 }; order.push(k); }
+    months[k].cost   += r.litres * r.prix;
+    months[k].litres += r.litres;
+    if (r.fuel === 'E85' && r.litres > 0) {
+      const co2 = (r.litres / (1 + surconso)) * CO2_ESSENCE_PER_L_GS - r.litres * CO2_E85_PER_L_GS;
+      months[k].co2 += co2;
+      co2Total += co2;
+    }
+  });
+  order.sort();
+  const monthsArr = order.map(k => ({
+    key: k,
+    cost: Math.round(months[k].cost * 100) / 100,
+    litres: Math.round(months[k].litres * 10) / 10,
+    co2: Math.round(months[k].co2 * 10) / 10
+  }));
+
+  // KPIs de l'année cible
+  const yearRecs = recs.filter(r => r.date && r.date.getFullYear() === anneeCible);
+  const kmByVehYear = {}, stationCnt = {};
+  let litresY = 0, costY = 0;
+  yearRecs.forEach(r => {
+    litresY += r.litres;
+    costY   += r.litres * r.prix;
+    if (r.station) stationCnt[r.station] = (stationCnt[r.station] || 0) + 1;
+    if (r.km > 0) {
+      const o = kmByVehYear[r.veh] || (kmByVehYear[r.veh] = { min: r.km, max: r.km });
+      if (r.km < o.min) o.min = r.km;
+      if (r.km > o.max) o.max = r.km;
+    }
+  });
+  let kmY = 0;
+  Object.keys(kmByVehYear).forEach(v => { kmY += kmByVehYear[v].max - kmByVehYear[v].min; });
+  let topStation = '', topN = -1;
+  Object.keys(stationCnt).forEach(s => { if (stationCnt[s] > topN) { topN = stationCnt[s]; topStation = s; } });
+
+  const kpis = {
+    year: anneeCible,
+    pleins: yearRecs.length,
+    litres: Math.round(litresY * 10) / 10,
+    cost: Math.round(costY),
+    km: Math.round(kmY),
+    station: topStation
+  };
+
+  // Comparatif par véhicule (km = max−min compteur, conso & coût /100 km)
+  const vAgg = {};
+  recs.forEach(r => {
+    if (!r.veh) return;
+    const o = vAgg[r.veh] || (vAgg[r.veh] = { litres: 0, cost: 0, min: null, max: null });
+    o.litres += r.litres;
+    o.cost   += r.litres * r.prix;
+    if (r.km > 0) {
+      if (o.min === null || r.km < o.min) o.min = r.km;
+      if (o.max === null || r.km > o.max) o.max = r.km;
+    }
+  });
+  const vehicles = Object.keys(vAgg).map(v => {
+    const o = vAgg[v];
+    const dist = (o.min !== null && o.max !== null) ? o.max - o.min : 0;
+    return {
+      nom: v,
+      litres: Math.round(o.litres * 10) / 10,
+      cost: Math.round(o.cost),
+      km: dist,
+      consoPer100: dist > 0 ? Math.round(o.litres / dist * 100 * 100) / 100 : 0,
+      costPer100:  dist > 0 ? Math.round(o.cost   / dist * 100 * 100) / 100 : 0
+    };
+  }).filter(x => x.km > 0).sort((a, b) => a.costPer100 - b.costPer100);
+
+  const result = {
+    generatedAt: new Date().toISOString(),
+    year: anneeCible,
+    surconso: Math.round(surconso * 1000) / 1000,
+    co2Total: Math.round(co2Total * 10) / 10,
+    months: monthsArr,
+    kpis,
+    vehicles
+  };
+
+  try { cache.put(cacheKey, JSON.stringify(result), 3600); } catch (err) { /* cache > 100 Ko : ignoré */ }
+  return jsonResponse(result);
 }
 
 function jsonResponse(obj) {

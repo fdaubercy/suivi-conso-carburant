@@ -20,6 +20,7 @@ import { initTheme, toggleTheme } from './theme.js';
 import { chargerHistorique, dupliquerDernier, voirTout, exportHistoriqueCSV, exportHistoriqueAllCSV, initCsvSepSetting, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords, rerenderHistorique } from './historique.js';
 import { renderStats, initSparkToggles, getNextKmPrediction, initKitSetting, initBudgetSetting, initCo2ObjectifSetting, initRapport } from './stats.js';
 import { initComparatifExport } from './comparatif.js';
+import { prewarmServerStats } from './statsApi.js';
 import { loadSectorPrices, renderSectorBestCard } from './secteur.js';
 import { initWrapped, renderWrapped } from './wrapped.js';
 import { initScanner }       from './ticket.js';
@@ -47,6 +48,9 @@ registerPriceCallback(fetchPricesNearUser);
 /* ─── Chargement asynchrone des données ─── */
 chargerStations();
 chargerVehicules();
+
+/* ─── W59/S12 — pré-chauffe le cache des agrégats serveur (démarrage rapide) ─── */
+prewarmServerStats(state.currentVehiculeNom || '');
 
 /* ─── W15 — Restaurer le brouillon après init async des véhicules/stations ─── */
 setTimeout(() => {

@@ -1,6 +1,6 @@
 Attribute VB_Name = "modGraphiques"
 ' ============================================================
-'  SUIVI CONSO CARBURANTS — Graphiques du tableau de bord     v4.6.0.0
+'  SUIVI CONSO CARBURANTS — Graphiques du tableau de bord     v4.7.0.0
 '
 '  Recree sur l'onglet "Graphiques" (remis a zero) les memes
 '  visualisations que l'app web, en graphiques NATIFS Excel :
@@ -31,6 +31,8 @@ Attribute VB_Name = "modGraphiques"
 '  X25 : rafraichissement incremental — les ChartObjects et cartes KPI
 '    sont NOMMES puis REUTILISES (reposition + SetSourceData) au lieu
 '    d'etre supprimes/recrees ; seuls les objets inconnus sont purges.
+'  X26 (v4.7.0.0) : mini-jauge budget annuel (depense de l'annee cible
+'    vs Budget mensuel x 12), affichee si B2 (budget) est renseigne.
 '
 '  Point d'entree : CreerGraphiquesWeb (rejouable + bouton "Recreer").
 '
@@ -162,6 +164,12 @@ Public Sub CreerGraphiquesWeb(Optional silent As Boolean = False)
             "Comparaison vehicules (conso & cout /100 km)", L1, topBase + 3 * (h + 20), w, h, False
     Else
         DeleteChartByName wsG, "gVeh"
+    End If
+    ' X26 : jauge budget annuel (si budget mensuel renseigne)
+    If budget > 0 Then
+        AddBudgetYearGauge wsG, "gBudgetYear", wsD, L1, topBase + 4 * (h + 20), w, h
+    Else
+        DeleteChartByName wsG, "gBudgetYear"
     End If
 
     ' Col droite
@@ -358,6 +366,11 @@ NextRow:
     wsD.Range("W6").Value = "Km parcourus": wsD.Range("X6").Value = Round(kmAnnee, 0)
     wsD.Range("W7").Value = "Station preferee": wsD.Range("X7").Value = topSt
 
+    ' ---- X26 : jauge budget annuel (depense annee cible vs budget x 12) ----
+    wsD.Range("AC1").Value = "Budget " & anneeCible: wsD.Range("AD1").Value = eu
+    wsD.Range("AC2").Value = "Depense": wsD.Range("AD2").Value = Round(coutAnnee, 0)
+    wsD.Range("AC3").Value = "Objectif": wsD.Range("AD3").Value = Round(budget * 12, 0)
+
     ' Format colonnes Date
     wsD.Columns(7).NumberFormat = "dd/mm/yyyy"
     wsD.Columns(12).NumberFormat = "dd/mm/yyyy"
@@ -527,6 +540,35 @@ Private Sub AddCo2GaugeChart(ws As Worksheet, key As String, wsD As Worksheet, c
     End With
 End Sub
 
+' X26 : jauge budget annuel — barres Depense vs Objectif (budget x 12)
+Private Sub AddBudgetYearGauge(ws As Worksheet, key As String, wsD As Worksheet, _
+                              L As Double, t As Double, w As Double, h As Double)
+    Dim co As ChartObject
+    Set co = EnsureChart(ws, key, L, t, w, h)
+    With co.Chart
+        .ChartType = xlBarClustered
+        .SetSourceData Source:=wsD.Range("AC1:AD3"), PlotBy:=xlColumns
+        .HasTitle = True
+        .ChartTitle.Text = "Budget annuel (" & ChrW(8364) & " depenses vs objectif)"
+        .ChartTitle.Font.Size = 11: .ChartTitle.Font.Bold = True
+        On Error Resume Next
+        Dim depense As Double, objectif As Double
+        depense = NumOr0(wsD.Range("AD2").Value)
+        objectif = NumOr0(wsD.Range("AD3").Value)
+        ' Depense : rouge si depassement, vert sinon ; objectif en orange
+        If objectif > 0 And depense > objectif Then
+            .SeriesCollection(1).Points(1).Format.Fill.ForeColor.RGB = RGB(200, 50, 50)
+        Else
+            .SeriesCollection(1).Points(1).Format.Fill.ForeColor.RGB = C_E85
+        End If
+        .SeriesCollection(1).Points(2).Format.Fill.ForeColor.RGB = C_OBJ
+        .SeriesCollection(1).HasDataLabels = True
+        .HasLegend = False
+        .ChartArea.Border.LineStyle = xlNone
+        On Error GoTo 0
+    End With
+End Sub
+
 ' ============================================================
 '  KPIs (cartes)
 ' ============================================================
@@ -629,7 +671,7 @@ End Sub
 ' X25 : purge les graphiques/cartes inconnus (anciennes versions), garde
 ' les objets nommes que l'on reutilise + les deux boutons.
 Private Sub PurgeUnknown(ws As Worksheet)
-    Const OK_CHARTS As String = "|gPrice|gCost|gConso|gVeh|gBudget|gCo2|gGauge|"
+    Const OK_CHARTS As String = "|gPrice|gCost|gConso|gVeh|gBudget|gCo2|gGauge|gBudgetYear|"
     Const OK_SHAPES As String = "|btnRecreerGraph|btnExportGraph|kpiTitle|" & _
         "kpiCard1|kpiCard2|kpiCard3|kpiCard4|kpiCard5|"
     Dim i As Long

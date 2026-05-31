@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v4.6.0.0**
+> 🔖 Version courante : **v4.7.0.0**
 
 ## 🌐 Accès
 
@@ -336,6 +336,8 @@ suivi-conso-carburant/
 │   ├── theme.js                     # Dark mode (toggle + persist localStorage)
 │   ├── historique.js                # 5 derniers pleins + W32 historique complet + filtres + W26 Web Share
 │   ├── stats.js                     # Stats live 4 KPIs + sparkline multi-carburant W28+W34 + prédiction W33 + getNextKmPrediction W35
+│   ├── statsApi.js                  # W59/S12 client agrégats serveur (cache 1 h) + résumé annuel ⚡
+│   ├── theme.js                     # U8 thème clair/sombre (prefers-color-scheme + persistance)
 │   ├── stationsmap.js               # Carte statique stations habituelles + prix moyens
 │   ├── secteur.js                   # W38 prix mini secteur (relevé quotidien) + carte « moins cher du secteur »
 │   ├── wrapped.js                   # W37 bilan annuel « Wrapped » (litres/€/km/éco/station/mois, véhicule↔tous)

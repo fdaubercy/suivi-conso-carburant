@@ -805,6 +805,48 @@ footer { text-align: center; font-size: 11px; color: var(--text-muted); padding:
 .stat.pos .stat-val { color: var(--green); }
 .stat.neg .stat-val { color: var(--red); }
 
+/* ─── W59 — Résumé annuel serveur (S12) ─── */
+.srv-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.srv-kpi {
+  background: var(--toggle-bg);
+  border-radius: 9px;
+  padding: 8px 4px;
+  text-align: center;
+}
+.srv-kpi-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--blue-dark);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.srv-kpi-lab {
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  letter-spacing: .02em;
+}
+.srv-station {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+.srv-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--blue-mid);
+  background: var(--toggle-bg);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+[data-theme="dark"] .srv-kpi-val { color: var(--text); }
+
 [data-theme="dark"] .stat-val      { color: var(--text); }
 [data-theme="dark"] .stat.pos .stat-val { color: #34d399; }
 [data-theme="dark"] .stat.neg .stat-val { color: #f87171; }

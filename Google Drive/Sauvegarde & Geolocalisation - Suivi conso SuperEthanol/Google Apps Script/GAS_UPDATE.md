@@ -1,4 +1,4 @@
-# Suivi E85 — Google Apps Script — v2.9.0.0
+# Suivi E85 — Google Apps Script — v3.7.0.0
 
 ## Déploiement
 
@@ -6,6 +6,8 @@
 2. Remplacer tout le contenu de `Code.gs` par le fichier `Code.gs` de ce dossier
 3. **Déployer → Gérer les déploiements → Nouvelle version → Déployer**
 4. Copier l'URL de déploiement et la reporter dans `js/config.js` → `GAS_URL`
+
+> ⚠️ **v3.7.0.0 (S12)** : l'endpoint `?action=stats` n'est actif **qu'après un redéploiement** (étape 3, *Nouvelle version*). Tant que ce n'est pas fait, l'app web bascule automatiquement sur son **calcul local** (aucune erreur visible, le résumé annuel reste affiché via le repli).
 
 ---
 

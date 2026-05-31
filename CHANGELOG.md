@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.7.0.0] — 2026-05-31
+
+### Added
+- **S12 — Endpoint GAS `action=stats` pré-agrégé** (`Code.gs`). Nouvelle route `?action=stats[&veh=&year=]` qui calcule côté serveur les **agrégats mensuels** (coût, litres, CO₂ évité), les **KPIs annuels** (pleins, litres, € dépensés, km, station préférée) et le **comparatif par véhicule** (conso & coût /100 km), puis renvoie un **JSON compact** mis en **cache `CacheService` ~1 h** (clé = véhicule|année|nb lignes). Surconso E85 dynamique + constantes CO₂ alignées sur `js/config.js`. **⚠️ Redéploiement de la Web App requis** (nouvelle version).
+- **W59 — Consommation des agrégats serveur côté app** (`js/statsApi.js`, nouveau). Client tolérant aux pannes : `getServerStats(veh, year)` (cache localStorage TTL 1 h), `getCachedServerStats` (rendu instantané), `prewarmServerStats` (pré-chauffe au démarrage, appelée dans `main.js`). Helpers purs testés (`buildStatsUrl`/`isFresh`/`readStatsCache`/`writeStatsCache`) → `tests/statsApi.test.js` (**+12 tests**).
+- **W59 — Carte « Bilan annuel ⚡ serveur »** (vue Stats). Nouveau bloc `#serverSummary` rendu **instantanément** depuis le cache (ou un **repli local** calculé depuis l'historique si l'endpoint n'est pas encore déployé), puis rafraîchi en tâche de fond. KPIs année : pleins, litres, €, km, station préférée. Styles `.srv-*` (clair + sombre).
+- **X26 — Mini-jauge budget annuel** (`vba/modGraphiques.bas`). 13ᵉ visuel `gBudgetYear` (colonne gauche) : barres **Dépense de l'année cible vs Objectif (Budget mensuel `B2` × 12)**, affichée seulement si un budget est renseigné ; dépense en **rouge si dépassement**, vert sinon, objectif en orange. Réutilise `coutAnnee`/`anneeCible` (donc respecte le sélecteur d'année `B4`).
+
+### Changed
+- **U8 — Thème sombre** : vérifié et finalisé (déjà présent : `js/theme.js`, bouton `#themeToggle`, init `prefers-color-scheme` + persistance, surcharges CSS `[data-theme="dark"]`). Couverture étendue au nouveau bloc résumé serveur.
+- **Versions** : `js/config.js` `APP_VERSION` 4.7.0.0 · `Code.gs` v3.7.0.0 · `modGraphiques.bas` v4.7.0.0.
+
+### ⚠️ Installation
+1. **Apps Script** : copier `Code.gs` puis **Déployer → Gérer les déploiements → ✏️ → Nouvelle version → Déployer** (sinon `action=stats` renvoie le HTML et le client bascule en repli local — aucune erreur visible).
+2. **Excel** : réimporter `vba/modGraphiques.bas` ; la jauge budget annuel apparaît au prochain `CreerGraphiquesWeb` si `B2` est renseigné.
+
 ## [4.6.0.0] — 2026-05-31
 
 ### Added

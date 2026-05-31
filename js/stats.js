@@ -5,6 +5,7 @@ import { FUEL_CONFIG, DEFAULT_SURCONSO, KIT_PRIX_KEY, DEFAULT_KIT_PRIX,
          CO2_OBJECTIF_KEY, DEFAULT_CO2_OBJECTIF, CO2_THERMIQUE_PER_KM, CO2_ARBRE_PAR_AN } from './config.js';
 import { getAllRecords, forceRefreshHistorique } from './historique.js';
 import { renderComparatif } from './comparatif.js';
+import { getCachedServerStats, getServerStats } from './statsApi.js';
 
 /* ─── Prix du kit de conversion (localStorage, défaut = cellule B5 Excel) ─── */
 export function getKitPrix() {
@@ -502,6 +503,82 @@ export function renderStats() {
   `;
 
   renderComparatif();   // W41 — graphe comparatif inter-véhicules (vue Stats)
+  renderServerSummary();   // W59 — résumé annuel pré-agrégé (serveur)
+}
+
+/* ─── W59 — Résumé annuel pré-agrégé côté serveur (endpoint GAS S12) ───
+   Affichage instantané depuis le cache, puis rafraîchi en tâche de fond.
+   Repli local si l'endpoint n'est pas (encore) déployé. */
+function _serverSummaryHTML(d) {
+  if (!d || !d.kpis) return '';
+  const k = d.kpis;
+  const cells = [
+    ['Pleins', k.pleins ?? '—'],
+    ['Litres', (k.litres != null ? Math.round(k.litres) : '—') + ' L'],
+    ['Dépensé', (k.cost != null ? k.cost : '—') + ' €'],
+    ['Km', (k.km != null ? k.km : '—') + ' km'],
+  ].map(([lab, val]) => `<div class="srv-kpi"><div class="srv-kpi-val">${val}</div><div class="srv-kpi-lab">${lab}</div></div>`).join('');
+  const station = k.station ? `<div class="srv-station">⛽ Station préférée : <strong>${escHtmlLocal(k.station)}</strong></div>` : '';
+  return `
+    <p class="section-title">Bilan ${k.year || ''} <span class="srv-badge" title="Agrégé côté serveur (Apps Script), mis en cache 1 h">⚡ serveur</span></p>
+    <div class="srv-grid">${cells}</div>
+    ${station}`;
+}
+
+function escHtmlLocal(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+/** Repli local : KPIs annuels calculés depuis getAllRecords (si pas de serveur). */
+function _localAnnualKpis(veh) {
+  const all = getAllRecords();
+  if (!all.length) return null;
+  const byVeh = veh ? all.filter(r => (r['Véhicule'] || r['Vehicule'] || '') === veh) : all;
+  let yearMax = 0;
+  byVeh.forEach(r => {
+    const dt = new Date(String(r.Date || r.Horodatage || '').replace(' ', 'T'));
+    if (!isNaN(dt) && dt.getFullYear() > yearMax) yearMax = dt.getFullYear();
+  });
+  if (!yearMax) return null;
+  const yr = byVeh.filter(r => {
+    const dt = new Date(String(r.Date || r.Horodatage || '').replace(' ', 'T'));
+    return !isNaN(dt) && dt.getFullYear() === yearMax;
+  });
+  const kmByVeh = {}, stationCnt = {};
+  let litres = 0, cost = 0;
+  yr.forEach(r => {
+    litres += Number(r['Nb. Litres'] || 0);
+    cost   += Number(r['Nb. Litres'] || 0) * Number(r['Prix €/L'] || 0);
+    const st = String(r['Station essence'] || '').trim();
+    if (st) stationCnt[st] = (stationCnt[st] || 0) + 1;
+    const km = Number(r['Km compteur'] || 0);
+    if (km > 0) {
+      const v = r['Véhicule'] || r['Vehicule'] || '';
+      const o = kmByVeh[v] || (kmByVeh[v] = { min: km, max: km });
+      if (km < o.min) o.min = km; if (km > o.max) o.max = km;
+    }
+  });
+  let km = 0; Object.values(kmByVeh).forEach(o => { km += o.max - o.min; });
+  let station = '', top = -1;
+  Object.entries(stationCnt).forEach(([s, n]) => { if (n > top) { top = n; station = s; } });
+  return { kpis: { year: yearMax, pleins: yr.length, litres: Math.round(litres), cost: Math.round(cost), km: Math.round(km), station } };
+}
+
+export function renderServerSummary() {
+  const el = document.getElementById('serverSummary');
+  if (!el) return;
+  const veh = state.currentVehiculeNom || '';
+
+  const cached = getCachedServerStats(veh) || _localAnnualKpis(veh);
+  const html = _serverSummaryHTML(cached);
+  if (html) { el.innerHTML = html; el.classList.remove('hidden'); }
+  else { el.classList.add('hidden'); }
+
+  // Rafraîchissement serveur en tâche de fond (silencieux si endpoint absent)
+  getServerStats(veh).then(d => {
+    const h = _serverSummaryHTML(d);
+    if (h) { el.innerHTML = h; el.classList.remove('hidden'); }
+  }).catch(() => { /* repli déjà affiché */ });
 }
 
 /* ─── W40 — Tuile « kg CO₂ évités » (cumul des pleins E85) ─── */
