@@ -22,11 +22,26 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 ---
 
-## 🛠️ Dev / Outillage
+## 🛠️ Dev / Outillage Claude
 
-| # | Idée | Pourquoi |
+### ✅ Réalisé
+
+| # | Idée | Version |
 |---|---|---|
-| _(aucune en attente)_ | — | T8–T11 implémentés en v3.12.2.0 · streaming `commit.sh`/lint/vitest en v4.8.0.0 |
+| C4 | **Pouvoirs navigateur — Claude in Chrome** — extension Chrome connectée ; capacités documentées dans `CLAUDE.md` | v4.10.0.1 |
+| C5 | **Pouvoirs API Google (GAS + Sheets)** — config `gas-config.json`, artifact GAS Manager, token OAuth documentés dans `CLAUDE.md` | v4.10.0.1 |
+| C3 | **Sécurité `.gitignore`** — `gas-config.json` exclu de git (scriptId, sheetId, deployId) | v4.10.0.2 |
+| C1 | **Skill `gas-api`** — `.claude/skills/gas-api/SKILL.md` dédiée aux appels API REST GAS+Sheets | v4.10.0.2 |
+| C2 | **Commande `/gasManager`** — `.claude/commands/gasManager.md` recharge l’artifact GAS Manager sans ressaisie | v4.10.0.2 |
+
+### 🔧 À faire
+
+| # | Idée | Pourquoi | Effort |
+|---|---|---|---|
+| C6 | **Renouvellement automatique du token OAuth** — `client_id` + `refresh_token` dans `gas-config.json` ; l’artifact GAS Manager se renouvelle via `oauth2/token` sans action manuelle | Évite la friction des 1h de validité | ~2h |
+| C7 | **Historique des déploiements dans `gas-config.json`** — section `deployHistory` (date, description, versionNumber) | Cohérence avec le versioning X.Y.Z.W et le CHANGELOG | < 1h |
+| C8 | **Sync GAS → GitHub via clasp** — script `sync-gas.sh` : `clasp pull` + `git add` + commit auto pour versionner le code GAS dans le repo | Traçabilité complète du code GAS dans git | ~3h |
+| C9 | **Service account Google** — remplacer le token OAuth Playground (1h, lié au compte perso) par un compte de service JSON credentials | Authentification stable sans renouvellement manuel | ~2h |
 
 ---
 
@@ -269,4 +284,3 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 ---
 
 > ✏️ Les améliorations réalisées sont retirées de leur tableau d'origine et ajoutées au tableau ci-dessus.
-| v4.10.0.2 | **Outillage Claude — quick wins sécurité et ergonomie (C1/C2/C3)** — skill `gas-api` (API REST GAS+Sheets), commande `/gasManager` (artifact sans ressaisie), `gas-config.json` exclu de git (sécurité IDs) |
