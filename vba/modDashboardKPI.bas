@@ -47,6 +47,7 @@ Public Type DashStats
     pctE85      As Double   ' part de pleins E85 (sur le veh, fraction 0..1)
     prixMoyen   As Double   ' EUR/L moyen du carburant filtre (E85 si tous)
     dateDernier As Date     ' date du dernier plein du perimetre
+    stationTop  As String   ' station la plus frequentee (perimetre vehicule)
 End Type
 
 '------------------------------------------------------------
@@ -330,7 +331,7 @@ Public Sub ComputeDashboardStats(ByVal veh As String, ByVal fuel As String, _
     If lo Is Nothing Then Exit Sub
     If lo.DataBodyRange Is Nothing Then Exit Sub
 
-    Dim ciVeh As Long, ciType As Long, ciKm As Long, ciLit As Long, ciPrix As Long, ciSP98 As Long, ciDate As Long
+    Dim ciVeh As Long, ciType As Long, ciKm As Long, ciLit As Long, ciPrix As Long, ciSP98 As Long, ciDate As Long, ciStation As Long
     ciVeh = ColIdx(lo, "Vehicule")
     ciType = ColIdx(lo, "Type")
     ciKm = ColIdx(lo, "Km")
@@ -338,6 +339,7 @@ Public Sub ComputeDashboardStats(ByVal veh As String, ByVal fuel As String, _
     ciPrix = ColIdx(lo, "PrixL")
     ciSP98 = ColIdx(lo, "SP98 station")
     ciDate = ColIdx(lo, "Date")
+    ciStation = ColIdx(lo, "Station essence")
     If ciKm = 0 Or ciLit = 0 Then Exit Sub
 
     Dim filtVeh As Boolean: filtVeh = (Len(veh) > 0 And veh <> KPI_TOUS)
@@ -347,10 +349,12 @@ Public Sub ComputeDashboardStats(ByVal veh As String, ByVal fuel As String, _
     Dim a As Variant: a = lo.DataBodyRange.Value
     Dim i As Long
 
-    ' --- périmètre VEHICULE (pour %E85, prix moyen, date dernier plein) ---
+    ' --- périmètre VEHICULE (pour %E85, prix moyen, date dernier plein, station) ---
     Dim nVeh As Long, nE85 As Long
     Dim sumPrix As Double, nPrix As Long
     Dim dLast As Date: dLast = DateSerial(1900, 1, 1)
+    Dim stationCnt As Object: Set stationCnt = CreateObject("Scripting.Dictionary")
+    stationCnt.CompareMode = vbTextCompare
 
     ' --- périmètre VEHICULE+FUEL (full-to-full pour conso/cout/eco/co2) ---
     Dim kmMin As Double, kmMax As Double, haveKm As Boolean: haveKm = False
@@ -374,6 +378,10 @@ Public Sub ComputeDashboardStats(ByVal veh As String, ByVal fuel As String, _
             End If
             If ciDate > 0 Then
                 If IsDate(a(i, ciDate)) Then If CDate(a(i, ciDate)) > dLast Then dLast = CDate(a(i, ciDate))
+            End If
+            If ciStation > 0 Then
+                Dim stv As String: stv = Trim$(CStr(a(i, ciStation)))
+                If Len(stv) > 0 Then stationCnt(stv) = stationCnt(stv) + 1
             End If
         End If
 
@@ -436,6 +444,13 @@ P2NX:
     If nVeh > 0 Then ds.pctE85 = nE85 / nVeh
     If nPrix > 0 Then ds.prixMoyen = sumPrix / nPrix
     If dLast > DateSerial(1900, 1, 1) Then ds.dateDernier = dLast
+    ' station la plus fréquentée (périmètre véhicule)
+    Dim bestSt As String, bestN As Double, kSt As Variant
+    bestN = -1
+    For Each kSt In stationCnt.Keys
+        If stationCnt(kSt) > bestN Then bestN = stationCnt(kSt): bestSt = CStr(kSt)
+    Next kSt
+    ds.stationTop = bestSt
     Exit Sub
 EH:
     Dim e As DashStats: ds = e

@@ -314,10 +314,13 @@ Private Function BuildHeaderAndKPIs(ws As Worksheet) As Single
     Dim metaTop2 As Single: metaTop2 = metaTop + 26 + 4
     Dim sDate As String
     If ds.dateDernier > DateSerial(1900, 1, 1) Then sDate = Format(ds.dateDernier, "dd/mm/yyyy") Else sDate = "—"
+    Dim sStation As String
+    If Len(Trim$(ds.stationTop)) > 0 Then sStation = ds.stationTop Else sStation = "—"
     Dim metaTxt2 As String
     metaTxt2 = "Dépense totale : " & Format(ds.depense, "# ##0") & " €      ·      " & _
                "Prix moyen " & SelLabel(selFuel, "E85") & " : " & Format(ds.prixMoyen, "0.000") & " €/L      ·      " & _
-               "Dernier plein : " & sDate
+               "Dernier plein : " & sDate & "      ·      " & _
+               "Station préférée : " & sStation
     AddMetaStrip ws, L0, metaTop2, WTOT, 26, metaTxt2
 
     BuildHeaderAndKPIs = metaTop2 + 26 + GAP

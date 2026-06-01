@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.11.0.3] — 2026-06-01
+
+### Added
+- **X37 — « Station préférée » dans le 2ᵉ bandeau méta** (`vba/modDashboardKPI.bas`, `vba/modDashboardGraphiques.bas`) : seule donnée non reprise lors du retrait du bloc « Bilan annuel », elle revient dans le dashboard. `ComputeDashboardStats` gagne le champ `stationTop` = station la plus fréquentée sur le périmètre **véhicule** (comptage des occurrences dans `GS_Pleins`, colonne `Station essence`). Affichée en fin de 2ᵉ bandeau : « Dépense totale · Prix moyen · Dernier plein · **Station préférée** ».
+
 ## [4.11.0.2] — 2026-06-01
 
 ### Fixed / Removed

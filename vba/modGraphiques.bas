@@ -1,4 +1,3 @@
-Attribute VB_Name = "modGraphiques"
 ' ============================================================
 '  SUIVI CONSO CARBURANTS — Graphiques du tableau de bord     v4.9.0.1
 '
