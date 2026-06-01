@@ -83,7 +83,9 @@ Private Sub CleanupDashShapes(ws As Worksheet)
     Dim sh As Shape, i As Long
     For i = ws.Shapes.count To 1 Step -1
         Set sh = ws.Shapes(i)
-        If Left$(sh.Name, 5) = "dash_" Then sh.Delete
+        ' "dash_*" = formes de CE module ; "kpi*" = ancien bloc "Bilan annuel"
+        ' (BuildKPICards de modGraphiques, retiré X36) à purger s'il subsiste.
+        If Left$(sh.Name, 5) = "dash_" Or Left$(sh.Name, 3) = "kpi" Then sh.Delete
     Next i
 End Sub
 

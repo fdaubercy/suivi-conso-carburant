@@ -233,7 +233,11 @@ Public Sub CreerGraphiquesWeb(Optional silent As Boolean = False)
         DeleteChartByName wsG, "gCo2"
     End If
     AddCo2GaugeChart wsG, "gGauge", wsD, co2Obj, L2, topBase + 2 * stepY, w, h
-    BuildKPICards wsG, wsD, L2, topBase + 3 * stepY
+    ' X36 : bloc "Bilan annuel" (BuildKPICards) RETIRE — il n'etait pas repositionne
+    ' par modDashboardGraphiques.LayoutCharts (formes, pas graphiques) -> un graphique
+    ' se posait par-dessus (titre tronque). Ses donnees sont desormais dans les 2
+    ' bandeaux meta de modDashboardGraphiques. Les formes residuelles kpiTitle/kpiCard*
+    ' sont supprimees par CleanupDashShapes.
     ' X28 : cout au km c{e}/km par plein (barres)
     If rCoutKm > 1 Then
         AddCoutKmChart wsG, "gCoutKm", wsD, rCoutKm, L2, topBase + 4 * stepY, w, h

@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.11.0.2] — 2026-06-01
+
+### Fixed / Removed
+- **X36 — Titre bleu « Bilan annuel » tronqué (« 26 ») + bloc en doublon** (`vba/modGraphiques.bas`, `vba/modDashboardGraphiques.bas`) : le bloc `BuildKPICards` (titre bleu + 5 cartes Pleins/Litres/€/Km/Station) était dessiné à une position fixe par `modGraphiques`, mais `modDashboardGraphiques.LayoutCharts` réorganise les **graphiques** dans sa grille 3 colonnes **sans** repositionner ces **formes** → un graphique se posait par-dessus, ne laissant dépasser que « 26 » du titre. Ce bloc faisait par ailleurs **doublon** avec les 2 bandeaux méta ajoutés en Phase 2. **Retiré** : appel `BuildKPICards` supprimé ; `CleanupDashShapes` purge désormais aussi les formes résiduelles `kpiTitle`/`kpiCard*`. Dashboard propre, sans chevauchement.
+
 ## [4.11.0.1] — 2026-06-01
 
 ### Fixed
