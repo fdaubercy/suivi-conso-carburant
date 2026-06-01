@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.11.0.1] — 2026-06-01
+
+### Fixed
+- **X36 — Listes déroulantes Véhicule/Carburant (B5/B6) cassées après le renommage** (`vba/modDashboardGraphiques.bas`, `ApplyListValidation`) : la formule de validation utilisait `=" & ws.Name & "!"`, non quotée. Tant que la feuille s'appelait « Graphiques » (sans espace) ça passait ; renommée en **« Tableau de bord »** (avec espaces), la formule devenait invalide → `.Add` échouait silencieusement → **plus de menu déroulant**. Correctif : quotes simples autour du nom de feuille (`='" & ws.Name & "'!"`), valide avec ou sans espaces. Les widgets/graphiques eux sont régénérés par `CreerGraphiquesWeb` + `MAJ_Dashboard_Graphiques` (relancer après compilation OK).
+
 ## [4.11.0.0] — 2026-06-01
 
 ### Changed

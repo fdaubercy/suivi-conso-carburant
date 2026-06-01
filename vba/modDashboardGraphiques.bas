@@ -466,7 +466,10 @@ Private Sub ApplyListValidation(target As Range, ws As Worksheet, col As Long, c
     On Error Resume Next
     If count < 1 Then Exit Sub
     Dim addr As String
-    addr = "=" & ws.Name & "!" & ws.Range(ws.Cells(1, col), ws.Cells(count, col)).Address
+    ' X36 : quotes simples autour du nom de feuille — indispensable depuis le
+    ' renommage en « Tableau de bord » (nom AVEC espaces) ; sinon la formule de
+    ' validation est invalide et la liste déroulante ne se crée pas.
+    addr = "='" & ws.Name & "'!" & ws.Range(ws.Cells(1, col), ws.Cells(count, col)).Address
     With target.Validation
         .Delete
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:=addr
