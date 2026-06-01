@@ -19,6 +19,9 @@
 '---------------------------------------------------------------------------
 Option Explicit
 
+'---- Onglet du tableau de bord (X36 : ex-"Graphiques", renommé "Tableau de bord") --
+Private Const WS_DASH As String = "Tableau de bord"
+
 '---- Sélecteurs X32 (cellules libres : modGraphiques n'utilise que B2/B3/B4) --
 Private Const CELL_SEL_VEH  As String = "B5"   ' Véhicule sélectionné
 Private Const CELL_SEL_FUEL As String = "B6"   ' Carburant sélectionné
@@ -50,10 +53,10 @@ Private Function FONT_UI() As String: FONT_UI = "Segoe UI": End Function
 Public Sub MAJ_Dashboard_Graphiques()
     Dim ws As Worksheet
     On Error Resume Next
-    Set ws = ThisWorkbook.Worksheets("Graphiques")
+    Set ws = ThisWorkbook.Worksheets(WS_DASH)
     On Error GoTo 0
     If ws Is Nothing Then
-        Application.StatusBar = "Feuille « Graphiques » introuvable."
+        Application.StatusBar = "Feuille « " & WS_DASH & " » introuvable."
         Exit Sub
     End If
 
@@ -233,44 +236,36 @@ End Function
 '  Renvoie le Top (pt) où la grille de graphiques doit commencer.
 '---------------------------------------------------------------------------
 Private Function BuildHeaderAndKPIs(ws As Worksheet) As Single
-    Dim tb As Worksheet, gd As Worksheet
-    On Error Resume Next
-    Set tb = ThisWorkbook.Worksheets("Tableau de bord")
-    Set gd = ThisWorkbook.Worksheets("_GraphData")
-    On Error GoTo 0
-
-    ' -- Valeurs (lues en direct ; snapshot au moment du lancement) --
-    Dim vConso As Double, vCoutKm As Double, vEcon As Double, vCo2 As Double
-    Dim vPleins As Double, vKm As Double, vLitres As Double, vPctE85 As Double
-    Dim vBudget As Double, vObjCo2 As Double
-    On Error Resume Next
-    vConso = tb.Range("B5").value
-    vCoutKm = tb.Range("B6").value
-    vEcon = tb.Range("B10").value
-    vPctE85 = tb.Range("B9").value
-    vKm = tb.Range("B14").value
-    vLitres = tb.Range("B13").value
-    vCo2 = gd.Range("AA2").value          ' CO2 réalisé (kg)
-    vPleins = gd.Range("X3").value         ' Nb pleins
-    vBudget = ws.Range("B2").value
-    vObjCo2 = ws.Range("B3").value
-    On Error GoTo 0
-
     ' -- Panneau Paramètres + sélecteurs ÉDITABLES (cellules A1:B6) --
     StyleParamsPanel ws
     EnsureSelectors ws        ' X32 : listes véhicule (B5) / carburant (B6)
 
-    ' -- X33 : KPI dynamiques filtrés par véhicule + carburant sélectionnés --
+    ' -- Paramètres budget / objectif CO2 (cellules éditables de CE dashboard) --
+    Dim vBudget As Double, vObjCo2 As Double
+    On Error Resume Next
+    vBudget = ws.Range("B2").value
+    vObjCo2 = ws.Range("B3").value
+    On Error GoTo 0
+
+    ' -- X36/X37 : TOUTES les valeurs calculées en direct depuis GS_Pleins,
+    '    FILTRÉES par véhicule + carburant. Plus aucune dépendance à un autre
+    '    onglet (l'ex-"Tableau de bord" peut être supprimé). --
     Dim selVeh As String, selFuel As String
     selVeh = CStr(ws.Range(CELL_SEL_VEH).value)
     selFuel = CStr(ws.Range(CELL_SEL_FUEL).value)
-    Dim kConso As Double, kCoutKm100 As Double, kEco As Double
-    modDashboardKPI.ComputeKPIs selVeh, selFuel, kConso, kCoutKm100, kEco
-    If kCoutKm100 > 0 Then
-        vConso = kConso
-        vCoutKm = kCoutKm100 / 100      ' la carte COÛT multiplie par 100
-    End If
-    vEcon = kEco
+    Dim ds As DashStats
+    modDashboardKPI.ComputeDashboardStats selVeh, selFuel, ds
+
+    Dim vConso As Double, vCoutKm As Double, vEcon As Double, vCo2 As Double
+    Dim vPleins As Double, vKm As Double, vLitres As Double, vPctE85 As Double
+    vConso = ds.conso
+    vCoutKm = ds.coutKm100 / 100          ' la carte COÛT multiplie par 100
+    vEcon = ds.eco
+    vCo2 = ds.co2
+    vPleins = ds.nbPleins
+    vKm = ds.km
+    vLitres = ds.litres
+    vPctE85 = ds.pctE85
 
     ' -- Bandeau d'en-tête (à droite du panneau Paramètres) --
     Dim rowsBottom As Single: rowsBottom = ws.Range("A7").Top
@@ -304,7 +299,7 @@ Private Function BuildHeaderAndKPIs(ws As Worksheet) As Single
     AddKpiCard ws, x, kpiTop, cardW, kpiH, cAmber, "CO2 ÉVITÉ", _
                Format(vCo2, "0") & " kg", "vs essence · objectif " & Format(vObjCo2, "0") & " kg"
 
-    ' -- Bandeau méta --
+    ' -- Bandeau méta (ligne 1 : volumétrie) --
     Dim metaTop As Single: metaTop = kpiTop + kpiH + GAP
     Dim metaTxt As String
     metaTxt = "Pleins : " & Format(vPleins, "0") & "      ·      " & _
@@ -313,7 +308,17 @@ Private Function BuildHeaderAndKPIs(ws As Worksheet) As Single
               "% pleins E85 : " & Format(vPctE85, "0 %")
     AddMetaStrip ws, L0, metaTop, WTOT, 26, metaTxt
 
-    BuildHeaderAndKPIs = metaTop + 26 + GAP
+    ' -- Bandeau méta (ligne 2 : valeurs fusionnées de l'ancien tableau de bord) --
+    Dim metaTop2 As Single: metaTop2 = metaTop + 26 + 4
+    Dim sDate As String
+    If ds.dateDernier > DateSerial(1900, 1, 1) Then sDate = Format(ds.dateDernier, "dd/mm/yyyy") Else sDate = "—"
+    Dim metaTxt2 As String
+    metaTxt2 = "Dépense totale : " & Format(ds.depense, "# ##0") & " €      ·      " & _
+               "Prix moyen " & SelLabel(selFuel, "E85") & " : " & Format(ds.prixMoyen, "0.000") & " €/L      ·      " & _
+               "Dernier plein : " & sDate
+    AddMetaStrip ws, L0, metaTop2, WTOT, 26, metaTxt2
+
+    BuildHeaderAndKPIs = metaTop2 + 26 + GAP
 End Function
 
 '---- Bandeau d'en-tête bleu nuit -------------------------------------------

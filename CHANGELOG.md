@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.11.0.0] — 2026-06-01
+
+### Changed
+- **X36/X37 — Refonte du tableau de bord Excel (Phase 2)** :
+  - **Renommage des onglets** : l'onglet visuel « Graphiques » devient le **« Tableau de bord »** principal ; l'ancien « Tableau de bord » (liste de 10 KPI, `modDashboard.bas`) est renommé temporairement « Tableau de bord 2 » puis **supprimé après fusion** (voir README). Constantes VBA mises à jour : `modGraphiques.WS_GRAPH`, `modDashboardGraphiques.WS_DASH`, `modSyncGS.GraphSheetExists` (repli sur l'ancien nom tant que le renommage n'est pas fait).
+  - **Découplage** (`modDashboardGraphiques.BuildHeaderAndKPIs`) : le dashboard ne lit plus aucune valeur dans un autre onglet. Toutes les valeurs (KPI + bandeau méta + CO2) sont calculées en direct depuis `GS_Pleins` via le nouveau `modDashboardKPI.ComputeDashboardStats` (méthode full-to-full, type `DashStats`).
+  - **Réactivité totale au filtre véhicule/carburant (X36)** : KPI, bandeau méta, carte CO2 **et tous les graphiques temporels** se recalculent selon les sélecteurs `B5` (véhicule) / `B6` (carburant). `modGraphiques.BuildAggregates` filtre désormais la boucle `Tableau2` (véhicule + carburant) et `BuildPriceBlockMerged` se limite au carburant sélectionné. La comparaison véhicules reste globale (croisée par nature). Le module feuille (`Graphiques_snippet.bas`) gagne un `Worksheet_Change` sur `B2:B6` qui reconstruit données filtrées + mise en page.
+  - **Fusion des KPI de l'ancien dashboard** : un 2ᵉ bandeau méta ajoute **Dépense totale (€)**, **Prix moyen (€/L)** du carburant filtré et **Date du dernier plein** — valeurs auparavant uniquement sur l'onglet « Tableau de bord ».
+
+### Removed
+- **Module legacy `modDashboard.bas`** (ex-`CreerTableauDeBord`/`CreerGraphiques`, v2.5.0.0) : devenu inutile (appelé par aucun flux automatique, écrivait des graphiques concurrents sur l'onglet du dashboard). À supprimer manuellement (guide README) en même temps que l'onglet « Tableau de bord 2 ».
+
 ## [4.10.0.3] — 2026-05-31
 
 ### Added

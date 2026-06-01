@@ -61,7 +61,10 @@ Attribute VB_Name = "modGraphiques"
 Option Explicit
 
 ' ── Feuilles / tables ──
-Private Const WS_GRAPH  As String = "Graphiques"
+' X36 : l'onglet du dashboard (ex-"Graphiques") est renommé "Tableau de bord".
+Private Const WS_GRAPH  As String = "Tableau de bord"
+' X36 : sentinelle « tous » des sélecteurs véhicule/carburant (= modDashboardKPI.KPI_TOUS).
+Private Const FILTER_ALL As String = "(tous)"
 Private Const PH_TABLE  As String = "PrixHistory"   ' X30/X35 : table Power Query _PrixHistory
 Private Const WS_CARB  As String = "Suivi Carburant"
 Private Const WS_DATA  As String = "_GraphData"
@@ -156,11 +159,17 @@ Public Sub CreerGraphiquesWeb(Optional silent As Boolean = False)
     Dim coutKit As Double
     coutKit = KitCost(wsC)
 
+    ' -- X36 : sélecteurs véhicule (B5) / carburant (B6) → filtre des graphiques --
+    Dim selVeh As String, selFuel As String
+    selVeh = Trim$(CStr(wsG.Range("B5").Value))
+    selFuel = Trim$(CStr(wsG.Range("B6").Value))
+
     ' -- Calcul des agregats -> _GraphData --
     SetStatusG "Graphiques : calcul des agregats..."
     Dim rMonth As Long, rPrice As Long, rConso As Long, rVeh As Long, rBudg As Long
     Dim rKit As Long, rCoutKm As Long, rPriceCols As Long
     BuildAggregates t2, gsT, wsD, surconso, co2Obj, budget, anneeSel, coutKit, _
+                    selVeh, selFuel, _
                     rMonth, rPrice, rConso, rVeh, rBudg, rKit, rCoutKm, rPriceCols
 
     ' -- Bandeau-titre (dashboard) --
@@ -260,11 +269,16 @@ End Sub
 Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Worksheet, _
                             surconso As Double, co2Obj As Double, budget As Double, _
                             anneeSel As Long, coutKit As Double, _
+                            ByVal selVeh As String, ByVal selFuel As String, _
                             ByRef rMonth As Long, ByRef rPrice As Long, _
                             ByRef rConso As Long, ByRef rVeh As Long, ByRef rBudg As Long, _
                             ByRef rKit As Long, ByRef rCoutKm As Long, ByRef rPriceCols As Long)
 
     wsD.Cells.Clear
+
+    ' X36 : filtre véhicule / carburant (sentinelle "(tous)" ou vide = pas de filtre)
+    Dim filtVeh As Boolean: filtVeh = (Len(selVeh) > 0 And selVeh <> FILTER_ALL)
+    Dim filtFuel As Boolean: filtFuel = (Len(selFuel) > 0 And selFuel <> FILTER_ALL)
 
     ' En-tetes des blocs
     Dim eu As String: eu = ChrW(8364)
@@ -299,6 +313,7 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Workshee
     ciNum = LCIdx(t2, "N" & ChrW(176))                                       ' "N°"
     ciCkm = LCIdx(t2, "Co" & ChrW(251) & "t c" & ChrW(8364) & "/km")          ' "Coût c€/km"
     ciEcoCum = LCIdx(t2, ChrW(201) & "conomie cumul" & ChrW(233) & "e (" & ChrW(8364) & ")") ' "Économie cumulée (€)"
+    Dim ciVehT2 As Long: ciVehT2 = LCIdx(t2, "Vehicule")   ' X36 : filtre véhicule
 
     Dim moisCost As Object, moisCO2 As Object, stationCnt As Object
     Set moisCost = CreateObject("Scripting.Dictionary")
@@ -333,6 +348,15 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Workshee
         If Not IsDate(a(i, ciDate)) Then GoTo NextRow
         Dim d As Date: d = CDate(a(i, ciDate))
         Dim fk As String: fk = FuelKey(CStr(a(i, ciType)))
+
+        ' X36 : filtre véhicule + carburant (graphiques réactifs aux sélecteurs B5/B6)
+        If filtVeh And ciVehT2 > 0 Then
+            If StrComp(Trim$(CStr(a(i, ciVehT2))), selVeh, vbTextCompare) <> 0 Then GoTo NextRow
+        End If
+        If filtFuel Then
+            If fk <> selFuel Then GoTo NextRow
+        End If
+
         Dim litres As Double: litres = NumOr0(a(i, ciLitres))
         Dim prix As Double: prix = NumOr0(a(i, ciPrix))
         Dim cout As Double: cout = NumOr0(a(i, ciCout))
@@ -393,7 +417,8 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Workshee
 NextRow:
     Next i
     ' X30/X35 : fusion PrixHistory (marche) + pleins, tous carburants detectes.
-    rPrice = BuildPriceBlockMerged(wsD, t2, rPriceCols)
+    ' X36 : si un carburant est sélectionné, le bloc prix se limite à celui-ci.
+    rPrice = BuildPriceBlockMerged(wsD, t2, rPriceCols, IIf(filtFuel, selFuel, ""))
     rConso = rCo
     rKit = rK
     rCoutKm = rCk
@@ -989,9 +1014,11 @@ End Function
 '  nCols recoit le nb de colonnes carburant (sans Date).
 ' ============================================================
 Private Function BuildPriceBlockMerged(wsD As Worksheet, t2 As ListObject, _
-                                       ByRef nCols As Long) As Long
+                                       ByRef nCols As Long, _
+                                       Optional ByVal onlyFuel As String = "") As Long
     BuildPriceBlockMerged = 1
     nCols = 0
+    Dim filtF As Boolean: filtF = (Len(onlyFuel) > 0)
 
     Dim prixData As Object: Set prixData = CreateObject("Scripting.Dictionary")
     Dim ordDates As Object: Set ordDates = CreateObject("Scripting.Dictionary")
@@ -1011,12 +1038,14 @@ Private Function BuildPriceBlockMerged(wsD As Worksheet, t2 As ListObject, _
                         Dim dk2 As String: dk2 = Format(CDate(a2(i2, ciD2)), "yyyy-mm-dd")
                         Dim fk2 As String: fk2 = FuelKey(CStr(a2(i2, ciT2)))
                         Dim p2 As Double: p2 = NumOr0(a2(i2, ciP2))
+                        If filtF Then If fk2 <> onlyFuel Then GoTo NextP2
                         If Len(fk2) > 0 And p2 > 0 Then
                             SetMin prixData, dk2 & "|" & fk2, p2
                             If Not ordDates.Exists(dk2) Then ordDates(dk2) = 1
                             If Not fuelSet.Exists(fk2) Then fuelSet(fk2) = True
                         End If
                     End If
+NextP2:
                 Next i2
             End If
         End If

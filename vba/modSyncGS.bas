@@ -480,9 +480,12 @@ End Sub
 
 ' X22 : vrai si l'onglet "Graphiques" existe deja dans le classeur
 Private Function GraphSheetExists() As Boolean
+    ' X36 : l'onglet du dashboard (ex-"Graphiques") est renomme "Tableau de bord".
+    ' Repli sur l'ancien nom "Graphiques" tant que le renommage n'est pas fait.
     Dim ws As Worksheet
     On Error Resume Next
-    Set ws = ThisWorkbook.Worksheets("Graphiques")
+    Set ws = ThisWorkbook.Worksheets("Tableau de bord")
+    If ws Is Nothing Then Set ws = ThisWorkbook.Worksheets("Graphiques")
     On Error GoTo 0
     GraphSheetExists = Not ws Is Nothing
 End Function

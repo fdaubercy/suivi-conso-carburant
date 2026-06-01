@@ -27,9 +27,27 @@ Option Explicit
 Private Const GS_SHEET As String = "GS_Pleins"
 Private Const WS_CARB  As String = "Suivi Carburant"
 Private Const DEFAULT_SURCONSO As Double = 0.2
+' Constantes CO2 (alignees sur js/config.js et modGraphiques).
+Private Const CO2_ESSENCE_PER_L As Double = 2.21
+Private Const CO2_E85_PER_L     As Double = 1.105
 
 ' Valeur sentinelle « tous » (pas de filtre carburant).
 Public Const KPI_TOUS As String = "(tous)"
+
+' X37 : structure regroupant toutes les valeurs du tableau de bord (filtrees).
+Public Type DashStats
+    conso       As Double   ' L/100 km (filtre veh+fuel)
+    coutKm100   As Double   ' EUR/100 km (filtre veh+fuel)
+    eco         As Double   ' EUR economie E85 vs SP98 (lignes E85)
+    co2         As Double   ' kg CO2 evite (lignes E85)
+    nbPleins    As Long     ' nb pleins du perimetre (hors plein de reference)
+    km          As Double   ' distance kmMax - kmMin
+    litres      As Double   ' litres cumules (hors plein de reference)
+    depense     As Double   ' EUR depenses (hors plein de reference)
+    pctE85      As Double   ' part de pleins E85 (sur le veh, fraction 0..1)
+    prixMoyen   As Double   ' EUR/L moyen du carburant filtre (E85 si tous)
+    dateDernier As Date     ' date du dernier plein du perimetre
+End Type
 
 '------------------------------------------------------------
 '  Acces a la table GS_Pleins
@@ -293,6 +311,134 @@ CalcFin:
     Exit Sub
 EH:
     outConso = 0: outCoutKm = 0: outEco = 0
+End Sub
+
+'------------------------------------------------------------
+'  X37 — STATISTIQUES COMPLETES DU DASHBOARD (filtrees veh/fuel)
+'  Regroupe en une passe toutes les valeurs affichees par le
+'  tableau de bord (KPI + bandeau meta + fusion ancien dashboard),
+'  pour DECOUPLER le dashboard de l'ancien onglet "Tableau de bord".
+'  Methode conso/cout : full-to-full (exclut le plein de reference),
+'  identique a ComputeKPIs. (Type DashStats + constantes CO2 declares en tete.)
+'------------------------------------------------------------
+Public Sub ComputeDashboardStats(ByVal veh As String, ByVal fuel As String, _
+                                 ByRef ds As DashStats)
+    Dim zeroDs As DashStats: ds = zeroDs
+    On Error GoTo EH
+
+    Dim lo As ListObject: Set lo = GSTable()
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim ciVeh As Long, ciType As Long, ciKm As Long, ciLit As Long, ciPrix As Long, ciSP98 As Long, ciDate As Long
+    ciVeh = ColIdx(lo, "Vehicule")
+    ciType = ColIdx(lo, "Type")
+    ciKm = ColIdx(lo, "Km")
+    ciLit = ColIdx(lo, "Litres")
+    ciPrix = ColIdx(lo, "PrixL")
+    ciSP98 = ColIdx(lo, "SP98 station")
+    ciDate = ColIdx(lo, "Date")
+    If ciKm = 0 Or ciLit = 0 Then Exit Sub
+
+    Dim filtVeh As Boolean: filtVeh = (Len(veh) > 0 And veh <> KPI_TOUS)
+    Dim filtFuel As Boolean: filtFuel = (Len(fuel) > 0 And fuel <> KPI_TOUS)
+    Dim sc As Double: sc = Surconso()
+
+    Dim a As Variant: a = lo.DataBodyRange.Value
+    Dim i As Long
+
+    ' --- périmètre VEHICULE (pour %E85, prix moyen, date dernier plein) ---
+    Dim nVeh As Long, nE85 As Long
+    Dim sumPrix As Double, nPrix As Long
+    Dim dLast As Date: dLast = DateSerial(1900, 1, 1)
+
+    ' --- périmètre VEHICULE+FUEL (full-to-full pour conso/cout/eco/co2) ---
+    Dim kmMin As Double, kmMax As Double, haveKm As Boolean: haveKm = False
+
+    ' PASSE 1 : kmMin/kmMax (filtre veh+fuel) + agrégats veh-scope
+    For i = 1 To UBound(a, 1)
+        Dim fkA As String: fkA = ""
+        If ciType > 0 Then fkA = FuelKeyK(CStr(a(i, ciType)))
+
+        ' -- périmètre véhicule (filtre veh seulement) --
+        Dim okVeh As Boolean: okVeh = True
+        If filtVeh And ciVeh > 0 Then okVeh = (StrComp(Trim$(CStr(a(i, ciVeh))), veh, vbTextCompare) = 0)
+        If okVeh Then
+            nVeh = nVeh + 1
+            If fkA = "E85" Then nE85 = nE85 + 1
+            ' prix moyen : carburant filtré, sinon E85 par défaut
+            Dim fuelPrix As String: fuelPrix = IIf(filtFuel, fuel, "E85")
+            If fkA = fuelPrix Then
+                Dim pp As Double: pp = Nz(a(i, ciPrix))
+                If pp > 0 Then sumPrix = sumPrix + pp: nPrix = nPrix + 1
+            End If
+            If ciDate > 0 Then
+                If IsDate(a(i, ciDate)) Then If CDate(a(i, ciDate)) > dLast Then dLast = CDate(a(i, ciDate))
+            End If
+        End If
+
+        ' -- périmètre véhicule+carburant (km) --
+        If filtVeh And ciVeh > 0 Then
+            If StrComp(Trim$(CStr(a(i, ciVeh))), veh, vbTextCompare) <> 0 Then GoTo P1NX
+        End If
+        If filtFuel Then If fkA <> fuel Then GoTo P1NX
+        Dim km0 As Double: km0 = Nz(a(i, ciKm))
+        If km0 > 0 Then
+            If Not haveKm Then
+                kmMin = km0: kmMax = km0: haveKm = True
+            Else
+                If km0 < kmMin Then kmMin = km0
+                If km0 > kmMax Then kmMax = km0
+            End If
+        End If
+P1NX:
+    Next i
+
+    ' PASSE 2 : cumuls litres/cout/eco/co2/nbPleins (exclut le plein de référence)
+    If haveKm Then
+        For i = 1 To UBound(a, 1)
+            If filtVeh And ciVeh > 0 Then
+                If StrComp(Trim$(CStr(a(i, ciVeh))), veh, vbTextCompare) <> 0 Then GoTo P2NX
+            End If
+            Dim fk As String: fk = ""
+            If ciType > 0 Then fk = FuelKeyK(CStr(a(i, ciType)))
+            If filtFuel Then If fk <> fuel Then GoTo P2NX
+
+            Dim km As Double: km = Nz(a(i, ciKm))
+            Dim li As Double: li = Nz(a(i, ciLit))
+            Dim pr As Double: pr = Nz(a(i, ciPrix))
+
+            If km = kmMin Then GoTo P2NX     ' exclut le plein de référence (full-to-full)
+
+            ds.litres = ds.litres + li
+            ds.depense = ds.depense + li * pr
+            ds.nbPleins = ds.nbPleins + 1
+
+            If fk = "E85" And li > 0 Then
+                Dim prixSP98 As Double: prixSP98 = 0
+                If ciSP98 > 0 Then prixSP98 = Nz(a(i, ciSP98))
+                If prixSP98 <= 0 Then prixSP98 = DernierPrixSP98()
+                Dim essEq As Double: essEq = li / (1 + sc)
+                If prixSP98 > 0 Then ds.eco = ds.eco + (essEq * prixSP98) - (li * pr)
+                ds.co2 = ds.co2 + (essEq * CO2_ESSENCE_PER_L) - (li * CO2_E85_PER_L)
+            End If
+P2NX:
+        Next i
+    End If
+
+    Dim dist As Double: dist = 0
+    If haveKm Then dist = kmMax - kmMin
+    ds.km = dist
+    If dist > 0 Then
+        ds.conso = ds.litres / dist * 100
+        ds.coutKm100 = ds.depense / dist * 100
+    End If
+    If nVeh > 0 Then ds.pctE85 = nE85 / nVeh
+    If nPrix > 0 Then ds.prixMoyen = sumPrix / nPrix
+    If dLast > DateSerial(1900, 1, 1) Then ds.dateDernier = dLast
+    Exit Sub
+EH:
+    Dim e As DashStats: ds = e
 End Sub
 
 ' Dernier prix SP98 marche (table PrixHistory) — repli pour l'economie.

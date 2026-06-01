@@ -616,6 +616,32 @@ La requête Power Query **`PrixHistory`** (`powerquery/PrixHistory.m`) importe c
 
 Deux listes déroulantes en **`B5` (véhicule)** et **`B6` (carburant)** — alimentées par les valeurs distinctes de `GS_Pleins`, défaut = **dernier plein** — pilotent le recalcul des 3 cartes KPI **Conso moyenne**, **Coût aux 100 km** et **Économies E85 vs SP98** (`modDashboardKPI.ComputeKPIs`, calcul à la volée depuis `GS_Pleins`, surconso E85 lue dans `Suivi Carburant!J7`). Le `Worksheet_Change` de la feuille relance le recalcul à chaque changement de sélection.
 
+#### X36/X37 — « Graphiques » devient le « Tableau de bord » + réactivité totale (v4.11.0.0)
+
+Refonte (Phase 2) faisant de l'onglet visuel l'unique tableau de bord, **entièrement réactif** aux sélecteurs véhicule/carburant.
+
+- **Réactivité totale** : KPI, bandeau méta, carte CO2 **et tous les graphiques temporels** se recalculent selon `B5`/`B6`. `modGraphiques.BuildAggregates` filtre la boucle `Tableau2` (véhicule + carburant) ; `BuildPriceBlockMerged` se limite au carburant choisi ; la **comparaison véhicules** reste globale (croisée par nature). Le `Worksheet_Change` du module feuille couvre `B2:B6` et reconstruit données filtrées + mise en page.
+- **Découplage** : `modDashboardGraphiques.BuildHeaderAndKPIs` ne lit plus aucun autre onglet ; tout vient de `modDashboardKPI.ComputeDashboardStats` (depuis `GS_Pleins`, full-to-full). Un 2ᵉ bandeau méta affiche **Dépense totale**, **Prix moyen** et **Date du dernier plein** (fusion de l'ancien dashboard).
+
+##### Procédure de renommage (à faire dans Excel, dans cet ordre)
+
+> L'ordre évite la collision de noms (deux onglets ne peuvent pas s'appeler « Tableau de bord »).
+
+1. Clic droit sur l'onglet **« Tableau de bord »** (l'ancien, liste de KPI) → Renommer → **« Tableau de bord 2 »**.
+2. Clic droit sur l'onglet **« Graphiques »** → Renommer → **« Tableau de bord »**.
+3. `Alt+F11` → importer/réimporter `modGraphiques.bas`, `modDashboardGraphiques.bas`, `modDashboardKPI.bas`, `modSyncGS.bas` ; coller `Graphiques_snippet.bas` dans le **module feuille** du nouveau « Tableau de bord ». Puis **Débogage → Compiler VBAProject**.
+4. Vérifier (checklist) : ouvrir le « Tableau de bord », changer `B5`/`B6` → KPI, méta, CO2 et graphiques se mettent à jour ; le 2ᵉ bandeau méta affiche dépense/prix moyen/dernier plein ; une synchro (`SyncManuel`) recrée bien les graphiques.
+
+##### Modules / onglets devenus inutiles (à supprimer après validation)
+
+| Élément | Pourquoi |
+|---|---|
+| Onglet **« Tableau de bord 2 »** | Ses valeurs utiles sont fusionnées dans le nouveau dashboard ; plus aucun code ne le lit. |
+| Module **`modDashboard.bas`** | Legacy v2.5.0.0 : `CreerTableauDeBord`/`CreerGraphiques` ne sont appelés par aucun flux et écrivaient des graphiques concurrents. |
+| Module **`synchroniseGoogleForm.bas`** *(optionnel)* | Ancienne synchro Google Form (URL GAS obsolète), remplacée par `modSyncGS`. |
+
+> ⚠️ Ne supprimer qu'**après** avoir vérifié la checklist ci-dessus. Suppression VBA : `Alt+F11` → clic droit sur le module → *Supprimer*. Suppression onglet : clic droit → *Supprimer*.
+
 | Fonction | Usage |
 |---|---|
 | `installerTriggerRefreshPrix()` | À exécuter **une fois** (installe le trigger quotidien) |
