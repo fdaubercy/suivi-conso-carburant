@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.13.1.1] — 2026-06-02
+
+### Fixed
+- **Carte : erreur d'import VBA « Trop de caractères de continuité de ligne »** (`vba/modCarte.bas`) : après l'ajout des liens itinéraire, la génération du HTML Leaflet concaténait ~31 lignes en **une seule instruction** (limite VBA = 25 continuations `_`). Découpée en 3 instructions (`h = … : h = h & … : GenererHtmlCarte = h`).
+
 ## [4.13.1.0] — 2026-06-02
 
 ### Added

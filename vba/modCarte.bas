@@ -503,7 +503,8 @@ Private Function GenererHtmlCarte(titre As String) As String
               "b.push([e.latlng.lat,e.latlng.lng]);map.fitBounds(b,{padding:[60,60]});});"
     End If
 
-    GenererHtmlCarte = "<!doctype html><html><head><meta charset='utf-8'>" & _
+    Dim h As String
+    h = "<!doctype html><html><head><meta charset='utf-8'>" & _
         "<meta name='viewport' content='width=device-width,initial-scale=1'>" & _
         "<title>Carte " & EscHtml(titre) & "</title>" & _
         "<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'>" & _
@@ -517,8 +518,8 @@ Private Function GenererHtmlCarte(titre As String) As String
         "box-shadow:0 0 0 rgba(42,127,255,.5);animation:mepulse 2s infinite}" & _
         "@keyframes mepulse{0%{box-shadow:0 0 0 0 rgba(42,127,255,.5)}" & _
         "70%{box-shadow:0 0 0 16px rgba(42,127,255,0)}100%{box-shadow:0 0 0 0 rgba(42,127,255,0)}}" & _
-        "</style></head>" & _
-        "<body><div class='ttl'>" & Emo(&H26FD&) & " Stations " & EscHtml(titre) & " - prix moyens</div>" & _
+        "</style></head>"
+    h = h & "<body><div class='ttl'>" & Emo(&H26FD&) & " Stations " & EscHtml(titre) & " - prix moyens</div>" & _
         "<div id='map'></div><script>" & _
         "var pts=[" & pts & "];" & _
         "var map=L.map('map');" & _
@@ -527,14 +528,15 @@ Private Function GenererHtmlCarte(titre As String) As String
         "var meIcon=L.divIcon({className:'me',iconSize:[18,18],iconAnchor:[9,9]});" & _
         "var b=[];pts.forEach(function(p){" & _
         "var mk=L.marker([p[0],p[1]]).addTo(map);" & _
-        "mk.bindTooltip(p[3]+' EUR/L',{permanent:true,direction:'top',className:'pr',offset:[0,-6]});" & _
-        "mk.bindPopup('<b>'+p[2]+'</b><br>'+p[3]+' EUR/L<br>'+" & _
+        "mk.bindTooltip(p[3]+' EUR/L',{permanent:true,direction:'top',className:'pr',offset:[0,-6]});"
+    h = h & "mk.bindPopup('<b>'+p[2]+'</b><br>'+p[3]+' EUR/L<br>'+" & _
         "'<a href=""https://www.google.com/maps/dir/?api=1&destination='+p[0]+','+p[1]+'"" target=""_blank"">Google Maps</a> &middot; '+" & _
         "'<a href=""https://waze.com/ul?ll='+p[0]+','+p[1]+'&navigate=yes"" target=""_blank"">Waze</a>');" & _
         "b.push([p[0],p[1]]);});" & _
         "if(b.length===1){map.setView(b[0],13);}else{map.fitBounds(b,{padding:[60,60]});}" & _
         ujs & _
         "</script></body></html>"
+    GenererHtmlCarte = h
 End Function
 
 ' Double -> chaine JS a point decimal (independant de la locale).
