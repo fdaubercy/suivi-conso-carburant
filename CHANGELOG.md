@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.13.1.0] — 2026-06-02
+
+### Added
+- **Carte — marqueurs cliquables vers itinéraire** (`vba/modCarte.bas`) : le popup de chaque station propose un lien **Google Maps** (`maps/dir`) et **Waze** (`waze.com/ul`) vers la station, comme l'app PWA (ouverture dans le navigateur / l'app de navigation).
+
+### Changed
+- **Carte : la « carte interactive ouverte dans le navigateur » est retenue comme solution définitive** (zoom, marqueurs cliquables, itinéraire). L'embarquement *dans* une fenêtre Excel a été écarté après analyse : une carte dynamique exige un moteur de navigateur embarqué, or le contrôle natif d'Office (moteur Internet Explorer, abandonné) est trop fragile et incompatible Leaflet récent, et WebView2 (Chromium) impose un composant tiers à installer (hors périmètre fiable).
+
 ## [4.13.0.0] — 2026-06-02
 
 ### Added

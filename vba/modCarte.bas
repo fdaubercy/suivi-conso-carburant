@@ -528,7 +528,10 @@ Private Function GenererHtmlCarte(titre As String) As String
         "var b=[];pts.forEach(function(p){" & _
         "var mk=L.marker([p[0],p[1]]).addTo(map);" & _
         "mk.bindTooltip(p[3]+' EUR/L',{permanent:true,direction:'top',className:'pr',offset:[0,-6]});" & _
-        "mk.bindPopup('<b>'+p[2]+'</b><br>'+p[3]+' EUR/L');b.push([p[0],p[1]]);});" & _
+        "mk.bindPopup('<b>'+p[2]+'</b><br>'+p[3]+' EUR/L<br>'+" & _
+        "'<a href=""https://www.google.com/maps/dir/?api=1&destination='+p[0]+','+p[1]+'"" target=""_blank"">Google Maps</a> &middot; '+" & _
+        "'<a href=""https://waze.com/ul?ll='+p[0]+','+p[1]+'&navigate=yes"" target=""_blank"">Waze</a>');" & _
+        "b.push([p[0],p[1]]);});" & _
         "if(b.length===1){map.setView(b[0],13);}else{map.fitBounds(b,{padding:[60,60]});}" & _
         ujs & _
         "</script></body></html>"
