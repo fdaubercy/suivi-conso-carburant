@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.12.0.0] — 2026-06-02
+
+### Added
+- **Dashboard Excel « miroir de l'app » — Étape 1/3** (`vba/modWorkbook.bas`, `vba/modHistorique.bas`, `vba/modReglages.bas`, `vba/Reglages_snippet.bas`) : trois feuilles reproduisant des onglets de la PWA dans le classeur.
+  - **Accueil** (`modWorkbook`) : portail à tuiles (⛽ Saisie · 📊 Stats · 🗺️ Carte · 📜 Historique · ⚙️ Réglages) + raccourcis (Nouveau plein, Dupliquer le dernier) + tuile « reprendre » (résumé du dernier plein lu dans `GS_Pleins`). Navigation `Nav*` (formes cliquables), `AfficherVueDeDepart` (vue de départ selon Réglages) branchée dans `Workbook_Open`, et installeur groupé `InstallerEtape1`.
+  - **Historique** (`modHistorique`) : vue triée (récent → ancien) de `GS_Pleins` en tableau `tblHistorique` avec **filtre auto** Véhicule/Carburant (équivalent des filtres de l'app), carte « 5 derniers pleins », colonne Coût calculée, et **export CSV** vue filtrée / tout avec séparateur `;`/`,` en UTF-8 (aligné W54).
+  - **Reglages** (`modReglages`) : préférences propres au classeur (page d'ouverture, séparateur CSV, dernière vue) **+ surface des paramètres métier synchronisés** (kit/budget/CO₂/surconso) lus/écrits dans leurs **cellules canoniques** (`Suivi Carburant!B5/J7`, `Tableau de bord!B2/B3`) avec boutons « Appliquer + Synchroniser » (réutilise `SyncParametresManuel`) / « Recharger depuis l'app ». Pas de stockage en double ; seuils d'alerte laissés à l'app.
+
+### Fixed
+- **Synchro budget / objectif CO₂ app↔Excel cassée depuis le renommage d'onglet** (`vba/modSyncParametres.bas`) : la constante `WS_GRAPH` pointait encore sur `"Graphiques"`, renommé **« Tableau de bord »** en v4.11.0.0 → `budget_mensuel` (B2) et `objectif_co2` (B3) n'étaient plus ni relus ni écrits par la synchro des paramètres. Corrigé (`WS_GRAPH = "Tableau de bord"`).
+
 ## [4.11.0.3] — 2026-06-01
 
 ### Added

@@ -13,8 +13,8 @@ Attribute VB_Name = "modSyncParametres"
 '
 '  Perimetre (metier uniquement) :
 '    kit_prix         <-> "Suivi Carburant"!B5
-'    budget_mensuel   <-> "Graphiques"!B2
-'    objectif_co2     <-> "Graphiques"!B3
+'    budget_mensuel   <-> "Tableau de bord"!B2   (ex-"Graphiques", renomme en v4.11.0.0)
+'    objectif_co2     <-> "Tableau de bord"!B3
 '    surconso         <-> "Suivi Carburant"!J7
 '    seuil_E85/GAZOLE/SP98 (+ _enabled)  -> stockes dans le miroir local
 '      (geres cote app ; le classeur les conserve).
@@ -45,7 +45,9 @@ Private Const COL_VAL      As Long = 7     ' G
 Private Const COL_TS       As Long = 8     ' H
 Private Const HDR_ROW      As Long = 2     ' en-tete (aligne sur tbl_carburant / tbl_stationEssence)
 Private Const WS_CARB   As String = "Suivi Carburant"
-Private Const WS_GRAPH  As String = "Graphiques"
+' X36 : l'onglet "Graphiques" a ete renomme "Tableau de bord" en v4.11.0.0 ;
+' budget_mensuel/objectif_co2 (B2/B3) vivent desormais sur cet onglet.
+Private Const WS_GRAPH  As String = "Tableau de bord"
 
 Private Const T_RESOLVE As Long = 5000
 Private Const T_CONNECT As Long = 10000
