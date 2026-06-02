@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.13.2.0] — 2026-06-02
+
+### Added
+- **Carte : mise à jour automatique du tableau au changement de carburant** (`vba/modCarte.bas` + `vba/Carte_snippet.bas`) : nouvelle macro `RafraichirTableauCarte` (recalcul des prix moyens + rendu du tableau, **sans réseau**) déclenchée par un `Worksheet_Change` sur la cellule C3 (`Carte_Fuel`). Changer E85 / Gazole / SP98 met à jour le titre et les prix instantanément (le géocodage et la carte restent sur les boutons). Garde `Application.EnableEvents` anti-boucle.
+
 ## [4.13.1.1] — 2026-06-02
 
 ### Fixed

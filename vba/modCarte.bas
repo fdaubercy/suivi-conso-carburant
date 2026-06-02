@@ -156,6 +156,25 @@ Done:
 End Sub
 
 
+' Met a jour le TABLEAU pour le carburant courant SANS reseau (pas de geocodage).
+' Appele par le Worksheet_Change de la feuille quand on change de carburant (C3).
+Public Sub RafraichirTableauCarte()
+    Dim ws As Worksheet
+    Application.ScreenUpdating = False
+    On Error GoTo ErrH
+    Set ws = GetOrCreateSheet(WS_CARTE)
+    ComputeAverages CurrentFuelKey()
+    AttacherCoords
+    RenderTable ws
+    SetStatus "[Carte] " & ChrW(10003) & " " & g_n & " stations (" & CurrentFuelShort() & ")."
+    GoTo Done
+ErrH:
+    SetStatus "[Carte] " & ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description
+Done:
+    Application.ScreenUpdating = True
+End Sub
+
+
 ' Vide le cache _StationCoords puis re-geocode tout (apres correction de logique
 ' ou pour forcer une resolution propre des homonymes).
 Public Sub ReinitialiserCoords()
