@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.13.0.0] — 2026-06-02
+
+### Added
+- **Dashboard Excel « miroir de l'app » — Étape 3 : onglet Carte** (`vba/modCarte.bas`) : reproduit la vue Carte de la PWA.
+  - **Tableau des stations habituelles + prix moyens** par carburant (E85/Gazole/SP98 via la cellule `Carte_Fuel`), trié par prix, ⭐ favori (≥ 4 pleins), ★ meilleur prix — fidèle à `computeStationAverages`, calculé depuis `GS_Pleins`.
+  - **Carte OSM interactive** (Leaflet via CDN), ouverte dans le navigateur : tuiles OpenStreetMap, marqueurs prix (tooltip permanent + popup nom/prix), pan/zoom, cadrage automatique (`fitBounds`). **Marqueur de position** de l'utilisateur (point GPS bleu pulsant) via la cellule `Carte_Position` (`lat;lon` ou ville géocodée par la Base Adresse Nationale) ou la géolocalisation live du navigateur.
+  - **Géocodage** des stations via l'API gouv. v2.1 (champ `geom = {lon,lat}`) avec **désambiguïsation des homonymes** (candidat le plus proche du barycentre des autres stations) ; cache éditable feuille masquée `_StationCoords`. Macros utilitaires `ReinitialiserCoords` et `DiagnoseCarte`.
+  - Note : la vue **Stats** de l'app étant déjà reproduite par le tableau de bord existant (`modDashboardGraphiques`/`modDashboardKPI`), l'étape 2 a été absorbée. L'**embarquement** de la carte interactive *dans* Excel (option A) nécessite WebView2 (le contrôle IE ne peut pas exécuter Leaflet) — traité séparément.
+
 ## [4.12.0.0] — 2026-06-02
 
 ### Added
