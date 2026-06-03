@@ -65,6 +65,7 @@ Alt + F8 puis exécuter :
 | `Installer` | **GO !** Installation complète en un clic (dashboard + analyse + graphiques + vérification), tolérante, bilan Ctrl+G |
 | `InstallerDashboard` | Monte toutes les feuilles miroir : Reglages + Historique + Carte + **Stats** + Accueil |
 | `VerifierInstallation` | Contrôle que tout est en place |
+| `ListerProceduresDupliquees` | Diagnostic : liste les procédures publiques définies en double (cause de « Nom ambigu détecté ») — module `modOutils.bas` |
 | `RafraichirFeatures` | MFC « Prix €/L » + onglet « Suivi (auto) » + synchro `Tableau2` |
 | `SyncTableau2DepuisGS` | (Re)remplit les colonnes brutes de `Tableau2` depuis `GS_Pleins` (calculs préservés) |
 | `NouveauPlein` | Affiche le formulaire `frmPleinE85` |

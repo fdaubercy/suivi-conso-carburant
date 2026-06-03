@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.14.0.3] — 2026-06-03
+
+### Added
+- **VBA — outil de diagnostic `ListerProceduresDupliquees`** (`vba/modOutils.bas`) : parcourt tout le projet VBA et liste, dans Exécution (Ctrl+G) + barre d'état, les procédures **publiques** (Sub/Function/Property) définies dans **plusieurs modules** — cause de l'erreur de compilation « Nom ambigu détecté » (typiquement un module clone `modXxx1` créé par un réimport par-dessus un module déjà présent). Ignore les procédures Private/Friend (jamais ambiguës entre modules). Prérequis : « Accès approuvé au modèle objet du projet VBA ».
+
 ## [4.14.0.2] — 2026-06-03
 
 ### Added
