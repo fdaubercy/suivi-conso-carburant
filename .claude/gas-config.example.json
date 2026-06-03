@@ -1,0 +1,33 @@
+{
+  "_comment": "MODÈLE — copier en .claude/gas-config.json (gitignoré) et renseigner. NE JAMAIS committer de secret.",
+  "_doc": "Le token d'accès est dérivé du refresh_token à chaque exécution de gas-deploy.mjs (grant refresh_token).",
+  "_scopes": [
+    "https://www.googleapis.com/auth/script.projects",
+    "https://www.googleapis.com/auth/script.deployments",
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+  ],
+
+  "scriptId": "⚠️ ID du projet Apps Script (⚙️ Paramètres du projet → ID du script)",
+  "sheetId": "⚠️ ID du Google Sheet (URL /spreadsheets/d/{ID}/)",
+  "deployId": "⚠️ ID du déploiement Web App actif (Déployer → Gérer les déploiements)",
+
+  "oauth": {
+    "_howto": "1. console.cloud.google.com → APIs & Services → Library → activer 'Apps Script API'. 2. Credentials → Create credentials → OAuth client ID → type 'Application Web' → Authorized redirect URIs : https://developers.google.com/oauthplayground → Create → copier client_id + client_secret. 3. OAuth consent screen → PUBLIER l'app (sinon le refresh_token expire après 7 jours en mode Test). 4. script.google.com/home/usersettings → activer 'Google Apps Script API'. 5. developers.google.com/oauthplayground → ⚙ → cocher 'Use your own OAuth credentials' → coller client_id/secret → saisir les 4 scopes ci-dessus (dont script.deployments) → Authorize APIs (compte propriétaire du script) → Exchange authorization code for tokens → copier 'refresh_token'. 6. Renseigner les 3 valeurs ci-dessous. Déployer : node gas-deploy.mjs --check puis node gas-deploy.mjs \"description\".",
+    "client_id": "⚠️ À renseigner — format : XXXX.apps.googleusercontent.com",
+    "client_secret": "⚠️ À renseigner",
+    "refresh_token": "⚠️ À renseigner — durable si l'écran de consentement est publié",
+    "token_endpoint": "https://oauth2.googleapis.com/token"
+  },
+
+  "endpoints": {
+    "readScript": "GET  https://script.googleapis.com/v1/projects/{scriptId}/content",
+    "saveScript": "PUT  https://script.googleapis.com/v1/projects/{scriptId}/content",
+    "createVersion": "POST https://script.googleapis.com/v1/projects/{scriptId}/versions",
+    "redeploy": "PUT  https://script.googleapis.com/v1/projects/{scriptId}/deployments/{deployId}",
+    "readSheet": "GET  https://sheets.googleapis.com/v4/spreadsheets/{sheetId}/values/{range}",
+    "writeSheet": "PUT  https://sheets.googleapis.com/v4/spreadsheets/{sheetId}/values/{range}?valueInputOption=USER_ENTERED"
+  },
+
+  "deployHistory": []
+}

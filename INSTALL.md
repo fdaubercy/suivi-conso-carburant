@@ -144,6 +144,20 @@ de calcul (Nb. km, Coût, Conso, Économie…) sont **inchangées**.
 | `testWrappedAnnuel` | Envoie le bilan de l'année la plus récente tout de suite |
 | `supprimerTriggerWrappedAnnuel` | Désactive le bilan annuel |
 
+### 🤖 Déploiement automatisé du code GAS (`gas-deploy.mjs`)
+
+Pousser les `.gs`/`.html` locaux + créer une version + **mettre à jour le déploiement (même URL `/exec`)** sans copier-coller dans l'éditeur :
+
+```bash
+node gas-deploy.mjs --check            # vérifie l'auth OAuth + l'accès au projet
+node gas-deploy.mjs --diff             # compare local ↔ en ligne (rien n'est écrit)
+node gas-deploy.mjs "ma description"   # push + version + redéploiement
+# (alias : npm run gas:deploy -- "ma description")
+```
+
+- **Première fois** : copier **`.claude/gas-config.example.json`** → **`.claude/gas-config.json`** (gitignoré) puis renseigner `scriptId`/`sheetId`/`deployId` + les **identifiants OAuth** (`client_id`/`client_secret`/`refresh_token`). Génération : champ `oauth._howto` du modèle (client OAuth « Web » + redirect OAuth Playground, **écran de consentement publié** pour un refresh_token durable, scopes incluant `script.deployments`).
+- **Fusion sans suppression** : les fichiers en ligne absents du repo (ex. manifeste `appsscript`) sont conservés. Lance toujours `--diff` avant un push si tu as un doute (le push écrase l'en ligne avec le local).
+
 ---
 
 ## 4. Vérification finale

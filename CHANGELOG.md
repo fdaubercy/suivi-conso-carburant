@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.17.0.1] — 2026-06-03
+
+### Added
+- **Déploiement GAS automatisé (`gas-deploy.mjs`, `npm run gas:deploy`)** — pousse les `.gs`/`.html` locaux, crée une version et **met à jour le déploiement Web App existant (URL `/exec` inchangée)** via l'API REST `script.googleapis.com`, sans éditeur web ni copier-coller. Auth OAuth 2.0 (refresh_token) lue dans `.claude/gas-config.json` (gitignoré). **Fusion sans suppression** : GET du projet en ligne → écrase/ajoute uniquement les fichiers présents en local → **conserve** les fichiers en ligne absents du repo (manifeste `appsscript`, etc.). Modes `--check` (auth + accès), `--diff` (compare local ↔ en ligne), `--pull` (liste), `--no-deploy` (HEAD sans redéploiement), normalisation CRLF→LF. Procédure de génération des identifiants OAuth documentée (INSTALL.md + `oauth._howto`). Vérifié de bout en bout (version v50 déployée, endpoint `?action=sectorPrices` → `byStationDate` 27 stations).
+
 ## [4.17.0.0] — 2026-06-03
 
 ### Added
