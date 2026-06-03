@@ -66,6 +66,7 @@ Alt + F8 puis exécuter :
 | `InstallerDashboard` | Monte toutes les feuilles miroir : Reglages + Historique + Carte + **Stats** + Accueil |
 | `VerifierInstallation` | Contrôle que tout est en place |
 | `ListerProceduresDupliquees` | Diagnostic : liste les procédures publiques définies en double (cause de « Nom ambigu détecté ») — module `modOutils.bas` |
+| `PousserParametresExcel` | Pousse de force B5/B2/B3/**J7** (kit/budget/CO₂/**surconso**) vers l'onglet `Parametres` du Sheet (rapport GAS + app) — module `modSyncParametres.bas` |
 | `RafraichirFeatures` | MFC « Prix €/L » + onglet « Suivi (auto) » + synchro `Tableau2` |
 | `SyncTableau2DepuisGS` | (Re)remplit les colonnes brutes de `Tableau2` depuis `GS_Pleins` (calculs préservés) |
 | `NouveauPlein` | Affiche le formulaire `frmPleinE85` |

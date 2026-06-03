@@ -76,6 +76,67 @@ Public Sub SyncParametresManuel()
     End If
 End Sub
 
+' ============================================================
+'  PUSH FORCE des parametres Excel -> Google Sheet (onglet Parametres)
+'  La synchro normale ne pousse PAS une cellule mappee tant qu'elle n'a
+'  pas ete editee (baseline ts=0, pour ne pas ecraser une valeur app).
+'  Consequence : surconso (J7), kit_prix (B5), budget (B2), objectif_co2
+'  (B3) peuvent ne jamais arriver dans l'onglet "Parametres", et donc le
+'  rapport mensuel GAS retombe sur 20%.
+'  -> Cette macro pousse la valeur ACTUELLE de ces cellules avec
+'     horodatage = maintenant. A lancer UNE FOIS (Alt+F8) pour que le
+'     rapport mensuel et l'app lisent la surconso J7 du classeur.
+' ============================================================
+Public Sub PousserParametresExcel()
+    Dim defs() As ParamDef, ws As Worksheet
+    Dim dRow As Object, dVal As Object, dTs As Object
+    Dim i As Long, n As Long, toPush As String, ts As Double
+    Dim cellV As Variant
+
+    On Error GoTo EH
+    defs = ParamDefs()
+    Set ws = EnsureParamsBlock()
+    If ws Is Nothing Then
+        Application.StatusBar = "[Parametres] " & ChrW(9888) & " Onglet 'Notes' (miroir) introuvable."
+        Exit Sub
+    End If
+
+    Set dRow = CreateObject("Scripting.Dictionary")
+    Set dVal = CreateObject("Scripting.Dictionary")
+    Set dTs = CreateObject("Scripting.Dictionary")
+    ReadMirror ws, dRow, dVal, dTs
+
+    ts = NowUtcMs()
+    toPush = ""
+    For i = LBound(defs) To UBound(defs)
+        If defs(i).wsName <> "" Then                 ' seulement les params mappes sur une cellule
+            cellV = ReadCell(defs(i).wsName, defs(i).cellAddr)
+            If Not IsErrVal(cellV) And Not IsEmptyVal(cellV) Then
+                UpsertMirror ws, dRow, dVal, dTs, defs(i).cle, cellV, ts   ' horodate maintenant
+                toPush = AppendParam(toPush, defs(i).cle, cellV, ts)
+                n = n + 1
+            End If
+        End If
+    Next i
+
+    If toPush = "" Then
+        Application.StatusBar = "[Parametres] " & ChrW(9888) & " Cellules B5/B2/B3/J7 vides - rien a pousser."
+        Exit Sub
+    End If
+
+    Dim body As String
+    body = "{""action"":""setParametres"",""token"":""" & APP_TOKEN & """,""params"":[" & toPush & "]}"
+    If HttpPost(GAS_URL, body) = "" Then
+        Application.StatusBar = "[Parametres] " & ChrW(9888) & " Echec reseau (push) - voir TestConnexion."
+    Else
+        Application.StatusBar = "[Parametres] " & ChrW(10003) & " " & n & _
+            " parametre(s) Excel pousse(s) vers le Sheet (dont surconso J7)."
+    End If
+    Exit Sub
+EH:
+    Application.StatusBar = "[Parametres] " & ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description
+End Sub
+
 ' Renvoie le nombre de parametres appliques/pousses, ou -1 si echec reseau.
 Public Function SyncParametres() As Long
     Dim defs()   As ParamDef

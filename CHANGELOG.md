@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.14.0.6] — 2026-06-03
+
+### Added
+- **VBA — `PousserParametresExcel`** (`vba/modSyncParametres.bas`) : push **forcé** vers l'onglet `Parametres` du Google Sheet des cellules métier mappées (`kit_prix` B5, `budget_mensuel` B2, `objectif_co2` B3, **`surconso` J7**) avec horodatage = maintenant. Contourne la *baseline* `ts=0` qui empêchait ces valeurs (dont J7) de remonter dans le Sheet → le rapport mensuel GAS (et l'app) peuvent enfin lire la surconsommation du classeur au lieu du repli 20 %. À lancer **une fois** (Alt+F8) après avoir renseigné J7.
+
 ## [4.14.0.5] — 2026-06-03
 
 ### Fixed
