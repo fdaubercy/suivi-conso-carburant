@@ -742,10 +742,12 @@ function handleSectorPrices(e) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sh = ss.getSheetByName('_PrixHistory');
   const byDate = {};
+  const byStationDate = {};   // { 'Nom station' : { 'yyyy-MM-dd' : prix mini ce jour } }
 
   if (sh && sh.getLastRow() > 1) {
     const data = sh.getDataRange().getValues();
     const head = data[0].map(String);
+    const iStation = head.indexOf('Station');
     const iDate = head.indexOf('Date');
     const iType = head.indexOf('Type');
     const iPrix = head.indexOf('Prix €/L');
@@ -761,6 +763,15 @@ function handleSectorPrices(e) {
       const prix = Number(row[iPrix]);
       if (!dStr || !isFinite(prix) || prix <= 0) continue;
       if (byDate[dStr] == null || prix < byDate[dStr]) byDate[dStr] = prix;
+
+      // Prix par station / date (mini si plusieurs relevés le même jour) —
+      // permet à la saisie d'un plein passé d'afficher le prix de LA station.
+      const stn = String((iStation >= 0 ? row[iStation] : '') || '').trim();
+      if (stn) {
+        if (!byStationDate[stn]) byStationDate[stn] = {};
+        const cur = byStationDate[stn][dStr];
+        if (cur == null || prix < cur) byStationDate[stn][dStr] = prix;
+      }
     }
   }
 
@@ -774,7 +785,7 @@ function handleSectorPrices(e) {
       : (parsed ? parsed[fuel] || null : null);
   }
 
-  return jsonResponse({ byDate, today, fuel });
+  return jsonResponse({ byDate, byStationDate, today, fuel });
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -5,6 +5,7 @@ import { haversine, odsUrl } from './utils.js';
 import { setS98Status, showCpSearch, hideCpSearch, setFieldPrice, updateCout } from './ui.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
 import { checkPrixAlert, ALERT_FUELS } from './notifications.js';
+import { applyHistPriceToForm } from './secteur.js';
 
 /* ─── Cache requêtes ODS (clé lat,lon,rayon — TTL 5 min) ─── */
 const _odsCache = new Map();
@@ -87,6 +88,9 @@ export function applyPricesResult(data) {
     const p = state._stationPrices[f.key];
     if (p) checkPrixAlert(f.key, p, station);
   });
+
+  // W60 — date passée sélectionnée : le prix historique prime sur le prix live.
+  applyHistPriceToForm();
 }
 
 /** Cherche les prix autour de (lat, lon) par cercles croissants (500 m → 2 km → 5 km).
@@ -116,6 +120,7 @@ export async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
     updateCout();
     updateRentabilite();
     setS98Status('info', 'Prix non trouvés — entrez le code postal :'); showCpSearch();
+    applyHistPriceToForm();   // W60 — conserve le prix historique si date passée
   }
 }
 
@@ -131,6 +136,7 @@ export async function fetchPricesNearUser() {
     updateRentabilite();
     setS98Status('info', 'Position inconnue — entrez le code postal :');
     showCpSearch();
+    applyHistPriceToForm();   // W60 — conserve le prix historique si date passée
   }
 }
 

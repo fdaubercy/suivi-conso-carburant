@@ -21,7 +21,7 @@ import { chargerHistorique, dupliquerDernier, voirTout, exportHistoriqueCSV, exp
 import { renderStats, initSparkToggles, getNextKmPrediction, initKitSetting, initBudgetSetting, initCo2ObjectifSetting, initRapport } from './stats.js';
 import { initComparatifExport } from './comparatif.js';
 import { prewarmServerStats } from './statsApi.js';
-import { loadSectorPrices, renderSectorBestCard } from './secteur.js';
+import { loadSectorPrices, renderSectorBestCard, applyHistPriceToForm } from './secteur.js';
 import { initWrapped, renderWrapped } from './wrapped.js';
 import { initScanner }       from './ticket.js';
 import { initPWA }           from './pwa.js';
@@ -138,7 +138,7 @@ function initStaticHandlers() {
   document.getElementById('vehiculeAjouterBtn')?.addEventListener('click', confirmerAjoutVehicule);
 
   // Formulaire — W15 : saveDraft sur chaque modification
-  document.getElementById('fDate')?.addEventListener('change', () => { checkDuplicate(); saveDraft(); });
+  document.getElementById('fDate')?.addEventListener('change', () => { applyHistPriceToForm(); checkDuplicate(); saveDraft(); });
   document.getElementById('fKm')?.addEventListener('input', () => { onKmInput(); checkDuplicate(); saveDraft(); });
   document.getElementById('fLitres')?.addEventListener('input', () => { updateCout(); checkDuplicate(); saveDraft(); });
   document.getElementById('fPrix')?.addEventListener('input', () => { updateCout(); saveDraft(); });

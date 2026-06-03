@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.17.0.0] — 2026-06-03
+
+### Added
+- **Prix historique à la saisie d'un plein passé (W60)** — quand une **date ≠ aujourd'hui** est choisie dans la Saisie, le champ **Prix** se remplit automatiquement depuis `_PrixHistory` (au lieu du prix live du jour, faux pour une date passée). Résolution en cascade : **(1)** prix de la **station sélectionnée** ce jour-là (relevé exact) → **(2)** sinon le **relevé le plus proche AVANT** la date → **(3)** sinon repli sur le **mini secteur** du jour (`byDate`). Carburant non suivi dans l'historique (SP95/E10/GPLc) → note info + prix du jour conservé ; retour à aujourd'hui → prix live restauré. Une **note** sous le champ indique la provenance (« 📅 Prix E85 le 20/05/2026 · Leclerc Douai » ou « relevé du 18/05 · moins cher du secteur »). Le prix se ré-applique aussi au changement de station/carburant tant qu'une date passée est active.
+  - **Front** (`js/secteur.js`) : `resolveHistPrice()` (logique pure, *nearest-prior*) + `applyHistPriceToForm()` ; câblé sur `#fDate` (`js/main.js`), après chaque résolution de prix live (`js/prix.js`) et au changement de carburant (`js/carburant.js`). Note `#histNote` (`index.html` + classe `.hist-note` dans `css/style.css`).
+  - **GAS** (`Code.gs` → `handleSectorPrices`) : l'endpoint `?action=sectorPrices` renvoie désormais aussi **`byStationDate`** `{ station : { date : prix } }` (rétrocompatible). ⚠️ **Redéploiement de la Web App requis** pour activer le prix station-spécifique ; **dégradation propre** entre-temps (repli sur le mini secteur, donnée déjà disponible).
+  - **Tests** : `tests/prix-historique.test.js` (8 tests vitest — résolution + effets sur le formulaire) + `tests/prix-historique.spec.js` (E2E Playwright + capture d'écran).
+
 ## [4.16.0.0] — 2026-06-03
 
 ### Added

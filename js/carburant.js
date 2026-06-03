@@ -2,6 +2,7 @@
 import { FUEL_CONFIG } from './config.js';
 import { state } from './state.js';
 import { setFieldPrice, updateCout } from './ui.js';
+import { applyHistPriceToForm } from './secteur.js';
 
 /**
  * Callback enregistré par main.js pour éviter la dépendance circulaire
@@ -77,6 +78,10 @@ export function setType(type) {
     const sel = document.getElementById('stationSel').value;
     if (sel && sel !== '__autre') _fetchPricesNearUser();
   }
+
+  // W60 — si une date passée est sélectionnée, le prix historique du nouveau
+  // carburant prime sur le prix live qu'on vient éventuellement de poser.
+  applyHistPriceToForm();
 }
 
 /**

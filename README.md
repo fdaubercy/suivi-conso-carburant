@@ -122,6 +122,15 @@ pour récupérer **tous les prix disponibles** (E85, SP98, SP95, E10, Gazole, GP
 - Stratégie progressive : rayon 500 m → 2 km → 5 km → fallback GPS → code postal
 - **Cache API ODS (TTL 5 min)** : les résultats sont mis en cache par clé `(lat, lon, rayon)` dans une `Map`. Aucun appel réseau redondant lors du changement de type de carburant — la réponse est réutilisée immédiatement depuis la mémoire.
 
+### 📅 Prix historique pour une date passée (W60)
+Le prix live (ci-dessus) reflète **aujourd'hui** — faux pour un plein saisi à une date antérieure. Dès qu'une **date ≠ aujourd'hui** est choisie, le champ **Prix** est rempli depuis `_PrixHistory` (relevé quotidien ~7h, cf. § *Prix payé vs moins cher du secteur*) :
+- **prix de la station sélectionnée** ce jour-là (relevé exact) ;
+- sinon le **relevé le plus proche AVANT** la date (« 📅 relevé du 18/05 ») ;
+- sinon repli sur le **moins cher du secteur** du jour ;
+- carburant non suivi dans l'historique (SP95/E10/GPLc) → prix du jour conservé + note ; retour à aujourd'hui → prix live restauré.
+
+Une **note** sous le champ Prix indique la provenance. Côté serveur, `?action=sectorPrices` expose `byStationDate` (prix par station/date) en plus de `byDate` ; côté app `js/secteur.js` résout le prix (`resolveHistPrice`/`applyHistPriceToForm`). Tant que le GAS n'est pas redéployé, le repli **mini secteur** assure le bon fonctionnement.
+
 ### Identification des stations (v4.14.0.0 — refonte fiabilité + UX)
 Les stations sont enrichies via **OpenStreetMap (Overpass API)** pour afficher le nom d'enseigne réel (`brand` / `name` / `operator`) au format **« Enseigne - Ville »**, aussi bien en géolocalisation qu'en recherche manuelle. Le renommage a été refondu pour ne plus faire patienter l'utilisateur ni risquer un faux nom (`js/osm.js` `enrichStationsBulk`) :
 
