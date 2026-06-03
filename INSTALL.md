@@ -67,6 +67,8 @@ Alt + F8 puis exécuter :
 | `VerifierInstallation` | Contrôle que tout est en place |
 | `ListerProceduresDupliquees` | Diagnostic : liste les procédures publiques définies en double (cause de « Nom ambigu détecté ») — module `modOutils.bas` |
 | `PousserParametresExcel` | Pousse de force B5/B2/B3/**J7** (kit/budget/CO₂/**surconso**) vers l'onglet `Parametres` du Sheet (rapport GAS + app) — module `modSyncParametres.bas` |
+| `PoserBoutonsPleinEcran` | Pose le bouton « ↖ Quitter le plein écran » sur les onglets du dashboard — module `Affichage.bas` (raccourci équivalent : Ctrl+F11) |
+| `RafraichirPrixHistory` | Rafraîchit (synchrone) la Power Query `PrixHistory` depuis le Sheet — module `modSyncGS.bas` |
 | `RafraichirFeatures` | MFC « Prix €/L » + onglet « Suivi (auto) » + synchro `Tableau2` |
 | `SyncTableau2DepuisGS` | (Re)remplit les colonnes brutes de `Tableau2` depuis `GS_Pleins` (calculs préservés) |
 | `NouveauPlein` | Affiche le formulaire `frmPleinE85` |

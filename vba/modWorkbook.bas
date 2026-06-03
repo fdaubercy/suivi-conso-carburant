@@ -61,6 +61,11 @@ Public Sub InstallerDashboard()
 
     CreerAccueil                   ' ce module
 
+    ' Bouton "Quitter le plein ecran" sur tous les onglets du dashboard (Affichage).
+    On Error Resume Next
+    Application.Run "PoserBoutonsPleinEcran"
+    On Error GoTo ErrH
+
     On Error Resume Next
     ThisWorkbook.Sheets(WS_ACCUEIL).Activate
     On Error GoTo 0
@@ -194,6 +199,11 @@ Public Sub CreerAccueil()
     For i = 1 To 5
         AddTile ws, L0 + (i - 1) * (tw + gap), T2, tw, th, labels(i), macros(i), cols(i), vbWhite, 14
     Next i
+
+    ' Bouton "Quitter le plein ecran" (module Affichage, tolerant).
+    On Error Resume Next
+    Application.Run "AjouterBoutonPleinEcran", ws
+    On Error GoTo ErrH
 
     ws.Range("B1").Select
     SetStatus "[Accueil] " & ChrW(10003) & " Ecran d'accueil cree."

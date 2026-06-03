@@ -77,3 +77,58 @@ Sub BasculerPleinEcran()
         Call ActiverPleinEcran
     End If
 End Sub
+
+
+' ════════════════════════════════════════════════════════════
+'  BOUTON "Quitter le plein ecran" sur les onglets
+'  En mode plein ecran le ruban est masque -> on pose une icone
+'  cliquable (haut-droite, ligne 1) qui appelle DesactiverPleinEcran.
+'  Le raccourci Ctrl+F11 reste disponible en complement.
+' ════════════════════════════════════════════════════════════
+
+' Pose (ou rafraichit) le bouton sur UNE feuille. Idempotent.
+Public Sub AjouterBoutonPleinEcran(ws As Worksheet)
+    Dim sh As Shape, L As Single
+    On Error Resume Next
+    ' Retire un eventuel bouton precedent (evite les doublons apres rebuild).
+    For Each sh In ws.Shapes
+        If sh.Name = "btnPleinEcran" Then sh.Delete
+    Next sh
+    ' Haut-droite, ligne 1 : a droite des titres, au-dessus des boutons de feuille.
+    L = ws.Cells(1, 11).Left      ' colonne K
+    Set sh = ws.Shapes.AddShape(msoShapeRoundedRectangle, L, 3, 150, 22)
+    sh.Name = "btnPleinEcran"
+    With sh
+        .Fill.ForeColor.RGB = RGB(27, 58, 92)        ' bleu charte
+        .Line.Visible = msoFalse
+        With .TextFrame2
+            .TextRange.Text = ChrW(&H2196&) & " Quitter le plein ecran"
+            .TextRange.Font.Fill.ForeColor.RGB = RGB(255, 255, 255)
+            .TextRange.Font.Bold = msoTrue
+            .TextRange.Font.Size = 9
+            .TextRange.ParagraphFormat.Alignment = msoAlignCenter
+            .HorizontalAnchor = msoAnchorCenter
+            .VerticalAnchor = msoAnchorMiddle
+        End With
+        .OnAction = "DesactiverPleinEcran"
+        .AlternativeText = "Revenir a l'affichage normal (equivaut a Ctrl+F11)"
+    End With
+    On Error GoTo 0
+End Sub
+
+' Pose le bouton sur tous les onglets du dashboard miroir presents.
+Public Sub PoserBoutonsPleinEcran()
+    Dim noms As Variant, i As Long, ws As Worksheet, n As Long
+    noms = Array("Accueil", "Reglages", "Historique", "Carte", "Tableau de bord")
+    For i = LBound(noms) To UBound(noms)
+        Set ws = Nothing
+        On Error Resume Next
+        Set ws = ThisWorkbook.Worksheets(CStr(noms(i)))
+        On Error GoTo 0
+        If Not ws Is Nothing Then
+            AjouterBoutonPleinEcran ws
+            n = n + 1
+        End If
+    Next i
+    Application.StatusBar = "[Affichage] " & ChrW(10003&) & " Bouton 'Quitter le plein ecran' pose sur " & n & " onglet(s)."
+End Sub

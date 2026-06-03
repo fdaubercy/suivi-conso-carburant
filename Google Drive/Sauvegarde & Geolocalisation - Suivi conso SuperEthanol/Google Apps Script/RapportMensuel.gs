@@ -1,5 +1,5 @@
 // ============================================================
-//  SUIVI CONSO E85 — Rapport mensuel automatique     v4.14.0.5
+//  SUIVI CONSO E85 — Rapport mensuel automatique     v4.15.0.0
 //  Roadmap X16
 //
 //  Trigger temporel (1er du mois) -> MailApp.sendEmail() avec
@@ -267,48 +267,107 @@ function lireSurconsoParam(ss) {
 //  Construit le corps HTML du mail (style aligne sur l'app).
 // ─────────────────────────────────────────────────────────────
 function construireCorpsRapport(moisLabel, s) {
-  const eur = n => n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-  const f2  = n => n.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  const ecoColor = s.ecoBrute >= 0 ? '#1D9E75' : '#E24B4A';
-  const ecoSign  = s.ecoBrute >= 0 ? '+' : '';
+  const eur = n => Math.round(n).toLocaleString('fr-FR');
+  const f1  = n => n.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const ecoSign = s.ecoBrute >= 0 ? '+' : '';
+  const surconsoPct = (((s.surconso != null ? s.surconso : RAPPORT_SURCONSO) * 100)).toFixed(1).replace('.', ',');
+  const genere = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy à HH:mm');
 
   if (s.nbPleins === 0) {
-    return '<div style="font-family:Arial,sans-serif;color:#333">' +
-      '<h2 style="color:#1B3A5C">⛽ Suivi Conso. Carburants — ' + moisLabel + '</h2>' +
-      '<p>Aucun plein enregistre sur cette periode.</p></div>';
+    return `<div style="font-family:Arial,Helvetica,sans-serif;color:#334155;max-width:600px;margin:0 auto;padding:24px;">
+      <h2 style="color:#1B3A5C;border-bottom:2px solid #1D9E75;padding-bottom:6px;">⛽ Suivi Conso. Carburants — ${moisLabel}</h2>
+      <p>Aucun plein enregistré sur cette période.</p></div>`;
   }
 
-  const ligne = (label, val) =>
-    '<tr>' +
-    '<td style="padding:8px 12px;border-bottom:1px solid #eee;color:#6B7280">' + label + '</td>' +
-    '<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;' +
-    'font-weight:700;color:#1B3A5C">' + val + '</td></tr>';
+  // Carte KPI (cellule de tableau).
+  const card = (icon, val, sub) => `
+            <td width="50%" style="padding:8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f5f7fa" style="background:#f5f7fa;border:1px solid #e9edf2;border-radius:12px;">
+                <tr><td style="padding:15px 16px;">
+                  <div style="font-size:20px;">${icon}</div>
+                  <div style="color:#1B3A5C;font-size:25px;font-weight:800;margin-top:5px;">${val}</div>
+                  <div style="color:#6B7280;font-size:12px;margin-top:3px;">${sub}</div>
+                </td></tr>
+              </table>
+            </td>`;
 
-  return '' +
-    '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#333;max-width:520px">' +
-      '<h2 style="color:#1B3A5C;border-bottom:2px solid #1D9E75;padding-bottom:6px">' +
-        '⛽ Suivi Conso. Carburants — ' + moisLabel +
-      '</h2>' +
-      '<p>Voici le bilan de vos pleins pour <strong>' + moisLabel + '</strong> :</p>' +
-      '<table style="border-collapse:collapse;width:100%">' +
-        ligne('Nombre de pleins', s.nbPleins + (s.nbE85 ? ' (dont ' + s.nbE85 + ' E85)' : '')) +
-        ligne('Total depense', eur(s.totalCout) + ' €') +
-        ligne('Litres consommes', f2(s.totalLitres) + ' L') +
-        ligne('Distance parcourue', eur(s.kmParcourus) + ' km') +
-        ligne('Consommation moyenne', (s.consoMoy > 0 ? f2(s.consoMoy) + ' L/100 km' : 'n/d')) +
-        '<tr>' +
-          '<td style="padding:8px 12px;color:#6B7280">Économie E85 vs SP98</td>' +
-          '<td style="padding:8px 12px;text-align:right;font-weight:700;color:' +
-            (s.nbE85 ? ecoColor : '#9CA3AF') + '">' +
-            (s.nbE85 ? (ecoSign + eur(s.ecoBrute) + ' €')
-                     : '— <span style="font-weight:400;font-size:11px">(aucun plein E85)</span>') +
-          '</td>' +
-        '</tr>' +
-      '</table>' +
-      '<p style="font-size:11px;color:#999;margin-top:18px;border-top:1px solid #eee;padding-top:8px">' +
-        'Économie brute (surconsommation E85 +' + Math.round((s.surconso != null ? s.surconso : RAPPORT_SURCONSO) * 100) + '%, valeur partagée Excel J7 / app), ' +
-        'hors amortissement du kit. Rapport genere automatiquement le ' +
-        Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy à HH:mm') + '.' +
-      '</p>' +
-    '</div>';
+  // Hero : économie E85 (vert) si des pleins E85, sinon encart neutre.
+  const hero = s.nbE85
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#1D9E75" style="background:#1D9E75;border-radius:14px;">
+          <tr><td style="padding:20px 24px;">
+            <div style="color:#d7f5e9;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;">💰 Économie E85 vs SP98</div>
+            <div style="color:#ffffff;font-size:38px;font-weight:800;line-height:1.05;margin-top:8px;">${ecoSign}${eur(s.ecoBrute)} €</div>
+            <div style="color:#c8efdd;font-size:12px;margin-top:7px;">ce mois-ci grâce au SuperÉthanol</div>
+          </td></tr>
+        </table>`
+    : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f1f5f9" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:14px;">
+          <tr><td style="padding:18px 22px;">
+            <div style="color:#64748b;font-size:13px;font-weight:600;">Aucun plein E85 ce mois — pas d'économie calculée.</div>
+          </td></tr>
+        </table>`;
+
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef1f5;font-family:Arial,Helvetica,sans-serif;">
+   <tr><td align="center" style="padding:28px 12px;">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;">
+
+      <tr><td style="background:#1B3A5C;padding:26px 30px 22px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+          <td style="vertical-align:middle;width:48px;">
+            <div style="width:46px;height:46px;background:#1D9E75;border-radius:12px;text-align:center;font-size:25px;line-height:46px;">⛽</div>
+          </td>
+          <td style="vertical-align:middle;padding-left:14px;">
+            <div style="color:#ffffff;font-size:18px;font-weight:700;">Suivi Conso. Carburants</div>
+            <div style="color:#9fb3c8;font-size:12px;margin-top:3px;letter-spacing:.3px;">RAPPORT MENSUEL</div>
+          </td>
+          <td style="vertical-align:middle;text-align:right;">
+            <div style="color:#ffffff;font-size:21px;font-weight:800;">${moisLabel}</div>
+          </td>
+        </tr></table>
+      </td></tr>
+      <tr><td style="height:4px;background:#1D9E75;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+      <tr><td style="padding:24px 30px 4px;">
+        <div style="color:#334155;font-size:15px;line-height:1.55;">Bonjour 👋<br>Voici le bilan de vos pleins pour <strong>${moisLabel}</strong>.</div>
+      </td></tr>
+
+      <tr><td style="padding:18px 30px 4px;">${hero}</td></tr>
+
+      <tr><td style="padding:14px 22px 2px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            ${card('⛽', s.nbPleins, 'pleins' + (s.nbE85 ? ' · dont ' + s.nbE85 + ' E85' : ''))}
+            ${card('💶', eur(s.totalCout) + ' €', 'dépensés')}
+          </tr>
+          <tr>
+            ${card('🛢️', f1(s.totalLitres) + ' L', 'consommés')}
+            ${card('🛣️', eur(s.kmParcourus) + ' km', 'parcourus')}
+          </tr>
+        </table>
+      </td></tr>
+
+      <tr><td style="padding:8px 30px 6px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#eef6f2" style="background:#eef6f2;border:1px solid #d8ebe2;border-radius:12px;">
+          <tr>
+            <td style="padding:15px 18px;vertical-align:middle;">
+              <span style="font-size:20px;">📊</span>
+              <span style="color:#334155;font-size:14px;font-weight:600;padding-left:6px;">Consommation moyenne</span>
+            </td>
+            <td style="padding:15px 18px;vertical-align:middle;text-align:right;">
+              <span style="color:#1B3A5C;font-size:22px;font-weight:800;">${s.consoMoy > 0 ? f1(s.consoMoy) : 'n/d'}</span>
+              <span style="color:#6B7280;font-size:13px;font-weight:600;">${s.consoMoy > 0 ? ' L/100 km' : ''}</span>
+            </td>
+          </tr>
+        </table>
+      </td></tr>
+
+      <tr><td style="padding:16px 30px 26px;">
+        <div style="border-top:1px solid #eceff3;padding-top:14px;color:#94a3b8;font-size:11px;line-height:1.65;">
+          Économie brute — surconsommation E85 <strong style="color:#64748b;">+${surconsoPct}&nbsp;%</strong> prise en compte (valeur partagée Excel J7 / app), hors amortissement du kit de conversion.<br>
+          Rapport généré automatiquement le ${genere} · <span style="color:#1B3A5C;font-weight:700;">Suivi Conso. Carburants</span>
+        </div>
+      </td></tr>
+
+    </table>
+   </td></tr>
+  </table>`;
 }

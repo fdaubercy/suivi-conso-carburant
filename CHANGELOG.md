@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.15.0.0] — 2026-06-03
+
+### Added
+- **GAS — rapport mensuel : nouveau design « modèle »** (`RapportMensuel.gs` → `construireCorpsRapport`) : en-tête bandeau bleu marine + logo ⛽ vert + mois, **hero vert** mettant en avant l'**économie E85**, **cartes KPI** (pleins · dépensé · litres · distance) avec icônes, bandeau **consommation moyenne**, pied de page soigné. Mise en page 100 % compatible clients mail (tableaux, styles inline, couleurs solides). Maquette validée visuellement avant implémentation.
+- **Excel — bouton « Quitter le plein écran »** (`vba/Affichage.bas` + `vba/modWorkbook.bas`) : icône cliquable (haut-droite, `OnAction = DesactiverPleinEcran`) posée sur les onglets du dashboard (Accueil / Reglages / Historique / Carte / Tableau de bord) — indispensable car le ruban est masqué en mode kiosque. `AjouterBoutonPleinEcran(ws)` (une feuille) + `PoserBoutonsPleinEcran` (tous les onglets), posés automatiquement par `CreerAccueil` et `InstallerDashboard`. Le raccourci **Ctrl+F11** reste disponible en complément.
+
+### Changed
+- **GAS — surconsommation E85 affichée avec 1 décimale** dans le pied du rapport (ex. **+20,4 %** au lieu de +20 %).
+
 ## [4.14.0.7] — 2026-06-03
 
 ### Fixed
