@@ -114,6 +114,15 @@ export function cacheStationCoords(name, lat, lon, src) {
   } catch { /* quota / navigation privée — silencieux */ }
 }
 
+/** Coordonnées mémorisées d'une station (cache localStorage), ou null si inconnue.
+ *  Sert à récupérer les prix À LA STATION choisie/dupliquée (pas autour du GPS
+ *  courant) → colonnes prix I→N fiables même loin de la station. */
+export function getStationCoords(name) {
+  if (!name) return null;
+  const c = _loadCoordCache()[name];
+  return (c && isFinite(c.lat) && isFinite(c.lon)) ? { lat: +c.lat, lon: +c.lon, src: c.src } : null;
+}
+
 // ── Calcul prix moyens ───────────────────────────────────────────────────────
 
 /** Liste [{name, avg, count}] triée par prix croissant pour un carburant donné. */

@@ -4,7 +4,7 @@ import { state } from './state.js';
 import { haversine, escHtml, getCoords, stationLabel, stationSubLabel, composeStationName } from './utils.js';
 import { setGeoStatus } from './ui.js';
 import { cacheStationCoords } from './stationsmap.js';
-import { enrichWithOsmSerial } from './osm.js';
+import { enrichStationsBulk, cancelOsmEnrich } from './osm.js';
 import { showMap } from './carte.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
 import { fetchPricesAtCoords } from './prix.js';
@@ -100,31 +100,27 @@ export async function searchNearby(lat, lon, btn) {
 
     if (!rawCandidates.length) { setGeoStatus('info', `Aucune station ${cfg.short} trouvée dans 8 km.`); return; }
 
-    /* Top 7 — enrichissement OSM + nearby list */
-    const top7     = rawCandidates.slice(0, 7);
-    const osmNames = await enrichWithOsmSerial(top7);
-    if (!osmNames) return; // annulé par une recherche manuelle plus récente
-
     const knownNames = Array.from(document.querySelectorAll('#knownGroup option:not([value="__autre"])')).map(o => o.value.toLowerCase());
 
-    const stations = top7.map((c, i) => {
-      const rawName = osmNames[i] || stationLabel(c.r);
-      const name    = composeStationName(rawName, c.r.ville);
+    /* Fabrique une station (nom gouv. d'abord ; l'enseigne OSM arrivera après). */
+    const mk = (c, withKnown) => {
+      const rawName = stationLabel(c.r);
+      const ville   = c.r.ville || '';
       const prices  = {};
       FUEL_KEYS.forEach(k => { if (c.r[FUEL_CONFIG[k].apiField] != null) prices[k] = c.r[FUEL_CONFIG[k].apiField]; });
-      return { name, sub: stationSubLabel(c.r), dist: c.dist, lat: c.lat, lon: c.lon, prices,
-               known: knownNames.some(k => k.includes(rawName.toLowerCase()) || k.includes((c.r.ville||'').toLowerCase())) };
-    });
+      const o = { name: composeStationName(rawName, ville), ville, sub: stationSubLabel(c.r),
+                  dist: c.dist, lat: c.lat, lon: c.lon, prices };
+      if (withKnown) o.known = knownNames.some(k => k.includes(rawName.toLowerCase()) || k.includes(ville.toLowerCase()));
+      return o;
+    };
 
-    /* W30 — Toutes les stations pour le comparateur (noms API pour les 7+) */
-    const allStations = rawCandidates.map((c, i) => {
-      const rawName = i < 7 ? (osmNames[i] || stationLabel(c.r)) : stationLabel(c.r);
-      const name    = composeStationName(rawName, c.r.ville);
-      const prices  = {};
-      FUEL_KEYS.forEach(k => { if (c.r[FUEL_CONFIG[k].apiField] != null) prices[k] = c.r[FUEL_CONFIG[k].apiField]; });
-      return { name, sub: stationSubLabel(c.r), dist: c.dist, lat: c.lat, lon: c.lon, prices };
-    });
+    /* Top 7 = nearby list. allStations = W30 comparateur ; les 7 premiers PARTAGENT
+       l'objet de `stations` → l'enseigne OSM s'y reflète automatiquement. */
+    const top7        = rawCandidates.slice(0, 7);
+    const stations    = top7.map(c => mk(c, true));
+    const allStations = rawCandidates.map((c, i) => (i < 7 ? stations[i] : mk(c, false)));
 
+    /* Affichage IMMÉDIAT (noms gouv.) — l'utilisateur n'attend pas l'enrichissement. */
     state._nearbyStations = stations;
     state._geoStations    = allStations;
     saveGeoCache(lat, lon, stations); // W31
@@ -132,6 +128,20 @@ export async function searchNearby(lat, lon, btn) {
     renderComparateur(allStations);   // W30
     showMap(lat, lon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
     setGeoStatus('ok', stations.length + ' station(s) ' + cfg.short + ' trouvée(s)');
+
+    /* Enseignes OSM en arrière-plan : 1 requête groupée, renommage au fur et à
+       mesure. Annulé si l'utilisateur relance une recherche ou choisit une station. */
+    enrichStationsBulk(stations,
+      (i, osmName) => { stations[i].name = composeStationName(osmName, stations[i].ville); updateNearbyName(i, stations[i].name); },
+      setGeoStatus
+    ).then(ok => {
+      if (!ok) return;                  // annulé → on garde l'affichage courant
+      saveGeoCache(lat, lon, stations); // re-mémorise avec les enseignes
+      renderNearby(stations);
+      renderComparateur(allStations);
+      showMap(lat, lon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
+      setGeoStatus('ok', stations.length + ' station(s) ' + cfg.short + ' trouvée(s)');
+    });
   } catch(e) {
     document.getElementById('geoBtn').classList.remove('loading'); document.getElementById('geoBtn').textContent = '📍';
     setGeoStatus('err', 'Erreur de recherche (' + e.message + ').');
@@ -186,11 +196,19 @@ export function renderComparateur(stations) {
   card.hidden = false;
 }
 
+/** Met à jour le nom affiché d'une station de la liste sans tout re-rendre
+ *  (renommage progressif « au fur et à mesure » par enrichStationsBulk). */
+export function updateNearbyName(i, name) {
+  const el = document.querySelector('#nearbyItem' + i + ' .nearby-name strong');
+  if (el) el.textContent = name;
+}
+
 export function highlightNearbyItem(idx) {
   document.querySelectorAll('.nearby-item').forEach((el, i) => el.classList.toggle('selected', i === idx));
 }
 
 export function pickStation(name, lat, lon) {
+  cancelOsmEnrich();   // P5 — choisir une station arrête la recherche/renommage OSM en cours
   const sel = document.getElementById('stationSel');
   if (!Array.from(sel.options).map(o => o.value).includes(name))
     document.getElementById('knownGroup').appendChild(new Option(name, name));

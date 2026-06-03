@@ -4,6 +4,23 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.14.0.0] — 2026-06-03
+
+### Added
+- **VBA — macro maître « GO ! » `Installer`** (`vba/modWorkbook.bas`) : installation complète en **un clic** (Alt+F8 → `Installer`), à lancer après import des `.bas` + collage des snippets. Enchaîne, **de façon tolérante** (une étape en échec n'interrompt pas les suivantes), `InstallerDashboard` → `RafraichirFeatures` (modFeatures) → `CreerGraphiquesWeb` (modGraphiques) → `VerifierInstallation` ; bilan détaillé dans Exécution (Ctrl+G) + résumé en barre d'état. Helper `RunStep` (exécution par nom via `Application.Run`, comptage OK/échec).
+- **VBA — `InstallerDashboard` branche la feuille Stats** (`vba/modWorkbook.bas`) : la macro crée désormais aussi le **« Tableau de bord » (Stats)** via `CreerTableauDeBord` (modDashboard), en plus de Reglages / Historique / Carte / Accueil. Création Stats rendue **tolérante** (un classeur sans données ne bloque plus la création des autres feuilles).
+
+### Changed
+- **Recherche de stations — refonte fiabilité + UX (web)** (`js/osm.js`, `js/geo.js`, `js/recherche.js`) :
+  - **Une seule requête Overpass groupée** (union de clauses `around` par station) remplace les N requêtes en série → anti-attente, anti-429.
+  - **Appariement par seuil de proximité** (≤ 200 m) : au-delà, on conserve le nom gouvernemental → **plus jamais de faux nom d'enseigne** (« être sûr de trouver le bon nom »).
+  - **Affichage immédiat** des stations (noms gouv.) puis **renommage « Enseigne - Ville » au fur et à mesure** en arrière-plan (mise à jour live de chaque ligne, `updateNearbyName`) — l'utilisateur ne patiente plus pendant le nommage.
+  - **Annulable** : relancer une recherche **ou choisir une station** (liste déroulante via `onStationChange`, ou liste de proximité via `pickStation`) **avorte la requête OSM en vol** (`AbortController` + jeton) et poursuit la sélection — `cancelOsmEnrich`.
+- **Duplication d'un plein — prix tous-carburants fiabilisés (web)** (`js/formulaire.js`, `js/stationsmap.js`) : à la sélection d'une station (donc lors d'une **duplication du dernier plein**), les prix sont relevés **à la position réelle de la station** (coordonnées mémorisées via le nouveau `getStationCoords`) plutôt qu'autour du GPS courant. Garantit que les colonnes **I→N** (E85/SP98/SP95/E10/Gazole/GPLc) du Google Sheet / Excel sont renseignées pour la **bonne** station, même en dupliquant à distance, après la requête HTTP de prix.
+
+### Fixed
+- **Géoloc & recherche par ville alignées sur la nouvelle API OSM** (`js/geo.js`, `js/recherche.js` `searchStationsCityOnly`) : ces deux chemins référençaient encore `enrichWithOsmSerial` (retirée par la refonte) → migrés vers `enrichStationsBulk`, supprimant une référence non définie qui aurait cassé la géolocalisation.
+
 ## [4.13.2.0] — 2026-06-02
 
 ### Added

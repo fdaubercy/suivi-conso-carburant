@@ -3,7 +3,9 @@ import { FUEL_CONFIG, FUEL_KEYS, GAS_URL, APP_TOKEN, DRAFT_KEY, CLIENT_ID_KEY } 
 import { state } from './state.js';
 import { setAutreStatus, hideCpSearch, setSubmitState, showFeedback, updateCout } from './ui.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
-import { fetchPricesNearUser, fetchNearestE85Price, evalRentabiliteE85 } from './prix.js';
+import { fetchPricesNearUser, fetchPricesAtCoords, fetchNearestE85Price, evalRentabiliteE85 } from './prix.js';
+import { cancelOsmEnrich } from './osm.js';
+import { getStationCoords } from './stationsmap.js';
 import { syncStationSiNouvelle } from './stations.js';
 import { chargerHistorique, getMaxKmForVehicule, getAllRecords } from './historique.js';
 import { updateRentabilite } from './rentabilite.js';
@@ -146,6 +148,7 @@ export function onKmInput() {
 }
 
 export function onStationChange() {
+  cancelOsmEnrich();   // P5 — choisir une station (liste déroulante) arrête la recherche/renommage OSM en cours
   const sel = document.getElementById('stationSel'), isManual = sel.value === '__autre';
   document.getElementById('autreField').classList.toggle('hidden', !isManual);
   if (!isManual) {
@@ -156,7 +159,17 @@ export function onStationChange() {
   if (sel.value && !isManual) {
     state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
     evalRentabiliteE85();
-    fetchPricesNearUser();
+    // P4 — prix À LA STATION choisie (coords mémorisées) plutôt qu'autour du GPS courant :
+    // garantit que les prix tous-carburants (colonnes I→N) sont relevés pour la bonne station,
+    // y compris lors d'une duplication du dernier plein faite à distance de la station.
+    const coords = getStationCoords(sel.value);
+    if (coords) {
+      state._selectedLat = coords.lat; state._selectedLon = coords.lon;
+      fetchPricesAtCoords(coords.lat, coords.lon, true);
+    } else {
+      state._selectedLat = null; state._selectedLon = null;
+      fetchPricesNearUser();
+    }
   }
 }
 

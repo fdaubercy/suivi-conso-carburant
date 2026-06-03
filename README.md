@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v4.13.2.0**
+> 🔖 Version courante : **v4.14.0.0**
 
 ## 🌐 Accès
 
@@ -122,15 +122,24 @@ pour récupérer **tous les prix disponibles** (E85, SP98, SP95, E10, Gazole, GP
 - Stratégie progressive : rayon 500 m → 2 km → 5 km → fallback GPS → code postal
 - **Cache API ODS (TTL 5 min)** : les résultats sont mis en cache par clé `(lat, lon, rayon)` dans une `Map`. Aucun appel réseau redondant lors du changement de type de carburant — la réponse est réutilisée immédiatement depuis la mémoire.
 
-### Identification des stations
-Les stations sont enrichies via **OpenStreetMap (Overpass API)** pour afficher le nom d'enseigne réel (`brand` / `name` / `operator`) — aussi bien en géolocalisation qu'en recherche manuelle.
+### Identification des stations (v4.14.0.0 — refonte fiabilité + UX)
+Les stations sont enrichies via **OpenStreetMap (Overpass API)** pour afficher le nom d'enseigne réel (`brand` / `name` / `operator`) au format **« Enseigne - Ville »**, aussi bien en géolocalisation qu'en recherche manuelle. Le renommage a été refondu pour ne plus faire patienter l'utilisateur ni risquer un faux nom (`js/osm.js` `enrichStationsBulk`) :
+
+- **Une seule requête Overpass groupée** (union de clauses `around` par station) au lieu de N requêtes en série → réponse rapide, plus de risque d'erreur 429.
+- **Appariement par seuil de proximité (≤ 200 m)** : on n'attribue l'enseigne OSM que si un point `amenity=fuel` est assez proche ; au-delà, **le nom gouvernemental est conservé** → on est sûr de ne jamais coller un mauvais nom.
+- **Affichage immédiat** : la liste s'affiche aussitôt avec les noms gouvernementaux, puis chaque ligne est **renommée « Enseigne - Ville » au fur et à mesure** en arrière-plan.
+- **Annulable** : relancer une recherche **ou choisir une station** (liste déroulante ou liste de proximité) **interrompt immédiatement** la requête et le renommage en cours (`AbortController` + `cancelOsmEnrich`), puis poursuit la sélection.
+
 Exemple d'affichage :
 ```
 Intermarché                    ← nom enseigne OSM (nom principal)
 2 Rue de la Paix · BEUVRY      ← adresse · ville (sous-titre)
 3,3 km · E85 0,798 €/L
 ```
-Si OSM ne retourne pas de résultat, l'adresse de l'API gouvernementale est utilisée en fallback.
+Si OSM ne retourne pas de résultat (ou trop loin), l'adresse de l'API gouvernementale est utilisée en fallback.
+
+### Duplication d'un plein (v4.14.0.0 — prix tous-carburants fiabilisés)
+Le raccourci **« Dupliquer le dernier »** (accueil / onglet) pré-remplit le formulaire depuis le dernier plein (véhicule, type, station) et **relance une requête de prix** sur la station. Depuis la v4.14.0.0, la sélection d'une station connue (donc la duplication) relève les prix **à la position réelle de la station** — coordonnées mémorisées (`js/stationsmap.js` `getStationCoords`) — au lieu de chercher autour du GPS courant. Cela garantit que **les prix de tous les carburants (E85/SP98/SP95/E10/Gazole/GPLc, colonnes I→N)** sont bien enregistrés pour la bonne station, y compris en dupliquant loin de la pompe.
 
 ### Gestion des véhicules
 - Liste stockée **100 % en localStorage** (aucune donnée envoyée côté serveur)

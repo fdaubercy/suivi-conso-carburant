@@ -1,9 +1,31 @@
 # 🛠️ Installation & mise à jour — Suivi E85
 
 Récapitulatif pour (ré)installer les modules VBA Excel et le rapport mensuel Google Apps Script.
-Version de référence : **v3.3.0.9**.
+Version de référence : **v4.14.0.0**.
 
 > 💡 Astuce : après import, lance la macro **`VerifierInstallation`** (Alt+F8) — elle contrôle feuilles + tableaux requis et affiche le bilan dans la barre d'état + la fenêtre Exécution (Ctrl+G).
+
+---
+
+## 0. 🚀 GO ! — Installation en un clic
+
+Une fois les modules importés et les snippets collés (détails §1), **tout se monte d'une seule macro** :
+
+1. **Alt + F11** → importer tous les `vba/*.bas` (clic droit sur l'ancien module → **Supprimer**, puis **Fichier → Importer un fichier**).
+2. Coller les snippets de feuille : `ThisWorkbook_snippet.bas` → **ThisWorkbook**, `Reglages_snippet.bas` → feuille **Reglages**, `Carte_snippet.bas` → feuille **Carte**, `GS_Pleins_snippet.bas` → feuille **GS_Pleins**.
+3. **Debug → Compiler VBAProject** (détecte d'un coup les erreurs de tous les modules).
+4. **Alt + F8 → `Installer`** → exécuter. Résumé en barre d'état + **détail dans Exécution (Ctrl+G)**.
+
+`Installer` enchaîne, **de façon tolérante** (une étape en échec n'interrompt pas les suivantes) :
+
+| Étape | Macro | Effet |
+|---|---|---|
+| 1 | `InstallerDashboard` | Feuilles miroir : Reglages + Historique + Carte + **Stats (Tableau de bord)** + Accueil |
+| 2 | `RafraichirFeatures` | MFC « Prix €/L » + onglet « Suivi (auto) » + synchro `Tableau2` |
+| 3 | `CreerGraphiquesWeb` | (Re)construit l'onglet graphique du tableau de bord |
+| 4 | `VerifierInstallation` | Contrôle final : feuilles + tableaux requis |
+
+> 💡 `InstallerDashboard` peut aussi se lancer **seul** pour ne (re)monter que les feuilles miroir du dashboard (dont la feuille **Stats**). Prérequis : `modReglages`, `modHistorique`, `modCarte`, `modDashboard` importés.
 
 ---
 
@@ -40,6 +62,8 @@ Alt + F8 puis exécuter :
 
 | Macro | Effet |
 |---|---|
+| `Installer` | **GO !** Installation complète en un clic (dashboard + analyse + graphiques + vérification), tolérante, bilan Ctrl+G |
+| `InstallerDashboard` | Monte toutes les feuilles miroir : Reglages + Historique + Carte + **Stats** + Accueil |
 | `VerifierInstallation` | Contrôle que tout est en place |
 | `RafraichirFeatures` | MFC « Prix €/L » + onglet « Suivi (auto) » + synchro `Tableau2` |
 | `SyncTableau2DepuisGS` | (Re)remplit les colonnes brutes de `Tableau2` depuis `GS_Pleins` (calculs préservés) |

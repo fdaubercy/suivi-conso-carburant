@@ -10,6 +10,10 @@ Attribute VB_Name = "modWorkbook"
 '  - Navigation : macros NavXxx (assignees aux tuiles, OnAction).
 '  - Demarrage : AfficherVueDeDepart (appelee par Workbook_Open) qui
 '    respecte le reglage "Page d'ouverture".
+'  - Installer : GO ! installation complete en un clic (dashboard + analyse
+'    + graphiques + verification), tolerant, bilan dans Ctrl+G.
+'  - InstallerDashboard : monte toutes les feuilles miroir (Reglages +
+'    Historique + Carte + Stats + Accueil).
 '  - InstallerEtape1 : monte Reglages + Historique + Accueil d'un coup.
 '
 '  DEPENDANCES :
@@ -32,7 +36,80 @@ Private Const WS_DATA    As String = "GS_Pleins"
 
 
 ' ════════════════════════════════════════════════════════════
-'  INSTALLATION GROUPEE - ETAPE 1
+'  INSTALLATION COMPLETE DU DASHBOARD (toutes les feuilles miroir)
+'  Prerequis : modReglages, modHistorique, modCarte, modDashboard importes.
+'  Cree : Reglages + Historique + Carte + Stats (Tableau de bord) + Accueil.
+'  Apres : coller les 3 snippets (ThisWorkbook / Reglages / Carte).
+' ════════════════════════════════════════════════════════════
+Public Sub InstallerDashboard()
+    Application.ScreenUpdating = False
+    On Error GoTo ErrH
+
+    CreerFeuilleReglages           ' modReglages
+    CreerFeuilleHistorique         ' modHistorique
+    CreerFeuilleCarte              ' modCarte
+
+    ' Stats : tolerant (CreerTableauDeBord requiert des donnees dans GS_Pleins ;
+    ' un classeur vide ne doit pas bloquer la creation des autres feuilles).
+    On Error Resume Next
+    CreerTableauDeBord             ' modDashboard -> feuille "Tableau de bord" (Stats)
+    On Error GoTo ErrH
+
+    CreerAccueil                   ' ce module
+
+    On Error Resume Next
+    ThisWorkbook.Sheets(WS_ACCUEIL).Activate
+    On Error GoTo 0
+
+    SetStatus "[Dashboard] " & ChrW(10003) & " Reglages + Historique + Carte + Stats + Accueil installes. " & _
+              "Collez les snippets ThisWorkbook / Reglages / Carte, puis Debug > Compiler."
+    GoTo Done
+ErrH:
+    SetStatus "[Dashboard] " & ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description
+Done:
+    Application.ScreenUpdating = True
+End Sub
+
+
+' ════════════════════════════════════════════════════════════
+'  GO ! — INSTALLATION COMPLETE EN UN CLIC
+'  A lancer (Alt+F8 -> Installer) APRES avoir importe tous les .bas
+'  et colle les snippets de feuille. Tolerant : chaque etape est
+'  isolee, le bilan detaille s'affiche dans Execution (Ctrl+G) et un
+'  resume dans la barre d'etat.
+'    1. Dashboard miroir (Reglages/Historique/Carte/Stats/Accueil)
+'    2. Analyse (MFC prix + Suivi auto + Tableau2)        [modFeatures]
+'    3. Graphiques web                                    [modGraphiques]
+'    4. Verification finale                               [modFeatures]
+' ════════════════════════════════════════════════════════════
+Public Sub Installer()
+    Dim rap As String, okN As Long, koN As Long
+    Application.ScreenUpdating = False
+    rap = "=== GO ! Installation Suivi E85 ===" & vbNewLine
+
+    rap = rap & RunStep("Dashboard miroir (Reglages/Historique/Carte/Stats/Accueil)", "InstallerDashboard", okN, koN)
+    rap = rap & RunStep("Analyse (MFC prix + Suivi auto + Tableau2)", "RafraichirFeatures", okN, koN)
+    rap = rap & RunStep("Graphiques web", "CreerGraphiquesWeb", okN, koN)
+    rap = rap & RunStep("Verification finale", "VerifierInstallation", okN, koN)
+
+    rap = rap & "-------------------------------------------" & vbNewLine
+    rap = rap & "Resultat : " & okN & " etape(s) OK / " & koN & " en echec." & vbNewLine
+    rap = rap & "Snippets a coller (si pas deja fait) : ThisWorkbook / Reglages / Carte / GS_Pleins."
+    Debug.Print rap
+
+    On Error Resume Next
+    ThisWorkbook.Sheets(WS_ACCUEIL).Activate
+    On Error GoTo 0
+    Application.ScreenUpdating = True
+
+    SetStatus "[GO] " & IIf(koN = 0, ChrW(10003) & " Installation terminee (" & okN & " etapes OK).", _
+              ChrW(9888) & " " & koN & " etape(s) en echec - voir Ctrl+G.") & _
+              " Snippets : ThisWorkbook/Reglages/Carte/GS_Pleins."
+End Sub
+
+
+' ════════════════════════════════════════════════════════════
+'  INSTALLATION GROUPEE - ETAPE 1 (Reglages + Historique + Accueil)
 ' ════════════════════════════════════════════════════════════
 Public Sub InstallerEtape1()
     Application.ScreenUpdating = False
@@ -310,4 +387,23 @@ Private Function Emo(ByVal cp As Long) As String
         Dim v As Long: v = cp - &H10000
         Emo = ChrW(&HD800& Or (v \ &H400&)) & ChrW(&HDC00& Or (v And &H3FF&))
     End If
+End Function
+
+' Execute une macro par son nom (tolerant) et renvoie une ligne de bilan.
+' Met a jour les compteurs OK / echec passes par reference. Sert a la macro
+' maitre Installer : une etape en echec (module non importe, donnees absentes...)
+' n'interrompt pas les suivantes.
+Private Function RunStep(label As String, macroName As String, ByRef okN As Long, ByRef koN As Long) As String
+    On Error Resume Next
+    Err.Clear
+    Application.Run macroName
+    If Err.Number = 0 Then
+        okN = okN + 1
+        RunStep = "[OK] " & label & vbNewLine
+    Else
+        koN = koN + 1
+        RunStep = "[X] " & label & " -> err " & Err.Number & " : " & Err.Description & vbNewLine
+    End If
+    Err.Clear
+    On Error GoTo 0
 End Function

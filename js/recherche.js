@@ -3,9 +3,9 @@ import { PRIX_API, FUEL_CONFIG, FUEL_SELECT } from './config.js';
 import { state } from './state.js';
 import { haversine, getCoords, stationLabel, stationSubLabel, composeStationName } from './utils.js';
 import { setAutreStatus } from './ui.js';
-import { enrichWithOsmSerial } from './osm.js';
+import { enrichStationsBulk } from './osm.js';
 import { showMap } from './carte.js';
-import { renderNearby } from './geo.js';
+import { renderNearby, updateNearbyName } from './geo.js';
 
 let _autreDebounce = null;
 
@@ -90,14 +90,25 @@ export async function searchStationSuggestions(q) {
     }
 
     const stations = buildStations(data.results);
-    const osmNames = await enrichWithOsmSerial(stations, setAutreStatus);
-    if (!osmNames) return; // annulé par une recherche plus récente
-    const stationsFinal = stations.map((s, i) => ({ ...s, name: composeStationName(osmNames[i] || s.name.split(' - ')[0], s.ville) }));
-    setAutreStatus('ok', radiusLabel
-      ? stationsFinal.length + ' station(s) ' + cfg.short + ' dans ' + radiusLabel + ' autour de ' + cityName
-      : stationsFinal.length + ' station(s) ' + cfg.short + ' à ' + cityName);
-    renderNearby(stationsFinal);
-    showMap(state.userLat, state.userLon, stationsFinal.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
+    const statusOk = () => setAutreStatus('ok', radiusLabel
+      ? stations.length + ' station(s) ' + cfg.short + ' dans ' + radiusLabel + ' autour de ' + cityName
+      : stations.length + ' station(s) ' + cfg.short + ' à ' + cityName);
+
+    // Affichage immédiat (noms gouv.), puis enseignes OSM en arrière-plan.
+    state._nearbyStations = stations;                 // pour le clic (sélection)
+    statusOk();
+    renderNearby(stations);
+    showMap(state.userLat, state.userLon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
+
+    enrichStationsBulk(stations,
+      (i, osmName) => { stations[i].name = composeStationName(osmName, stations[i].ville); updateNearbyName(i, stations[i].name); },
+      setAutreStatus
+    ).then(ok => {
+      if (!ok) return;                                // annulé (nouvelle recherche / station choisie)
+      renderNearby(stations);
+      showMap(state.userLat, state.userLon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
+      statusOk();
+    });
   } catch(e) {
     setAutreStatus('err', 'Erreur de recherche (' + e.message + ').');
     console.error('[Suggestions]', e);
@@ -115,11 +126,22 @@ export async function searchStationsCityOnly(searchClause, cityName) {
     if (!data.results?.length) { setAutreStatus('err', `Aucune station ${cfg.short} trouvée.`); return; }
     const stations = buildStations(data.results);
     if (!stations.length) { setAutreStatus('err', `Aucune station ${cfg.short} trouvée.`); return; }
-    const osmNames = await enrichWithOsmSerial(stations, setAutreStatus);
-    if (!osmNames) return; // annulé par une recherche plus récente
-    const stationsFinal = stations.map((s, i) => ({ ...s, name: composeStationName(osmNames[i] || s.name.split(' - ')[0], s.ville) }));
-    setAutreStatus('ok', stationsFinal.length + ' station(s) ' + cfg.short + ' à ' + cityName);
-    renderNearby(stationsFinal);
-    showMap(state.userLat, state.userLon, stationsFinal.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
+    const statusOk = () => setAutreStatus('ok', stations.length + ' station(s) ' + cfg.short + ' à ' + cityName);
+
+    // Affichage immédiat (noms gouv.), puis enseignes OSM en arrière-plan (idem suggestions).
+    state._nearbyStations = stations;
+    statusOk();
+    renderNearby(stations);
+    showMap(state.userLat, state.userLon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
+
+    enrichStationsBulk(stations,
+      (i, osmName) => { stations[i].name = composeStationName(osmName, stations[i].ville); updateNearbyName(i, stations[i].name); },
+      setAutreStatus
+    ).then(ok => {
+      if (!ok) return;                                // annulé (nouvelle recherche / station choisie)
+      renderNearby(stations);
+      showMap(state.userLat, state.userLon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
+      statusOk();
+    });
   } catch(e) { setAutreStatus('err', 'Erreur (' + e.message + ').'); }
 }
