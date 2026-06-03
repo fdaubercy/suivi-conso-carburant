@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.14.0.2] — 2026-06-03
+
+### Added
+- **VBA — module `Affichage.bas` enfin versionné** (`vba/Affichage.bas`) : mode plein écran « kiosk » (`ActiverPleinEcran` / `DesactiverPleinEcran` / `BasculerPleinEcran`), appelé par `ThisWorkbook` (`Workbook_Open`/`Workbook_BeforeClose`) et le raccourci **Ctrl+F11**. Ce module **n'avait jamais été commité** (il ne vivait que dans le `.xlsm`, d'où sa disparition lors d'un « supprimer/réimporter ») ; **récupéré à l'identique** du snapshot v4.7.0.0 du classeur via `olevba` et ajouté au dépôt pour qu'il ne soit plus jamais perdu.
+
 ## [4.14.0.1] — 2026-06-03
 
 ### Fixed
