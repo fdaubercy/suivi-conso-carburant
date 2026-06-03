@@ -350,6 +350,61 @@ Public Sub SyncManuel()
 End Sub
 
 ' ============================================================
+'  Rafraichit la Power Query "PrixHistory" (prix marche quotidien)
+'  depuis le Google Sheet. Sans cet appel, l'onglet _PrixHistory
+'  local reste FIGE : la requete ne se rafraichit pas toute seule
+'  (contrairement a GS_Pleins, synchronise par le VBA) -> dates
+'  manquantes. BackgroundQuery = False => refresh COMPLET et
+'  SYNCHRONE avant toute lecture : aucune donnee loupee.
+'  Appele a chaque SyncCore (donc a l'ouverture via SyncOnOpen et
+'  a chaque SyncManuel) ; lancable seul (Alt+F8).
+' ============================================================
+Public Sub RafraichirPrixHistory(Optional silent As Boolean = False)
+    Const PH As String = "PrixHistory"
+    Dim ws As Worksheet, lo As ListObject, cn As WorkbookConnection
+    Dim refreshed As Boolean
+
+    Application.Cursor = xlWait
+
+    ' 1) Voie principale : la QueryTable de la table "PrixHistory".
+    For Each ws In ThisWorkbook.Worksheets
+        For Each lo In ws.ListObjects
+            If StrComp(lo.Name, PH, vbTextCompare) = 0 Then
+                On Error Resume Next
+                If Not lo.QueryTable Is Nothing Then
+                    lo.QueryTable.BackgroundQuery = False
+                    lo.QueryTable.Refresh BackgroundQuery:=False
+                    If Err.Number = 0 Then refreshed = True
+                End If
+                On Error GoTo 0
+            End If
+        Next lo
+    Next ws
+
+    ' 2) Repli : connexion Power Query dont le nom contient "PrixHistory"
+    '    (le prefixe est localise : "Query - " ou "Requete - ").
+    If Not refreshed Then
+        On Error Resume Next
+        For Each cn In ThisWorkbook.Connections
+            If InStr(1, cn.Name, PH, vbTextCompare) > 0 Then
+                cn.OLEDBConnection.BackgroundQuery = False
+                cn.Refresh
+                If Err.Number = 0 Then refreshed = True
+            End If
+        Next cn
+        On Error GoTo 0
+    End If
+
+    Application.Cursor = xlDefault
+    If silent Then Exit Sub
+    If refreshed Then
+        SetStatus "[PrixHistory] " & ChrW(10003) & " Prix marche rafraichis depuis Google Sheets."
+    Else
+        SetStatus "[PrixHistory] " & ChrW(9888) & " Table 'PrixHistory' introuvable (importer powerquery\PrixHistory.m)."
+    End If
+End Sub
+
+' ============================================================
 '  S3 — Suppression d'un plein cote Excel + propagation a GS
 '  A assigner a un bouton de la feuille GS_Pleins ou lancer
 '  apres avoir selectionne la ligne du plein a supprimer.
@@ -562,6 +617,14 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     On Error Resume Next
     Dim paramSync As Long
     paramSync = modSyncParametres.SyncParametres()
+    On Error GoTo ErrHandler
+
+    ' Prix marche : rafraichit la Power Query "PrixHistory" depuis le Google
+    ' Sheet (sinon l'onglet _PrixHistory local reste fige -> dates manquantes).
+    ' Synchrone (BackgroundQuery=False) -> aucune donnee loupee. Tolerant.
+    SetStatus "Refresh prix marche (_PrixHistory)..."
+    On Error Resume Next
+    RafraichirPrixHistory True
     On Error GoTo ErrHandler
 
     ' Bilan

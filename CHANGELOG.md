@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.14.0.7] — 2026-06-03
+
+### Fixed
+- **Excel — `_PrixHistory` figé / dates manquantes** (`vba/modSyncGS.bas`) : la Power Query `PrixHistory` (prix marché quotidien) n'était **jamais rafraîchie par le VBA** (contrairement à `GS_Pleins`), donc l'onglet local restait bloqué à la dernière actualisation manuelle (ex. **01/06** alors que le Google Sheet allait au **03/06**). Nouvelle macro **`RafraichirPrixHistory`** — refresh **synchrone** (`BackgroundQuery = False` → aucune donnée loupée), voie principale `QueryTable` de la table `PrixHistory` + repli connexion Power Query — appelée automatiquement à chaque `SyncCore` (donc à l'ouverture via `SyncOnOpen` et à chaque `SyncManuel`) ; lançable seule (Alt+F8).
+
 ## [4.14.0.6] — 2026-06-03
 
 ### Added
