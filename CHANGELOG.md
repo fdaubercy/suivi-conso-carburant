@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.15.1.0] — 2026-06-03
+
+### Added
+- **GAS — rapport mensuel enrichi (3 indicateurs)** (`RapportMensuel.gs`) : ajoutés au calcul (`calculerStatsRapport`) **et** au mail (`construireCorpsRapport`) :
+  - **🌱 CO₂ évité du mois** — carte verte ; méthode de l'app (W40) : `litresE85 / (1 + surconso) × 2,21 − litresE85 × 1,105` (constantes `CO2_ESSENCE_PER_L_GS` / `CO2_E85_PER_L_GS` de Code.gs) ;
+  - **🌿 Prix moyen E85 du mois** — carte ; pondéré (coût E85 / litres E85), 3 décimales ;
+  - **⭐ Station préférée** — bandeau (la plus fréquente du mois + nb de pleins), masqué s'il n'y en a pas.
+  Le pied rappelle la méthode CO₂ quand il y a des pleins E85.
+
 ## [4.15.0.0] — 2026-06-03
 
 ### Added

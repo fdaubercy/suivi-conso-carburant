@@ -1,5 +1,5 @@
 // ============================================================
-//  SUIVI CONSO E85 — Rapport mensuel automatique     v4.15.0.0
+//  SUIVI CONSO E85 — Rapport mensuel automatique     v4.15.1.0
 //  Roadmap X16
 //
 //  Trigger temporel (1er du mois) -> MailApp.sendEmail() avec
@@ -129,6 +129,7 @@ function calculerStatsRapport(data, debut, fin, surconsoOverride) {
   const cPrix = idx('Prix €/L', 5);
   const cSp98 = idx('SP98 station (€/L)', 9);
   const cVeh  = idx('Véhicule', 7);
+  const cSta  = idx('Station essence', 6);   // col G (repli si en-tete different)
 
   const toNum = v => {
     const n = Number(String(v).replace(',', '.'));
@@ -143,9 +144,10 @@ function calculerStatsRapport(data, debut, fin, surconsoOverride) {
   });
 
   let nbPleins = 0, totalCout = 0, totalLitres = 0;
-  let nbE85 = 0;
+  let nbE85 = 0, litresE85 = 0;
   let kmMin = Infinity, kmMax = -Infinity;
   let coutE85 = 0, coutSp98Equiv = 0;
+  const stationCount = {};   // frequence des stations sur le mois
 
   // Prix SP98 de reference (repli pour les pleins E85 sans SP98 renseigne).
   // Calcule sur TOUT l'historique (pas seulement le mois) sinon un mois sans
@@ -178,11 +180,16 @@ function calculerStatsRapport(data, debut, fin, surconsoOverride) {
     const lit  = toNum(r[cLit]);
     const prix = toNum(r[cPrix]);
     const km   = toNum(r[cKm]);
-    if (lit > 0 && prix > 0) { nbPleins++; totalCout += lit * prix; totalLitres += lit; }
+    if (lit > 0 && prix > 0) {
+      nbPleins++; totalCout += lit * prix; totalLitres += lit;
+      const st = String(r[cSta] || '').trim();
+      if (st) stationCount[st] = (stationCount[st] || 0) + 1;   // station preferee
+    }
     if (km > 0) { kmMin = Math.min(kmMin, km); kmMax = Math.max(kmMax, km); }
 
     if (isE85(r[cType]) && lit > 0 && prix > 0) {
       nbE85++;
+      litresE85 += lit;
       coutE85 += lit * prix;
       const sp98 = toNum(r[cSp98]) || sp98Moyen;
       if (sp98 > 0) coutSp98Equiv += (lit / (1 + surconso)) * sp98;
@@ -193,6 +200,19 @@ function calculerStatsRapport(data, debut, fin, surconsoOverride) {
   const consoMoy = kmParcourus > 0 ? (totalLitres / kmParcourus) * 100 : 0;
   const ecoBrute = coutSp98Equiv - coutE85;
 
+  // Prix moyen E85 du mois (pondere = cout total E85 / litres E85).
+  const prixMoyenE85 = litresE85 > 0 ? coutE85 / litresE85 : 0;
+
+  // CO2 evite par l'E85 vs essence, a distance egale (meme methode que l'app W40).
+  const essenceEquivL = litresE85 / (1 + surconso);
+  const co2Evite = essenceEquivL * CO2_ESSENCE_PER_L_GS - litresE85 * CO2_E85_PER_L_GS;
+
+  // Station preferee = la plus frequente sur le mois.
+  let stationPref = '', stationPrefN = 0;
+  Object.keys(stationCount).forEach(st => {
+    if (stationCount[st] > stationPrefN) { stationPrefN = stationCount[st]; stationPref = st; }
+  });
+
   return {
     nbPleins,
     nbE85,
@@ -201,7 +221,11 @@ function calculerStatsRapport(data, debut, fin, surconsoOverride) {
     kmParcourus,
     consoMoy,
     ecoBrute,
-    surconso
+    surconso,
+    co2Evite,
+    prixMoyenE85,
+    stationPref,
+    stationPrefN
   };
 }
 
@@ -271,6 +295,10 @@ function construireCorpsRapport(moisLabel, s) {
   const f1  = n => n.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const ecoSign = s.ecoBrute >= 0 ? '+' : '';
   const surconsoPct = (((s.surconso != null ? s.surconso : RAPPORT_SURCONSO) * 100)).toFixed(1).replace('.', ',');
+  const prix3 = n => n.toLocaleString('fr-FR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  const escHtml = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const co2Val     = (s.nbE85 && s.co2Evite > 0) ? Math.round(s.co2Evite) + ' kg' : '—';
+  const prixE85Val = (s.prixMoyenE85 > 0) ? prix3(s.prixMoyenE85) + ' €/L' : '—';
   const genere = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy à HH:mm');
 
   if (s.nbPleins === 0) {
@@ -342,6 +370,18 @@ function construireCorpsRapport(moisLabel, s) {
             ${card('🛢️', f1(s.totalLitres) + ' L', 'consommés')}
             ${card('🛣️', eur(s.kmParcourus) + ' km', 'parcourus')}
           </tr>
+          <tr>
+            <td width="50%" style="padding:8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#eef6f2" style="background:#eef6f2;border:1px solid #d3e9df;border-radius:12px;">
+                <tr><td style="padding:15px 16px;">
+                  <div style="font-size:20px;">🌱</div>
+                  <div style="color:#15805f;font-size:25px;font-weight:800;margin-top:5px;">${co2Val}</div>
+                  <div style="color:#6B7280;font-size:12px;margin-top:3px;">CO₂ évité (vs essence)</div>
+                </td></tr>
+              </table>
+            </td>
+            ${card('🌿', prixE85Val, 'prix moyen E85')}
+          </tr>
         </table>
       </td></tr>
 
@@ -360,9 +400,24 @@ function construireCorpsRapport(moisLabel, s) {
         </table>
       </td></tr>
 
+      ${s.stationPref ? `<tr><td style="padding:6px 30px 6px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f5f7fa" style="background:#f5f7fa;border:1px solid #e9edf2;border-radius:12px;">
+          <tr>
+            <td style="padding:14px 18px;vertical-align:middle;">
+              <span style="font-size:20px;">⭐</span>
+              <span style="color:#334155;font-size:14px;font-weight:600;padding-left:6px;">Station préférée</span>
+            </td>
+            <td style="padding:14px 18px;vertical-align:middle;text-align:right;">
+              <span style="color:#1B3A5C;font-size:15px;font-weight:800;">${escHtml(s.stationPref)}</span>
+              <span style="color:#6B7280;font-size:12px;font-weight:600;"> · ${s.stationPrefN} plein${s.stationPrefN > 1 ? 's' : ''}</span>
+            </td>
+          </tr>
+        </table>
+      </td></tr>` : ''}
+
       <tr><td style="padding:16px 30px 26px;">
         <div style="border-top:1px solid #eceff3;padding-top:14px;color:#94a3b8;font-size:11px;line-height:1.65;">
-          Économie brute — surconsommation E85 <strong style="color:#64748b;">+${surconsoPct}&nbsp;%</strong> prise en compte (valeur partagée Excel J7 / app), hors amortissement du kit de conversion.<br>
+          Économie brute — surconsommation E85 <strong style="color:#64748b;">+${surconsoPct}&nbsp;%</strong> prise en compte (valeur partagée Excel J7 / app), hors amortissement du kit de conversion.${s.nbE85 ? ' CO₂ évité estimé à distance égale (essence 2,21 · E85 1,105 kg/L).' : ''}<br>
           Rapport généré automatiquement le ${genere} · <span style="color:#1B3A5C;font-weight:700;">Suivi Conso. Carburants</span>
         </div>
       </td></tr>
