@@ -1,5 +1,5 @@
 // ============================================================
-//  SUIVI CONSO E85 — Rapport mensuel automatique     v4.14.0.4
+//  SUIVI CONSO E85 — Rapport mensuel automatique     v4.14.0.5
 //  Roadmap X16
 //
 //  Trigger temporel (1er du mois) -> MailApp.sendEmail() avec
@@ -79,7 +79,7 @@ function envoyerRapportMensuel() {
   const fin   = new Date(now.getFullYear(), now.getMonth(), 1); // 1er du mois courant (exclu)
   const moisLabel = moisEnFrancais(debut, tz);
 
-  const stats = calculerStatsRapport(data, debut, fin);
+  const stats = calculerStatsRapport(data, debut, fin, lireSurconsoParam(ss));
 
   const dest = RAPPORT_EMAIL || Session.getEffectiveUser().getEmail();
   if (!dest) {
@@ -116,7 +116,7 @@ function moisEnFrancais(d, tz) {
 //  Index colonnes (schema A..P) : B Date, C Type, D Km,
 //  E Litres, F Prix, J SP98 station.
 // ─────────────────────────────────────────────────────────────
-function calculerStatsRapport(data, debut, fin) {
+function calculerStatsRapport(data, debut, fin, surconsoOverride) {
   const headers = data[0].map(String);
   const idx = (name, fallback) => {
     const i = headers.indexOf(name);
@@ -166,9 +166,13 @@ function calculerStatsRapport(data, debut, fin) {
     ? sp98Refs.reduce((s, p) => s + p, 0) / sp98Refs.length
     : 0;
 
-  // Surconsommation E85 DYNAMIQUE (meme methode que l'app web / le dashboard) :
-  // mesuree sur l'historique complet ; repli RAPPORT_SURCONSO si insuffisant.
-  const surconso = computeSurconsoDynamique(data, cDate, cType, cKm, cLit, cVeh);
+  // Surconsommation E85 : PRIORITE a la valeur partagee Excel J7 (onglet
+  // Parametres, cle "surconso", synchronisee app/Excel) -> le rapport affiche
+  // exactement la meme surconso que le classeur. A defaut, calcul dynamique sur
+  // l'historique (conso E85 / conso SP98 - 1) ; repli 20% en dernier recours.
+  const surconso = (surconsoOverride > 0)
+    ? surconsoOverride
+    : computeSurconsoDynamique(data, cDate, cType, cKm, cLit, cVeh);
 
   rows.forEach(r => {
     const lit  = toNum(r[cLit]);
@@ -242,6 +246,24 @@ function computeSurconsoDynamique(data, cDate, cType, cKm, cLit, cVeh) {
 }
 
 // ─────────────────────────────────────────────────────────────
+//  Surconsommation partagee : onglet "Parametres", cle "surconso"
+//  (= cellule Excel "Suivi Carburant!J7", synchronisee app/Excel).
+//  Retourne une FRACTION (ex. 0.22) ou null si absente/invalide.
+//  Reutilise readParamsMap_ / getOrCreateParamsSheet_ de Code.gs.
+//  Tolere une valeur saisie en % (ex. 22 -> 0.22).
+// ─────────────────────────────────────────────────────────────
+function lireSurconsoParam(ss) {
+  try {
+    const map = readParamsMap_(getOrCreateParamsSheet_(ss));
+    if (map && map['surconso']) {
+      let n = Number(String(map['surconso'].valeur).replace(',', '.'));
+      if (isFinite(n) && n > 0) return (n > 1) ? n / 100 : n;
+    }
+  } catch (e) { /* onglet Parametres absent -> repli dynamique */ }
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────
 //  Construit le corps HTML du mail (style aligne sur l'app).
 // ─────────────────────────────────────────────────────────────
 function construireCorpsRapport(moisLabel, s) {
@@ -284,7 +306,7 @@ function construireCorpsRapport(moisLabel, s) {
         '</tr>' +
       '</table>' +
       '<p style="font-size:11px;color:#999;margin-top:18px;border-top:1px solid #eee;padding-top:8px">' +
-        'Économie brute (surconsommation E85 +' + Math.round((s.surconso != null ? s.surconso : RAPPORT_SURCONSO) * 100) + '% mesurée sur l\'historique), ' +
+        'Économie brute (surconsommation E85 +' + Math.round((s.surconso != null ? s.surconso : RAPPORT_SURCONSO) * 100) + '%, valeur partagée Excel J7 / app), ' +
         'hors amortissement du kit. Rapport genere automatiquement le ' +
         Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy à HH:mm') + '.' +
       '</p>' +

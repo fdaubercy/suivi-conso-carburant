@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.14.0.5] — 2026-06-03
+
+### Fixed
+- **GAS — rapport mensuel : surconso = valeur Excel J7 (et non 20 % par défaut)** (`RapportMensuel.gs`) : sans pleins SP98 dans l'historique (cas « 100 % E85 »), le calcul dynamique retombait sur le repli 20 %. Le rapport lit désormais **en priorité la surconso partagée** — onglet `Parametres`, clé `surconso` = cellule Excel `Suivi Carburant!J7`, synchronisée app/Excel — via `lireSurconsoParam` (réutilise `readParamsMap_`/`getOrCreateParamsSheet_` de Code.gs), puis le calcul dynamique, puis 20 % en dernier recours. Tolère une valeur saisie en % (22 → 0,22). Le pied de l'e-mail indique « valeur partagée Excel J7 / app ».
+- **Excel — onglet Historique vide + feuille orpheline non renommée** (`vba/modHistorique.bas`) : (1) si `GS_Pleins` est introuvable ou vide, `RafraichirHistorique` écrit désormais la cause **directement sur la feuille** (le message en barre d'état est invisible en plein écran) avec l'action à mener (« lancez `SyncManuel` ») ; (2) `GetOrCreateSheet` **supprime la feuille orpheline** créée par `Sheets.Add` si le renommage échoue (plus de « Feuil# » vide) et réutilise la feuille existante.
+
 ## [4.14.0.4] — 2026-06-03
 
 ### Changed

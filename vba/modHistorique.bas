@@ -112,11 +112,16 @@ Public Sub RafraichirHistorique()
 
     Set lo = GetDataTable()
     If lo Is Nothing Then
+        ' Message VISIBLE sur la feuille (la barre d'etat est masquee en plein ecran).
+        ws.Range("B3").Value = "Donnees indisponibles : feuille '" & WS_DATA & "' ou son tableau introuvable." & _
+                               " Lancez la synchronisation (Alt+F8 -> SyncManuel), puis cliquez Actualiser."
+        ws.Range("B3").Font.Color = RGB(180, 60, 60): ws.Range("B3").Font.Bold = True
         SetStatus "[Historique] " & ChrW(9888) & " Feuille '" & WS_DATA & "' ou tableau introuvable."
         GoTo Done
     End If
     If lo.DataBodyRange Is Nothing Then
-        ws.Range("B3").Value = "Aucun plein enregistre."
+        ws.Range("B3").Value = "Aucun plein dans '" & WS_DATA & "'. Lancez la synchronisation (Alt+F8 -> SyncManuel)."
+        ws.Range("B3").Font.Color = RGB(180, 60, 60): ws.Range("B3").Font.Bold = True
         SetStatus "[Historique] Aucune donnee."
         GoTo Done
     End If
@@ -480,13 +485,26 @@ Private Function GetDataTable() As ListObject
 End Function
 
 Private Function GetOrCreateSheet(nm As String) As Worksheet
+    Dim ws As Worksheet
     On Error Resume Next
-    Set GetOrCreateSheet = ThisWorkbook.Sheets(nm)
+    Set ws = ThisWorkbook.Sheets(nm)
     On Error GoTo 0
-    If GetOrCreateSheet Is Nothing Then
-        Set GetOrCreateSheet = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
-        GetOrCreateSheet.Name = nm
+    If ws Is Nothing Then
+        Set ws = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
+        On Error Resume Next
+        ws.Name = nm
+        ' Si le renommage echoue (nom deja pris par une feuille existante) :
+        ' supprime l'orpheline cree par Add (evite une "Feuil#" vide non renommee)
+        ' et reutilise la feuille existante.
+        If ws.Name <> nm Then
+            Application.DisplayAlerts = False
+            ws.Delete
+            Application.DisplayAlerts = True
+            Set ws = ThisWorkbook.Sheets(nm)
+        End If
+        On Error GoTo 0
     End If
+    Set GetOrCreateSheet = ws
 End Function
 
 Private Function Emo(ByVal cp As Long) As String
