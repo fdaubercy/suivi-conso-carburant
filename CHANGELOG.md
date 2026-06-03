@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.16.0.0] — 2026-06-03
+
+### Added
+- **GAS — e-mail « Wrapped » annuel** (`Google Apps Script/WrappedAnnuel.gs`) : bilan de fin d'année envoyé par mail, pendant annuel du rapport mensuel et de la carte Wrapped de l'app (W37). Design « modèle » cohérent : **hero festif** (« 🎉 Votre année AAAA en E85 » + économie cumulée + CO₂ évité), **grille 8 KPI** (pleins · litres · dépensé · prix moyen E85 · km parcourus · moyenne L/100 km · CO₂ évité · surconso E85), bandeaux **⭐ station préférée** + **📅 mois le plus cher**. Calculs alignés sur `js/wrapped.js` (économie E85 cumulée vs SP98, surconso partagée Excel J7, CO₂ à distance égale, km = somme des deltas max−min par véhicule).
+  - **Trigger** : 1er du mois 8h, mais le handler **n'envoie qu'en janvier** (bilan de l'année écoulée) — GAS n'a pas de déclencheur annuel natif. Fonctions : `installerTriggerWrappedAnnuel()` (une fois), `testWrappedAnnuel()` (envoi immédiat de l'année la plus récente), `supprimerTriggerWrappedAnnuel()`. Réutilise `lireSurconsoParam` / `computeSurconsoDynamique` (RapportMensuel.gs) et `CO2_*_PER_L_GS` (Code.gs).
+
 ## [4.15.1.0] — 2026-06-03
 
 ### Added

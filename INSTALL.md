@@ -132,6 +132,18 @@ de calcul (Nb. km, Coût, Conso, Économie…) sont **inchangées**.
 | `testRapportMensuel` | Envoie le rapport tout de suite |
 | `supprimerTriggerRapportMensuel` | Désactive le rapport |
 
+### Bilan annuel « Wrapped » (`WrappedAnnuel.gs`)
+
+1. Créer un fichier **`WrappedAnnuel`** dans le **même** projet Apps Script et y coller `Google Apps Script/WrappedAnnuel.gs` (il réutilise les fonctions globales de `Code.gs` et `RapportMensuel.gs` — à coller en premier).
+2. Exécuter **`installerTriggerWrappedAnnuel`** une fois.
+3. Tester avec **`testWrappedAnnuel`** → bilan de l'**année la plus récente** reçu immédiatement.
+
+| Fonction | Usage |
+|---|---|
+| `installerTriggerWrappedAnnuel` | Crée le déclencheur (1er du mois ~8 h ; **n'envoie qu'en janvier**, bilan de l'année écoulée) |
+| `testWrappedAnnuel` | Envoie le bilan de l'année la plus récente tout de suite |
+| `supprimerTriggerWrappedAnnuel` | Désactive le bilan annuel |
+
 ---
 
 ## 4. Vérification finale
@@ -140,3 +152,4 @@ de calcul (Nb. km, Coût, Conso, Économie…) sont **inchangées**.
 - [ ] `RafraichirFeatures` → colonne Prix colorée (vert/rouge) + onglet « Suivi (auto) » + `Tableau2` à jour
 - [ ] Saisie via `frmNouveauPlein` → nouvelle ligne dans `GS_Pleins` (Horodatage + sync_id + véhicule), et `Tableau2` se met à jour automatiquement
 - [ ] `testRapportMensuel` (GAS) → mail reçu
+- [ ] `testWrappedAnnuel` (GAS) → bilan annuel reçu
