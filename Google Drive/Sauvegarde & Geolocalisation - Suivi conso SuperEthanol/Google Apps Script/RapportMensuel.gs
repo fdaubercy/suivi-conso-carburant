@@ -1,11 +1,12 @@
 // ============================================================
-//  SUIVI CONSO E85 — Rapport mensuel automatique     v3.3.0.11
+//  SUIVI CONSO E85 — Rapport mensuel automatique     v4.14.0.4
 //  Roadmap X16
 //
 //  Trigger temporel (1er du mois) -> MailApp.sendEmail() avec
 //  resume du mois ECOULE : nb pleins, total EUR, conso moyenne,
-//  economie E85 vs SP98 (surconsommation +20% prise en compte,
-//  meme methode que l'app web / le dashboard Excel).
+//  economie E85 vs SP98 avec surconsommation E85 DYNAMIQUE,
+//  mesuree sur l'historique (meme methode que l'app web / le
+//  dashboard Excel), repli 20% si pas assez de donnees.
 //
 //  INSTALLATION (une seule fois) :
 //    1. Coller ce fichier dans le projet Apps Script (Code.gs voisin).
@@ -21,7 +22,9 @@
 // Laisser '' pour envoyer au compte du script, ou mettre une adresse.
 const RAPPORT_EMAIL = '';
 
-// Surconsommation E85 par defaut si pas de donnees S98 (cellule J7 Excel).
+// Surconsommation E85 de REPLI : utilisee seulement si le calcul dynamique
+// ci-dessous (computeSurconsoDynamique) manque de donnees. Alignee sur
+// DEFAULT_SURCONSO de l'app web.
 const RAPPORT_SURCONSO = 0.20;
 
 // ─────────────────────────────────────────────────────────────
@@ -125,6 +128,7 @@ function calculerStatsRapport(data, debut, fin) {
   const cLit  = idx('Nb. Litres', 4);
   const cPrix = idx('Prix €/L', 5);
   const cSp98 = idx('SP98 station (€/L)', 9);
+  const cVeh  = idx('Véhicule', 7);
 
   const toNum = v => {
     const n = Number(String(v).replace(',', '.'));
@@ -162,6 +166,10 @@ function calculerStatsRapport(data, debut, fin) {
     ? sp98Refs.reduce((s, p) => s + p, 0) / sp98Refs.length
     : 0;
 
+  // Surconsommation E85 DYNAMIQUE (meme methode que l'app web / le dashboard) :
+  // mesuree sur l'historique complet ; repli RAPPORT_SURCONSO si insuffisant.
+  const surconso = computeSurconsoDynamique(data, cDate, cType, cKm, cLit, cVeh);
+
   rows.forEach(r => {
     const lit  = toNum(r[cLit]);
     const prix = toNum(r[cPrix]);
@@ -173,7 +181,7 @@ function calculerStatsRapport(data, debut, fin) {
       nbE85++;
       coutE85 += lit * prix;
       const sp98 = toNum(r[cSp98]) || sp98Moyen;
-      if (sp98 > 0) coutSp98Equiv += (lit / (1 + RAPPORT_SURCONSO)) * sp98;
+      if (sp98 > 0) coutSp98Equiv += (lit / (1 + surconso)) * sp98;
     }
   });
 
@@ -188,8 +196,49 @@ function calculerStatsRapport(data, debut, fin) {
     totalLitres,
     kmParcourus,
     consoMoy,
-    ecoBrute
+    ecoBrute,
+    surconso
   };
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Surconsommation E85 dynamique — alignee sur l'app web :
+//  conso moyenne E85 / conso moyenne SP98 - 1, calculee sur les
+//  pleins CONSECUTIFS d'un MEME vehicule (tout l'historique).
+//  Repli RAPPORT_SURCONSO si pas de couple E85/SP98 exploitable.
+// ─────────────────────────────────────────────────────────────
+function computeSurconsoDynamique(data, cDate, cType, cKm, cLit, cVeh) {
+  const toNum = v => { const n = Number(String(v).replace(',', '.')); return isFinite(n) ? n : 0; };
+  const isE85 = t => /e85|ethanol/i.test(String(t));
+  const is98  = t => /98/.test(String(t));
+  const toDate = v => (v instanceof Date) ? v : new Date(String(v));
+
+  // Regroupe les pleins par vehicule (km > 0 requis pour calculer une conso).
+  const byVeh = {};
+  data.slice(1).forEach(r => {
+    const km = toNum(r[cKm]);
+    if (km <= 0) return;
+    const veh = String(r[cVeh] || '');
+    (byVeh[veh] || (byVeh[veh] = [])).push({ d: toDate(r[cDate]), km: km, lit: toNum(r[cLit]), type: r[cType] });
+  });
+
+  const consoE85 = [], consoS98 = [];
+  Object.keys(byVeh).forEach(veh => {
+    const rows = byVeh[veh].filter(x => !isNaN(x.d.getTime())).sort((a, b) => a.d - b.d);
+    for (let i = 1; i < rows.length; i++) {
+      const dk  = rows[i].km - rows[i - 1].km;
+      const lit = rows[i].lit;
+      if (dk <= 0 || lit <= 0) continue;
+      const conso = (lit / dk) * 100;                  // L/100 km du plein courant
+      if (isE85(rows[i].type)) consoE85.push(conso);
+      else if (is98(rows[i].type)) consoS98.push(conso);
+    }
+  });
+
+  if (!consoE85.length || !consoS98.length) return RAPPORT_SURCONSO;
+  const avg = a => a.reduce((s, v) => s + v, 0) / a.length;
+  const s = avg(consoE85) / avg(consoS98) - 1;
+  return (isFinite(s) && s > 0) ? s : RAPPORT_SURCONSO;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -235,7 +284,7 @@ function construireCorpsRapport(moisLabel, s) {
         '</tr>' +
       '</table>' +
       '<p style="font-size:11px;color:#999;margin-top:18px;border-top:1px solid #eee;padding-top:8px">' +
-        'Économie brute (surconsommation E85 +' + Math.round(RAPPORT_SURCONSO * 100) + '% prise en compte), ' +
+        'Économie brute (surconsommation E85 +' + Math.round((s.surconso != null ? s.surconso : RAPPORT_SURCONSO) * 100) + '% mesurée sur l\'historique), ' +
         'hors amortissement du kit. Rapport genere automatiquement le ' +
         Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy à HH:mm') + '.' +
       '</p>' +

@@ -289,19 +289,49 @@ End Sub
 '  HELPERS (prives)
 ' ════════════════════════════════════════════════════════════
 
-' Active une feuille si elle existe, sinon message non bloquant.
+' Active une feuille ; si elle n'existe pas encore, la CONSTRUIT via son
+' createur (auto-reparation). Evite un bouton "mort" quand la feuille manque -
+' d'autant que le message en barre d'etat est INVISIBLE en mode plein ecran.
 Private Sub GoSheet(nm As String, friendly As String)
     Dim ws As Worksheet
+    Dim builder As String
     On Error Resume Next
     Set ws = ThisWorkbook.Sheets(nm)
     On Error GoTo 0
+
     If ws Is Nothing Then
-        SetStatus "[Navigation] " & ChrW(9888) & " '" & friendly & "' pas encore disponible."
+        builder = BuilderFor(nm)
+        If Len(builder) > 0 Then
+            On Error Resume Next
+            If nm = WS_STATS Then
+                Application.Run builder, True   ' CreerGraphiquesWeb(silent:=True)
+            Else
+                Application.Run builder
+            End If
+            Set ws = ThisWorkbook.Sheets(nm)
+            On Error GoTo 0
+        End If
+    End If
+
+    If ws Is Nothing Then
+        SetStatus "[Navigation] " & ChrW(9888) & " '" & friendly & "' indisponible (module createur non importe ?)."
         Exit Sub
     End If
     ws.Activate
     ws.Range("A1").Select
 End Sub
+
+' Createur de feuille associe a un nom d'onglet (auto-reparation de la nav).
+Private Function BuilderFor(ByVal nm As String) As String
+    Select Case nm
+        Case WS_REG:     BuilderFor = "CreerFeuilleReglages"     ' modReglages
+        Case WS_HIST:    BuilderFor = "CreerFeuilleHistorique"   ' modHistorique
+        Case WS_CARTE:   BuilderFor = "CreerFeuilleCarte"        ' modCarte
+        Case WS_STATS:   BuilderFor = "CreerGraphiquesWeb"       ' modGraphiques (silent)
+        Case WS_ACCUEIL: BuilderFor = "CreerAccueil"             ' ce module
+        Case Else:       BuilderFor = ""
+    End Select
+End Function
 
 ' Resume court du dernier plein de GS_Pleins (pour la tuile "reprendre").
 Private Function DernierPleinResume() As String

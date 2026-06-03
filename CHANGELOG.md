@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.14.0.4] — 2026-06-03
+
+### Changed
+- **GAS — rapport mensuel : surconsommation E85 dynamique** (`RapportMensuel.gs`) : l'économie E85 vs SP98 utilisait une surconso **fixe 20 %** ; elle est désormais **mesurée sur l'historique** (conso moyenne E85 / conso moyenne SP98 − 1, sur les pleins consécutifs d'un **même véhicule**), **même méthode que l'app web et le dashboard Excel**, avec repli 20 % si pas assez de données (`computeSurconsoDynamique`). Le pied de l'e-mail affiche le % réellement appliqué. Fonction déclenchée par trigger → **un simple enregistrement dans l'éditeur Apps Script suffit** (pas de redéploiement Web App).
+
+### Fixed
+- **Excel — tuile « Historique » de l'Accueil sans effet** (`vba/modWorkbook.bas`) : quand la feuille cible n'existait pas (création échouée lors du conflit modCarte/modHistorique), `GoSheet` postait un avertissement en **barre d'état — invisible en mode plein écran** (module `Affichage`) → bouton apparemment « mort ». `GoSheet` **construit maintenant la feuille manquante** via son créateur (`BuilderFor` → `CreerFeuilleReglages`/`CreerFeuilleHistorique`/`CreerFeuilleCarte`/`CreerGraphiquesWeb`/`CreerAccueil`) avant de l'activer — navigation **auto-réparante** pour toutes les tuiles de l'Accueil.
+
 ## [4.14.0.3] — 2026-06-03
 
 ### Added
