@@ -20,12 +20,11 @@ Une fois les modules importés et les snippets collés (détails §1), **tout se
 
 | Étape | Macro | Effet |
 |---|---|---|
-| 1 | `InstallerDashboard` | Feuilles miroir : Reglages + Historique + Carte + **Stats (Tableau de bord)** + Accueil |
+| 1 | `InstallerDashboard` | Feuilles miroir : Reglages + Historique + Carte + **Stats (Tableau de bord)** + Accueil. La feuille **Stats** est montée via `modGraphiques.CreerGraphiquesWeb`. |
 | 2 | `RafraichirFeatures` | MFC « Prix €/L » + onglet « Suivi (auto) » + synchro `Tableau2` |
-| 3 | `CreerGraphiquesWeb` | (Re)construit l'onglet graphique du tableau de bord |
-| 4 | `VerifierInstallation` | Contrôle final : feuilles + tableaux requis |
+| 3 | `VerifierInstallation` | Contrôle final : feuilles + tableaux requis |
 
-> 💡 `InstallerDashboard` peut aussi se lancer **seul** pour ne (re)monter que les feuilles miroir du dashboard (dont la feuille **Stats**). Prérequis : `modReglages`, `modHistorique`, `modCarte`, `modDashboard` importés.
+> 💡 `InstallerDashboard` peut aussi se lancer **seul** pour ne (re)monter que les feuilles miroir du dashboard (dont la feuille **Stats**). Prérequis : `modReglages`, `modHistorique`, `modCarte`, `modGraphiques` importés.
 
 ---
 

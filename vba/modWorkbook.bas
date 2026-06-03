@@ -28,7 +28,7 @@ Attribute VB_Name = "modWorkbook"
 Option Explicit
 
 Private Const WS_ACCUEIL As String = "Accueil"
-Private Const WS_STATS   As String = "Tableau de bord"   ' cree par modDashboard (etape 2)
+Private Const WS_STATS   As String = "Tableau de bord"   ' cree par modGraphiques (CreerGraphiquesWeb)
 Private Const WS_CARTE   As String = "Carte"             ' cree par modCarte (etape 3)
 Private Const WS_HIST    As String = "Historique"
 Private Const WS_REG     As String = "Reglages"
@@ -37,7 +37,8 @@ Private Const WS_DATA    As String = "GS_Pleins"
 
 ' ════════════════════════════════════════════════════════════
 '  INSTALLATION COMPLETE DU DASHBOARD (toutes les feuilles miroir)
-'  Prerequis : modReglages, modHistorique, modCarte, modDashboard importes.
+'  Prerequis : modReglages, modHistorique, modCarte importes
+'  (+ modGraphiques pour monter la feuille Stats "Tableau de bord").
 '  Cree : Reglages + Historique + Carte + Stats (Tableau de bord) + Accueil.
 '  Apres : coller les 3 snippets (ThisWorkbook / Reglages / Carte).
 ' ════════════════════════════════════════════════════════════
@@ -49,10 +50,13 @@ Public Sub InstallerDashboard()
     CreerFeuilleHistorique         ' modHistorique
     CreerFeuilleCarte              ' modCarte
 
-    ' Stats : tolerant (CreerTableauDeBord requiert des donnees dans GS_Pleins ;
-    ' un classeur vide ne doit pas bloquer la creation des autres feuilles).
+    ' Stats "Tableau de bord" = modGraphiques.CreerGraphiquesWeb (proprietaire
+    ' moderne depuis v4.11 ; l'ancien modDashboard a ete retire). Appel TOLERANT
+    ' via Application.Run : aucune dependance de compilation, et un classeur sans
+    ' donnees / sans module ne bloque pas la creation des autres feuilles.
+    ' silent:=True -> pas de MsgBox bloquante pendant l'installation.
     On Error Resume Next
-    CreerTableauDeBord             ' modDashboard -> feuille "Tableau de bord" (Stats)
+    Application.Run "CreerGraphiquesWeb", True
     On Error GoTo ErrH
 
     CreerAccueil                   ' ce module
@@ -77,19 +81,18 @@ End Sub
 '  et colle les snippets de feuille. Tolerant : chaque etape est
 '  isolee, le bilan detaille s'affiche dans Execution (Ctrl+G) et un
 '  resume dans la barre d'etat.
-'    1. Dashboard miroir (Reglages/Historique/Carte/Stats/Accueil)
+'    1. Dashboard miroir (Reglages/Historique/Carte/Stats/Accueil) ; la feuille
+'       Stats (Tableau de bord) est montee via modGraphiques.CreerGraphiquesWeb.
 '    2. Analyse (MFC prix + Suivi auto + Tableau2)        [modFeatures]
-'    3. Graphiques web                                    [modGraphiques]
-'    4. Verification finale                               [modFeatures]
+'    3. Verification finale                               [modFeatures]
 ' ════════════════════════════════════════════════════════════
 Public Sub Installer()
     Dim rap As String, okN As Long, koN As Long
     Application.ScreenUpdating = False
     rap = "=== GO ! Installation Suivi E85 ===" & vbNewLine
 
-    rap = rap & RunStep("Dashboard miroir (Reglages/Historique/Carte/Stats/Accueil)", "InstallerDashboard", okN, koN)
+    rap = rap & RunStep("Dashboard miroir + Stats (Reglages/Historique/Carte/Stats/Accueil)", "InstallerDashboard", okN, koN)
     rap = rap & RunStep("Analyse (MFC prix + Suivi auto + Tableau2)", "RafraichirFeatures", okN, koN)
-    rap = rap & RunStep("Graphiques web", "CreerGraphiquesWeb", okN, koN)
     rap = rap & RunStep("Verification finale", "VerifierInstallation", okN, koN)
 
     rap = rap & "-------------------------------------------" & vbNewLine

@@ -4,11 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.14.0.1] — 2026-06-03
+
+### Fixed
+- **VBA — `InstallerDashboard` appelait le module legacy `modDashboard.CreerTableauDeBord`** (retiré en v4.11, qui recréait une feuille « Tableau de bord » **en conflit** avec le dashboard moderne `modGraphiques`, et imposait une **dépendance de compilation** sur un module potentiellement absent). Corrigé : la feuille Stats est montée via **`modGraphiques.CreerGraphiquesWeb`** (propriétaire moderne de « Tableau de bord »), en appel **tolérant** `Application.Run "CreerGraphiquesWeb", True` (pas de dépendance de compilation, `silent:=True`). L'étape « Graphiques web » redondante de la macro maître `Installer` est supprimée (désormais incluse dans `InstallerDashboard`) → `Installer` = Dashboard+Stats → Analyse → Vérification.
+
 ## [4.14.0.0] — 2026-06-03
 
 ### Added
-- **VBA — macro maître « GO ! » `Installer`** (`vba/modWorkbook.bas`) : installation complète en **un clic** (Alt+F8 → `Installer`), à lancer après import des `.bas` + collage des snippets. Enchaîne, **de façon tolérante** (une étape en échec n'interrompt pas les suivantes), `InstallerDashboard` → `RafraichirFeatures` (modFeatures) → `CreerGraphiquesWeb` (modGraphiques) → `VerifierInstallation` ; bilan détaillé dans Exécution (Ctrl+G) + résumé en barre d'état. Helper `RunStep` (exécution par nom via `Application.Run`, comptage OK/échec).
-- **VBA — `InstallerDashboard` branche la feuille Stats** (`vba/modWorkbook.bas`) : la macro crée désormais aussi le **« Tableau de bord » (Stats)** via `CreerTableauDeBord` (modDashboard), en plus de Reglages / Historique / Carte / Accueil. Création Stats rendue **tolérante** (un classeur sans données ne bloque plus la création des autres feuilles).
+- **VBA — macro maître « GO ! » `Installer`** (`vba/modWorkbook.bas`) : installation complète en **un clic** (Alt+F8 → `Installer`), à lancer après import des `.bas` + collage des snippets. Enchaîne, **de façon tolérante** (une étape en échec n'interrompt pas les suivantes), `InstallerDashboard` (qui monte aussi la feuille Stats) → `RafraichirFeatures` (modFeatures) → `VerifierInstallation` ; bilan détaillé dans Exécution (Ctrl+G) + résumé en barre d'état. Helper `RunStep` (exécution par nom via `Application.Run`, comptage OK/échec).
+- **VBA — `InstallerDashboard` branche la feuille Stats** (`vba/modWorkbook.bas`) : la macro monte désormais aussi le **« Tableau de bord » (Stats)** via `CreerGraphiquesWeb` (modGraphiques), en plus de Reglages / Historique / Carte / Accueil. Appel **tolérant** (`Application.Run`, `silent:=True`) : un classeur sans données / sans module ne bloque pas la création des autres feuilles.
 
 ### Changed
 - **Recherche de stations — refonte fiabilité + UX (web)** (`js/osm.js`, `js/geo.js`, `js/recherche.js`) :
