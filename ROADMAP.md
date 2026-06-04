@@ -128,6 +128,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.2.1.0 | **Bandeau du haut épuré (menu ⋯)** — header allégé : titre d'onglet (ellipse, plus de débordement 3 lignes) + badge E85 + compte visibles ; 🏠/🌙/📲 regroupés dans un menu déroulant ⋯ (fermeture clic extérieur/item/Échap). `index.html`, `style.css` (`.hmenu*`), `main.js`, `theme.js`. |
 | v5.2.0.0 | **Plein écran de toutes les cartes (W64)** — le ⛶ (W63) est étendu à **toutes les `.card`** (stats, graphiques, historique, comparatif…), bouton injecté + réinjecté via `MutationObserver`. Plein écran CSS, défilement interne, sortie ✕/Échap. `js/mapfullscreen.js`. |
 | v5.2.0.0 | **Icônes d'enseignes + log des inconnues (W65)** — bibliothèque de pictos **originaux** (couleur + monogramme, pas de logos déposés) `public/icons/brands/*.svg` + `generic.svg` ; `brandInfo()` (`brand.js`), affichage dans l'historique ; enseignes inconnues journalisées (`localStorage brand_unknown_v1`) pour ajout ultérieur. |
 | v5.2.0.0 | **Fix synchro Excel sous comptes Google** — clé propriétaire privée `SYNC_SECRET` (propriété de script) acceptée par `resolveOwner_` (Auth.gs) ; VBA la lit dans le registre local (`PoserSyncSecret`) et l'ajoute aux appels export/paramètres. Débloque la descente des pleins dans Excel sans affaiblir l'auth web. |

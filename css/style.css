@@ -75,14 +75,49 @@ header {
   top: 0;
   z-index: 10;
 }
-header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
+header h1 {
+  color: #fff; font-size: 17px; font-weight: 600; margin: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;   /* plus de titre sur 3 lignes */
+}
+
+.app-logo { font-size: 22px; line-height: 1; flex: none; }
 
 .header-title {
   flex: 1;
+  min-width: 0;          /* autorise l'ellipse du titre quand l'espace manque */
   display: flex;
   flex-direction: column;
   gap: 1px;
 }
+
+/* ─── Bandeau épuré : menu ⋯ regroupant les actions secondaires ─── */
+.hmenu { position: relative; flex: none; }
+.hmenu-btn {
+  width: 34px; height: 34px; padding: 0;
+  border: none; border-radius: 9px;
+  background: rgba(255,255,255,.13); color: #fff;
+  font-size: 20px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.hmenu-btn:active { background: rgba(255,255,255,.28); }
+.hmenu-pop {
+  position: absolute; top: calc(100% + 6px); right: 0;
+  background: var(--white); color: var(--text);
+  border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 8px 26px rgba(0,0,0,.22);
+  padding: 6px; min-width: 186px; z-index: 60;
+}
+.hmenu-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px 12px; border: none; background: transparent;
+  font-family: inherit; font-size: 14px; color: var(--text);
+  text-align: left; border-radius: 8px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hmenu-item[hidden] { display: none; }
+.hmenu-item:hover, .hmenu-item:active { background: var(--blue-light); }
+.hmi-ico { font-size: 17px; line-height: 1; width: 22px; text-align: center; flex: none; }
 
 .version-tag {
   font-size: 10px;
@@ -1060,11 +1095,14 @@ body.no-share .hist-share { display: none; }
 }
 .hist-row3 > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* W65 — Icône d'enseigne (badge SVG couleur + monogramme). */
+/* W65 — Icône d'enseigne (logo officiel quand fourni, sinon monogramme).
+   object-fit:contain + fond blanc : les logos de ratios très variés (carré,
+   large, vertical) tiennent dans le carré sans déformation. */
 .brand-ico {
   width: 18px; height: 18px; flex: none;
   border-radius: 4px; display: block;
-  box-shadow: 0 0 0 1px rgba(0,0,0,.05);
+  object-fit: contain; background: #fff; padding: 1px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.06);
 }
 
 .hist-msg {

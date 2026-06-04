@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.2.1.0] — 2026-06-04
+
+### Changed
+- **Bandeau du haut épuré (menu ⋯)** — le header était surchargé (⛽ + titre + version + 📲 + badge hors-ligne + 🏠 + 🌙 + compte + badge E85), au point que le bouton « Se connecter » poussait le badge E85 hors écran et que le **titre d'onglet débordait sur 3 lignes**. Refonte (option 1 retenue) : le titre d'onglet (ellipse propre, plus de retour à la ligne) + le badge **🌿 E85** + le **compte** restent visibles ; les actions secondaires **🏠 Accueil / 🌙 Thème / 📲 Installer** sont regroupées dans un **menu déroulant ⋯** (fermeture au clic extérieur, sur un item, ou via **Échap**). Les boutons gardent leurs `id` d'origine (handlers `main.js` inchangés) ; `theme.js` met à jour l'icône + le libellé de l'item thème. `index.html`, `css/style.css` (`.hmenu*`, titre `min-width:0` + ellipse), `js/main.js`, `js/theme.js`.
+- **Icônes d'enseignes : vrais logos officiels (W65)** — là où un logo est fourni (Total, Carrefour, Esso, Shell, Leclerc, Système U, Intermarché, BP, Casino, Auchan, Cora, Eni…), il remplace le monogramme initial ; **repli badge monogramme** original pour les enseignes sans logo (Colruyt, Dyneff, Élan, Avia) et `generic.svg` pour une enseigne inconnue. `avia.svg` (fichier devenu vide) réparé. Affichage harmonisé : `.brand-ico` passe en `object-fit:contain` sur fond blanc → n'importe quel ratio de logo (carré, large, vertical) tient dans le carré sans déformation. *(L'usage des logos de marques déposées relève du propriétaire du dépôt.)*
+
 ## [5.2.0.0] — 2026-06-04
 
 ### Fixed

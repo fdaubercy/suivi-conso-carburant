@@ -160,6 +160,20 @@ function initStaticHandlers() {
   document.getElementById('pwaInstallBtn')?.addEventListener('click', () => window._pwaInstall?.());
   document.querySelector('#iosBanner .pwa-close')?.addEventListener('click', () => window._pwaDismiss?.('iosBanner'));
 
+  // Bandeau épuré : menu ⋯ (les actions 🏠/🌙/📲 sont des items, câblés par id ci-dessus/ailleurs).
+  const hmBtn = document.getElementById('hmenuBtn');
+  const hmPop = document.getElementById('hmenuPop');
+  if (hmBtn && hmPop) {
+    const setMenu = (open) => {
+      hmPop.hidden = !open;
+      hmBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    hmBtn.addEventListener('click', e => { e.stopPropagation(); setMenu(hmPop.hidden); });
+    hmPop.addEventListener('click', () => setMenu(false));        // clic sur un item → action (par id) puis fermeture
+    document.addEventListener('click', e => { if (!hmPop.hidden && !e.target.closest('.hmenu')) setMenu(false); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !hmPop.hidden) setMenu(false); });
+  }
+
   // Véhicule
   document.getElementById('vehiculeSel')?.addEventListener('change', onVehiculeChange);
   document.getElementById('fNouveauVehicule')?.addEventListener('keydown', e => {

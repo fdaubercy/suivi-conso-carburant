@@ -29,23 +29,38 @@
 </div>
 
 <header>
-  <span style="font-size:22px">⛽</span>
+  <span class="app-logo">⛽</span>
   <div class="header-title">
     <h1>Saisie d'un plein</h1>
     <span id="appVersion" class="version-tag"></span>
   </div>
-  <!-- PWA : bouton install Android/Chrome (visible uniquement si beforeinstallprompt) -->
-  <button id="pwaInstallBtn" class="pwa-install-btn" hidden
-          title="Installer l'app sur l'écran d'accueil">📲</button>
   <!-- Badge hors-ligne : visible quand des pleins sont en file d'attente -->
   <span id="offlineBadge" class="offline-badge" hidden></span>
-  <!-- W43 — retour à l'écran d'accueil à tuiles -->
-  <button class="home-btn" id="homeBtn" title="Écran d'accueil">🏠</button>
-  <button class="theme-toggle" id="themeToggle" title="Changer de thème">🌙</button>
-  <!-- U7 — Bloc identité (avatar + déconnexion, ou bouton « Se connecter ») ; masqué tant que l'auth n'est pas configurée -->
-  <div class="auth-slot" id="authSlot" hidden></div>
   <div class="header-right">
     <span class="badge" id="headerBadge">🌿 E85</span>
+  </div>
+  <!-- U7 — Bloc identité (avatar + déconnexion, ou bouton « Se connecter ») ; masqué tant que l'auth n'est pas configurée -->
+  <div class="auth-slot" id="authSlot" hidden></div>
+  <!-- Menu ⋯ — actions secondaires regroupées (bandeau épuré). Les boutons
+       gardent leurs id d'origine : les handlers de main.js restent valides. -->
+  <div class="hmenu">
+    <button class="hmenu-btn" id="hmenuBtn" type="button"
+            aria-haspopup="true" aria-expanded="false"
+            aria-label="Plus d'options" title="Plus d'options">⋯</button>
+    <div class="hmenu-pop" id="hmenuPop" role="menu" hidden>
+      <!-- W43 — retour à l'écran d'accueil à tuiles -->
+      <button class="hmenu-item" id="homeBtn" type="button" role="menuitem">
+        <span class="hmi-ico">🏠</span><span>Accueil</span>
+      </button>
+      <button class="hmenu-item" id="themeToggle" type="button" role="menuitem">
+        <span class="hmi-ico" id="themeIco">🌙</span><span id="themeLabel">Thème sombre</span>
+      </button>
+      <!-- PWA : install Android/Chrome (visible uniquement si beforeinstallprompt) -->
+      <button class="hmenu-item" id="pwaInstallBtn" type="button" role="menuitem" hidden
+              title="Installer l'app sur l'écran d'accueil">
+        <span class="hmi-ico">📲</span><span>Installer l'app</span>
+      </button>
+    </div>
   </div>
 </header>
 

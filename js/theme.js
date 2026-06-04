@@ -18,6 +18,13 @@ export function toggleTheme() {
 
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
+  const dark = theme === 'dark';
+  // Bandeau épuré : l'action thème est un item de menu (icône + libellé).
+  const ico = document.getElementById('themeIco');
+  const lbl = document.getElementById('themeLabel');
+  if (ico) ico.textContent = dark ? '☀️' : '🌙';
+  if (lbl) lbl.textContent = dark ? 'Thème clair' : 'Thème sombre';
+  // Rétro-compatibilité : ancien bouton emoji seul (si présent sans sous-span).
   const btn = document.getElementById('themeToggle');
-  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  if (btn && !ico) btn.textContent = dark ? '☀️' : '🌙';
 }

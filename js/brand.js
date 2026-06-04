@@ -1,10 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════════════
    brand.js — Détection de l'enseigne d'une station depuis son nom (W63 / W65)
 
-   Renvoie un libellé court + une couleur d'identité + un slug d'ICÔNE. Les
-   icônes (public/icons/brands/<slug>.svg) sont des pictos ORIGINAUX (badge
-   couleur de l'enseigne + monogramme) — PAS des logos déposés : on reste sur
-   du libre de droits, sûr pour un dépôt public, tout en restant reconnaissable.
+   Renvoie un libellé court + une couleur d'identité + un slug d'ICÔNE. Chaque
+   enseigne a son fichier public/icons/brands/<slug>.svg : le LOGO officiel de
+   l'enseigne quand il est fourni, sinon un badge monogramme de repli (couleur
+   + initiales). generic.svg sert pour une enseigne inconnue. L'usage des logos
+   de marques relève du propriétaire du dépôt.
 
    Quand une enseigne n'est pas reconnue, son nom est JOURNALISÉ (console +
    localStorage « brand_unknown_v1 ») afin d'ajouter facilement son icône plus
