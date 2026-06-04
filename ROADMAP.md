@@ -13,6 +13,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|
 | W57 | **Partage image du bilan « Wrapped »** : rendu de la carte Wrapped sur un `<canvas>` → `toBlob()` → **Web Share API** (`navigator.share`) avec repli téléchargement PNG | Partager son bilan E85 en 1 tap (réseaux, message) sans capture d'écran |
 | W58 | **Prochain plein estimé** : à partir du rythme moyen (km/jour & autonomie), afficher « prochain plein ≈ le JJ/MM » dans la vue Stats + badge sur l'onglet | Anticiper le passage à la pompe |
+| W62 | **Prix historique à la saisie pour SP95 / E10 / GPLc** : maintenant que ces carburants sont relevés dans `_PrixHistory` (W61), étendre les `TOKENS` de `handleSectorPrices` (Code.gs) **et** `HIST_FUELS` (`js/secteur.js`) pour remplir le champ Prix à la saisie d'un plein passé sur ces carburants (au lieu du repli « prix du jour ») | Complète W60 ; cohérence des 6 carburants entre Excel et l'app |
 
 ### 🎨 UX / Ergonomie
 
@@ -128,6 +129,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v4.18.0.0 | **Relevé marché SP95 / E10 / GPLc (W61)** — `RefreshPrix.gs` `FUELS` étendu de 3 → **6 carburants** (champs API `sp95_prix`/`e10_prix`/`gplc_prix`) : loggés dans `_PrixHistory` (stations curées + scan géo 15 km) et `SECTOR_BEST_TODAY`. **Synchro Excel** sans changement Power Query (`PrixHistory.m` recopie les 4 colonnes ; *Actualiser tout*). **Fix** `vba/modPrixStation.bas` `FuelKeyP` (E10 ne tombe plus dans la colonne SP95) ; libellé **GPLc** harmonisé (`modPrixStation`/`modGraphiques`). Push inchangé (pas de seuil SP95/E10/GPLc dans `_PushSubs`) |
 | v4.17.0.1 | **Déploiement GAS automatisé** — `gas-deploy.mjs` / `npm run gas:deploy` : push `.gs`/`.html` + version + mise à jour du déploiement (même URL `/exec`) via l'API `script.googleapis.com`, auth OAuth refresh_token (`.claude/gas-config.json`, gitignoré). Fusion **sans suppression** (conserve `appsscript` et tout fichier en ligne absent du repo) ; modes `--check`/`--diff`/`--pull`/`--no-deploy`. Fini le copier-coller dans l'éditeur |
 | v4.17.0.0 | **Prix historique à la saisie d'un plein passé (W60)** — date ≠ aujourd'hui → champ Prix rempli depuis `_PrixHistory` : prix de la **station** ce jour-là → **relevé le plus proche avant** → repli **mini secteur** ; note de provenance `#histNote` ; SP95/E10/GPLc (non suivis) → prix du jour conservé ; retour à aujourd'hui → prix live restauré. `js/secteur.js` (`resolveHistPrice`/`applyHistPriceToForm`), câblage `main.js`/`prix.js`/`carburant.js`. GAS `handleSectorPrices` expose `byStationDate` (⚠️ redéploiement requis ; repli secteur en attendant). Tests `prix-historique.test.js` + `.spec.js` |
 | v4.16.0.0 | **E-mail « Wrapped » annuel (GAS)** — `WrappedAnnuel.gs` : bilan de fin d'année par mail (hero festif + 8 KPI : pleins/litres/€/prix E85/km/moyenne L100/CO₂/surconso + station préférée + mois le plus cher), design aligné sur le rapport mensuel et `js/wrapped.js`. Trigger 1er du mois 8h n'envoyant qu'en **janvier** (année écoulée) ; `installerTriggerWrappedAnnuel`/`testWrappedAnnuel`/`supprimerTriggerWrappedAnnuel` |

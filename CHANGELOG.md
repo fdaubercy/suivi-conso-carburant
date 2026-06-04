@@ -4,6 +4,24 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.18.0.0] — 2026-06-04
+
+### Added
+- **Relevé marché de 3 carburants supplémentaires — SP95, E10, GPLc (W61)** : le relevé quotidien ~7h (`RefreshPrix.gs` → `refreshPrixCarburants`) suit désormais **6 carburants** (E85, Gazole, SP98 **+ SP95, E10, GPLc**) au lieu de 3. Ajout de 3 entrées à la constante `FUELS` (champs API ODS `sp95_prix` / `e10_prix` / `gplc_prix`, vérifiés sur le dataset). Les 3 nouveaux carburants sont **loggés dans l'onglet `_PrixHistory`** (colonne `Type`) pour les stations curées **et** le scan géo 15 km, et **mémorisés** par carburant dans `SECTOR_BEST_TODAY` / `LAST_LOW_PRICES`.
+  - **Synchronisation Excel** : la requête Power Query `powerquery/PrixHistory.m` recopiant les 4 colonnes telles quelles, **aucune modification fonctionnelle n'était requise** — un simple *Données → Actualiser tout* fait apparaître les nouveaux carburants. La feuille **« Prix par Station »** (`vba/modPrixStation.bas` → `MAJ_PrixParStation`) crée dynamiquement une colonne par carburant détecté.
+
+### Fixed
+- **VBA — E10 fusionné dans SP95 (`vba/modPrixStation.bas` → `FuelKeyP`)** : le test `InStr(s,"sp95") Or InStr(s,"e10")` rangeait à tort les relevés **E10 dans la colonne SP95** de la feuille « Prix par Station ». E10 est désormais **testé avant** SP95 et **distinct**. Le GPL y est normalisé en **« GPLc »** (cohérent avec `_PrixHistory`).
+
+### Changed
+- **VBA — libellé carburant harmonisé** : `vba/modGraphiques.bas` (`FuelKey` + `prefOrder`) et `vba/modPrixStation.bas` (`FuelOrder`) affichent désormais **« GPLc »** au lieu de « GPL », cohérent avec la colonne `Type` de `_PrixHistory`.
+- **Push inchangé (par conception)** : les 3 nouveaux carburants **ne déclenchent aucune notification** — `_PushSubs` n'expose que `SeuilE85/Gazole/SP98`, donc `WebPush.gs` (`envoyerPushPrixBasMulti`) les ignore (seuil absent ⇒ jamais sous le seuil).
+- **App (`js/secteur.js`)** : commentaire `HIST_FUELS` clarifié — SP95/E10/GPLc sont relevés dans `_PrixHistory` mais **non encore résolus à la saisie** d'un plein passé (les `TOKENS` de `handleSectorPrices` restent E85/Gazole/SP98). Documenté comme évolution (ROADMAP).
+
+### Déploiement
+- **GAS** : recoller `RefreshPrix.gs` (ou `npm run gas:deploy`), puis exécuter **`testRefreshPrix()`** — vérifier dans les logs `… SP95=x.xxx  E10=x.xxx  GPLc=x.xxx` et les nouvelles lignes dans `_PrixHistory`. Le trigger quotidien reste valide.
+- **Excel** : *Données → Actualiser tout* (Power Query) ; réimporter `vba/modPrixStation.bas` (+ `vba/modGraphiques.bas`) puis relancer `MAJ_PrixParStation`. Voir `Google Apps Script/GAS_UPDATE.md` (§ W61).
+
 ## [4.17.0.1] — 2026-06-03
 
 ### Added

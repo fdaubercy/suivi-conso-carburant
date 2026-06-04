@@ -1094,7 +1094,7 @@ NextP2:
 
     ' === Ordre prefere des carburants ===
     Dim prefOrder As Variant
-    prefOrder = Array("E85", "SP98", "GAZOLE", "SP95", "E10", "GPL")
+    prefOrder = Array("E85", "SP98", "GAZOLE", "SP95", "E10", "GPLc")
     Dim fuels() As String, fIdx As Long: fIdx = 0
     ReDim fuels(0 To fuelSet.count - 1)
     Dim seen As Object: Set seen = CreateObject("Scripting.Dictionary")
@@ -1187,7 +1187,7 @@ Private Function FuelKey(t As String) As String
     ElseIf InStr(u, "E10") > 0 Then
         FuelKey = "E10"
     ElseIf InStr(u, "GPL") > 0 Then
-        FuelKey = "GPL"
+        FuelKey = "GPLc"      ' W61 : coherent avec _PrixHistory / modPrixStation
     ElseIf Len(u) > 0 Then
         FuelKey = u      ' conserve le libelle brut (ex : "HVO", "GNV"…)
     End If

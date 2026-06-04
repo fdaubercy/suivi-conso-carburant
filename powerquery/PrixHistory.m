@@ -1,10 +1,15 @@
 // ═════════════════════════════════════════════════════════════════════════
-//  Requête Power Query : PrixHistory                            v4.9.0.0
+//  Requête Power Query : PrixHistory                            v4.18.0.0
 //  Source de vérité des PRIX MARCHÉ (miroir du classeur excel/*.xlsm).
 //
 //  Lit le CSV de l'onglet Google Sheets « _PrixHistory » (relevé quotidien
 //  ~7h alimenté par RefreshPrix.gs → refreshPrixCarburants) et alimente la
 //  table Excel « PrixHistory » (4 colonnes).
+//
+//  W61 (v4.18.0.0) : _PrixHistory suit désormais 6 carburants (ajout SP95,
+//  E10, GPLc). AUCUNE modification de cette requête n'est requise — elle
+//  recopie les 4 colonnes telles quelles ; il suffit d'« Actualiser tout »
+//  (Données → Actualiser tout) pour voir les nouveaux carburants côté Excel.
 //
 //  ┌─ À COLLER DANS EXCEL (une seule fois) ──────────────────────────────┐
 //  │ Données → Obtenir des données → À partir d'autres sources →         │
@@ -18,7 +23,7 @@
 //  ┌─ STRUCTURE _PrixHistory (RefreshPrix.gs → getOrCreatePrixHistorySheet) ┐
 //  │  A  Station   (« Enseigne - Ville » ou « Secteur - Ville »)          │
 //  │  B  Date      (texte ISO yyyy-MM-dd écrit par Utilities.formatDate)  │
-//  │  C  Type      (E85 / GAZOLE / SP98)                                  │
+//  │  C  Type      (E85/GAZOLE/SP98/SP95/E10/GPLc)                        │
 //  │  D  Prix €/L  (nombre)                                               │
 //  └─────────────────────────────────────────────────────────────────────┘
 //

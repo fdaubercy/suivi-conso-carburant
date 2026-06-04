@@ -26,8 +26,11 @@ import { setFieldPrice, updateCout } from './ui.js';
 
 const CACHE_TTL = 2 * 60 * 60 * 1000;   // 2 h
 
-// W60 — carburants réellement relevés dans _PrixHistory (RefreshPrix.gs).
-// Les autres (SP95/E10/GPLc) n'ont pas d'historique → repli prix du jour.
+// W60 — carburants exposés par ?action=sectorPrices pour le prix historique
+// à la saisie. Depuis W61, _PrixHistory relève AUSSI SP95/E10/GPLc (et Excel
+// les synchronise), mais l'app ne les y résout pas encore : les TOKENS de
+// handleSectorPrices (Code.gs) restent E85/GAZOLE/SP98 → repli prix du jour.
+// Pour les activer : étendre cette liste + les TOKENS côté GAS.
 const HIST_FUELS = ['E85', 'GAZOLE', 'SP98'];
 
 // Données par carburant : { E85:{byDate,byStationDate,today}, GAZOLE:{…}, … }

@@ -1,4 +1,4 @@
-# Suivi E85 — Google Apps Script — v3.7.0.0
+# Suivi E85 — Google Apps Script — v4.18.0.0
 
 ## Déploiement
 
@@ -210,6 +210,32 @@ Retourne :
 
 ---
 
+## 🆕 v4.18.0.0 — 3 carburants de plus : SP95, E10, GPLc (W61)
+
+Étend le relevé quotidien de **E85 + Gazole + SP98** à **6 carburants** (ajout **SP95, E10, GPLc**) dans `_PrixHistory`, avec synchronisation Excel.
+
+### Fichier à recoller dans l'éditeur Apps Script
+1. **`RefreshPrix.gs`** — constante `FUELS` étendue (champs API ODS `sp95_prix` / `e10_prix` / `gplc_prix`).
+
+*(Aucun autre `.gs` à modifier : `WebPush.gs` et `Code.gs` sont inchangés.)*
+
+### Étapes de redéploiement
+1. Recoller `RefreshPrix.gs` (Extensions → Apps Script) **ou** `npm run gas:deploy`.
+2. *(facultatif)* **Déployer → Gérer les déploiements → (crayon) → Nouvelle version → Déployer** — pour que `?action=lowprices` renvoie aussi les nouveaux carburants *(garder le même ID → `GAS_URL` inchangé)*.
+3. Exécuter une fois **`testRefreshPrix()`** → vérifier dans les logs :
+   `E85=… GAZOLE=… SP98=… SP95=… E10=… GPLc=…` et de nouvelles lignes dans `_PrixHistory`.
+4. Le trigger quotidien (`installerTriggerRefreshPrix`) reste valide — rien à refaire.
+
+### Côté Excel
+- **Power Query** : *Données → Actualiser tout* (la requête `PrixHistory.m` recopie les 4 colonnes → les nouveaux carburants apparaissent **sans modification**).
+- **Feuille « Prix par Station »** : réimporter `vba/modPrixStation.bas` (corrige **E10 ≠ SP95**, libellé **GPLc**) puis relancer `MAJ_PrixParStation`. Idem `vba/modGraphiques.bas` (libellé GPLc).
+
+### Migration automatique (transparente)
+- `_PrixHistory` : **aucune migration** (colonne `Type` existante ; on y écrit en plus `SP95`/`E10`/`GPLc`).
+- **Push** : pas de notification pour ces 3 carburants — `_PushSubs` n'a pas de seuil SP95/E10/GPLc, donc `WebPush.gs` les ignore. Comportement voulu.
+
+---
+
 ## 🆕 v3.10.0.0 — Prix secteur & alertes push MULTI-CARBURANT (W48 / W49)
 
 Étend le relevé quotidien, le secteur et le push de l'**E85 seul** à **E85 + Gazole + SP98**.
@@ -254,6 +280,7 @@ Retourne :
 
 | Version   | Date       | Changements                                                         |
 |-----------|------------|---------------------------------------------------------------------|
+| 4.18.0.0  | 2026-06-04 | W61 : `FUELS` étendu à 6 carburants (+SP95/E10/GPLc) → `_PrixHistory` + sync Excel ; push inchangé |
 | 3.10.0.0  | 2026-05-30 | Multi-carburant : relevé/secteur/push E85+Gazole+SP98 ; `lowprices`, `sectorPrices&fuel`, `_PushSubs` seuils par carburant |
 | 2.9.0.0   | 2026-05-26 | Sync bidir. : `bulkUpdate` (Excel → GS, upsert par sync_id)        |
 | 2.5.0.0   | —          | `bulkAdd`, `handleExport`, `action=export` doGet, Gemini scan       |

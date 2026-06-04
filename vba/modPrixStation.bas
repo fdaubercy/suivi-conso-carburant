@@ -1,6 +1,10 @@
 Attribute VB_Name = "modPrixStation"
 ' ============================================================
-'  SUIVI CONSO CARBURANTS — Feuille « Prix pr station »        v4.9.0.0
+'  SUIVI CONSO CARBURANTS — Feuille « Prix pr station »        v4.18.0.0
+'
+'  W61 (v4.18.0.0) : FuelKeyP distingue desormais E10 de SP95 (bug : E10
+'  etait fusionne dans la colonne SP95) et normalise le GPL en « GPLc »,
+'  coherent avec _PrixHistory (RefreshPrix.gs suit 6 carburants).
 '
 '  X31 : la feuille « Prix pr station » n'affiche plus les prix tires des
 '  pleins (anciennes formules manuelles) mais le DERNIER prix MARCHE releve
@@ -33,7 +37,7 @@ Private Const C_ZEBRA   As Long = 16250098   ' #F2F5F8
 
 ' Ordre d'affichage prefere des carburants (les autres suivent, tries).
 Private Function FuelOrder() As Variant
-    FuelOrder = Array("E85", "SP98", "GAZOLE", "SP95", "E10", "GPL")
+    FuelOrder = Array("E85", "SP98", "GAZOLE", "SP95", "E10", "GPLc")
 End Function
 
 '------------------------------------------------------------
@@ -299,8 +303,10 @@ Private Function FuelKeyP(t As String) As String
     If InStr(s, "e85") > 0 Then FuelKeyP = "E85": Exit Function
     If InStr(s, "gazole") > 0 Or InStr(s, "diesel") > 0 Then FuelKeyP = "GAZOLE": Exit Function
     If InStr(s, "sp98") > 0 Or InStr(s, "s98") > 0 Then FuelKeyP = "SP98": Exit Function
-    If InStr(s, "sp95") > 0 Or InStr(s, "e10") > 0 Then FuelKeyP = "SP95": Exit Function
-    If InStr(s, "gpl") > 0 Then FuelKeyP = "GPL": Exit Function
+    ' W61 : E10 teste AVANT SP95 (un libelle « SP95-E10 » = E10) et distinct.
+    If InStr(s, "e10") > 0 Then FuelKeyP = "E10": Exit Function
+    If InStr(s, "sp95") > 0 Or InStr(s, "s95") > 0 Then FuelKeyP = "SP95": Exit Function
+    If InStr(s, "gpl") > 0 Then FuelKeyP = "GPLc": Exit Function
     FuelKeyP = UCase$(s)
 End Function
 

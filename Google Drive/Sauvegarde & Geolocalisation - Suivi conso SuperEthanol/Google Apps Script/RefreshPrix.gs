@@ -2,12 +2,17 @@
 //  SUIVI CONSO CARBURANTS — Refresh quotidien des prix    v3.10.0.0
 //  Roadmap S8 + W38 + W48 (multi-carburant) + W49 (push multi-carburant)
 //
-//  v3.10.0.0 — W48/W49 : le relevé ~7h couvre désormais E85, Gazole et SP98.
+//  v4.18.0.0 — W61 : le relevé ~7h couvre désormais 6 carburants —
+//  E85, Gazole, SP98 + SP95, E10 et GPLc (nouveaux). Les 3 nouveaux sont
+//  loggés dans _PrixHistory et synchronisés dans Excel ; ils ne déclenchent
+//  PAS de push (aucun seuil SP95/E10/GPLc dans _PushSubs → ignorés par WebPush).
+//
+//  v3.10.0.0 — W48/W49 : le relevé ~7h couvrait E85, Gazole et SP98.
 //  Pour chaque carburant : prix le moins cher des villes des stations curées
 //  + scan 15 km autour de la dernière position connue (LAST_GEO), log dans
-//  _PrixHistory (colonne Type = E85 / GAZOLE / SP98), mémorisation du meilleur
-//  prix du jour par carburant (SECTOR_BEST_TODAY = objet par carburant) et
-//  push « prix bas » par carburant (selon le seuil de chaque abonné).
+//  _PrixHistory (colonne Type = E85 / GAZOLE / SP98 / SP95 / E10 / GPLc),
+//  mémorisation du meilleur prix du jour par carburant (SECTOR_BEST_TODAY =
+//  objet par carburant) et push « prix bas » (E85/Gazole/SP98 uniquement).
 //
 //  L'app lit via ?action=sectorPrices&fuel=GAZOLE (defaut E85).
 //
@@ -26,11 +31,15 @@ const PRIX_API_URL =
   'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/' +
   'prix-des-carburants-en-france-flux-instantane-v2/records';
 
-// W48 — carburants suivis : clé interne ↔ champ de l'API ODS.
+// W48/W61 — carburants suivis : clé interne (= colonne Type de _PrixHistory)
+// ↔ champ de prix de l'API ODS. W61 ajoute SP95, E10 et GPLc.
 const FUELS = [
   { key: 'E85',    field: 'e85_prix'    },
   { key: 'GAZOLE', field: 'gazole_prix' },
   { key: 'SP98',   field: 'sp98_prix'   },
+  { key: 'SP95',   field: 'sp95_prix'   },
+  { key: 'E10',    field: 'e10_prix'    },
+  { key: 'GPLc',   field: 'gplc_prix'   },
 ];
 
 // Seuils push par défaut (€/L) — repli backend uniquement. En pratique chaque
@@ -94,7 +103,7 @@ function refreshPrixCarburants() {
   names.forEach(name => {
     const ville = villeFromStationName_(name);
     if (!ville) return;
-    const prices = fetchPricesForVille_(ville);   // { E85, GAZOLE, SP98 } (null possible)
+    const prices = fetchPricesForVille_(ville);   // { <clé FUELS> : prix|null }
     FUELS.forEach(f => {
       const p = prices[f.key];
       if (p == null) return;
@@ -142,8 +151,8 @@ function refreshPrixCarburants() {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Prix le moins cher de chaque carburant dans une ville (1 requête).
-//  Retourne { E85, GAZOLE, SP98 } (valeurs null si indisponibles).
+//  Prix le moins cher de chaque carburant suivi dans une ville (1 requête).
+//  Retourne un objet { clé FUELS : prix|null } (null si indisponible).
 // ─────────────────────────────────────────────────────────────
 function fetchPricesForVille_(ville) {
   const out = {};
