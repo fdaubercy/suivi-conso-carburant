@@ -51,6 +51,9 @@ const _defOf    = f => (ALERT_FUELS.find(x => x.key === f) || {}).def || 1.0;
 /* ─── Détection contexte ─────────────────────────────────────────────── */
 
 export const isIOSBrowser = (() => {
+  // Robustesse Node/SSR/test (Node < 21 n'a pas de `navigator` global) : ce
+  // module est importé transitivement par prix.js → chargé par les tests.
+  if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
   const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   if (!ios) return false;
   const standalone = window.matchMedia('(display-mode: standalone)').matches

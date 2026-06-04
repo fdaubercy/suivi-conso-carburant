@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.0.0.2] — 2026-06-04
+
+### Fixed
+- **CI vert (Node 20)** — `js/notifications.js` : l'IIFE `isIOSBrowser` lisait `navigator`/`window` au **top-level** → `ReferenceError: navigator is not defined` aux tests **en CI (Node 20)** via la chaîne `prix.js → notifications.js`. Échec **présent depuis plusieurs versions** (v4.18/v4.19…), masqué en local par Node 22 (qui expose `navigator`) et par le workflow Pages distinct. Ajout d'un garde `typeof navigator/window === 'undefined'` → module importable hors navigateur. Aucun changement de comportement côté navigateur.
+
 ## [5.0.0.1] — 2026-06-04
 
 ### Added
