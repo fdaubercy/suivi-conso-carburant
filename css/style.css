@@ -67,10 +67,10 @@ body {
 /* ─── Header ─── */
 header {
   background: var(--blue-dark);
-  padding: 1rem 1.25rem;
+  padding: 0.85rem 0.95rem;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 7px;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -129,27 +129,30 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
 .auth-slot { display: flex; align-items: center; }
 
 .auth-user {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 4px;
   background: rgba(255,255,255,.12);
   border-radius: 999px;
-  padding: 3px 6px 3px 3px;
+  padding: 2px 4px 2px 2px;
 }
 .auth-avatar {
-  width: 26px; height: 26px; border-radius: 50%;
-  object-fit: cover; display: block; background: var(--blue-mid);
+  width: 24px; height: 24px; border-radius: 50%;
+  object-fit: cover; display: block; background: var(--blue-mid); flex: none;
 }
 .auth-avatar--initial {
   display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 13px; font-weight: 700;
+  color: #fff; font-size: 12px; font-weight: 700;
 }
+/* Prénom masqué sur petits écrans (l'avatar suffit) ; affiché dès qu'il y a la place. */
 .auth-name {
   color: #fff; font-size: 12px; font-weight: 600;
-  max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: none;
 }
+@media (min-width: 430px) { .auth-name { display: inline; } }
 .auth-signout {
   background: transparent; border: 0; color: rgba(255,255,255,.85);
-  font-size: 15px; cursor: pointer; padding: 2px 5px; line-height: 1;
-  border-radius: 6px; -webkit-tap-highlight-color: transparent;
+  font-size: 14px; cursor: pointer; padding: 2px 3px; line-height: 1;
+  border-radius: 6px; -webkit-tap-highlight-color: transparent; flex: none;
 }
 .auth-signout:active { background: rgba(255,255,255,.22); }
 

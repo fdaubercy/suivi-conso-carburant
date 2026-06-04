@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.0.0.3] — 2026-06-04
+
+### Fixed
+- **Header tassé après l'ajout du bloc identité (U7)** — l'avatar + prénom + déconnexion serraient les autres icônes (« moins clair qu'avant »). Compactage du bloc `.auth-user` (gaps et padding réduits, avatar 26→24 px, `flex:none` pour éviter l'écrasement), **prénom masqué sous 430 px de large** (l'avatar suffit sur mobile), header légèrement aéré (`gap` 10→7 px et padding horizontal réduit). Aucun changement fonctionnel.
+
+### Note
+- **Barre d'onglets « qui bouge » en bas** : comportement d'**iOS Safari (navigateur)** où une barre `position:fixed; bottom:0` suit la barre d'outils dynamique — non reproduit dans la **PWA installée** (plein écran). Le CSS de `.bottom-nav` est inchangé par v5.0.0.x.
+
 ## [5.0.0.2] — 2026-06-04
 
 ### Fixed
