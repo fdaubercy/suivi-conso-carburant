@@ -19,6 +19,7 @@
 
 import { GAS_URL, APP_TOKEN, KIT_PRIX_KEY, BUDGET_KEY, CO2_OBJECTIF_KEY,
          SURCONSO_KEY, PARAMS_META_KEY } from './config.js';
+import { getIdToken, isAuthed, authEnabled, getUser, signOut } from './auth.js';
 
 /* Mapping clé Sheet ↔ clé localStorage.
    kind : 'num'  → valeur numérique (chaîne) ; absente = non définie
@@ -76,11 +77,12 @@ function _writeLocal(cle, valeur) {
 /* ─── Envoi vers le serveur ──────────────────────────────────────────── */
 async function _post(params) {
   if (!params.length) return;
+  if (authEnabled() && !isAuthed()) return;   // U7 — pas de push de réglages sans compte connecté
   try {
     await fetch(GAS_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // évite le preflight CORS
-      body:    JSON.stringify({ action: 'setParametres', params, token: APP_TOKEN }),
+      body:    JSON.stringify({ action: 'setParametres', params, token: APP_TOKEN, idToken: getIdToken() }),
     });
   } catch (e) { console.warn('[Paramètres] push échoué :', e?.message || e); }
 }
@@ -126,9 +128,12 @@ export function pushParams(clesOrLocals) {
  */
 export async function syncParametres() {
   if (!navigator.onLine) return [];
+  if (authEnabled() && !isAuthed()) return [];   // U7 — pas de sync des réglages sans compte connecté
   let server;
   try {
-    const url  = GAS_URL + '?action=getParametres&token=' + encodeURIComponent(APP_TOKEN);
+    const idToken = getIdToken();
+    const url  = GAS_URL + '?action=getParametres&token=' + encodeURIComponent(APP_TOKEN)
+               + (idToken ? '&idToken=' + encodeURIComponent(idToken) : '');
     const resp = await fetch(url);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     server = await resp.json();
@@ -170,4 +175,44 @@ export async function syncParametres() {
   try { window.dispatchEvent(new window.CustomEvent('parametres-synced', { detail: { changed } })); }
   catch { /* non bloquant */ }
   return changed;
+}
+
+/* ─── U7 — Suppression de compte (RGPD) ──────────────────────────────────
+   Câble le bouton « Supprimer mon compte » de ⚙️ Réglages et affiche l'email
+   connecté. La suppression purge le serveur (action=deleteAccount), vide le
+   stockage local, déconnecte et recharge l'application. */
+export function initCompteUI() {
+  const emailP = document.getElementById('compteEmail');
+  const u = getUser();
+  if (emailP) emailP.textContent = u ? 'Connecté : ' + u.email : '';
+
+  const btn = document.getElementById('deleteAccountBtn');
+  if (!btn || btn.dataset.wired === '1') return;
+  btn.dataset.wired = '1';
+  btn.addEventListener('click', async () => {
+    if (!isAuthed()) return;
+    if (!confirm('Supprimer définitivement votre compte et TOUTES vos données '
+      + '(pleins, réglages, alertes) ?\n\nCette action est irréversible.')) return;
+    btn.disabled = true;
+    try {
+      const resp = await fetch(GAS_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body:    JSON.stringify({ action: 'deleteAccount', token: APP_TOKEN, idToken: getIdToken() }),
+      });
+      const r = await resp.json().catch(() => ({}));
+      if (r && r.success) {
+        try { localStorage.clear(); } catch { /* ignore */ }
+        signOut();
+        alert('Votre compte et vos données ont été supprimés.');
+        window.location.reload();
+      } else {
+        btn.disabled = false;
+        alert('Suppression impossible : ' + (r.error || 'erreur serveur') + '.');
+      }
+    } catch {
+      btn.disabled = false;
+      alert('Suppression impossible (problème réseau).');
+    }
+  });
 }

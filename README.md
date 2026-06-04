@@ -4,7 +4,7 @@ Formulaire mobile pour saisir les pleins de carburant (SuperEthanol E85 / Super 
 et les enregistrer automatiquement dans Google Sheets.
 
 > 📋 Voir [`ROADMAP.md`](ROADMAP.md) pour les améliorations envisagées (web, Excel, sync).
-> 🔖 Version courante : **v4.16.0.0**
+> 🔖 Version courante : **v5.0.0.0**
 
 ## 🌐 Accès
 
@@ -15,6 +15,39 @@ et les enregistrer automatiquement dans Google Sheets.
 | ⚙️ Google Apps Script | Google Sheet → Extensions → Apps Script |
 
 Ajouter à l'écran d'accueil iPhone : Safari → Partager → « Sur l'écran d'accueil »
+
+---
+
+## 👤 Comptes utilisateurs — connexion Google (U7, v5.0.0.0)
+
+L'application est **multi-utilisateur** : chacun se connecte avec **son compte Google**
+(« Se connecter avec Google ») et ne voit **que ses propres** pleins, statistiques,
+historique et réglages. Toutes les données restent sur **le compte Google du propriétaire**
+(le Google Sheet et l'Apps Script ne changent pas), **séparées par une colonne `email`**.
+
+- **Connexion** : Google Identity Services (GIS). Sur Android, Chrome propose directement
+  le compte du téléphone (One-Tap). L'email est **vérifié côté serveur** (Apps Script valide
+  le JWT via l'endpoint Google `tokeninfo`) — le client ne peut pas usurper une identité.
+- **Accès** : la **Carte** et les prix restent **publics** ; **Saisie** (enregistrement),
+  **Stats**, **Historique** et **Réglages** exigent la connexion.
+- **RGPD** : ⚙️ Réglages → **« 🗑️ Supprimer mon compte »** efface définitivement vos données.
+
+### ⚙️ Mise en place (propriétaire) — créer l'OAuth Client ID
+
+1. **[console.cloud.google.com](https://console.cloud.google.com)** → projet lié au Sheet.
+2. **APIs & Services → Écran de consentement OAuth** : type **External**, renseigner le nom
+   de l'app + e-mail, scopes par défaut (`openid`, `email`, `profile`), puis **Publier**
+   (statut *En production* — pas de vérification requise pour ces scopes non sensibles).
+3. **Identifiants → Créer → ID client OAuth → Application Web** :
+   - **Origines JavaScript** : `https://fdaubercy.github.io`, `http://localhost:5173`, `http://localhost:4173`.
+   - Copier l'**ID client** (`…apps.googleusercontent.com`).
+4. Coller cet ID dans **`js/config.js`** (`GOOGLE_CLIENT_ID`) **et** **`Auth.gs`** (même valeur).
+5. **`npm run gas:deploy`** puis exécuter **`migrerMultiUser()`** (rattache l'existant au
+   propriétaire), recoller **`powerquery/GS_Pleins.m`** dans Excel, tester avec 2 comptes,
+   puis poser la propriété de script **`REQUIRE_AUTH = 1`** (rend l'idToken obligatoire).
+
+> 🔒 **Bascule souple** : tant que `GOOGLE_CLIENT_ID` reste le placeholder, l'authentification
+> est **inactive** et l'app fonctionne exactement comme avant (mode propriétaire, aucune régression).
 
 ---
 

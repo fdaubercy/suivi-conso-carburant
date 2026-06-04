@@ -13,6 +13,7 @@
 
 import { GAS_URL, APP_TOKEN } from './config.js';
 import { showFeedback } from './ui.js';
+import { getIdToken, isAuthed, authEnabled } from './auth.js';
 
 const QUEUE_KEY = 'suivi_e85_offline_queue';
 
@@ -43,14 +44,19 @@ export async function syncQueue() {
   const queue = getQueue();
   if (!queue.length) return;
 
+  // U7 — si l'auth est active mais l'utilisateur déconnecté, on diffère le flush
+  // jusqu'à la reconnexion (sinon le GAS rejetterait les pleins en mode strict).
+  if (authEnabled() && !isAuthed()) return;
+
   let synced = 0;
   let failed  = 0;
 
   for (const entry of queue) {
     try {
+      const idToken = getIdToken();   // U7 — token FRAIS (celui mis en file peut avoir expiré)
       const json = await fetch(GAS_URL, {
         method: 'POST', redirect: 'follow',
-        body: JSON.stringify({ ...entry.payload, token: APP_TOKEN }), // S6
+        body: JSON.stringify({ ...entry.payload, token: APP_TOKEN, idToken }), // S6 + U7
       }).then(r => r.json());
 
       if (json.success) {

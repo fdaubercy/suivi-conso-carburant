@@ -125,6 +125,62 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
 }
 .badge-sm:active { background: rgba(255,255,255,.35); }
 
+/* ─── U7 — Comptes Google : bloc identité (header) + mur de connexion ─── */
+.auth-slot { display: flex; align-items: center; }
+
+.auth-user {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,.12);
+  border-radius: 999px;
+  padding: 3px 6px 3px 3px;
+}
+.auth-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  object-fit: cover; display: block; background: var(--blue-mid);
+}
+.auth-avatar--initial {
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 13px; font-weight: 700;
+}
+.auth-name {
+  color: #fff; font-size: 12px; font-weight: 600;
+  max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.auth-signout {
+  background: transparent; border: 0; color: rgba(255,255,255,.85);
+  font-size: 15px; cursor: pointer; padding: 2px 5px; line-height: 1;
+  border-radius: 6px; -webkit-tap-highlight-color: transparent;
+}
+.auth-signout:active { background: rgba(255,255,255,.22); }
+
+.gsi-host { display: flex; align-items: center; min-height: 32px; }
+
+/* Mur de connexion : affiché À LA PLACE des vues perso si déconnecté (routeur). */
+.login-gate {
+  display: flex; align-items: center; justify-content: center;
+  padding: 32px 18px; min-height: 50vh;
+}
+.login-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 16px; padding: 28px 22px;
+  max-width: 380px; width: 100%; text-align: center;
+  box-shadow: 0 8px 30px rgba(0,0,0,.08);
+}
+.login-ico { font-size: 40px; margin-bottom: 8px; }
+.login-title { font-size: 19px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.login-sub { font-size: 13.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 18px; }
+.login-gate .gsi-host { justify-content: center; min-height: 44px; margin-bottom: 14px; }
+.login-consent { font-size: 11px; color: var(--text-muted); line-height: 1.45; }
+
+.danger-btn {
+  background: var(--red); color: #fff; border: 0;
+  border-radius: var(--radius); padding: 11px 14px;
+  font-size: 14px; font-weight: 600; cursor: pointer; width: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+.danger-btn:active { filter: brightness(.92); }
+.danger-btn:disabled { opacity: .6; cursor: default; }
+
 /* ─── Cards ─── */
 .card {
   background: var(--white);

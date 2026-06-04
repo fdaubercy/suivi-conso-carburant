@@ -19,6 +19,7 @@
 
 import { GAS_URL, APP_TOKEN, VAPID_PUBLIC_KEY } from './config.js';
 import { pushParam } from './parametres.js';
+import { getIdToken } from './auth.js';
 
 // Carburants alertables (clé interne, libellé, icône, seuil par défaut €/L).
 export const ALERT_FUELS = [
@@ -163,7 +164,8 @@ export async function registerPushSubscription() {
         action:       'savePushSub',
         subscription: sub.toJSON(),
         seuils:       seuilsPayload(),
-        token:        APP_TOKEN
+        token:        APP_TOKEN,
+        idToken:      getIdToken()   // U7 — rattache l'abonnement au compte
       })
     });
   } catch (e) {

@@ -1,5 +1,6 @@
 /* ─── Gestion des véhicules (localStorage) ─── */
 import { GS_SHEET_ID, VEHICULES_KEY, LAST_VEHICULE_KEY } from './config.js';
+import { authEnabled } from './auth.js';
 import { state } from './state.js';
 import { setVehiculeStatus } from './ui.js';
 
@@ -43,18 +44,24 @@ export async function chargerVehicules() {
     _autoSelectLastVehicule();
     return;
   }
-  try {
-    const url = 'https://docs.google.com/spreadsheets/d/' + GS_SHEET_ID
-              + '/gviz/tq?tqx=out:csv&sheet=vehicules';
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const csv  = await resp.text();
-    const liste = csv.split('\n')
-      .map(l => l.trim().split(',')[0].replace(/^"|"$/g, ''))
-      .slice(1)
-      .filter(s => s.length > 0);
-    if (liste.length > 0) { sauvegarderVehicules(liste); console.log('[Véhicules] Import GS :', liste); }
-  } catch(e) { console.warn('[Véhicules] Import GS échoué :', e.message); }
+  // U7 — En mode multi-utilisateur (auth configurée), on NE seede PAS la liste
+  // depuis l'onglet global « vehicules » (= véhicules du propriétaire) : chaque
+  // compte gère ses propres véhicules (localStorage par appareil). En mode legacy
+  // (auth inactive), on conserve le seed historique.
+  if (!authEnabled()) {
+    try {
+      const url = 'https://docs.google.com/spreadsheets/d/' + GS_SHEET_ID
+                + '/gviz/tq?tqx=out:csv&sheet=vehicules';
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const csv  = await resp.text();
+      const liste = csv.split('\n')
+        .map(l => l.trim().split(',')[0].replace(/^"|"$/g, ''))
+        .slice(1)
+        .filter(s => s.length > 0);
+      if (liste.length > 0) { sauvegarderVehicules(liste); console.log('[Véhicules] Import GS :', liste); }
+    } catch(e) { console.warn('[Véhicules] Import GS échoué :', e.message); }
+  }
   _populateVehiculeSelect(getVehicules());
   _autoSelectLastVehicule();
 }

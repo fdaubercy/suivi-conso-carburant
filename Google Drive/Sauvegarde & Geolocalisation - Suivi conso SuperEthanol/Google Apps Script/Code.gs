@@ -74,6 +74,11 @@ const PARAM_KEYS = [
   'seuil_E85_enabled', 'seuil_GAZOLE_enabled', 'seuil_SP98_enabled'
 ];
 
+// U7 — colonne « email » de l'onglet Parametres (multi-utilisateur). En DERNIÈRE
+// position (D) pour préserver la lecture Excel/PowerQuery des colonnes A:C.
+//   A cle · B valeur · C modifie_le · D email
+const IDX_PARAM_EMAIL = 3;   // 0-based (colonne D)
+
 const HEADERS = [
   'Horodatage', 'Date', 'Type', 'Km compteur',         // A B C D
   'Nb. Litres', 'Prix €/L', 'Station essence',         // E F G
@@ -84,7 +89,8 @@ const HEADERS = [
   'sync_id',                                            // O — identifiant unique
   'Photo ticket',                                       // P — URL Drive photo ticket
   'Modifié_le',                                         // Q — S5 horodatage derniere modif (ISO)
-  'Supprimé'                                            // R — S3 tombstone soft-delete (ISO, vide = actif)
+  'Supprimé',                                           // R — S3 tombstone soft-delete (ISO, vide = actif)
+  'Email'                                               // S — U7 compte propriétaire de la ligne (multi-utilisateur)
 ];
 
 // Index 0-based des colonnes dans les tableaux getValues()
@@ -92,6 +98,15 @@ const IDX_SYNC     = 14;  // O
 const IDX_PHOTO    = 15;  // P
 const IDX_MODIFIED = 16;  // Q — S5
 const IDX_DELETED  = 17;  // R — S3
+const IDX_EMAIL    = 18;  // S — U7 (multi-utilisateur : email du compte propriétaire de la ligne)
+
+// U7 — Une ligne appartient-elle au compte ? Les lignes héritées sans email
+// (avant migration) sont rattachées au propriétaire (OWNER_EMAIL, défini dans Auth.gs).
+function _rowBelongsTo_(rowEmail, email) {
+  var re = String(rowEmail || '').trim().toLowerCase();
+  if (re === '') return email === OWNER_EMAIL;
+  return re === email;
+}
 
 // S3/S5 — garantit la presence des en-tetes Q (Modifié_le) et R (Supprimé)
 // sur un onglet _ImportGS deja existant (cree avant v3.8.0.0).
@@ -165,6 +180,11 @@ function doGet(e) {
     return handleExport(e);
   }
 
+  // U7 — debug : confirme la vérification serveur de l'idToken (?action=whoami&idToken=…&token=…)
+  if (e.parameter.action === 'whoami') {
+    return handleWhoami(e);
+  }
+
   // S8 — dernier prix E85 bas détecté (rétrocompat, push E85 sans payload)
   if (e.parameter.action === 'lowprice') {
     const raw = PropertiesService.getScriptProperties().getProperty('LAST_LOW_PRICE');
@@ -197,7 +217,9 @@ function doGet(e) {
   // P1 — paramètres métier partagés (lus par l'app et par Excel/VBA)
   //   ?action=getParametres → { params: [{cle, valeur, modifie_le}] }
   if (e.parameter.action === 'getParametres') {
-    return handleGetParametres();
+    const pEmail = resolveOwner_(e, null);
+    if (!pEmail) return unauthorizedResponse_();
+    return handleGetParametres(pEmail);
   }
 
   const isMobile = (e.parameter.v === 'mobile');
@@ -212,6 +234,10 @@ function doGet(e) {
 //  Filtre par Horodatage >= since si le paramètre ?since= est fourni.
 // ─────────────────────────────────────────────────────────────
 function handleExport(e) {
+  // U7 — filtrage par compte (email du token vérifié ; ou propriétaire en mode souple).
+  const email = resolveOwner_(e, null);
+  if (!email) return unauthorizedResponse_();
+
   const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = getOrCreateSheet(ss);
   ensureSyncColumns_(sheet);
@@ -236,6 +262,7 @@ function handleExport(e) {
   // sur la date de suppression si elle est parseable (sinon toujours inclus).
   const deleted = rows
     .filter(row => String(row[IDX_DELETED] || '').trim() !== '')
+    .filter(row => _rowBelongsTo_(row[IDX_EMAIL], email))   // U7 — suppressions du compte uniquement
     .filter(row => {
       if (!hasSince) return true;
       const dv = row[IDX_DELETED];
@@ -248,6 +275,7 @@ function handleExport(e) {
   // records — lignes ACTIVES uniquement (col R vide)
   const records = rows
     .filter(row => String(row[IDX_DELETED] || '').trim() === '')
+    .filter(row => _rowBelongsTo_(row[IDX_EMAIL], email))   // U7 — pleins du compte uniquement
     .filter(row => {
       if (!hasSince || horoIdx < 0) return true;
       const v = row[horoIdx];
@@ -292,8 +320,9 @@ function doPost(e) {
   }
 
   // S8 — enregistrement d'un abonnement Web Push (voir WebPush.gs)
+  // U7 — rattache l'abonnement au compte (email vérifié, ou null/legacy en mode souple).
   if (payload.action === 'savePushSub') {
-    return handleSavePushSub(ss, payload);
+    return handleSavePushSub(ss, payload, requireUser_(e, payload));
   }
 
   if (payload.action === 'syncStations') {
@@ -327,13 +356,24 @@ function doPost(e) {
   //   body { action:'setParametres', params:[{cle, valeur, modifie_le}] }
   //   → renvoie l'état autoritatif fusionné pour réconciliation côté client.
   if (payload.action === 'setParametres') {
-    return handleSetParametres(ss, payload.params || []);
+    const pEmail = resolveOwner_(e, payload);
+    if (!pEmail) return unauthorizedResponse_();
+    return handleSetParametres(ss, payload.params || [], pEmail);
   }
 
   // ── Suppression d'un plein par sync_id (col O, index 14) ──
   // S3 : soft-delete (tombstone col R) au lieu d'un hard delete.
   if (payload.action === 'deletePlein') {
-    return handleDeletePlein(ss, payload.sync_id);
+    const delEmail = resolveOwner_(e, payload);
+    if (!delEmail) return unauthorizedResponse_();
+    return handleDeletePlein(ss, payload.sync_id, delEmail);
+  }
+
+  // U7 — suppression de compte (RGPD) : exige un idToken vérifié (jamais le repli propriétaire).
+  if (payload.action === 'deleteAccount') {
+    const daEmail = requireUser_(e, payload);
+    if (!daEmail) return unauthorizedResponse_();
+    return handleDeleteAccount(ss, daEmail);
   }
 
   // ── S3 — suppression en lot depuis Excel (ids[]) → tombstones ──
@@ -355,12 +395,16 @@ function doPost(e) {
     return handleScanTicket(payload.imageBase64, payload.mimeType);
   }
 
+  // ── U7 — Identité : email du compte (idToken vérifié) ou propriétaire (mode souple) ──
+  const ownerEmail = resolveOwner_(e, payload);
+  if (!ownerEmail) return unauthorizedResponse_();   // auth obligatoire et idToken absent/invalide
+
   // ── S7 — Rate limiting pour l'enregistrement d'un plein ──
   if (rateLimit(payload.cid)) {
     return jsonResponse({ success: false, error: 'Trop de requêtes. Réessayez dans une minute.' });
   }
 
-  // ── Enregistrement d'un plein depuis l'app web (A→P, 16 col) ──
+  // ── Enregistrement d'un plein depuis l'app web (A→S, 19 col) ──
   const sp     = payload.stationPrices || {};
   const syncId = payload.sync_id || Utilities.getUuid();
   const sheet  = getOrCreateSheet(ss);
@@ -400,6 +444,7 @@ function doPost(e) {
     photoUrl,                                           // P — URL Drive photo ticket
     new Date(),                                         // Q — Modifié_le (S5)
     '',                                                 // R — Supprimé (S3, actif)
+    ownerEmail,                                         // S — U7 email du compte
   ]);
 
   return jsonResponse({ success: true, sync_id: syncId });
@@ -500,7 +545,7 @@ function handleScanTicket(imageBase64, mimeType) {
 //  handleDeletePlein — supprime la ligne dont sync_id (col O = index 14)
 //  correspond. Parcourt de la dernière ligne vers la 1ère (saute l'en-tête).
 // ─────────────────────────────────────────────────────────────
-function handleDeletePlein(ss, syncId) {
+function handleDeletePlein(ss, syncId, email) {
   if (!syncId) return jsonResponse({ success: false, error: 'sync_id manquant' });
 
   const sheet = getOrCreateSheet(ss);
@@ -518,6 +563,10 @@ function handleDeletePlein(ss, syncId) {
 
   for (let i = data.length - 1; i >= 1; i--) {
     if (String(data[i][syncIdx]).trim() === target) {
+      // U7 — défense en profondeur : on ne supprime QUE ses propres pleins.
+      if (email && !_rowBelongsTo_(data[i][IDX_EMAIL], email)) {
+        return jsonResponse({ success: false, error: 'forbidden', code: 403 });
+      }
       // S3 — soft-delete : pose le tombstone (col R) + horodatage modif (col Q)
       // au lieu de supprimer physiquement la ligne, pour que la suppression
       // se propage aux autres clients (Excel, app web) via handleExport.
@@ -527,6 +576,47 @@ function handleDeletePlein(ss, syncId) {
     }
   }
   return jsonResponse({ success: false, error: 'Plein introuvable (sync_id inconnu)' });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  U7 — handleDeleteAccount (RGPD)
+//  Supprime DÉFINITIVEMENT toutes les données du compte `email` :
+//  pleins (_ImportGS), paramètres (Parametres) et abonnements push (_PushSubs).
+//  ⚠️ Appelée UNIQUEMENT avec un email issu d'un idToken vérifié (jamais le
+//  repli propriétaire), afin qu'un appel anonyme ne puisse pas purger de données.
+// ─────────────────────────────────────────────────────────────
+function handleDeleteAccount(ss, email) {
+  if (!email) return unauthorizedResponse_();
+  var deleted = { pleins: 0, params: 0, push: 0 };
+
+  // 1. Pleins — suppression physique des lignes du compte.
+  var sheet = getOrCreateSheet(ss);
+  var data  = sheet.getDataRange().getValues();
+  for (var i = data.length - 1; i >= 1; i--) {
+    if (_rowBelongsTo_(data[i][IDX_EMAIL], email)) { sheet.deleteRow(i + 1); deleted.pleins++; }
+  }
+
+  // 2. Paramètres du compte.
+  var pSheet = getOrCreateParamsSheet_(ss);
+  var pData  = pSheet.getDataRange().getValues();
+  for (var j = pData.length - 1; j >= 1; j--) {
+    if (_rowBelongsTo_(pData[j][IDX_PARAM_EMAIL], email)) { pSheet.deleteRow(j + 1); deleted.params++; }
+  }
+
+  // 3. Abonnements push du compte (_PushSubs, col I = Email).
+  try {
+    var psh = ss.getSheetByName(PUSHSUBS_SHEET);
+    if (psh && psh.getLastRow() > 1) {
+      var psData = psh.getDataRange().getValues();
+      for (var k = psData.length - 1; k >= 1; k--) {
+        if (String(psData[k][8] || '').trim().toLowerCase() === email) { psh.deleteRow(k + 1); deleted.push++; }
+      }
+    }
+  } catch (e) { Logger.log('deleteAccount push cleanup: ' + e.message); }
+
+  Logger.log('🗑️ deleteAccount(' + email + ') — ' +
+    deleted.pleins + ' pleins, ' + deleted.params + ' params, ' + deleted.push + ' push.');
+  return jsonResponse({ success: true, deleted: deleted });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -867,6 +957,43 @@ function migrateHeaders() {
 }
 
 // ─────────────────────────────────────────────────────────────
+//  U7 — migrerMultiUser — À exécuter UNE FOIS (idempotente)
+//  Pose l'en-tête col S « Email » (via getOrCreateSheet) et rattache toutes
+//  les lignes existantes sans email au propriétaire OWNER_EMAIL (Auth.gs).
+//  Sûr à relancer : ne touche que les cellules Email vides.
+// ─────────────────────────────────────────────────────────────
+function migrerMultiUser() {
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = getOrCreateSheet(ss);   // pose l'en-tête col S si absent
+
+  const last = sheet.getLastRow();
+  if (last < 2) { Logger.log('migrerMultiUser — aucune ligne de données.'); return; }
+
+  const rng  = sheet.getRange(2, IDX_EMAIL + 1, last - 1, 1);
+  const vals = rng.getValues();
+  let count = 0;
+  for (let i = 0; i < vals.length; i++) {
+    if (String(vals[i][0] || '').trim() === '') { vals[i][0] = OWNER_EMAIL; count++; }
+  }
+  rng.setValues(vals);
+  Logger.log('✅ migrerMultiUser — _ImportGS : ' + count + ' ligne(s) rattachée(s) à ' + OWNER_EMAIL + '.');
+
+  // Onglet Parametres : rattacher les lignes existantes (email vide) au propriétaire.
+  const pSheet = getOrCreateParamsSheet_(ss);   // pose la col D « email » si absente
+  const pLast  = pSheet.getLastRow();
+  if (pLast >= 2) {
+    const pRng  = pSheet.getRange(2, IDX_PARAM_EMAIL + 1, pLast - 1, 1);
+    const pVals = pRng.getValues();
+    let pCount = 0;
+    for (let i = 0; i < pVals.length; i++) {
+      if (String(pVals[i][0] || '').trim() === '') { pVals[i][0] = OWNER_EMAIL; pCount++; }
+    }
+    pRng.setValues(pVals);
+    Logger.log('✅ migrerMultiUser — Parametres : ' + pCount + ' ligne(s) rattachée(s) à ' + OWNER_EMAIL + '.');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 //  Helpers
 // ─────────────────────────────────────────────────────────────
 
@@ -887,41 +1014,48 @@ function getOrCreateParamsSheet_(ss) {
   let sheet = ss.getSheetByName(PARAMS_SHEET);
   if (!sheet) sheet = ss.insertSheet(PARAMS_SHEET);
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['cle', 'valeur', 'modifie_le']);
-    sheet.getRange(1, 1, 1, 3)
+    sheet.appendRow(['cle', 'valeur', 'modifie_le', 'email']);   // U7 — col D email
+    sheet.getRange(1, 1, 1, 4)
       .setFontWeight('bold')
       .setBackground('#1B3A5C')
       .setFontColor('#FFFFFF');
     sheet.setFrozenRows(1);
+  } else if (String(sheet.getRange(1, IDX_PARAM_EMAIL + 1).getValue()).trim().toLowerCase() !== 'email') {
+    // U7 — Migration douce : ajoute la colonne D « email » (multi-utilisateur)
+    sheet.getRange(1, IDX_PARAM_EMAIL + 1).setValue('email')
+      .setFontWeight('bold').setBackground('#1B3A5C').setFontColor('#FFFFFF');
   }
   return sheet;
 }
 
-// Lit l'onglet Parametres → { cle: { valeur, modifie_le } } (clés métier seules).
-function readParamsMap_(sheet) {
+// Lit l'onglet Parametres → { cle: { valeur, modifie_le } } pour UN compte
+// (clés métier seules). U7 : ne retient que les lignes appartenant à `email`
+// (les lignes héritées sans email sont rattachées au propriétaire).
+function readParamsMap_(sheet, email) {
   const data = sheet.getDataRange().getValues();
   const map  = {};
   for (let i = 1; i < data.length; i++) {
     const cle = String(data[i][0] || '').trim();
     if (!cle || PARAM_KEYS.indexOf(cle) < 0) continue;
+    if (!_rowBelongsTo_(data[i][IDX_PARAM_EMAIL], email)) continue;   // U7 — params du compte
     map[cle] = { row: i + 1, valeur: data[i][1], modifie_le: Number(data[i][2]) || 0 };
   }
   return map;
 }
 
-function handleGetParametres() {
+function handleGetParametres(email) {
   const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = getOrCreateParamsSheet_(ss);
-  const map   = readParamsMap_(sheet);
+  const map   = readParamsMap_(sheet, email);
   const params = Object.keys(map).map(cle => ({
     cle: cle, valeur: map[cle].valeur, modifie_le: map[cle].modifie_le
   }));
   return jsonResponse({ params: params });
 }
 
-function handleSetParametres(ss, incoming) {
+function handleSetParametres(ss, incoming, email) {
   const sheet  = getOrCreateParamsSheet_(ss);
-  const map    = readParamsMap_(sheet);
+  const map    = readParamsMap_(sheet, email);
 
   (incoming || []).forEach(function (p) {
     const cle = String(p && p.cle || '').trim();
@@ -936,7 +1070,7 @@ function handleSetParametres(ss, incoming) {
         cur.valeur = p.valeur; cur.modifie_le = ts;
       }
     } else {
-      sheet.appendRow([cle, p.valeur, ts]);
+      sheet.appendRow([cle, p.valeur, ts, email]);   // U7 — email en col D
       map[cle] = { row: sheet.getLastRow(), valeur: p.valeur, modifie_le: ts };
     }
   });
@@ -967,6 +1101,15 @@ function getOrCreateSheet(ss) {
         .setBackground('#1B3A5C')
         .setFontColor('#FFFFFF');
       sheet.setColumnWidth(16, 200);
+    }
+    // U7 — Migration : ajouter col S "Email" si absente (multi-utilisateur)
+    if (sheet.getLastColumn() < IDX_EMAIL + 1 ||
+        String(sheet.getRange(1, IDX_EMAIL + 1).getValue()).trim() !== 'Email') {
+      sheet.getRange(1, IDX_EMAIL + 1).setValue('Email')
+        .setFontWeight('bold')
+        .setBackground('#1B3A5C')
+        .setFontColor('#FFFFFF');
+      sheet.setColumnWidth(IDX_EMAIL + 1, 200);
     }
   }
   return sheet;
@@ -1025,6 +1168,10 @@ function statsComputeSurconso_(recs) {
 }
 
 function handleStats(e) {
+  // U7 — filtrage par compte (email du token vérifié ; ou propriétaire en mode souple).
+  const email = resolveOwner_(e, null);
+  if (!email) return unauthorizedResponse_();
+
   const veh  = e && e.parameter && e.parameter.veh  ? String(e.parameter.veh)  : '';
   const year = e && e.parameter && e.parameter.year ? parseInt(e.parameter.year, 10) : 0;
 
@@ -1033,7 +1180,7 @@ function handleStats(e) {
   const data  = sheet.getDataRange().getValues();
 
   const cache    = CacheService.getScriptCache();
-  const cacheKey = 'stats_v1|' + veh + '|' + year + '|' + data.length;
+  const cacheKey = 'stats_v2|' + email + '|' + veh + '|' + year + '|' + data.length;
   const cached   = cache.get(cacheKey);
   if (cached) return jsonResponse(JSON.parse(cached));
 
@@ -1050,6 +1197,7 @@ function handleStats(e) {
   const recs = [];
   for (let r = 1; r < data.length; r++) {
     const row = data[r];
+    if (!_rowBelongsTo_(row[IDX_EMAIL], email)) continue;   // U7 — pleins du compte uniquement
     const vname = iVeh >= 0 ? String(row[iVeh] || '') : '';
     if (veh && vname !== veh) continue;
     const d = statsParseDate_(iDate >= 0 ? row[iDate] : (iHoro >= 0 ? row[iHoro] : ''));

@@ -10,6 +10,7 @@ import { syncStationSiNouvelle } from './stations.js';
 import { chargerHistorique, getMaxKmForVehicule, getAllRecords } from './historique.js';
 import { updateRentabilite } from './rentabilite.js';
 import { queuePlein, updateOfflineBadge } from './offline.js';
+import { getIdToken, isAuthed, authEnabled, promptLogin } from './auth.js';
 
 /* ─── Client ID persistant (S7 rate limiting) ─── */
 function _getClientId() {
@@ -174,6 +175,12 @@ export function onStationChange() {
 }
 
 export async function submitForm() {
+  // U7 — l'enregistrement d'un plein est réservé aux comptes connectés (si l'auth est active).
+  if (authEnabled() && !isAuthed()) {
+    showFeedback('info', '🔒 Connexion requise', 'Connectez-vous avec Google pour enregistrer vos pleins.');
+    promptLogin();
+    return;
+  }
   const date    = document.getElementById('fDate').value;
   const km      = document.getElementById('fKm').value.trim();
   const litres  = document.getElementById('fLitres').value.trim();
@@ -236,6 +243,7 @@ export async function submitForm() {
     km, litres, prix, station, vehicule, stationPrices,
     cid: _getClientId(),   // S7 — rate limiting côté GAS
     token: APP_TOKEN,      // S6 — token secret (souple)
+    idToken: getIdToken(), // U7 — identité du compte (JWT vérifié côté GAS)
   };
 
   // W9 — joindre la photo du ticket si disponible

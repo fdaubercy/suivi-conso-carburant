@@ -177,7 +177,7 @@ function testEnvoyerPush() {
 //  Colonnes _PushSubs : A Endpoint · B p256dh · C auth · D Seuil(E85 hérité) ·
 //  E Date · F SeuilE85 · G SeuilGazole · H SeuilSP98.
 //  La colonne D (héritée) reste écrite = SeuilE85 pour rétrocompat.
-function handleSavePushSub(ss, payload) {
+function handleSavePushSub(ss, payload, email) {
   var sub = payload.subscription;
   if (!sub || !sub.endpoint) return jsonResponse({ success: false, error: 'subscription manquante' });
 
@@ -192,12 +192,13 @@ function handleSavePushSub(ss, payload) {
   var sGAZ   = (seuils.GAZOLE != null) ? seuils.GAZOLE : '';
   var sSP98  = (seuils.SP98   != null) ? seuils.SP98   : '';
 
+  var mail = email ? String(email).toLowerCase() : '';   // U7 — compte rattaché (vide = legacy)
   var row = [sub.endpoint, keys.p256dh || '', keys.auth || '',
-             sE85 || '', new Date(), sE85 || '', sGAZ || '', sSP98 || ''];
+             sE85 || '', new Date(), sE85 || '', sGAZ || '', sSP98 || '', mail];   // I — Email (U7)
 
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][0]) === sub.endpoint) {
-      sh.getRange(i + 1, 1, 1, 8).setValues([row]);
+      sh.getRange(i + 1, 1, 1, 9).setValues([row]);
       return jsonResponse({ success: true, updated: true });
     }
   }
@@ -209,8 +210,8 @@ function _getPushSubsSheet(ss) {
   var sh = ss.getSheetByName(PUSHSUBS_SHEET);
   if (!sh) {
     sh = ss.insertSheet(PUSHSUBS_SHEET);
-    sh.appendRow(['Endpoint', 'p256dh', 'auth', 'Seuil', 'Date', 'SeuilE85', 'SeuilGazole', 'SeuilSP98']);
-    sh.getRange(1, 1, 1, 8)
+    sh.appendRow(['Endpoint', 'p256dh', 'auth', 'Seuil', 'Date', 'SeuilE85', 'SeuilGazole', 'SeuilSP98', 'Email']);
+    sh.getRange(1, 1, 1, 9)
       .setFontWeight('bold').setBackground('#1B3A5C').setFontColor('#FFFFFF');
     sh.setFrozenRows(1);
     return sh;
@@ -218,6 +219,11 @@ function _getPushSubsSheet(ss) {
   // Migration douce : ajoute les colonnes seuil par carburant si absentes.
   if (sh.getLastColumn() < 8) {
     sh.getRange(1, 6, 1, 3).setValues([['SeuilE85', 'SeuilGazole', 'SeuilSP98']])
+      .setFontWeight('bold').setBackground('#1B3A5C').setFontColor('#FFFFFF');
+  }
+  // U7 — ajoute la colonne Email (I) si absente (rattachement compte, suppression RGPD).
+  if (sh.getLastColumn() < 9 || String(sh.getRange(1, 9).getValue()).trim().toLowerCase() !== 'email') {
+    sh.getRange(1, 9).setValue('Email')
       .setFontWeight('bold').setBackground('#1B3A5C').setFontColor('#FFFFFF');
   }
   return sh;
@@ -236,7 +242,8 @@ function _readPushSubs() {
         endpoint: String(r[0]),
         keys: { p256dh: String(r[1] || ''), auth: String(r[2] || '') },
         seuil: r[3],                                   // rétrocompat
-        seuils: { E85: sE85, GAZOLE: r[6], SP98: r[7] }
+        seuils: { E85: sE85, GAZOLE: r[6], SP98: r[7] },
+        email: String(r[8] || '').toLowerCase()        // U7 — compte rattaché
       };
     });
 }

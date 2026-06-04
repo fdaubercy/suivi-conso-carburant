@@ -27,12 +27,13 @@ import { initScanner }       from './ticket.js';
 import { initPWA }           from './pwa.js';
 import { initOffline, syncQueue } from './offline.js';
 import { initNotifications, updateNotifUI, registerPushSubscription } from './notifications.js';
-import { syncParametres } from './parametres.js';
+import { syncParametres, initCompteUI } from './parametres.js';
 import { initRouter, navigate } from './router.js';
 import { initPullRefresh } from './pullrefresh.js';
 import { initSwipe } from './swipe.js';
 import { initBadges, refreshBadges } from './badges.js';
 import { initPreferences, renderHomeResume } from './preferences.js';
+import { initAuth, renderAuthSlot } from './auth.js';
 
 /* ─── Init synchrone ─── */
 initTheme();
@@ -122,6 +123,27 @@ if (navigator.onLine) syncParametres();
 
 /* Sync au démarrage si des pleins sont en attente et qu'on est en ligne */
 if (navigator.onLine) syncQueue();
+
+/* ─── U7 — Comptes Google (auth) ───────────────────────────────────────
+   initAuth() charge GIS et tente une reconnexion silencieuse. À chaque
+   (dé)connexion, on rafraîchit le bloc identité du header et on recharge les
+   données PERSONNELLES du compte courant (historique, stats, paramètres,
+   file hors-ligne) — ou on les vide à la déconnexion (via le mur du routeur). */
+initAuth();
+window.addEventListener('auth-changed', () => {
+  renderAuthSlot();
+  initCompteUI();
+  if (typeof window.renderStats === 'function') window.renderStats();
+  if (!navigator.onLine) return;
+  chargerHistorique().then(() => {
+    initWrapped();
+    refreshBadges();
+    renderHomeResume();
+  });
+  prewarmServerStats(state.currentVehiculeNom || '');
+  syncParametres();
+  syncQueue();
+});
 
 /* ─── T2 — Handlers statiques (addEventListener) ─── */
 function initStaticHandlers() {
@@ -226,6 +248,7 @@ initPullRefresh();     // pullrefresh.js — W46 tirer vers le bas → recharge 
 initSwipe();           // swipe.js — W44 balayage gauche/droite entre onglets
 initBadges();          // badges.js — W45 pastilles de notification sur les onglets
 initPreferences();     // preferences.js — U4 vue de départ · U5 tuile reprendre · U6 blocs repliables
+initCompteUI();        // parametres.js — U7 « Mon compte » + suppression RGPD
 
 /* W42 — la carte statique est rendue hors écran (offsetWidth=0) : on la re-cadre
    à l'affichage de l'onglet Carte pour un dimensionnement correct. */

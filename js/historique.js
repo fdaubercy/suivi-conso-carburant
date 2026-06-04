@@ -1,5 +1,6 @@
 /* ─── Historique des 5 derniers pleins (via GET ?action=export) ─── */
 import { GAS_URL, APP_TOKEN, FUEL_CONFIG, HIST_CACHE_KEY, HIST_SINCE_KEY, CSV_SEP_KEY } from './config.js';
+import { getIdToken } from './auth.js';
 import { state } from './state.js';
 import { showFeedback } from './ui.js';
 import { renderStats } from './stats.js';
@@ -45,9 +46,11 @@ export async function chargerHistorique() {
     const since         = _loadSince();
 
     // Mode différentiel si on a déjà un cache : n'envoyer que les nouveaux
+    const idToken = getIdToken();   // U7 — identité du compte
     const url = GAS_URL + '?action=export'
       + (since && cachedRecords.length ? '&since=' + encodeURIComponent(since) : '')
-      + '&token=' + encodeURIComponent(APP_TOKEN);   // S6
+      + '&token=' + encodeURIComponent(APP_TOKEN)   // S6
+      + (idToken ? '&idToken=' + encodeURIComponent(idToken) : '');   // U7
 
     const resp = await fetch(url, { redirect: 'follow' });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -525,7 +528,7 @@ export function initHistoireDelete() {
       const resp = await fetch(GAS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'deletePlein', sync_id: sid, token: APP_TOKEN }),
+        body: JSON.stringify({ action: 'deletePlein', sync_id: sid, token: APP_TOKEN, idToken: getIdToken() }),
         redirect: 'follow',
       });
       if (!resp.ok) throw new Error('HTTP ' + resp.status);

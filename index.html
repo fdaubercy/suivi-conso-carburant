@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' blob: https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://data.economie.gouv.fr https://script.google.com https://script.googleusercontent.com https://docs.google.com https://overpass-api.de https://cdn.jsdelivr.net https://unpkg.com; img-src 'self' data: blob: https://tile.openstreetmap.org; worker-src 'self' blob: https://cdn.jsdelivr.net; manifest-src 'self'; font-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' blob: https://cdn.jsdelivr.net https://accounts.google.com/gsi/client 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; connect-src 'self' https://data.economie.gouv.fr https://script.google.com https://script.googleusercontent.com https://docs.google.com https://overpass-api.de https://cdn.jsdelivr.net https://unpkg.com https://accounts.google.com/gsi/; img-src 'self' data: blob: https://tile.openstreetmap.org https://*.googleusercontent.com; frame-src https://accounts.google.com/gsi/; worker-src 'self' blob: https://cdn.jsdelivr.net; manifest-src 'self'; font-src 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -41,12 +41,27 @@
   <!-- W43 — retour à l'écran d'accueil à tuiles -->
   <button class="home-btn" id="homeBtn" title="Écran d'accueil">🏠</button>
   <button class="theme-toggle" id="themeToggle" title="Changer de thème">🌙</button>
+  <!-- U7 — Bloc identité (avatar + déconnexion, ou bouton « Se connecter ») ; masqué tant que l'auth n'est pas configurée -->
+  <div class="auth-slot" id="authSlot" hidden></div>
   <div class="header-right">
     <span class="badge" id="headerBadge">🌿 E85</span>
   </div>
 </header>
 
 <main id="app-main">
+
+<!-- ════════════ U7 — Mur de connexion ════════════
+     Affiché par le routeur À LA PLACE des vues perso (stats / historique /
+     réglages) quand l'auth est active et l'utilisateur déconnecté. -->
+<section class="login-gate" id="loginGate" hidden>
+  <div class="login-card">
+    <div class="login-ico">🔒</div>
+    <h2 class="login-title">Connexion requise</h2>
+    <p class="login-sub">Connectez-vous avec votre compte Google pour accéder à vos pleins, statistiques et réglages. Vos données restent privées et liées à votre compte.</p>
+    <div class="gsi-host" id="gsiBtnGate"></div>
+    <p class="login-consent">En vous connectant, vous acceptez que vos pleins soient enregistrés afin de vous fournir le service. Vous pourrez supprimer votre compte et vos données à tout moment depuis ⚙️ Réglages.</p>
+  </div>
+</section>
 
 <!-- ════════════ VUE : Accueil à tuiles (W43) ════════════ -->
 <section class="view" id="view-accueil" data-view="accueil">
@@ -428,6 +443,16 @@
   </div>
 </div>
 
+<!-- ─── U7 — Mon compte (connexion Google + suppression RGPD) ─── -->
+<div class="card collapsible" data-collapse="compte" data-auth-only hidden>
+  <p class="section-title">👤 Mon compte</p>
+  <div class="param-group">
+    <p class="notif-sub" id="compteEmail" style="margin-bottom:10px"></p>
+    <button type="button" id="deleteAccountBtn" class="danger-btn">🗑️ Supprimer mon compte et mes données</button>
+    <p class="notif-sub" style="margin-top:6px">Efface <strong>définitivement</strong> vos pleins, réglages et alertes de nos serveurs, puis vous déconnecte. Action irréversible.</p>
+  </div>
+</div>
+
 </section><!-- /view-params -->
 
 </main>
@@ -456,6 +481,8 @@
   </button>
 </nav>
 
+<!-- U7 — SDK Google Identity Services (« Se connecter avec Google ») -->
+<script src="https://accounts.google.com/gsi/client" async defer data-gsi="1"></script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

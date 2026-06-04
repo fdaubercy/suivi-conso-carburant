@@ -1,6 +1,15 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '4.19.0.0';
+export const APP_VERSION       = '5.0.0.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
+
+// ─── U7 — Authentification « Se connecter avec Google » (Google Identity Services) ───
+// ID client OAuth 2.0 (type « Application Web ») créé dans Google Cloud Console
+// (voir README → « Comptes utilisateurs »). Origines JS autorisées :
+//   https://fdaubercy.github.io · http://localhost:5173 · http://localhost:4173
+// ⚠️ Tant que ce placeholder n'est PAS remplacé par le vrai ID, l'auth reste
+// INACTIVE et l'app fonctionne comme avant (mode propriétaire). Le projet Apps
+// Script doit recevoir le MÊME identifiant (constante GOOGLE_CLIENT_ID d'Auth.gs).
+export const GOOGLE_CLIENT_ID  = 'REMPLACER_PAR_VOTRE_CLIENT_ID.apps.googleusercontent.com';
 
 // S6 — Token secret partagé avec les endpoints GAS et la macro VBA.
 // Mode SOUPLE : le GAS ne rejette les requêtes QUE si la propriété de script
@@ -25,6 +34,8 @@ export const HIST_CACHE_KEY    = 'suivi_e85_hist_cache';
 export const HIST_SINCE_KEY    = 'suivi_e85_hist_since';
 export const DRAFT_KEY         = 'suivi_e85_draft';
 export const CLIENT_ID_KEY     = 'suivi_e85_client_id';
+export const AUTH_TOKEN_KEY    = 'suivi_e85_auth_token';    // U7 — idToken Google (JWT) courant
+export const AUTH_PROFILE_KEY  = 'suivi_e85_auth_profile';  // U7 — profil connecté {email,name,picture,exp,sub}
 export const KIT_PRIX_KEY      = 'suivi_e85_kit_prix';
 export const SECTOR_CACHE_KEY  = 'suivi_e85_sector_cache';  // W38 — prix secteur quotidien (cache)
 export const STATS_CACHE_KEY   = 'suivi_e85_stats_cache';   // S12/W59 — agrégats serveur (cache TTL 1 h)

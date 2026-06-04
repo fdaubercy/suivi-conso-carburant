@@ -7,6 +7,7 @@
 ═══════════════════════════════════════ */
 
 import { START_VIEW_KEY, LAST_VIEW_KEY, DEFAULT_START_VIEW } from './config.js';
+import { authEnabled, isAuthed, mountGsiButton } from './auth.js';
 
 /** Vues déclarées dans index.html (data-view) + titre affiché dans le header. */
 const VIEWS = {
@@ -18,6 +19,15 @@ const VIEWS = {
   params:     { title: 'Réglages' },
 };
 const DEFAULT_VIEW = 'accueil';
+
+/* U7 — Vues « personnelles » protégées par la connexion Google. Quand l'auth
+   est active et l'utilisateur déconnecté, le routeur affiche le mur #loginGate
+   à la place de ces vues. accueil / saisie / carte restent publiques (la saisie
+   reste consultable ; seul l'enregistrement d'un plein exige la connexion). */
+const PERSO_VIEWS = new Set(['stats', 'historique', 'params']);
+function _gateActive(view) {
+  return authEnabled() && !isAuthed() && PERSO_VIEWS.has(view);
+}
 
 /* ─── U4 — Vue de départ configurable ─────────────────────────────────
    'accueil' | 'saisie' = vue fixe ; 'last' = reprend la dernière consultée. */
@@ -66,8 +76,17 @@ export function currentView() {
 function showView(view) {
   const dir = _slideDir; _slideDir = null;   // consommé une seule fois
 
+  // U7 — Mur de connexion : sur une vue perso, si l'auth est active et que
+  // l'utilisateur est déconnecté, on masque la vue et on affiche #loginGate.
+  const gated = _gateActive(view);
+  const gate  = document.getElementById('loginGate');
+  if (gate) {
+    gate.hidden = !gated;
+    if (gated) mountGsiButton(document.getElementById('gsiBtnGate'), { size: 'large' });
+  }
+
   document.querySelectorAll('.view').forEach(sec => {
-    const active = sec.dataset.view === view;
+    const active = !gated && sec.dataset.view === view;
     sec.classList.toggle('view--active', active);
     sec.classList.remove('view--slide-next', 'view--slide-prev');
     if (active && dir) sec.classList.add(dir === 'next' ? 'view--slide-next' : 'view--slide-prev');
@@ -128,6 +147,9 @@ export function initRouter() {
   });
 
   window.addEventListener('hashchange', () => showView(viewFromHash()));
+
+  // U7 — (dé)connexion : rouvre ou ferme le mur sur la vue courante.
+  window.addEventListener('auth-changed', () => showView(viewFromHash()));
 
   // Vue de départ : respecte un hash existant (deep-link / rechargement),
   // sinon applique la préférence U4 (Accueil / Saisie / dernière vue).

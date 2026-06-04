@@ -4,6 +4,33 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.0.0.0] — 2026-06-04
+
+### Added
+- **Comptes utilisateurs — « Se connecter avec Google » (U7)** : passage **mono → multi-utilisateur**. L'app s'ouvre à **tout public** ; chaque personne se connecte avec **son compte Google** (Google Identity Services) et ne voit **que ses propres pleins, stats, historique et réglages**. Les données de tous restent sur **le compte Google du propriétaire** (Sheet + Apps Script inchangés), **séparées par une colonne `email`**.
+  - **Nouveau `js/auth.js`** — SDK GIS : reconnexion silencieuse (One-Tap, propose le compte du téléphone sur Android), session locale (`localStorage`), `getIdToken()`/`isAuthed()`/`getUser()`/`signOut()`, bloc identité du header (avatar + déconnexion), événement `auth-changed`. **Bascule souple** : tant que `GOOGLE_CLIENT_ID` (config.js) vaut le placeholder, l'auth est **inactive** et l'app fonctionne comme avant.
+  - **Nouveau `Auth.gs`** (GAS) — `verifyIdToken_()` vérifie le JWT via l'endpoint Google `tokeninfo` (contrôle `aud`/`iss`/`email_verified`/`exp`, cache `CacheService`), `requireUser_()`/`resolveOwner_()` renvoient l'**email de confiance** (jamais l'email envoyé par le client). Propriété de script **`REQUIRE_AUTH`** = bascule stricte.
+  - **Mur de connexion** (`js/router.js`) : les vues **Stats / Historique / Réglages** exigent la connexion ; **Accueil / Carte** restent publiques ; la **Saisie** reste consultable (prix/comparateur) mais l'**enregistrement** d'un plein exige la connexion (`js/formulaire.js`).
+  - **Suppression de compte / RGPD** (`Code.gs` → `handleDeleteAccount`, bouton « 🗑️ Supprimer mon compte » dans ⚙️ Réglages) : purge définitive des pleins, paramètres et abonnements push du compte. Mention de consentement au login.
+  - **Tests** : `tests/auth.test.js` (bascule souple + validité de session).
+
+### Changed
+- **`Code.gs`** — schéma `_ImportGS` étendu : **col S « Email »** (compte propriétaire de chaque plein). `doPost` (enregistrement), `handleExport`, `handleStats`, `handleDeletePlein` **filtrent/écrivent par email** ; helper `_rowBelongsTo_` (les lignes héritées sans email = propriétaire). Migration `migrerMultiUser()` (idempotente) → rattache l'existant à `fdaubercy@gmail.com`.
+- **Onglet `Parametres`** — passe à **4 colonnes** (`cle · valeur · modifie_le · email`) : réglages **par utilisateur** (`js/parametres.js` joint l'`idToken`). Email ajouté en **dernière** colonne pour préserver la lecture Excel A:C.
+- **`_PushSubs`** — colonne **`Email`** (I) : abonnements push rattachés au compte (`WebPush.gs`, `js/notifications.js`).
+- **Véhicules** (`js/vehicules.js`) — en mode multi-utilisateur, plus de *seed* depuis l'onglet global (un nouveau compte n'hérite pas des véhicules du propriétaire) ; liste locale par appareil.
+- **Requêtes perso** — `js/offline.js` (file hors-ligne : `idToken` rafraîchi au flush), `js/historique.js`, `js/statsApi.js` joignent l'`idToken`.
+- **Excel / Power Query** (`powerquery/GS_Pleins.m`) — lit 19 colonnes (A→S) et **filtre `Email = propriétaire`** (sinon le classeur agrégerait les pleins de tous). À recoller dans l'Éditeur avancé.
+- **`index.html`** — CSP élargie aux domaines `accounts.google.com/gsi/*` (+ avatars `googleusercontent.com`), SDK GIS, `#authSlot`, mur `#loginGate`.
+
+### Déploiement / Activation (séquence)
+1. **Créer l'OAuth Client ID** (Google Cloud Console → écran de consentement *External*/Publié + ID client *Web*, origines `https://fdaubercy.github.io` + `localhost:5173/4173`). Voir `README.md`.
+2. Coller le Client ID dans **`js/config.js`** (`GOOGLE_CLIENT_ID`) **et** **`Auth.gs`** (même valeur).
+3. **`npm run gas:deploy "v5.0.0.0 multi-user"`** puis exécuter **`migrerMultiUser()`** une fois (rattache l'existant au propriétaire).
+4. Recoller **`powerquery/GS_Pleins.m`** dans Excel (Éditeur avancé) → Actualiser.
+5. Tester (2 comptes Google → isolation), puis poser la propriété de script **`REQUIRE_AUTH = 1`** pour rendre l'idToken obligatoire.
+   > Tant que ces étapes ne sont pas faites, l'app reste en **mode propriétaire** (rétrocompatible, aucune régression).
+
 ## [4.19.0.0] — 2026-06-04
 
 ### Added

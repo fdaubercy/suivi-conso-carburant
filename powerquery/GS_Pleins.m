@@ -32,6 +32,9 @@
 //    car le CSV gviz est en M/d/yyyy et non trié).
 //  • v4.3.0.7 : Date convertie en VRAIE DATE (au lieu de texte) -> affichage
 //    JJ/MM/AAAA dans Tableau2 ; tri direct sur la date (colonne _tri retirée).
+//  • v5.0.0.0 : U7 multi-utilisateur — lit 19 colonnes (A→S) et FILTRE sur la
+//    col S « Email » = propriétaire (fdaubercy@gmail.com). Les lignes sans email
+//    (avant migration) restent incluses. À recoller dans Excel après v5.0.0.0.
 //
 //  Endpoint gviz (cible l'onglet par son NOM, comme vba/ModuleImportGS.bas).
 // ═════════════════════════════════════════════════════════════════════════
@@ -42,10 +45,11 @@ let
     URL = "https://docs.google.com/spreadsheets/d/" & SHEET_ID
           & "/gviz/tq?tqx=out:csv&sheet=_ImportGS",
 
-    // Le schéma GAS courant fait 16 colonnes (A→P).
+    // Le schéma GAS courant fait 19 colonnes (A→S). On lit jusqu'à la col S
+    // « Email » (U7) afin de filtrer les pleins du propriétaire.
     Source = Csv.Document(
         Web.Contents(URL),
-        [Delimiter=",", Columns=16, Encoding=65001, QuoteStyle=QuoteStyle.Csv]
+        [Delimiter=",", Columns=19, Encoding=65001, QuoteStyle=QuoteStyle.Csv]
     ),
 
     SkipHeader = Table.Skip(Source, 1),
@@ -67,11 +71,18 @@ let
         {"Column13", "Gazole station"},
         {"Column14", "GPLc station"},
         {"Column15", "sync_id"},
-        {"Column16", "Photo ticket"}
+        {"Column16", "Photo ticket"},
+        {"Column19", "Email"}
     }),
 
+    // U7 — Filtre multi-utilisateur : ne garder que les pleins du propriétaire.
+    // Les lignes héritées sans email (avant migration migrerMultiUser) restent
+    // incluses (Email vide/null) ; les pleins d'autres comptes sont exclus.
+    FilteredUser = Table.SelectRows(Renamed, each
+        [Email] = "fdaubercy@gmail.com" or [Email] = null or [Email] = ""),
+
     // 16 colonnes A→P (la col Q « Modifie_local » reste hors requête).
-    Kept = Table.SelectColumns(Renamed, {
+    Kept = Table.SelectColumns(FilteredUser, {
         "Horodatage", "Date", "Type", "Km", "Litres", "PrixL",
         "Station essence", "Vehicule",
         "E85 station", "SP98 station", "SP95 station", "E10 station",
