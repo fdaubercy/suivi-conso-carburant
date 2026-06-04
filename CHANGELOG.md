@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.1.1.0] — 2026-06-04
+
+### Added
+- **Marqueurs distingués par enseigne (W63)** — sur les **deux cartes** Google Maps (recherche **et** onglet « Carte »), chaque marqueur affiche désormais un **bandeau enseigne** (nom court + couleur d'identité : Total, Leclerc, Carrefour, Intermarché, Système U, Esso, BP, Shell, Avia…) **au-dessus de la pastille de prix** (le prix du carburant sélectionné reste affiché). Détection par nom via le nouveau `js/brand.js` (`detectBrand`). Repli couleur par défaut pour une enseigne inconnue. *(Distinction par nom + couleur, sans logo déposé.)*
+
+### Fixed
+- **`TypeError: Map is not a constructor` en console (W63)** — avec `loading=async`, les classes Google ne sont disponibles qu'après `google.maps.importLibrary()`. Le rendu chargeait la lib `marker` mais utilisait `new maps.Map()` sans charger la lib `maps` → erreur, puis repli OSM. Correction : `gmaprender.js` récupère désormais `Map` / `core` / `marker` via **`importLibrary`** (méthode officielle), avec repli sur l'accès direct au namespace. Plus d'erreur, plus de repli intempestif.
+- **Avertissement `apple-mobile-web-app-capable` déprécié** — ajout de `<meta name="mobile-web-app-capable" content="yes">` (`index.html`).
+
+### Changed
+- **Onglet « Carte » : réutilisation de l'instance Google Maps (perf)** — `renderStationsCard` (`stationsmap.js`) construit un **squelette persistant** (`.smap-top` / `#staticStationMap` / `.smap-bottom`) : le conteneur de carte n'est plus reconstruit à chaque changement de carburant/tri/épingle → l'instance Google Maps est **réutilisée** (les marqueurs sont juste rafraîchis) au lieu d'être recréée, ce qui évite des chargements de carte superflus.
+
 ## [5.1.0.5] — 2026-06-04
 
 ### Fixed

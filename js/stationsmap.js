@@ -6,6 +6,7 @@ import { state }          from './state.js';
 import { showStationPopup } from './itineraire.js';
 import { getSectorToday, loadSectorPrices } from './secteur.js';   // W48 prix secteur par carburant
 import { googleMapsActive, renderGoogleStationMap } from './gmaprender.js';   // W63 carte Google (onglet Carte)
+import { detectBrand } from './brand.js';   // W63 enseigne (couleur + nom) des marqueurs
 
 const COORD_CACHE_KEY = 'suivi_e85_station_coords';
 const TILE_SZ = 256;
@@ -255,9 +256,6 @@ export function renderStationsCard() {
     _ensureUserPos();
   }
 
-  const mapDiv = mapStations.length >= 1
-    ? `<div id="staticStationMap" class="static-map"></div>` : '';
-
   // Sélecteur de carburant (W47) — défaut = dernier plein du véhicule.
   const fuelSel = `<div class="smap-fuel-sel" role="tablist">${
     CARTE_FUELS.map(k => {
@@ -275,18 +273,27 @@ export function renderStationsCard() {
         sect.station ? ` · ${escHtml(String(sect.station).replace(/^Secteur - /, ''))}` : ''}</div>`
     : '';
 
-  const body = listHtml
-    ? `${mapDiv}${sortHtml}<div class="smap-list">${listHtml}</div>`
+  const topHtml = `<p class="section-title">Stations ${escHtml(short)} habituelles</p>${fuelSel}${sectorHtml}`;
+  const bottomHtml = listHtml
+    ? `${sortHtml}<div class="smap-list">${listHtml}</div>`
     : `<p class="smap-empty">Aucun plein ${escHtml(short)} enregistré pour ce véhicule.</p>`;
 
-  card.innerHTML = `
-    <p class="section-title">Stations ${escHtml(short)} habituelles</p>
-    ${fuelSel}
-    ${sectorHtml}
-    ${body}
-  `;
+  // W63 — squelette persistant : #staticStationMap n'est PAS reconstruit à chaque
+  // rendu (carburant / tri / épingle) → l'instance Google Maps est RÉUTILISÉE
+  // plutôt que recréée (économise des chargements de carte). Seuls le haut et le
+  // bas (titre, sélecteur, secteur, tri, liste) sont régénérés.
+  if (!card.querySelector('#staticStationMap')) {
+    card.innerHTML = '<div class="smap-top"></div>'
+                   + '<div id="staticStationMap" class="static-map"></div>'
+                   + '<div class="smap-bottom"></div>';
+  }
+  card.querySelector('.smap-top').innerHTML = topHtml;
+  card.querySelector('.smap-bottom').innerHTML = bottomHtml;
 
-  if (listHtml && mapStations.length >= 1) _renderHabituellesMap(mapStations, _userPos);
+  const showMapDiv = listHtml && mapStations.length >= 1;
+  const mapHost = card.querySelector('#staticStationMap');
+  mapHost.style.display = showMapDiv ? '' : 'none';
+  if (showMapDiv) _renderHabituellesMap(mapStations, _userPos);
 
   // Charge le prix secteur du carburant (1×/session) puis re-rend si toujours actif.
   if (!_sectorFetched.has(_selectedFuel)) {
@@ -313,6 +320,7 @@ function _renderHabituellesMap(stations, userPos) {
     lat: s.lat, lon: s.lon,
     text:  Number(s.avg).toFixed(3),
     title: `${s.name} — ${short} moy. ${Number(s.avg).toFixed(3)} €/L`,
+    brand: detectBrand(s.name),
     onClick: () => showStationPopup({
       name: s.name, lat: s.lat, lon: s.lon,
       priceLabel: `${short} moy. ${Number(s.avg).toFixed(3)} €/L`,

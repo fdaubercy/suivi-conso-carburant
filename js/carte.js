@@ -8,6 +8,7 @@
 import { state } from './state.js';
 import { escHtml } from './utils.js';
 import { FUEL_CONFIG } from './config.js';
+import { detectBrand } from './brand.js';
 import { googleMapsActive, renderGoogleStationMap } from './gmaprender.js';
 
 const TILE_SZ = 256;
@@ -49,6 +50,7 @@ function _renderGoogleMap(uLat, uLon) {
       lat: s.lat, lon: s.lon,
       text:  price != null ? Number(price).toFixed(3) : (cfg.short || '⛽'),
       title: s.name + (price != null ? ` — ${cfg.short || ''} ${Number(price).toFixed(3)} €/L` : ''),
+      brand: detectBrand(s.name),
       onClick: () => { if (typeof window.selectStationFromMap === 'function') window.selectStationFromMap(i); },
     };
   });

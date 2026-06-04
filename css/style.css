@@ -571,19 +571,26 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
 }
 
 /* ─── W63 — marqueurs Google Maps (AdvancedMarkerElement, contenu HTML) ─── */
-.gmap-badge-wrap { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
-.gmap-badge {
-  background: #2E75B6; color: #fff;
-  font: 700 12px/1 Arial, Helvetica, sans-serif;
-  padding: 5px 8px; border-radius: 7px; border: 1.5px solid #fff;
-  white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.35);
+.gmap-marker { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+/* Bandeau enseigne : couleur de marque (inline) + nom court */
+.gmap-brand {
+  font: 700 9px/1.3 Arial, Helvetica, sans-serif; color: #fff;
+  padding: 2px 6px; border: 1.5px solid #fff; border-bottom: none; border-radius: 7px 7px 0 0;
+  max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: .02em;
 }
+/* Pastille prix : texte + bordure = couleur enseigne (inline) */
+.gmap-badge {
+  background: #fff; color: #2E75B6;
+  font: 700 12px/1 Arial, Helvetica, sans-serif;
+  padding: 4px 8px; border-radius: 7px; border: 2px solid #2E75B6;
+  white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3);
+}
+.gmap-badge.has-brand { border-radius: 0 0 7px 7px; }   /* collée sous le bandeau marque */
 .gmap-badge-tip {
   width: 0; height: 0; margin-top: -1px;
   border: 6px solid transparent; border-top-color: #2E75B6;
 }
-.gmap-badge-wrap.sel .gmap-badge { background: #1B3A5C; }
-.gmap-badge-wrap.sel .gmap-badge-tip { border-top-color: #1B3A5C; }
+.gmap-marker.sel .gmap-badge { box-shadow: 0 0 0 3px rgba(27,58,92,.30), 0 1px 4px rgba(0,0,0,.3); }
 .gmap-userdot {
   width: 16px; height: 16px; background: #1D9E75;
   border-radius: 50%; border: 3px solid #fff;
