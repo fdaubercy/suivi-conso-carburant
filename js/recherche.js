@@ -1,5 +1,9 @@
-/* ─── Recherche manuelle par ville ─── */
-import { PRIX_API, FUEL_CONFIG, FUEL_SELECT } from './config.js';
+/* ─── Recherche manuelle par ville, code postal OU adresse (W63) ───
+   Le champ accepte désormais une adresse complète. Le centre de recherche est
+   résolu via la Base Adresse Nationale (gouv.fr) ; repli sur les coordonnées de
+   la commune issues du dataset prix-carburants si la BAN est indisponible.
+   La recherche des stations se fait dans le rayon choisi AUTOUR de ce point. */
+import { PRIX_API, BAN_API, FUEL_CONFIG, FUEL_SELECT } from './config.js';
 import { state } from './state.js';
 import { haversine, getCoords, stationLabel, stationSubLabel, composeStationName } from './utils.js';
 import { setAutreStatus } from './ui.js';
@@ -31,14 +35,46 @@ export function onAutreInput() {
 }
 
 export function buildSearchClause(q) {
-  return /^\d{2,5}$/.test(q) ? `cp like '${q}%'` : `search(ville, '${q}')`;
+  return /^\d{2,5}$/.test(q) ? `cp like '${q}%'` : `search(ville, '${q.replace(/'/g, "''")}')`;
 }
 
-export function buildStations(results) {
+/** Échappe une chaîne pour un littéral ODSQL (apostrophes doublées). */
+function _sql(s) { return String(s).replace(/'/g, "''"); }
+
+/**
+ * Géocode une adresse / ville / code postal via la Base Adresse Nationale.
+ * Renvoie { lat, lon, label, city, citycode, postcode, type } ou null.
+ */
+async function geocodeAddress(q) {
+  try {
+    const resp = await fetch(BAN_API + '?' + new URLSearchParams({ q, limit: '1', autocomplete: '0' }));
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const f = data && data.features && data.features[0];
+    const coords = f && f.geometry && f.geometry.coordinates;
+    if (!coords) return null;
+    const [lon, lat] = coords;
+    if (!isFinite(lat) || !isFinite(lon)) return null;
+    const p = f.properties || {};
+    return {
+      lat, lon,
+      label:    p.label || q,
+      city:     p.city || '',
+      citycode: p.citycode || '',
+      postcode: p.postcode || '',
+      type:     p.type || '',
+    };
+  } catch { return null; }
+}
+
+/** Fabrique les stations affichables (distance calculée depuis `center`, à
+ *  défaut depuis la position GPS connue). Trié par distance croissante. */
+export function buildStations(results, center) {
+  const ref = center || (state.userLat && state.userLon ? { lat: state.userLat, lon: state.userLon } : null);
   const knownNames = Array.from(document.querySelectorAll('#knownGroup option:not([value="__autre"])')).map(o => o.value.toLowerCase());
   return results.filter(r => getCoords(r)).map(r => {
     const c = getCoords(r);
-    const dist = (state.userLat && state.userLon) ? Math.round(haversine(state.userLat, state.userLon, c.lat, c.lon)) : null;
+    const dist = ref ? Math.round(haversine(ref.lat, ref.lon, c.lat, c.lon)) : null;
     const rawName = stationLabel(r);
     const ville   = r.ville || '';
     const name    = composeStationName(rawName, ville);
@@ -52,53 +88,62 @@ export function buildStations(results) {
 export async function searchStationSuggestions(q) {
   const cfg = FUEL_CONFIG[state.currentType];
   try {
-    const searchClause = buildSearchClause(q);
+    // ── Étape 1 : centre de recherche (BAN), repli dataset prix-carburants ──
+    setAutreStatus('spin', 'Localisation de l’adresse…');
+    let center = await geocodeAddress(q);
+    let centerLabel;
 
-    // Étape 1 : coordonnées de la commune
-    setAutreStatus('spin', 'Localisation de la commune…');
-    const respLoc = await fetch(PRIX_API + '?' + new URLSearchParams({
-      where: `${searchClause} and ${cfg.apiField} is not null`, select: 'ville,geom', limit: 1
-    }));
-    if (!respLoc.ok) throw new Error('HTTP ' + respLoc.status);
-    const dataLoc = await respLoc.json();
-    if (!dataLoc.results?.length || !getCoords(dataLoc.results[0])) {
-      setAutreStatus('err', `Aucune commune ${cfg.short} trouvée avec ce nom.`); return;
+    if (center) {
+      centerLabel = center.label;
+    } else {
+      // Repli : coordonnées de la commune via le dataset prix.
+      const searchClause = buildSearchClause(q);
+      const respLoc = await fetch(PRIX_API + '?' + new URLSearchParams({
+        where: `${searchClause} and ${cfg.apiField} is not null`, select: 'ville,geom', limit: 1
+      }));
+      if (!respLoc.ok) throw new Error('HTTP ' + respLoc.status);
+      const dataLoc = await respLoc.json();
+      if (!dataLoc.results?.length || !getCoords(dataLoc.results[0])) {
+        setAutreStatus('err', 'Adresse ou commune introuvable. Précisez la ville.'); return;
+      }
+      const c = getCoords(dataLoc.results[0]);
+      center = { lat: c.lat, lon: c.lon, city: (dataLoc.results[0].ville || q).trim(), label: (dataLoc.results[0].ville || q).trim() };
+      centerLabel = center.label;
     }
-    const cityCoords = getCoords(dataLoc.results[0]);
-    const cityName   = (dataLoc.results[0].ville || q).trim();
 
-    // Étape 2 : stations dans le rayon
+    // ── Étape 2 : stations dans le rayon autour du centre (ou commune) ──
     const radiusLabel = state.searchRadiusM != null
       ? (state.searchRadiusM >= 1000 ? state.searchRadiusM/1000 + ' km' : state.searchRadiusM + ' m')
       : null;
-    setAutreStatus('spin', radiusLabel ? `Stations dans ${radiusLabel} autour de ${cityName}…` : `Stations à ${cityName}…`);
+    setAutreStatus('spin', radiusLabel
+      ? `Stations ${cfg.short} dans ${radiusLabel} autour de ${centerLabel}…`
+      : `Stations ${cfg.short} à ${centerLabel}…`);
 
-    const proximityClause = state.searchRadiusM != null
-      ? ` and distance(geom, geom'POINT(${cityCoords.lon} ${cityCoords.lat})', ${state.searchRadiusM}m)`
-      : '';
+    // Clause commune (pour "Ville seule" et le repli sans résultat dans le rayon).
+    const cityClause = center.city ? `search(ville, '${_sql(center.city)}')` : buildSearchClause(q);
     const whereStep2 = state.searchRadiusM != null
-      ? `${cfg.apiField} is not null${proximityClause}`
-      : `${searchClause} and ${cfg.apiField} is not null`;
+      ? `${cfg.apiField} is not null and distance(geom, geom'POINT(${center.lon} ${center.lat})', ${state.searchRadiusM}m)`
+      : `${cityClause} and ${cfg.apiField} is not null`;
 
     const resp = await fetch(PRIX_API + '?' + new URLSearchParams({ where: whereStep2, select: FUEL_SELECT, limit: 15 }));
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
 
-    if (!data.results?.length || !buildStations(data.results).length) {
-      setAutreStatus('info', 'Aucune station dans ce périmètre — affichage de la ville.');
-      return searchStationsCityOnly(searchClause, cityName);
+    if (!data.results?.length || !buildStations(data.results, center).length) {
+      setAutreStatus('info', 'Aucune station dans ce périmètre — affichage de la commune.');
+      return searchStationsCityOnly(cityClause, centerLabel, center);
     }
 
-    const stations = buildStations(data.results);
+    const stations = buildStations(data.results, center);
     const statusOk = () => setAutreStatus('ok', radiusLabel
-      ? stations.length + ' station(s) ' + cfg.short + ' dans ' + radiusLabel + ' autour de ' + cityName
-      : stations.length + ' station(s) ' + cfg.short + ' à ' + cityName);
+      ? stations.length + ' station(s) ' + cfg.short + ' dans ' + radiusLabel + ' autour de ' + centerLabel
+      : stations.length + ' station(s) ' + cfg.short + ' à ' + centerLabel);
 
     // Affichage immédiat (noms gouv.), puis enseignes OSM en arrière-plan.
     state._nearbyStations = stations;                 // pour le clic (sélection)
     statusOk();
     renderNearby(stations);
-    showMap(state.userLat, state.userLon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
+    showMap(center.lat, center.lon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
 
     enrichStationsBulk(stations,
       (i, osmName) => { stations[i].name = composeStationName(osmName, stations[i].ville); updateNearbyName(i, stations[i].name); },
@@ -106,7 +151,7 @@ export async function searchStationSuggestions(q) {
     ).then(ok => {
       if (!ok) return;                                // annulé (nouvelle recherche / station choisie)
       renderNearby(stations);
-      showMap(state.userLat, state.userLon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
+      showMap(center.lat, center.lon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
       statusOk();
     });
   } catch(e) {
@@ -115,7 +160,7 @@ export async function searchStationSuggestions(q) {
   }
 }
 
-export async function searchStationsCityOnly(searchClause, cityName) {
+export async function searchStationsCityOnly(searchClause, cityName, center) {
   const cfg = FUEL_CONFIG[state.currentType];
   try {
     const resp = await fetch(PRIX_API + '?' + new URLSearchParams({
@@ -124,15 +169,17 @@ export async function searchStationsCityOnly(searchClause, cityName) {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     if (!data.results?.length) { setAutreStatus('err', `Aucune station ${cfg.short} trouvée.`); return; }
-    const stations = buildStations(data.results);
+    const stations = buildStations(data.results, center);
     if (!stations.length) { setAutreStatus('err', `Aucune station ${cfg.short} trouvée.`); return; }
     const statusOk = () => setAutreStatus('ok', stations.length + ' station(s) ' + cfg.short + ' à ' + cityName);
 
     // Affichage immédiat (noms gouv.), puis enseignes OSM en arrière-plan (idem suggestions).
+    const mapLat = center ? center.lat : state.userLat;
+    const mapLon = center ? center.lon : state.userLon;
     state._nearbyStations = stations;
     statusOk();
     renderNearby(stations);
-    showMap(state.userLat, state.userLon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
+    showMap(mapLat, mapLon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
 
     enrichStationsBulk(stations,
       (i, osmName) => { stations[i].name = composeStationName(osmName, stations[i].ville); updateNearbyName(i, stations[i].name); },
@@ -140,7 +187,7 @@ export async function searchStationsCityOnly(searchClause, cityName) {
     ).then(ok => {
       if (!ok) return;                                // annulé (nouvelle recherche / station choisie)
       renderNearby(stations);
-      showMap(state.userLat, state.userLon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
+      showMap(mapLat, mapLon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
       statusOk();
     });
   } catch(e) { setAutreStatus('err', 'Erreur (' + e.message + ').'); }

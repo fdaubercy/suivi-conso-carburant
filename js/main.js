@@ -41,7 +41,7 @@ const t = new Date();
 document.getElementById('fDate').value =
   `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
 _buildTypeToggle({});
-document.querySelector('.radius-btn[data-m="20000"]')?.classList.add('active');
+document.querySelector('.radius-btn[data-m="5000"]')?.classList.add('active');
 document.getElementById('appVersion').textContent = 'v' + APP_VERSION;
 
 /* ─── Câblage callback (rompt la dépendance circulaire carburant ↔ prix) ─── */

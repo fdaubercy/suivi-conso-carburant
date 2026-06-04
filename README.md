@@ -189,13 +189,12 @@ Le raccourci **« Dupliquer le dernier »** (accueil / onglet) pré-remplit le f
 - **Ajout / suppression** directement depuis le sélecteur (local uniquement)
 - **Dernier véhicule utilisé** auto-sélectionné au démarrage
 
-### Carte interactive (moteur maison, sans librairie externe)
-- Tuiles **OpenStreetMap** rendues en JS pur (zéro dépendance externe)
-- Marqueurs ⛽ cliquables pour chaque station trouvée
-- Cliquer sur un marqueur sélectionne la station et met en surbrillance sa ligne dans la liste
-- Marqueur vert pour la position de l'utilisateur
-- Synchronisation bidirectionnelle liste ↔ carte
-- **S11 — Itinéraire au clic** : sur la carte des **stations habituelles** comme sur la carte de **recherche/géoloc**, cliquer un marqueur ouvre une popup d'infos (nom, prix, distance, adresse) puis propose l'**itinéraire Waze** (départ = position GPS) après confirmation, avec repli **Google Maps** si Waze n'est pas installé
+### Carte interactive des résultats (W63 — Google Maps, repli OpenStreetMap)
+La carte de **recherche / géoloc** dispose de **deux moteurs de rendu** derrière le même point d'entrée `showMap()` (`js/carte.js` + `js/gmap.js`) :
+- **Google Maps interactif** *(si `GOOGLE_MAPS_API_KEY` est renseignée, cf. Configuration)* : **zoom** (pinch / molette / boutons +/−), **glisser-déplacer** (un doigt sur mobile), et **regroupement des stations proches en clusters** qui s'ouvrent au zoom → idéal pour **distinguer la bonne station quand il y en a beaucoup**. Marqueurs = **pastilles de prix** ; clic → sélection + popup itinéraire (S11).
+- **Rendu OpenStreetMap « maison »** *(repli par défaut, sans aucune clé ni dépendance)* : tuiles OSM en JS pur, zoom auto-ajusté, marqueurs ⛽ cliquables, marqueur vert pour le point de recherche. **Activé automatiquement** tant qu'aucune clé Google n'est posée, ou si l'API Google échoue à charger → **zéro régression**.
+- Communs aux deux moteurs : cliquer un marqueur **sélectionne** la station et met en surbrillance sa ligne ; synchronisation bidirectionnelle liste ↔ carte.
+- **S11 — Itinéraire au clic** : sur la carte des **stations habituelles** comme sur celle de **recherche/géoloc**, cliquer un marqueur ouvre une popup d'infos (nom, prix, distance, adresse) puis propose l'**itinéraire Waze** (départ = position GPS) après confirmation, avec repli **Google Maps** si Waze n'est pas installé.
 
 ### Géolocalisation (+ W30 + W31)
 - Bouton 📍 : détecte les stations E85 dans un rayon de **8 km**
@@ -205,11 +204,12 @@ Le raccourci **« Dupliquer le dernier »** (accueil / onglet) pré-remplit le f
 - **W30 — Comparateur multi-stations** : jusqu'à 40 stations retournées par l'API sont triées par prix E85 croissant dans une carte dédiée. La station la moins chère est mise en évidence (fond vert).
 - **W31 — Géoloc mémorisée** : la dernière position GPS et la liste des stations sont persistées en localStorage (TTL 1 h). Au prochain tap 📍, les stations précédentes s'affichent immédiatement pendant que le GPS se met à jour — zéro attente perçue.
 
-### Recherche manuelle avec suggestions
-- Dès 3 caractères saisis, recherche avec debounce 500 ms dans l'API gouvernementale
-- Affichage simultané : liste de suggestions + marqueurs sur la carte
-- Sélection possible depuis la liste **ou depuis la carte**
-- Sélection d'une suggestion → nom canonique, mise à jour dropdown, récupération des prix
+### Recherche manuelle par ville, code postal ou adresse (W63)
+- Le champ accepte **ville, code postal OU adresse complète** (n° + rue + ville). Dès 3 caractères, recherche avec debounce 500 ms.
+- **Géocodage via la Base Adresse Nationale** (gouv.fr, gratuit, sans clé) : l'adresse est convertie en coordonnées précises, puis les stations sont cherchées **dans le rayon choisi autour de ce point** (`js/recherche.js` `geocodeAddress`). Repli automatique sur les coordonnées de la commune (dataset prix-carburants) si la BAN est indisponible.
+- **Rayons fins** : `2 / 5 / 10 / 20 / 50 km · Ville seule` (défaut **5 km**). Les distances affichées sont calculées **depuis l'adresse saisie** (la position GPS n'est pas écrasée).
+- Affichage simultané : liste de suggestions + marqueurs sur la carte (Google Maps ou OSM selon la config) ; sélection possible depuis la liste **ou depuis la carte**.
+- Sélection d'une suggestion → nom canonique, mise à jour dropdown, récupération des prix.
 
 ### Gestion des stations
 - **Chargement dynamique** depuis l'onglet `Stations` du Google Sheet au démarrage
@@ -375,13 +375,14 @@ suivi-conso-carburant/
 │   ├── ui.js                        # Helpers DOM
 │   ├── vehicules.js                 # Gestion véhicules (localStorage)
 │   ├── osm.js                       # Enrichissement Overpass (nom enseigne)
-│   ├── carte.js                     # Rendu carte tuiles OSM
+│   ├── carte.js                     # Carte des résultats : Google Maps (W63) ou repli tuiles OSM
+│   ├── gmap.js                      # W63 chargeur Google Maps JS API + clustering (tolérant aux pannes)
 │   ├── itineraire.js                # Popup infos station + itinéraire Waze/Google Maps (S11)
 │   ├── carburant.js                 # Toggle type de carburant + badges header
 │   ├── prix.js                      # API prix carburants + badge rentabilité E85
 │   ├── rentabilite.js               # Badge rentabilité E85 vs SP98 (W5)
 │   ├── geo.js                       # Géoloc + liste stations proches + W30 comparateur + W31 cache localStorage
-│   ├── recherche.js                 # Recherche manuelle par ville
+│   ├── recherche.js                 # Recherche manuelle ville/CP/adresse (W63 géocodage BAN)
 │   ├── formulaire.js                # Soumission, réinitialisation, détection doublons, auto-save brouillon W15, dictée vocale km W35
 │   ├── stations.js                  # Chargement liste stations Google Sheets
 │   ├── theme.js                     # Dark mode (toggle + persist localStorage)
@@ -497,6 +498,23 @@ export const HIST_SINCE_KEY = 'suivi_e85_hist_since';   // timestamp dernière s
 export const DRAFT_KEY      = 'suivi_e85_draft';        // brouillon formulaire (W15)
 export const CLIENT_ID_KEY  = 'suivi_e85_client_id';    // UUID client rate limiting (S7)
 ```
+
+#### Carte Google Maps (optionnel — W63)
+
+```javascript
+export const GOOGLE_MAPS_API_KEY = '';   // vide ⇒ repli carte OpenStreetMap (défaut)
+```
+
+La carte des résultats de recherche peut être rendue avec **Google Maps interactif** (zoom, glisser, clusters). Pour l'activer :
+
+1. **Google Cloud Console** → créer/sélectionner un projet et **activer la facturation** (obligatoire, même pour le quota gratuit).
+2. **APIs & Services** → activer **« Maps JavaScript API »**.
+3. **Identifiants** → **Créer une clé API**, puis la **restreindre** :
+   - *Restrictions d'API* → **Maps JavaScript API** uniquement ;
+   - *Restrictions d'application* → **Sites web (referrers HTTP)** : `https://fdaubercy.github.io/*`, `http://localhost:5173/*`, `http://localhost:4173/*`.
+4. Coller la clé dans **`js/config.js`** (`GOOGLE_MAPS_API_KEY`).
+
+> 🔒 Une clé d'API JS est **nécessairement publique** (servie au navigateur) : la **restriction par domaine** est la vraie protection. 👉 **Bascule souple** : tant que `GOOGLE_MAPS_API_KEY` reste vide, la carte utilise le **rendu OpenStreetMap maison** (comportement actuel) — aucune régression, aucune clé requise. Le géocodage d'adresse (Base Adresse Nationale) reste **gratuit et sans clé** dans tous les cas.
 
 ### 3. Google Sheet cible
 

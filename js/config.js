@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '5.0.0.3';
+export const APP_VERSION       = '5.1.0.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 
 // ─── U7 — Authentification « Se connecter avec Google » (Google Identity Services) ───
@@ -10,6 +10,19 @@ export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCf
 // INACTIVE et l'app fonctionne comme avant (mode propriétaire). Le projet Apps
 // Script doit recevoir le MÊME identifiant (constante GOOGLE_CLIENT_ID d'Auth.gs).
 export const GOOGLE_CLIENT_ID  = '421988867757-asmnjjur5bogmkprn75m42dlltne22ic.apps.googleusercontent.com';
+
+// ─── W63 — Carte interactive Google Maps (recherche de station) ───
+// Clé « Maps JavaScript API » créée dans Google Cloud Console (projet avec
+// FACTURATION activée). Étapes : APIs & Services → Identifiants → Créer une
+// clé API → restreindre :
+//   • Restrictions d'API   : « Maps JavaScript API » uniquement
+//   • Restrictions de site : referrers HTTP
+//       https://fdaubercy.github.io/*  ·  http://localhost:5173/*  ·  http://localhost:4173/*
+// ⚠️ La clé d'une API JS est NÉCESSAIREMENT publique (servie au navigateur) :
+// la restreindre par domaine est la vraie protection (pas un secret).
+// 👉 Tant que ce placeholder reste vide, la carte bascule automatiquement sur
+//    le rendu OpenStreetMap maison (comportement actuel, zéro régression).
+export const GOOGLE_MAPS_API_KEY = '';
 
 // S6 — Token secret partagé avec les endpoints GAS et la macro VBA.
 // Mode SOUPLE : le GAS ne rejette les requêtes QUE si la propriété de script
@@ -28,6 +41,9 @@ export const APP_TOKEN         = 'e85_a7f3c9e21b8d4f60a5c3e8b7d12f6049';
 export const VAPID_PUBLIC_KEY  = 'BHhoGWV7022keNa8RfsgZcKTZaJ0f0lXrHlxJCRmYn5PWZ8O6EvvQFGdbZHqQTxh_mD9lZKbZTUZQWq7xdlbcYw';
 export const GS_SHEET_ID       = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
 export const PRIX_API          = 'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records';
+// W63 — Géocodage d'adresse : Base Adresse Nationale (gouv.fr, gratuit, sans clé).
+// Transforme « 12 av. de Lyon Mâcon », un code postal ou une ville en lat/lon.
+export const BAN_API           = 'https://api-adresse.data.gouv.fr/search/';
 export const VEHICULES_KEY     = 'suivi_e85_vehicules';
 export const LAST_VEHICULE_KEY = 'suivi_e85_last_vehicule';
 export const HIST_CACHE_KEY    = 'suivi_e85_hist_cache';

@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.1.0.0] — 2026-06-04
+
+### Added
+- **Recherche de station par adresse (W63)** — le champ « Saisie manuelle » accepte désormais **ville, code postal OU adresse complète** (n° + rue + ville). L'adresse est géocodée via la **Base Adresse Nationale** (gouv.fr, gratuit, sans clé — `BAN_API` dans `js/config.js`), puis les stations sont recherchées **dans le rayon choisi autour de ce point** (`distance(geom, POINT, rayon)`). Repli transparent sur les coordonnées de la commune (dataset prix-carburants) si la BAN est indisponible. Nouveau libellé « Ville, code postal ou adresse » et **rayons fins** `2 / 5 / 10 / 20 / 50 km · Ville seule` (défaut **5 km**, adapté à une recherche autour d'un point précis). `js/recherche.js` (`geocodeAddress`, distances calculées depuis l'adresse résolue), `index.html`, `js/state.js`, `js/main.js`.
+- **Carte interactive Google Maps (W63)** — quand une clé `GOOGLE_MAPS_API_KEY` (`js/config.js`) est renseignée, la carte des résultats de recherche/géoloc devient **entièrement interactive** : **zoom** (pinch / molette / boutons +/−), **glisser-déplacer** (un doigt sur mobile, `gestureHandling:'greedy'`), et **regroupement des stations proches en clusters** qui s'ouvrent au zoom (`@googlemaps/markerclusterer`) → permet d'**identifier la bonne station quand il y en a beaucoup**. Marqueurs = pastilles de prix ; clic → sélection + popup itinéraire (S11) existante. Nouveau module `js/gmap.js` (chargeur de l'API Google Maps + clustering, mémorisé, tolérant aux pannes).
+
+### Changed
+- **`js/carte.js` — deux moteurs de rendu, même point d'entrée `showMap()`** : Google Maps si une clé est configurée, sinon **repli sur le rendu OpenStreetMap « maison »** (tuiles statiques, zoom auto) — strictement **inchangé**. Le repli s'active aussi automatiquement si l'API Google échoue à charger (réseau / clé invalide). 👉 **Zéro régression** : tant que `GOOGLE_MAPS_API_KEY` reste vide (cas par défaut committé), tous les utilisateurs gardent le comportement actuel.
+- Le service worker laisse déjà passer les requêtes cross-origin (Google Maps, BAN, CDN clustering) — aucune modification nécessaire.
+
+### Note
+- **Activation de Google Maps** : créer une clé « Maps JavaScript API » dans Google Cloud Console (projet avec **facturation activée**), la **restreindre par referrer HTTP** (`https://fdaubercy.github.io/*`, `http://localhost:5173/*`, `http://localhost:4173/*`) et à l'API « Maps JavaScript API », puis la coller dans `GOOGLE_MAPS_API_KEY` (`js/config.js`). Voir le commentaire détaillé dans `config.js`.
+
 ## [5.0.0.3] — 2026-06-04
 
 ### Fixed

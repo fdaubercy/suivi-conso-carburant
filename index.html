@@ -212,15 +212,17 @@
 
   <!-- Saisie manuelle + sélecteur de rayon -->
   <div class="field hidden" id="autreField">
-    <label for="fAutre">Ville de la station</label>
+    <label for="fAutre">Ville, code postal ou adresse</label>
     <input type="text" id="fAutre"
-           placeholder="ex. Villefranche, Mâcon, Douai…"
+           placeholder="ex. 12 av. de Lyon Mâcon, Douai, 69400…"
            autocomplete="off" autocorrect="off" spellcheck="false">
     <div class="radius-row">
-      <span class="radius-label">Rayon autour de la ville :</span>
-      <button class="radius-btn active" data-m="20000">20 km</button>
+      <span class="radius-label">Rayon autour du point :</span>
+      <button class="radius-btn"        data-m="2000">2 km</button>
+      <button class="radius-btn active" data-m="5000">5 km</button>
+      <button class="radius-btn"        data-m="10000">10 km</button>
+      <button class="radius-btn"        data-m="20000">20 km</button>
       <button class="radius-btn"        data-m="50000">50 km</button>
-      <button class="radius-btn"        data-m="100000">100 km</button>
       <button class="radius-btn"        data-m="null">Ville seule</button>
     </div>
     <div class="s98-status" id="autreStatus"></div>
