@@ -493,6 +493,10 @@ Public Sub SyncTableau2DepuisGS()
     Application.ScreenUpdating = False
     Application.Calculation = xlCalculationManual
 
+    ' Deverrouille "Suivi Carburant" : UserInterfaceOnly:=True n'autorise pas
+    ' ListRows.Add/Delete (erreur 1004). Reverrouille apres + dans "done".
+    ModuleImportGS.DeverrouillerSuivi
+
     ' Aligner le nombre de lignes de Tableau2 sur GS_Pleins
     Dim nT2 As Long
     If t2.DataBodyRange Is Nothing Then nT2 = 0 Else nT2 = t2.DataBodyRange.Rows.Count
@@ -504,6 +508,7 @@ Public Sub SyncTableau2DepuisGS()
         t2.ListRows(nT2).Delete
         nT2 = nT2 - 1
     Loop
+    ModuleImportGS.VerrouillerSuivi        ' reverrouille apres les operations de tableau
 
     ' Colonnes brutes <- GS_Pleins (formules INDEX) ; calculs preserves
     Dim t2Name As String: t2Name = t2.Name
@@ -525,6 +530,9 @@ Public Sub SyncTableau2DepuisGS()
               " ligne(s) tirees de GS_Pleins (calculs Tableau2 preserves)."
     Exit Sub
 done:
+    On Error Resume Next
+    ModuleImportGS.VerrouillerSuivi        ' garantit le reverrouillage meme sur erreur
+    On Error GoTo 0
     Application.Calculation = xlCalculationAutomatic
     Application.ScreenUpdating = True
 End Sub

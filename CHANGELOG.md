@@ -4,7 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
-## [5.2.1.1] — 2026-06-04
+## [5.2.1.2] — 2026-06-04
+
+### Fixed
+- **Excel — erreur 1004 « fonctionnalités du tableau indisponibles, feuille protégée » à l'import** — la feuille **« Suivi Carburant »** est protégée (`UserInterfaceOnly:=True`), ce qui **n'autorise pas** les opérations structurelles de tableau (`ListRows.Add/Delete`) → l'import (`ImporterNouveauxPleins`, déclenché à l'ouverture +3 s ou par le bouton « Importer pleins ») échouait. Ajout de helpers **`DeverrouillerSuivi` / `VerrouillerSuivi`** (`ModuleImportGS.bas`) : la feuille est **déverrouillée avant** les opérations de tableau puis **reverrouillée après** (sortie normale **et** chemin d'erreur). Même garde-fou appliqué à **`SyncTableau2DepuisGS`** (`modFeatures.bas`, rebuild de la vue Tableau2). 
+- **Excel — purge automatique de Z1 sur erreur 1004** — sur erreur **1004**, le handler de `ImporterNouveauxPleins` **vide `'Suivi Carburant'!Z1`** (marqueur du dernier import) afin de **forcer un import complet** au lancement suivant, avec un message explicite. *(Le reverrouillage reste garanti dans tous les cas.)*
 
 ### Fixed
 - **Système de prévisualisation (preview_*) réparé** — le harness lançait `npm run dev` dans `…/Github/suivi-e85` (chemin dérivé du **surnom** du projet) au lieu du dossier réel `…/Github/suivi-conso-carburant` → `npm ENOENT` (package.json introuvable), le serveur mourait aussitôt (« No running servers »). Le harness ignore le champ `cwd` de `.claude/launch.json`. **Correctif** : une **jonction de dossier** locale `suivi-e85 → suivi-conso-carburant` (sans droits admin) fait pointer le mauvais chemin vers le vrai projet. Durcissement `vite.config.js` : bloc `server` (`port = PORT || 5173`, `strictPort`, `host`) pour éviter le glissement silencieux de port. `preview_start → resize → screenshot` validés. *(La jonction est locale à la machine, non versionnée.)*

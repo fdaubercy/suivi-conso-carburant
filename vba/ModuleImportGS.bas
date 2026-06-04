@@ -45,6 +45,10 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
         Exit Sub
     End If
 
+    ' Deverrouille "Suivi Carburant" pour autoriser ListRows.Add (sinon 1004).
+    ' Reverrouille a la sortie normale ET sur erreur (voir GestionErreur).
+    DeverrouillerSuivi
+
     ' -- 2. Dernier horodatage importé ------------------------------------
     SetStatus "[2/4] Lecture du dernier horodatage importé…"
     If IsDate(cellLastImport.Value) Then
@@ -193,17 +197,58 @@ NextLigne:
     End If
 
     Call SyncStationsVersGoogleSheets
+    VerrouillerSuivi                       ' reverrouille la feuille apres l'import
     Exit Sub
 
 GestionErreur:
+    Dim eNum As Long, eDesc As String
+    eNum = Err.Number: eDesc = Err.Description
+    ' Recuperation : sur erreur 1004 (tableau/feuille protegee), on VIDE Z1 pour
+    ' forcer un import COMPLET au prochain lancement. Deverrouillage prealable
+    ' (Z1 est sur la feuille protegee), puis reverrouillage systematique.
+    On Error Resume Next
+    DeverrouillerSuivi
+    If eNum = 1004 Then ThisWorkbook.Worksheets(SHEET_SUIVI).Range(CELL_LAST_IMPORT).ClearContents
+    VerrouillerSuivi
+    On Error GoTo 0
     ResetStatus
     Application.ScreenUpdating = True
-    SetStatus "[Import E85] " & ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description & _
-              " (vider '" & CELL_LAST_IMPORT & "' pour forcer un import complet)."
+    If eNum = 1004 Then
+        SetStatus "[Import E85] " & ChrW(9888) & " Erreur 1004 (feuille protegee) : '" & _
+                  CELL_LAST_IMPORT & "' vide -> relancez l'import (il sera complet)."
+    Else
+        SetStatus "[Import E85] " & ChrW(9888) & " Erreur " & eNum & " : " & eDesc & _
+                  " (vider '" & CELL_LAST_IMPORT & "' pour forcer un import complet)."
+    End If
 End Sub
 
 Public Sub ImporterNouveauxPleinsAuto()
     Call ImporterNouveauxPleins(True)
+End Sub
+
+'=========================================================================
+'  Protection de "Suivi Carburant" autour des operations de TABLEAU
+'  La feuille est protegee (UserInterfaceOnly:=True) a chaque ouverture
+'  (ThisWorkbook). Or UserInterfaceOnly N'AUTORISE PAS les operations
+'  structurelles de ListObject (ListRows.Add/Delete) -> erreur 1004
+'  "les fonctionnalites du tableau ne sont pas disponibles...". Il faut
+'  donc Deverrouiller AVANT puis Reverrouiller APRES ces operations.
+'  Reutilise par modFeatures.SyncTableau2DepuisGS. Tolerant (On Error).
+'=========================================================================
+Public Sub DeverrouillerSuivi()
+    On Error Resume Next
+    ThisWorkbook.Worksheets(SHEET_SUIVI).Unprotect Password:=""
+    On Error GoTo 0
+End Sub
+
+Public Sub VerrouillerSuivi()
+    On Error Resume Next
+    ThisWorkbook.Worksheets(SHEET_SUIVI).Protect _
+        Password:="", _
+        UserInterfaceOnly:=True, _
+        DrawingObjects:=False, Contents:=True, Scenarios:=False, _
+        AllowFormattingColumns:=True
+    On Error GoTo 0
 End Sub
 
 '=========================================================================
