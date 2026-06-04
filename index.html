@@ -234,7 +234,10 @@
   <div id="stationMapWrap" class="hidden">
     <div class="map-header">
       <span class="map-title">🗺️ Carte des stations</span>
-      <button class="map-close-btn">✕</button>
+      <span class="map-header-btns">
+        <button class="map-fs-btn" type="button" data-fs-target="#stationMapWrap" title="Plein écran" aria-label="Plein écran">⛶</button>
+        <button class="map-close-btn">✕</button>
+      </span>
     </div>
     <div id="stationMap"></div>
   </div>
@@ -456,11 +459,13 @@
   </div>
 </div>
 
+  <!-- Crédit / source des données (déplacé depuis le footer global flottant :
+       le bas d'écran ne doit exposer QUE la barre d'onglets fixe). -->
+  <p class="view-credit">Données enregistrées dans Google Sheets · Suivi Conso. Carburants</p>
+
 </section><!-- /view-params -->
 
 </main>
-
-<footer>Données enregistrées dans Google Sheets · Suivi Conso. Carburants</footer>
 
 <!-- ════════════ Barre de navigation (onglets) ════════════ -->
 <nav class="bottom-nav" id="bottomNav" aria-label="Navigation principale">

@@ -9,6 +9,7 @@ import { showStationPopup } from './itineraire.js';
 
 import { chargerVehicules, onVehiculeChange, confirmerAjoutVehicule } from './vehicules.js';
 import { showPinLabel, hideMap, initMapInteractions } from './carte.js';
+import { initMapFullscreen } from './mapfullscreen.js';
 import { initStationsMapInteractions, renderStationsCard } from './stationsmap.js';
 import { _buildTypeToggle, setType, registerPriceCallback, initTypeToggle } from './carburant.js';
 import { fetchPricesNearUser, fetchPricesByCP } from './prix.js';
@@ -238,6 +239,7 @@ initStaticHandlers();
 initTypeToggle();      // carburant.js — délégation sur #typeToggle
 initNearbyList();      // geo.js — délégation sur #nearbyList
 initMapInteractions(); // carte.js — délégation sur #stationMap
+initMapFullscreen();   // mapfullscreen.js — W63 bouton ⛶ plein écran des cartes
 initStationsMapInteractions(); // stationsmap.js — clic marqueur favori → popup itinéraire (S11)
 initHistoireFilters(); // historique.js — filtres historique complet (W32)
 initCsvSepSetting();   // historique.js — W54 choix du séparateur CSV (persisté)

@@ -62,6 +62,21 @@ Private Type ParamDef
     isBool    As Boolean
 End Type
 
+' --- Cle proprietaire privee (SYNC_SECRET) : voir modSyncGS.PoserSyncSecret.
+'     Lue dans le registre local (HKCU), jamais dans le code/depot. Necessaire
+'     car getParametres/setParametres exigent une identite depuis REQUIRE_AUTH. ---
+Private Function SyncSecret() As String
+    SyncSecret = GetSetting("SuiviE85", "Sync", "OwnerSecret", "")
+End Function
+Private Function SyncSecretQS() As String
+    Dim s As String: s = SyncSecret()
+    If Len(s) > 0 Then SyncSecretQS = "&syncSecret=" & s Else SyncSecretQS = ""
+End Function
+Private Function SyncSecretJson() As String
+    Dim s As String: s = SyncSecret()
+    If Len(s) > 0 Then SyncSecretJson = ",""syncSecret"":""" & s & """" Else SyncSecretJson = ""
+End Function
+
 ' ============================================================
 '  POINTS D'ENTREE
 ' ============================================================
@@ -125,7 +140,7 @@ Public Sub PousserParametresExcel()
     End If
 
     Dim body As String
-    body = "{""action"":""setParametres"",""token"":""" & APP_TOKEN & """,""params"":[" & toPush & "]}"
+    body = "{""action"":""setParametres"",""token"":""" & APP_TOKEN & """" & SyncSecretJson() & ",""params"":[" & toPush & "]}"
     If HttpPost(GAS_URL, body) = "" Then
         Application.StatusBar = "[Parametres] " & ChrW(9888) & " Echec reseau (push) - voir TestConnexion."
     Else
@@ -182,7 +197,7 @@ Public Function SyncParametres() As Long
     Next i
 
     ' 2) Lire l'etat serveur
-    resp = HttpGet(GAS_URL & "?action=getParametres&token=" & APP_TOKEN)
+    resp = HttpGet(GAS_URL & "?action=getParametres&token=" & APP_TOKEN & SyncSecretQS())
     If resp = "" Then SyncParametres = -1: GoTo CleanFail
     If InStr(resp, """params""") = 0 Then SyncParametres = -1: GoTo CleanFail
 
@@ -230,7 +245,7 @@ Public Function SyncParametres() As Long
     ' 4) Pousser les parametres localement plus recents
     If toPush <> "" Then
         Dim body As String
-        body = "{""action"":""setParametres"",""token"":""" & APP_TOKEN & """,""params"":[" & toPush & "]}"
+        body = "{""action"":""setParametres"",""token"":""" & APP_TOKEN & """" & SyncSecretJson() & ",""params"":[" & toPush & "]}"
         HttpPost GAS_URL, body
     End If
 

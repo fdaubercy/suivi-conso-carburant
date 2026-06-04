@@ -6,6 +6,7 @@ import { showFeedback } from './ui.js';
 import { renderStats } from './stats.js';
 import { renderStationsCard } from './stationsmap.js';
 import { getSectorMinForDate } from './secteur.js';   // W38 — prix mini du secteur par jour
+import { brandInfo } from './brand.js';                // W65 — icône d'enseigne (+ log inconnues)
 
 let _lastRecord  = null;   // memorise le plein le plus recent pour dupliquerDernier()
 let _allRecords  = [];     // memorise TOUS les enregistrements pour validation km retrograde
@@ -22,6 +23,20 @@ function _loadSince() {
 }
 function _saveSince(ts) {
   try { localStorage.setItem(HIST_SINCE_KEY, ts); } catch { /* quota / private */ }
+}
+
+/** Clé stable d'un enregistrement, pour dédupliquer / supprimer une ligne
+ *  quand le sync_id manque (plein local jamais synchronisé, doublon fantôme).
+ *  Combine date + km + litres + prix + station + type normalisés. */
+function _recordKey(r) {
+  return [
+    isoDate(r.Date || r.Horodatage),
+    Number(r['Km compteur'] || 0),
+    Number(r['Nb. Litres'] || 0),
+    Number(r['Prix €/L'] || 0),
+    String(r['Station essence'] || '').trim().toLowerCase(),
+    String(r.Type || '').trim().toLowerCase(),
+  ].join('|');
 }
 
 /** Vide le cache historique et force un rechargement complet depuis le GAS. */
@@ -60,13 +75,17 @@ export async function chargerHistorique() {
     let allRecords;
 
     if (since && cachedRecords.length) {
-      // Fusion différentielle : ajouter uniquement les sync_id absents du cache
-      const existingIds = new Set(
+      // Fusion différentielle : n'ajouter que les enregistrements absents du
+      // cache. Clé = sync_id si présent, SINON clé composite (date/km/litres/
+      // station/type). Sans cette clé de repli, une ligne SANS sync_id était
+      // ré-ajoutée à CHAQUE sync → doublon « fantôme » jamais supprimable.
+      const existingIds  = new Set(
         cachedRecords.map(r => String(r.sync_id || r['sync_id'] || '')).filter(Boolean)
       );
+      const existingKeys = new Set(cachedRecords.map(_recordKey));
       const newRecords = incoming.filter(r => {
         const sid = String(r.sync_id || r['sync_id'] || '');
-        return !sid || !existingIds.has(sid);
+        return sid ? !existingIds.has(sid) : !existingKeys.has(_recordKey(r));
       });
       allRecords = newRecords.length ? [...cachedRecords, ...newRecords] : cachedRecords;
     } else {
@@ -518,10 +537,21 @@ export function initHistoireDelete() {
     const btn = e.target.closest('.hist-delete');
     if (!btn) return;
 
-    const sid = String(btn.dataset.syncId || '');
-    if (!sid) return;
+    const sid    = String(btn.dataset.syncId || '');
+    const rowKey = String(btn.dataset.rowKey || '');
 
     if (!window.confirm('Supprimer définitivement ce plein ?\nCette action est irréversible.')) return;
+
+    // Plein SANS sync_id : ligne purement locale (jamais synchronisée, ou doublon
+    // fantôme du cache). Le serveur ne la connaît pas → purge locale immédiate
+    // (sinon la poubelle resterait sans effet — bug signalé).
+    if (!sid) {
+      _allRecords = _allRecords.filter(r => _recordKey(r) !== rowKey);
+      _saveCache(_allRecords);
+      _renderLists();
+      showFeedback('success', 'Plein retiré ✓', 'Doublon local supprimé de cet appareil.');
+      return;
+    }
 
     btn.disabled = true;
     try {
@@ -570,15 +600,19 @@ function renderItem(r) {
   const prix    = Number(r['Prix €/L']   || 0).toFixed(3);
   const total   = (Number(litres) * Number(prix)).toFixed(2);
   const station = String(r['Station essence'] || '—').slice(0, 40);
+  const brand   = brandInfo(r['Station essence']);   // W65 — icône enseigne (+ log inconnues)
   const type    = escapeHtml(r.Type || '');
   const syncId  = String(r.sync_id || '');
+  const rowKey  = _recordKey(r);
   const secteur = sectorDeltaHtml(r);   // W38 — écart vs moins cher du secteur
 
-  const deleteBtn = syncId
-    ? `<button class="hist-delete" type="button"
-          data-sync-id="${escapeHtml(syncId)}"
-          aria-label="Supprimer ce plein">🗑️</button>`
-    : '';
+  // Poubelle rendue pour TOUTES les lignes : avec sync_id → suppression serveur ;
+  // sans sync_id (plein local / doublon fantôme) → purge locale du cache.
+  const deleteBtn =
+    `<button class="hist-delete" type="button"
+        data-sync-id="${escapeHtml(syncId)}"
+        data-row-key="${escapeHtml(rowKey)}"
+        aria-label="Supprimer ce plein">🗑️</button>`;
 
   return `
     <div class="hist-item">
@@ -599,7 +633,10 @@ function renderItem(r) {
         <span>${litres} L · ${prix} €/L</span>
         <span class="hist-km">${km} km</span>
       </div>
-      <div class="hist-row3">${escapeHtml(station)}</div>
+      <div class="hist-row3">
+        <img class="brand-ico" src="${escapeHtml(brand.icon)}" alt="${escapeHtml(brand.label || 'Station')}" width="18" height="18" loading="lazy" decoding="async">
+        <span>${escapeHtml(station)}</span>
+      </div>
       ${secteur}
     </div>
   `;

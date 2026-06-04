@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.2.0.0] — 2026-06-04
+
+### Fixed
+- **Suppression d'un plein sans effet (poubelle 🗑️)** — la fusion différentielle de l'historique ré-ajoutait à **chaque** rafraîchissement les enregistrements **sans `sync_id`** (`historique.js`), créant des **doublons « fantômes »** ; et le bouton 🗑️ n'était rendu **que** pour les lignes avec `sync_id` → un doublon fantôme n'avait aucun bouton (clic sans effet). Désormais : dédup par **clé composite** (date/km/litres/station/type) quand `sync_id` manque, la poubelle est rendue sur **toutes** les lignes, et une ligne sans `sync_id` est **purgée localement** du cache (sans appel serveur). 
+- **Synchro Excel bloquée depuis les comptes Google (U7)** — depuis `REQUIRE_AUTH=1`, l'export GAS exige un idToken que le VBA ne peut pas fournir → `{"error":"unauthorized"}` ; **aucun plein ne descendait plus** dans Excel. Ajout d'une **clé propriétaire privée** : `resolveOwner_` (Auth.gs) accepte un `syncSecret` (propriété de script `SYNC_SECRET`) qui résout vers le compte propriétaire — **sans** ouvrir l'accès web (l'app web ne connaît pas ce secret, contrairement à `APP_TOKEN`). Le VBA lit le secret dans le **registre local** (`GetSetting`, jamais commité) et l'ajoute à l'export/`getParametres`/`setParametres` (`modSyncGS.bas`, `modSyncParametres.bas`). Nouveaux : `genererSyncSecret()` / `regenererSyncSecret()` (Auth.gs), `PoserSyncSecret` (VBA).
+- **Barre d'onglets (« footer ») à position incohérente selon l'onglet** — le `<footer>` texte « Données enregistrées… » vivait **dans le flux** et se déplaçait selon la hauteur du contenu. Il est retiré (le crédit passe en note discrète en bas de l'onglet **Réglages**, `.view-credit`) : le bas d'écran n'expose plus que la **barre d'onglets fixe** (`position:fixed`), identique sur tous les onglets.
+
+### Added
+- **Plein écran généralisé à toutes les cartes (W64)** — le mécanisme ⛶ (W63, cartes géo) est étendu à **toutes les `.card`** de contenu (stats, graphiques, rapport, bilan, historique, comparatif…). Un bouton ⛶ est **injecté automatiquement** (dans la barre d'actions si elle existe, sinon en coin haut-droit) et **réinjecté** après chaque re-rendu via un `MutationObserver` (synchrone → sans clignotement). Plein écran CSS (`position:fixed`, défilement interne), sortie **✕**/**Échap** restaurant l'onglet courant. `js/mapfullscreen.js`, styles `.card-fs-btn` / `.card.map-fs`.
+- **Icônes d'enseignes (W65)** — bibliothèque de **pictos originaux** (badge couleur de l'enseigne + monogramme, **pas de logos déposés**) dans `public/icons/brands/*.svg` (Total, Leclerc, Carrefour, Intermarché, Système U, Auchan, Esso, Avia, BP, Shell, Eni, Dyneff, Cora, Casino, Élan, Colruyt) + `generic.svg` (enseigne inconnue). `brand.js` expose `brandInfo()`/`brandIconUrl()` ; l'icône s'affiche dans l'**historique**. Les **enseignes inconnues** sont **journalisées** (console + `localStorage` `brand_unknown_v1`, `getUnknownBrands()`) pour ajouter facilement leur icône ensuite (voir `public/icons/brands/README.md`).
+
+## [5.1.2.0] — 2026-06-04
+
+### Added
+- **Plein écran des cartes (W63)** — un bouton **⛶** est ajouté sur **chaque carte** (recherche/géoloc dans l'en-tête, onglet « Carte » en superposition). Il bascule la carte en **plein écran** ; en sortir (bouton **✕** ou touche **Échap**) restaure exactement l'**onglet/vue où l'utilisateur se trouvait** (aucun changement de navigation). Implémentation **CSS** (la carte passe en `position:fixed` plein viewport) plutôt que l'API Fullscreen — non supportée pour un élément sur **iOS Safari / PWA** ; fonctionne donc partout. Google Maps se redimensionne automatiquement. Nouveau `js/mapfullscreen.js` (délégation + sortie Échap), styles `.map-fs`/`.map-fs-btn`, conteneur `#staticMapFsWrap` pour l'onglet Carte.
+
 ## [5.1.1.0] — 2026-06-04
 
 ### Added

@@ -284,15 +284,18 @@ export function renderStationsCard() {
   // bas (titre, sélecteur, secteur, tri, liste) sont régénérés.
   if (!card.querySelector('#staticStationMap')) {
     card.innerHTML = '<div class="smap-top"></div>'
-                   + '<div id="staticStationMap" class="static-map"></div>'
+                   + '<div class="map-fs-wrap" id="staticMapFsWrap">'
+                   +   '<div id="staticStationMap" class="static-map"></div>'
+                   +   '<button class="map-fs-btn" type="button" data-fs-target="#staticMapFsWrap" title="Plein écran" aria-label="Plein écran">⛶</button>'
+                   + '</div>'
                    + '<div class="smap-bottom"></div>';
   }
   card.querySelector('.smap-top').innerHTML = topHtml;
   card.querySelector('.smap-bottom').innerHTML = bottomHtml;
 
   const showMapDiv = listHtml && mapStations.length >= 1;
-  const mapHost = card.querySelector('#staticStationMap');
-  mapHost.style.display = showMapDiv ? '' : 'none';
+  const fsWrap = card.querySelector('#staticMapFsWrap');
+  if (fsWrap) fsWrap.style.display = showMapDiv ? '' : 'none';
   if (showMapDiv) _renderHabituellesMap(mapStations, _userPos);
 
   // Charge le prix secteur du carburant (1×/session) puis re-rend si toujours actif.

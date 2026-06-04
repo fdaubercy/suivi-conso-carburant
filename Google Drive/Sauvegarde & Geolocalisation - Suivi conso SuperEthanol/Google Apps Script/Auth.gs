@@ -38,6 +38,29 @@ function authRequired_() {
   return !!PropertiesService.getScriptProperties().getProperty('REQUIRE_AUTH');
 }
 
+// ─────────────────────────────────────────────────────────────
+//  SYNC_SECRET — clé propriétaire privée pour les OUTILS du propriétaire
+//  (Excel VBA, Power Query) qui ne peuvent pas fournir d'idToken Google.
+//  Stockée en PROPRIÉTÉ DE SCRIPT (jamais dans le code ni le dépôt public).
+//  Présentée par l'outil (?syncSecret= en GET ou payload.syncSecret en POST) ;
+//  si elle correspond, la requête est résolue vers OWNER_EMAIL — sans ouvrir
+//  l'accès au web (l'app web ne connaît PAS ce secret, contrairement à APP_TOKEN).
+//  À initialiser UNE FOIS via genererSyncSecret() (éditeur Apps Script).
+// ─────────────────────────────────────────────────────────────
+function _syncSecretOk_(e, payload) {
+  var provided = '';
+  if (payload && payload.syncSecret != null)                provided = String(payload.syncSecret);
+  else if (e && e.parameter && e.parameter.syncSecret != null) provided = String(e.parameter.syncSecret);
+  if (!provided) return false;
+
+  var secret = PropertiesService.getScriptProperties().getProperty('SYNC_SECRET') || '';
+  if (!secret) return false;                       // pas encore initialisé → refus
+  if (provided.length !== secret.length) return false;
+  var diff = 0;                                    // comparaison à temps ~constant
+  for (var i = 0; i < secret.length; i++) diff |= provided.charCodeAt(i) ^ secret.charCodeAt(i);
+  return diff === 0;
+}
+
 // SHA-1 hex d'une chaîne (clé de cache : un idToken dépasse la limite de 250 car.).
 function _sha1Hex_(s) {
   var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_1, s, Utilities.Charset.UTF_8);
@@ -122,8 +145,9 @@ function requireUser_(e, payload) {
 function resolveOwner_(e, payload) {
   var email = requireUser_(e, payload);
   if (email) return email;
-  if (!authRequired_()) return OWNER_EMAIL;   // mode souple : propriétaire
-  return null;                                 // auth obligatoire et absente
+  if (_syncSecretOk_(e, payload)) return OWNER_EMAIL;   // outil propriétaire (Excel/PQ) avec clé privée
+  if (!authRequired_()) return OWNER_EMAIL;             // mode souple : propriétaire
+  return null;                                          // auth obligatoire et absente
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -155,4 +179,36 @@ function activerAuthObligatoire() {
 function desactiverAuthObligatoire() {
   PropertiesService.getScriptProperties().deleteProperty('REQUIRE_AUTH');
   Logger.log('ℹ️ REQUIRE_AUTH retiré — retour au mode souple (propriétaire).');
+}
+
+// ─────────────────────────────────────────────────────────────
+//  SYNC_SECRET — utilitaires à exécuter UNE FOIS dans l'éditeur Apps Script.
+//   • genererSyncSecret()   → crée la clé si absente, puis l'AFFICHE (Logs) ;
+//     idempotent (réutilise la clé existante). Copier la valeur loggée dans
+//     Excel : Alt+F8 → PoserSyncSecret → coller (stockée en local, hors dépôt).
+//   • regenererSyncSecret() → en génère une NOUVELLE (invalide l'ancienne ;
+//     il faut re-coller la nouvelle valeur dans Excel).
+//  La clé n'est JAMAIS écrite dans le code (dépôt public) : seulement en
+//  propriété de script (serveur) et dans le registre local d'Excel.
+// ─────────────────────────────────────────────────────────────
+function genererSyncSecret() {
+  var props = PropertiesService.getScriptProperties();
+  var s = props.getProperty('SYNC_SECRET');
+  if (!s) {
+    s = 'sync_' + Utilities.getUuid().replace(/-/g, '')
+              + Utilities.getUuid().replace(/-/g, '').substring(0, 8);
+    props.setProperty('SYNC_SECRET', s);
+    Logger.log('✅ SYNC_SECRET créé.');
+  } else {
+    Logger.log('ℹ️ SYNC_SECRET déjà présent — clé existante réutilisée.');
+  }
+  Logger.log('SYNC_SECRET = ' + s);
+  Logger.log('→ Dans Excel : Alt+F8 → PoserSyncSecret → coller cette valeur.');
+  return s;
+}
+
+function regenererSyncSecret() {
+  PropertiesService.getScriptProperties().deleteProperty('SYNC_SECRET');
+  Logger.log('♻️ Ancien SYNC_SECRET supprimé — génération d\'une nouvelle clé…');
+  return genererSyncSecret();
 }

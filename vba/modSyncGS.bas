@@ -76,6 +76,46 @@ Private Function K(s As String) As String
     K = Replace(Replace(s, "{E}", Euro()), "{e}", eAcc())
 End Function
 
+' ============================================================
+'  CLE PROPRIETAIRE PRIVEE (SYNC_SECRET)
+'  Depuis le passage aux comptes Google (REQUIRE_AUTH), l'export GAS exige
+'  une identite. Le VBA ne peut pas fournir d'idToken Google : il presente
+'  donc cette cle privee (cote serveur = propriete de script SYNC_SECRET) qui
+'  resout vers le compte proprietaire. La cle est stockee dans le REGISTRE
+'  LOCAL (HKCU) via GetSetting/SaveSetting -> jamais dans le code ni le depot.
+'
+'  MISE EN PLACE (une fois) :
+'   1. Editeur Apps Script -> executer genererSyncSecret() -> copier la valeur
+'      affichee dans les Logs (Affichage > Journaux).
+'   2. Ici : Alt+F8 -> PoserSyncSecret -> coller la valeur.
+' ============================================================
+Private Function SyncSecret() As String
+    SyncSecret = GetSetting("SuiviE85", "Sync", "OwnerSecret", "")
+End Function
+
+' Suffixe de query-string "&syncSecret=..." (vide si non configuree).
+' Le secret est alphanumerique (+ '_') -> pas d'encodage URL necessaire.
+Private Function SyncSecretQS() As String
+    Dim s As String: s = SyncSecret()
+    If Len(s) > 0 Then SyncSecretQS = "&syncSecret=" & s Else SyncSecretQS = ""
+End Function
+
+Public Sub PoserSyncSecret()
+    Dim s As String
+    s = InputBox("Colle la cle SYNC_SECRET (obtenue via genererSyncSecret() " & _
+                 "dans l'editeur Apps Script).", _
+                 "Cle de synchro Excel <-> Google Sheets", SyncSecret())
+    If StrPtr(s) = 0 Then Exit Sub                 ' bouton Annuler
+    s = Trim(s)
+    SaveSetting "SuiviE85", "Sync", "OwnerSecret", s
+    If Len(s) > 0 Then
+        MsgBox "Cle enregistree (locale a ce poste). La synchro peut reprendre.", _
+               vbInformation, "SYNC_SECRET"
+    Else
+        MsgBox "Cle effacee.", vbInformation, "SYNC_SECRET"
+    End If
+End Sub
+
 
 ' ============================================================
 '  HELPERS DE LOGGING
@@ -102,7 +142,7 @@ End Sub
 '  DIAGNOSTIC
 ' ============================================================
 Public Sub TestConnexion()
-    Dim url    As String: url = GAS_URL & "?action=export&token=" & APP_TOKEN
+    Dim url    As String: url = GAS_URL & "?action=export&token=" & APP_TOKEN & SyncSecretQS()
     Dim status As Long
     Dim body   As String
     Dim errTxt As String
@@ -190,7 +230,7 @@ Public Sub SyncDiagnose()
     Set ws = ThisWorkbook.Sheets(WS_NAME)
 
     SetStatus "Diagnose : recuperation export GS..."
-    jsonStr = HttpGet(GAS_URL & "?action=export&token=" & APP_TOKEN)
+    jsonStr = HttpGet(GAS_URL & "?action=export&token=" & APP_TOKEN & SyncSecretQS())
     If jsonStr = "" Or InStr(jsonStr, """records""") = 0 Then
         SetStatus "Diagnose ERREUR : export GS inaccessible (lancer TestConnexion)"
         Exit Sub
@@ -482,7 +522,7 @@ Public Sub ForceResync()
 
     SetStatus "Force resync : telechargement GS..."
     Dim jsonStr As String
-    jsonStr = HttpGet(GAS_URL & "?action=export&token=" & APP_TOKEN)
+    jsonStr = HttpGet(GAS_URL & "?action=export&token=" & APP_TOKEN & SyncSecretQS())
     If jsonStr = "" Or InStr(jsonStr, """records""") = 0 Then
         Application.Cursor = xlDefault
         MsgBox "Export GS inaccessible. Force resync annule (table preservee).", _
@@ -568,7 +608,7 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     ' v2.9 : s'assurer que la col P est bien initialisee
     EnsureModifiedColHeader ws
 
-    jsonStr = HttpGet(GAS_URL & "?action=export&token=" & APP_TOKEN)
+    jsonStr = HttpGet(GAS_URL & "?action=export&token=" & APP_TOKEN & SyncSecretQS())
 
     If jsonStr = "" Then
         SetStatus "ERREUR reseau - lancer TestConnexion() pour diagnostiquer"
