@@ -4,16 +4,18 @@
    session basée sur l'expiration du profil. */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { authEnabled, isAuthed, getUser, getIdToken } from '../js/auth.js';
-import { AUTH_TOKEN_KEY, AUTH_PROFILE_KEY } from '../js/config.js';
+import { AUTH_TOKEN_KEY, AUTH_PROFILE_KEY, GOOGLE_CLIENT_ID } from '../js/config.js';
 
 const future = () => Math.floor(Date.now() / 1000) + 3600;
 const past   = () => Math.floor(Date.now() / 1000) - 10;
 
-describe('auth — bascule souple (Client ID = placeholder)', () => {
+describe('auth — configuration & session', () => {
   beforeEach(() => localStorage.clear());
 
-  it('authEnabled() est faux tant que le vrai Client ID n\'est pas posé', () => {
-    expect(authEnabled()).toBe(false);
+  it('authEnabled() reflète la présence d\'un vrai Client ID (≠ placeholder)', () => {
+    const configured = /\.apps\.googleusercontent\.com$/.test(GOOGLE_CLIENT_ID)
+      && GOOGLE_CLIENT_ID.indexOf('REMPLACER_PAR_VOTRE_CLIENT_ID') < 0;
+    expect(authEnabled()).toBe(configured);
   });
 
   it('sans session : isAuthed/getUser/getIdToken sont vides', () => {

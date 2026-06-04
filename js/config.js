@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '5.0.0.0';
+export const APP_VERSION       = '5.0.0.1';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 
 // ─── U7 — Authentification « Se connecter avec Google » (Google Identity Services) ───
@@ -9,7 +9,7 @@ export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCf
 // ⚠️ Tant que ce placeholder n'est PAS remplacé par le vrai ID, l'auth reste
 // INACTIVE et l'app fonctionne comme avant (mode propriétaire). Le projet Apps
 // Script doit recevoir le MÊME identifiant (constante GOOGLE_CLIENT_ID d'Auth.gs).
-export const GOOGLE_CLIENT_ID  = 'REMPLACER_PAR_VOTRE_CLIENT_ID.apps.googleusercontent.com';
+export const GOOGLE_CLIENT_ID  = '421988867757-asmnjjur5bogmkprn75m42dlltne22ic.apps.googleusercontent.com';
 
 // S6 — Token secret partagé avec les endpoints GAS et la macro VBA.
 // Mode SOUPLE : le GAS ne rejette les requêtes QUE si la propriété de script

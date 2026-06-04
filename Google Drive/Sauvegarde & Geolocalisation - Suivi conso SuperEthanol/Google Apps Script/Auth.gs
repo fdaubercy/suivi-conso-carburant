@@ -21,7 +21,7 @@
 // ============================================================
 
 // ⚠️ MÊME valeur que GOOGLE_CLIENT_ID dans js/config.js.
-var GOOGLE_CLIENT_ID = 'REMPLACER_PAR_VOTRE_CLIENT_ID.apps.googleusercontent.com';
+var GOOGLE_CLIENT_ID = '421988867757-asmnjjur5bogmkprn75m42dlltne22ic.apps.googleusercontent.com';
 
 // Propriétaire historique : email attribué aux pleins migrés (sans email).
 var OWNER_EMAIL = 'fdaubercy@gmail.com';
@@ -138,4 +138,21 @@ function handleWhoami(e) {
     email:          email || null,
     ok:             !!email
   });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  U7 — Bascule stricte (utilitaires à exécuter UNE FOIS dans l'éditeur
+//  Apps Script, après avoir validé la connexion depuis l'app).
+//   • activerAuthObligatoire()   → idToken OBLIGATOIRE pour les endpoints perso
+//     (supprime le repli propriétaire pour les requêtes anonymes).
+//   • desactiverAuthObligatoire()→ revient au mode souple (dépannage).
+// ─────────────────────────────────────────────────────────────
+function activerAuthObligatoire() {
+  PropertiesService.getScriptProperties().setProperty('REQUIRE_AUTH', '1');
+  Logger.log('✅ REQUIRE_AUTH = 1 — idToken obligatoire pour les endpoints personnels.');
+}
+
+function desactiverAuthObligatoire() {
+  PropertiesService.getScriptProperties().deleteProperty('REQUIRE_AUTH');
+  Logger.log('ℹ️ REQUIRE_AUTH retiré — retour au mode souple (propriétaire).');
 }

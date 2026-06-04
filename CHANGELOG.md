@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.0.0.1] — 2026-06-04
+
+### Added
+- **Activation des comptes Google** : intégration du **Client ID OAuth réel** (`js/config.js` + `Auth.gs`) → l'authentification « Se connecter avec Google » est désormais **active**. Backend Apps Script redéployé (v53).
+
+### Fixed
+- **Confidentialité au démarrage (U7)** — les chargements de données **personnelles** (historique, stats, paramètres, file hors-ligne) sont désormais **conditionnés à la connexion** (`js/main.js`, garde `persoAllowed = !authEnabled() || isAuthed()`). Un visiteur non connecté ne déclenche plus aucun appel perso : les pleins du propriétaire ne transitent plus par son cache local. À la connexion, tout se charge via l'événement `auth-changed`.
+
+### Changed
+- **`Auth.gs`** : utilitaires `activerAuthObligatoire()` / `desactiverAuthObligatoire()` pour basculer la propriété `REQUIRE_AUTH` depuis l'éditeur Apps Script.
+- **Tests** : `tests/auth.test.js` rendu robuste à la valeur réelle du Client ID (vérifie la cohérence `authEnabled()` ↔ config plutôt qu'une valeur figée).
+
 ## [5.0.0.0] — 2026-06-04
 
 ### Added

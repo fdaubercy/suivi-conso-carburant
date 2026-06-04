@@ -33,7 +33,7 @@ import { initPullRefresh } from './pullrefresh.js';
 import { initSwipe } from './swipe.js';
 import { initBadges, refreshBadges } from './badges.js';
 import { initPreferences, renderHomeResume } from './preferences.js';
-import { initAuth, renderAuthSlot } from './auth.js';
+import { initAuth, renderAuthSlot, authEnabled, isAuthed } from './auth.js';
 
 /* ─── Init synchrone ─── */
 initTheme();
@@ -51,8 +51,15 @@ registerPriceCallback(fetchPricesNearUser);
 chargerStations();
 chargerVehicules();
 
+/* ─── U7 — Les données PERSONNELLES (stats, historique, paramètres, file
+   hors-ligne) ne se chargent au démarrage QUE si l'auth est inactive (legacy)
+   ou si l'utilisateur est déjà connecté (session en cache). Sinon on attend
+   l'événement 'auth-changed' → évite de placer les données du propriétaire
+   dans le cache d'un visiteur non connecté. */
+const persoAllowed = () => !authEnabled() || isAuthed();
+
 /* ─── W59/S12 — pré-chauffe le cache des agrégats serveur (démarrage rapide) ─── */
-prewarmServerStats(state.currentVehiculeNom || '');
+if (persoAllowed()) prewarmServerStats(state.currentVehiculeNom || '');
 
 /* ─── W15 — Restaurer le brouillon après init async des véhicules/stations ─── */
 setTimeout(() => {
@@ -64,7 +71,7 @@ setTimeout(() => {
 }, 800);
 
 /* ─── W35 — Pré-remplir km dès que l'historique est chargé (données disponibles) ─── */
-chargerHistorique().then(() => {
+if (persoAllowed()) chargerHistorique().then(() => {
   // Fusionne les stations vues dans l'historique avec la liste curée (GS)
   mergeHistoryStations(getAllRecords().map(r => r['Station essence']));
 
@@ -119,10 +126,10 @@ window.addEventListener('parametres-synced', e => {
   }
   renderStats();                  // kit / budget / objectif CO₂ / surconso
 });
-if (navigator.onLine) syncParametres();
+if (navigator.onLine && persoAllowed()) syncParametres();
 
 /* Sync au démarrage si des pleins sont en attente et qu'on est en ligne */
-if (navigator.onLine) syncQueue();
+if (navigator.onLine && persoAllowed()) syncQueue();
 
 /* ─── U7 — Comptes Google (auth) ───────────────────────────────────────
    initAuth() charge GIS et tente une reconnexion silencieuse. À chaque
