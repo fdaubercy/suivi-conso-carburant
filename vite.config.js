@@ -43,7 +43,14 @@ export default defineConfig(({ command }) => ({
   // En build (vite build) : base '/suivi-conso-carburant/' → GitHub Pages
   base: command === 'build' ? '/suivi-conso-carburant/' : '/',
 
-  plugins: [swVersionPlugin()],
+  // Serveur de dev : port fixe (PORT injecté par le harness de prévisualisation,
+  // sinon 5173). strictPort = pas de glissement silencieux en 5174 (qui casserait
+  // le proxy du harness). host = écoute 0.0.0.0 pour être joignable par le proxy.
+  server: {
+    port: Number(process.env.PORT) || 5173,
+    strictPort: true,
+    host: true,
+  },
 
   build: {
     outDir: 'dist',

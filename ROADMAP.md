@@ -128,6 +128,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.2.1.1 | **Fix prévisualisation (dev)** — le harness `preview_*` lançait `npm run dev` dans un mauvais dossier (`Github/suivi-e85`, surnom) → ENOENT. Jonction locale `suivi-e85 → suivi-conso-carburant` + bloc `server` dans `vite.config.js` (port/host/strictPort). |
 | v5.2.1.0 | **Bandeau du haut épuré (menu ⋯)** — header allégé : titre d'onglet (ellipse, plus de débordement 3 lignes) + badge E85 + compte visibles ; 🏠/🌙/📲 regroupés dans un menu déroulant ⋯ (fermeture clic extérieur/item/Échap). `index.html`, `style.css` (`.hmenu*`), `main.js`, `theme.js`. |
 | v5.2.0.0 | **Plein écran de toutes les cartes (W64)** — le ⛶ (W63) est étendu à **toutes les `.card`** (stats, graphiques, historique, comparatif…), bouton injecté + réinjecté via `MutationObserver`. Plein écran CSS, défilement interne, sortie ✕/Échap. `js/mapfullscreen.js`. |
 | v5.2.0.0 | **Icônes d'enseignes + log des inconnues (W65)** — bibliothèque de pictos **originaux** (couleur + monogramme, pas de logos déposés) `public/icons/brands/*.svg` + `generic.svg` ; `brandInfo()` (`brand.js`), affichage dans l'historique ; enseignes inconnues journalisées (`localStorage brand_unknown_v1`) pour ajout ultérieur. |

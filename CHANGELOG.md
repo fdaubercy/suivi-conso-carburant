@@ -4,7 +4,10 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
-## [5.2.1.0] — 2026-06-04
+## [5.2.1.1] — 2026-06-04
+
+### Fixed
+- **Système de prévisualisation (preview_*) réparé** — le harness lançait `npm run dev` dans `…/Github/suivi-e85` (chemin dérivé du **surnom** du projet) au lieu du dossier réel `…/Github/suivi-conso-carburant` → `npm ENOENT` (package.json introuvable), le serveur mourait aussitôt (« No running servers »). Le harness ignore le champ `cwd` de `.claude/launch.json`. **Correctif** : une **jonction de dossier** locale `suivi-e85 → suivi-conso-carburant` (sans droits admin) fait pointer le mauvais chemin vers le vrai projet. Durcissement `vite.config.js` : bloc `server` (`port = PORT || 5173`, `strictPort`, `host`) pour éviter le glissement silencieux de port. `preview_start → resize → screenshot` validés. *(La jonction est locale à la machine, non versionnée.)*
 
 ### Changed
 - **Bandeau du haut épuré (menu ⋯)** — le header était surchargé (⛽ + titre + version + 📲 + badge hors-ligne + 🏠 + 🌙 + compte + badge E85), au point que le bouton « Se connecter » poussait le badge E85 hors écran et que le **titre d'onglet débordait sur 3 lignes**. Refonte (option 1 retenue) : le titre d'onglet (ellipse propre, plus de retour à la ligne) + le badge **🌿 E85** + le **compte** restent visibles ; les actions secondaires **🏠 Accueil / 🌙 Thème / 📲 Installer** sont regroupées dans un **menu déroulant ⋯** (fermeture au clic extérieur, sur un item, ou via **Échap**). Les boutons gardent leurs `id` d'origine (handlers `main.js` inchangés) ; `theme.js` met à jour l'icône + le libellé de l'item thème. `index.html`, `css/style.css` (`.hmenu*`, titre `min-width:0` + ellipse), `js/main.js`, `js/theme.js`.
