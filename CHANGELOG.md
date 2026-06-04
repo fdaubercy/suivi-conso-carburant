@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.1.0.5] — 2026-06-04
+
+### Fixed
+- **Géocodage d'adresse (BAN) bloqué par la CSP (W63)** — la recherche par adresse échouait silencieusement (« Adresse ou commune introuvable », repli sur la commune) car `connect-src` n'autorisait pas **`https://api-adresse.data.gouv.fr`** (oubli lors de l'ajout de la fonctionnalité v5.1.0.0). Domaine ajouté à la CSP (`index.html` **et** `_headers`) → l'adresse précise est de nouveau géocodée.
+
+### Added
+- **Carte de l'onglet « Carte » en Google Maps (W63)** — la carte des **stations habituelles** (`js/stationsmap.js`, `#staticStationMap`) devient elle aussi **Google Maps interactif** (zoom, glisser, clusters, pastilles de prix moyens, clic → popup itinéraire S11) quand la clé est configurée, avec repli sur le rendu OpenStreetMap maison sinon.
+
+### Changed
+- **Refactor — module de rendu partagé `js/gmaprender.js`** : le rendu Google Maps de stations (création carte, marqueurs Advanced/classiques, clusters, marqueur de référence, cadrage, repli `gm_authFailure`) est factorisé et réutilisé par **les deux cartes** (`carte.js` recherche/géoloc **et** `stationsmap.js` onglet Carte) → une seule implémentation à maintenir.
+
 ## [5.1.0.4] — 2026-06-04
 
 ### Changed

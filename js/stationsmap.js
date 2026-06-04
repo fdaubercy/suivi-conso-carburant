@@ -5,6 +5,7 @@ import { PRIX_API, FUEL_CONFIG, FAVORITE_MIN_PLEINS, STATION_SORT_KEY, PINNED_ST
 import { state }          from './state.js';
 import { showStationPopup } from './itineraire.js';
 import { getSectorToday, loadSectorPrices } from './secteur.js';   // W48 prix secteur par carburant
+import { googleMapsActive, renderGoogleStationMap } from './gmaprender.js';   // W63 carte Google (onglet Carte)
 
 const COORD_CACHE_KEY = 'suivi_e85_station_coords';
 const TILE_SZ = 256;
@@ -285,7 +286,7 @@ export function renderStationsCard() {
     ${body}
   `;
 
-  if (listHtml && mapStations.length >= 1) _renderStaticMap(mapStations, _userPos);
+  if (listHtml && mapStations.length >= 1) _renderHabituellesMap(mapStations, _userPos);
 
   // Charge le prix secteur du carburant (1×/session) puis re-rend si toujours actif.
   if (!_sectorFetched.has(_selectedFuel)) {
@@ -298,6 +299,31 @@ export function renderStationsCard() {
 }
 
 // ── Rendu mini-carte statique ────────────────────────────────────────────────
+
+/** Onglet « Carte » — W63 : Google Maps interactif si dispo, sinon repli tuiles
+ *  OSM maison. Mêmes données (stations habituelles + position) dans les deux cas. */
+function _renderHabituellesMap(stations, userPos) {
+  _renderedStations = stations;   // S11 — pour le clic (popup itinéraire) en repli OSM
+  const container = document.getElementById('staticStationMap');
+  if (!container) return;
+  if (!googleMapsActive()) { _renderStaticMap(stations, userPos); return; }
+
+  const short = FUEL_CONFIG[_selectedFuel]?.short || _selectedFuel;
+  const gStations = stations.map(s => ({
+    lat: s.lat, lon: s.lon,
+    text:  Number(s.avg).toFixed(3),
+    title: `${s.name} — ${short} moy. ${Number(s.avg).toFixed(3)} €/L`,
+    onClick: () => showStationPopup({
+      name: s.name, lat: s.lat, lon: s.lon,
+      priceLabel: `${short} moy. ${Number(s.avg).toFixed(3)} €/L`,
+    }),
+  }));
+  const uPos = userPos ? { lat: userPos.lat, lon: userPos.lon, title: 'Votre position' } : null;
+  renderGoogleStationMap(container, {
+    stations: gStations, userPos: uPos,
+    onFallback: () => _renderStaticMap(stations, userPos),
+  });
+}
 
 function _renderStaticMap(stations, userPos) {
   const container = document.getElementById('staticStationMap');

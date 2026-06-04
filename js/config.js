@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '5.1.0.4';
+export const APP_VERSION       = '5.1.0.5';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 
 // ─── U7 — Authentification « Se connecter avec Google » (Google Identity Services) ───
@@ -29,7 +29,7 @@ export const GOOGLE_MAPS_API_KEY = 'AIzaSyDPmEGV_tYVgsRTo-B30nCGR9YRA5SQy2E';
 // « Advanced » (AdvancedMarkerElement) qui remplacent google.maps.Marker
 // (déprécié) → supprime l'avertissement de dépréciation dans la console.
 // 👉 Vide = marqueurs classiques (fonctionnels, mais warning bénin).
-export const GOOGLE_MAPS_MAP_ID  = '';
+export const GOOGLE_MAPS_MAP_ID  = '7360d7e630d5813247b526c9';
 
 // S6 — Token secret partagé avec les endpoints GAS et la macro VBA.
 // Mode SOUPLE : le GAS ne rejette les requêtes QUE si la propriété de script
