@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.1.0.3] — 2026-06-04
+
+### Fixed
+- **Repli OSM si Google refuse l'authentification (W63)** — quand Google rejette l'auth (clé invalide, referrer non autorisé, ou **facturation non activée** → `BillingNotEnabledMapError`), l'erreur est émise **de façon asynchrone** par Google et n'était donc pas rattrapée par le `try/catch` de `_renderGoogleMap` → l'utilisateur voyait une carte cassée au lieu du repli. Ajout du hook `window.gm_authFailure` (`js/carte.js`) : bascule immédiate sur le **rendu OpenStreetMap maison** + mémorisation de l'échec pour la session (plus de nouvelle tentative Google). Garantit qu'une carte fonctionnelle s'affiche toujours.
+
+### Note
+- ⚠️ **Pour afficher la carte Google Maps, la facturation doit être activée** sur le projet Google Cloud (Maps JavaScript API l'exige, même pour le quota gratuit). Sans cela → `BillingNotEnabledMapError` et repli automatique sur OpenStreetMap. Activer dans Google Cloud Console → Facturation → associer un compte de facturation au projet.
+
 ## [5.1.0.2] — 2026-06-04
 
 ### Fixed

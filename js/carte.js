@@ -24,7 +24,9 @@ export function showMap(uLat, uLon, stations) {
   const wasHidden = wrap.classList.contains('hidden');
   wrap.classList.remove('hidden');
 
-  const render = googleMapsEnabled()
+  _lastU = { lat: uLat, lon: uLon };
+
+  const render = (googleMapsEnabled() && !_gAuthFailed)
     ? () => _renderGoogleMap(uLat, uLon)
     : () => _renderMap(uLat, uLon);
 
@@ -45,6 +47,8 @@ let _gmap        = null;   // instance google.maps.Map réutilisée
 let _gMarkers    = [];     // marqueurs « stations » courants
 let _gUserMarker = null;   // marqueur point de recherche (GPS ou adresse)
 let _gCluster    = null;   // instance MarkerClusterer (si dispo)
+let _gAuthFailed = false;  // Google a refusé l'auth (clé/referrer/facturation) → bascule OSM
+let _lastU       = { lat: null, lon: null };   // dernier point de recherche (pour le repli)
 
 async function _renderGoogleMap(uLat, uLon) {
   const container = document.getElementById('stationMap');
@@ -54,6 +58,17 @@ async function _renderGoogleMap(uLat, uLon) {
   try { maps = await loadGoogleMaps(); }
   catch { _renderMap(uLat, uLon); return; }   // repli OSM si Google indisponible
   _gMaps = maps;
+
+  // Repli OSM si Google REFUSE l'authentification (clé invalide, referrer non
+  // autorisé, ou FACTURATION non activée → BillingNotEnabledMapError). Google
+  // appelle ce hook de façon asynchrone, HORS du try/catch ci-dessous, donc on
+  // le gère ici. On mémorise l'échec pour ne plus retenter Google cette session.
+  window.gm_authFailure = () => {
+    _gAuthFailed = true;
+    _gmap = null; _gCluster = null; _gMarkers = []; _gUserMarker = null;
+    console.warn('[carte] Google Maps : authentification refusée (facturation / clé / referrer) → repli OpenStreetMap');
+    _renderMap(_lastU.lat, _lastU.lon);
+  };
 
   // Filet de sécurité : toute erreur du rendu Google (clé mal configurée, API
   // qui évolue, etc.) bascule sur le rendu OpenStreetMap maison plutôt que de
