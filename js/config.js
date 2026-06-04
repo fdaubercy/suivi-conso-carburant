@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '5.1.0.0';
+export const APP_VERSION       = '5.1.0.1';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 
 // ─── U7 — Authentification « Se connecter avec Google » (Google Identity Services) ───
@@ -22,7 +22,7 @@ export const GOOGLE_CLIENT_ID  = '421988867757-asmnjjur5bogmkprn75m42dlltne22ic.
 // la restreindre par domaine est la vraie protection (pas un secret).
 // 👉 Tant que ce placeholder reste vide, la carte bascule automatiquement sur
 //    le rendu OpenStreetMap maison (comportement actuel, zéro régression).
-export const GOOGLE_MAPS_API_KEY = '';
+export const GOOGLE_MAPS_API_KEY = 'AIzaSyDPmEGV_tYVgsRTo-B30nCGR9YRA5SQy2E';
 
 // S6 — Token secret partagé avec les endpoints GAS et la macro VBA.
 // Mode SOUPLE : le GAS ne rejette les requêtes QUE si la propriété de script

@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.1.0.1] — 2026-06-04
+
+### Changed
+- **Activation de la carte Google Maps (W63)** — `GOOGLE_MAPS_API_KEY` renseignée dans `js/config.js` (clé « Maps JavaScript API » restreinte par referrer aux origines `fdaubercy.github.io` + localhost). La carte des résultats de recherche/géoloc passe donc au **rendu Google Maps interactif** (zoom, glisser, clusters) sur le site déployé ; le repli OpenStreetMap reste actif en cas d'indisponibilité de l'API.
+
 ## [5.1.0.0] — 2026-06-04
 
 ### Added
