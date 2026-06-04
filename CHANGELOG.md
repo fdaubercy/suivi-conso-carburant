@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [4.19.0.0] — 2026-06-04
+
+### Added
+- **Prix historique à la saisie étendu à SP95 / E10 / GPLc (W62)** — complète W60/W61 : à la saisie d'un **plein à une date passée**, le champ **Prix** se remplit désormais depuis `_PrixHistory` pour les **6 carburants** (avant : E85/Gazole/SP98 seulement ; SP95/E10/GPLc affichaient « non relevé — prix du jour conservé »). La cascade de résolution (prix station ce jour-là → relevé le plus proche avant → repli mini secteur) et la note de provenance `#histNote` s'appliquent aux 3 nouveaux carburants.
+  - **GAS** (`Code.gs` → `handleSectorPrices`) : `TOKENS` étendu (SP95/E10/GPLc) ; lecture de `SECTOR_BEST_TODAY` rendue **insensible à la casse** (clé `GPLc` ↔ paramètre `GPLC` issu du `toUpperCase`). ⚠️ **Redéploiement de la Web App requis** (dégradation propre entre-temps : repli « prix du jour »).
+  - **App** (`js/secteur.js`) : `HIST_FUELS` passe aux **6 carburants** (clés `FUEL_CONFIG`) ; préchargement cache localStorage aligné sur cette liste. Repli inchangé si un carburant n'a aucun relevé avant la date → saisie manuelle.
+  - **Tests** : `tests/prix-historique.test.js` — le cas SP95 vérifie désormais la **résolution effective** (au lieu de la note « non suivi »).
+
 ## [4.18.0.0] — 2026-06-04
 
 ### Added

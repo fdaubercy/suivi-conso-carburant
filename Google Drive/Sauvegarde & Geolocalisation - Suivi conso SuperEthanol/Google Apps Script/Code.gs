@@ -718,12 +718,14 @@ function handleSaveLastGeo(payload) {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  W38 — handleSectorPrices
-//  Renvoie, depuis l'onglet _PrixHistory (Station, Date, Type, Prix) :
-//    • byDate : { 'yyyy-MM-dd' : prix E85 mini relevé ce jour-là }
-//    • today  : meilleur prix du jour (propriété SECTOR_BEST_TODAY)
-//  Permet à l'app d'afficher, pour chaque plein, l'écart vs le moins
-//  cher du secteur le jour du plein, et la station la moins chère du jour.
+//  W38/W62 — handleSectorPrices
+//  Renvoie, depuis l'onglet _PrixHistory (Station, Date, Type, Prix), pour le
+//  carburant demandé (?fuel=, défaut E85 ; W62 : 6 carburants reconnus) :
+//    • byDate        : { 'yyyy-MM-dd' : prix mini relevé ce jour-là }
+//    • byStationDate : { 'station' : { 'yyyy-MM-dd' : prix mini } }
+//    • today         : meilleur prix du jour (propriété SECTOR_BEST_TODAY)
+//  Permet à l'app d'afficher, pour chaque plein, l'écart vs le moins cher
+//  du secteur le jour du plein, et le prix historique à la saisie.
 // ─────────────────────────────────────────────────────────────
 function handleSectorPrices(e) {
   // Carburant demandé (défaut E85). Jetons de reconnaissance du champ Type.
@@ -732,6 +734,9 @@ function handleSectorPrices(e) {
     E85:    ['E85', 'ETHANOL'],
     GAZOLE: ['GAZOLE', 'DIESEL', 'GASOIL'],
     SP98:   ['SP98', 'SUPER 98', '98'],
+    SP95:   ['SP95', 'SUPER 95', '95'],   // W62
+    E10:    ['E10'],                       // W62
+    GPLC:   ['GPLC', 'GPL'],              // W62 (Type _PrixHistory = « GPLc »)
   };
   const want = TOKENS[fuel] || TOKENS.E85;
   const matchType = function (t) {
@@ -780,9 +785,14 @@ function handleSectorPrices(e) {
   let today = null;
   if (rawToday) {
     const parsed = JSON.parse(rawToday);
-    today = (parsed && parsed.prix != null)        // ancien format plat = E85
-      ? (fuel === 'E85' ? parsed : null)
-      : (parsed ? parsed[fuel] || null : null);
+    if (parsed && parsed.prix != null) {           // ancien format plat = E85
+      today = (fuel === 'E85') ? parsed : null;
+    } else if (parsed) {
+      // W62 — clé insensible à la casse : SECTOR_BEST_TODAY peut contenir
+      // « GPLc » (clé FUELS) alors que fuel vaut « GPLC » (toUpperCase).
+      const k = Object.keys(parsed).find(function (kk) { return String(kk).toUpperCase() === fuel; });
+      today = k ? parsed[k] : null;
+    }
   }
 
   return jsonResponse({ byDate, byStationDate, today, fuel });

@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════
    secteur.js — Prix le moins cher du secteur (relevé quotidien)
-   W38 (E85) → W48 (multi-carburant : E85 / Gazole / SP98).
+   W38 (E85) → W48 (E85/Gazole/SP98) → W62 (prix historique saisie : 6 carburants).
 
    Le backend GAS (RefreshPrix.gs, ~7h) relève chaque jour le prix de chaque
    carburant des stations curées + des stations dans 15 km autour de la
@@ -26,12 +26,11 @@ import { setFieldPrice, updateCout } from './ui.js';
 
 const CACHE_TTL = 2 * 60 * 60 * 1000;   // 2 h
 
-// W60 — carburants exposés par ?action=sectorPrices pour le prix historique
-// à la saisie. Depuis W61, _PrixHistory relève AUSSI SP95/E10/GPLc (et Excel
-// les synchronise), mais l'app ne les y résout pas encore : les TOKENS de
-// handleSectorPrices (Code.gs) restent E85/GAZOLE/SP98 → repli prix du jour.
-// Pour les activer : étendre cette liste + les TOKENS côté GAS.
-const HIST_FUELS = ['E85', 'GAZOLE', 'SP98'];
+// W60/W62 — carburants résolus à la saisie depuis _PrixHistory via
+// ?action=sectorPrices. W62 : les 6 carburants relevés par RefreshPrix.gs
+// (W61) sont désormais couverts (clés FUEL_CONFIG ; doit rester aligné sur
+// les TOKENS de handleSectorPrices côté GAS).
+const HIST_FUELS = ['E85', 'GAZOLE', 'SP98', 'SP95', 'E10', 'GPLC'];
 
 // Données par carburant : { E85:{byDate,byStationDate,today}, GAZOLE:{…}, … }
 const _store = {};
@@ -47,7 +46,7 @@ function _slot(fuel) {
 }
 
 /* ─── Initialisation synchrone depuis le cache (dispo avant le fetch) ─── */
-['E85', 'GAZOLE', 'SP98'].forEach(fuel => {
+HIST_FUELS.forEach(fuel => {
   try {
     const raw = localStorage.getItem(_cacheKey(fuel));
     if (!raw) return;
@@ -206,7 +205,7 @@ export async function applyHistPriceToForm() {
     return;
   }
 
-  // ── Carburant non relevé dans _PrixHistory (SP95/E10/GPLc) ────────────────
+  // ── Carburant hors historique (sécurité : type inattendu) ─────────────────
   if (HIST_FUELS.indexOf(fuel) < 0) {
     state._histPriceApplied = false;
     _setHistNote(`ℹ️ ${short} non relevé dans l'historique — prix du jour affiché`, 'info');

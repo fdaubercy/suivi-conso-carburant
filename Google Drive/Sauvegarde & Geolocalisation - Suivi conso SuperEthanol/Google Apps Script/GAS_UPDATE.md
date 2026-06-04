@@ -1,4 +1,4 @@
-# Suivi E85 — Google Apps Script — v4.18.0.0
+# Suivi E85 — Google Apps Script — v4.19.0.0
 
 ## Déploiement
 
@@ -210,6 +210,22 @@ Retourne :
 
 ---
 
+## 🆕 v4.19.0.0 — Prix historique à la saisie : 6 carburants (W62)
+
+Complète W61 : à la saisie d'un **plein à une date passée**, l'app remplit le champ **Prix** depuis `_PrixHistory` aussi pour **SP95 / E10 / GPLc** (avant : E85/Gazole/SP98 ; les 3 autres affichaient « non relevé »).
+
+### Fichier à recoller dans l'éditeur Apps Script
+1. **`Code.gs`** — `handleSectorPrices` : `TOKENS` étendu (SP95/E10/GPLc) + lecture `SECTOR_BEST_TODAY` **insensible à la casse** (`GPLc` ↔ `GPLC`).
+
+### Étapes de redéploiement
+1. Recoller `Code.gs` (Extensions → Apps Script) **ou** `npm run gas:deploy`.
+2. **Déployer → Gérer les déploiements → (crayon) → Nouvelle version → Déployer** *(même ID → `GAS_URL` inchangé)* — **requis** pour que `?action=sectorPrices&fuel=SP95|E10|GPLC` renvoie les données (dégradation propre entre-temps : repli « prix du jour »).
+3. Test rapide (token requis) : `…/exec?action=sectorPrices&fuel=SP95&token=…` → `byDate` non vide une fois `_PrixHistory` peuplé (W61).
+
+> Côté app, `js/config.js` (APP_VERSION) et `js/secteur.js` (`HIST_FUELS`) sont déjà à jour dans le repo.
+
+---
+
 ## 🆕 v4.18.0.0 — 3 carburants de plus : SP95, E10, GPLc (W61)
 
 Étend le relevé quotidien de **E85 + Gazole + SP98** à **6 carburants** (ajout **SP95, E10, GPLc**) dans `_PrixHistory`, avec synchronisation Excel.
@@ -280,6 +296,7 @@ Retourne :
 
 | Version   | Date       | Changements                                                         |
 |-----------|------------|---------------------------------------------------------------------|
+| 4.19.0.0  | 2026-06-04 | W62 : prix historique saisie SP95/E10/GPLc — `handleSectorPrices` `TOKENS` étendu + lecture `SECTOR_BEST_TODAY` insensible à la casse |
 | 4.18.0.0  | 2026-06-04 | W61 : `FUELS` étendu à 6 carburants (+SP95/E10/GPLc) → `_PrixHistory` + sync Excel ; push inchangé |
 | 3.10.0.0  | 2026-05-30 | Multi-carburant : relevé/secteur/push E85+Gazole+SP98 ; `lowprices`, `sectorPrices&fuel`, `_PushSubs` seuils par carburant |
 | 2.9.0.0   | 2026-05-26 | Sync bidir. : `bulkUpdate` (Excel → GS, upsert par sync_id)        |

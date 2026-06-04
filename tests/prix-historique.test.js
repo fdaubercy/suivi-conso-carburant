@@ -113,15 +113,18 @@ describe('applyHistPriceToForm (W60)', () => {
     expect(state._histPriceApplied).toBe(false);
   });
 
-  it('carburant non suivi (SP95) en date passée → note info, prix du jour conservé', async () => {
+  it('carburant désormais résolu (SP95) en date passée → prix historique (W62)', async () => {
     setupDom();
     state.currentType = 'SP95';
     document.getElementById('fPrix').value = '1.880';
-    document.getElementById('fDate').value = D_RECENT;
+    document.getElementById('fDate').value = D_RECENT;   // présent dans byDate
 
     await applyHistPriceToForm();
 
-    expect(document.getElementById('histNote').className).toContain('info');
-    expect(document.getElementById('fPrix').value).toBe('1.880');   // inchangé
+    // W62 : SP95 fait partie de HIST_FUELS → prix résolu depuis _PrixHistory
+    // (fixture réutilisée ; aucune station sélectionnée → repli mini secteur).
+    expect(document.getElementById('fPrix').value).toBe('0.709');
+    expect(document.getElementById('histNote').className).toContain('ok');
+    expect(document.getElementById('histNote').textContent).toContain('SP95');
   });
 });
