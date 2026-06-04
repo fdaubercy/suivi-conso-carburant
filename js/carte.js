@@ -3,12 +3,15 @@
      • Google Maps interactif (zoom pinch/molette, glisser, +/−, clusters)
        quand une clé GOOGLE_MAPS_API_KEY est configurée ;
      • repli OpenStreetMap « maison » (tuiles statiques, zoom auto-ajusté)
-       sinon, ou si l'API Google échoue à charger (réseau / clé invalide).
-   Le repli garantit zéro régression tant que la clé n'est pas posée.
+       sinon, ou si l'API Google échoue/refuse l'auth (facturation/clé/referrer).
+
+   Marqueurs Google : AdvancedMarkerElement (HTML, non déprécié) si un Map ID
+   (GOOGLE_MAPS_MAP_ID) est configuré ; sinon google.maps.Marker classique
+   (fonctionne, mais émet un avertissement de dépréciation).
 ─────────────────────────────────────────────────────────────────────────── */
 import { state } from './state.js';
 import { escHtml } from './utils.js';
-import { FUEL_CONFIG } from './config.js';
+import { FUEL_CONFIG, GOOGLE_MAPS_MAP_ID } from './config.js';
 import { googleMapsEnabled, loadGoogleMaps, loadClusterer } from './gmap.js';
 
 const TILE_SZ = 256;
@@ -20,11 +23,10 @@ const TILE_SZ = 256;
 export function showMap(uLat, uLon, stations) {
   state._mapStations = stations.filter(s => s.lat && s.lon);
   if (!state._mapStations.length) return;
+  _lastU = { lat: uLat, lon: uLon };
   const wrap = document.getElementById('stationMapWrap');
   const wasHidden = wrap.classList.contains('hidden');
   wrap.classList.remove('hidden');
-
-  _lastU = { lat: uLat, lon: uLon };
 
   const render = (googleMapsEnabled() && !_gAuthFailed)
     ? () => _renderGoogleMap(uLat, uLon)
@@ -42,7 +44,6 @@ export function hideMap() {
    Moteur 1 — Google Maps interactif (W63)
 ═══════════════════════════════════════════════════════════════════════ */
 
-let _gMaps       = null;   // espace de noms google.maps (mémorisé)
 let _gmap        = null;   // instance google.maps.Map réutilisée
 let _gMarkers    = [];     // marqueurs « stations » courants
 let _gUserMarker = null;   // marqueur point de recherche (GPS ou adresse)
@@ -57,12 +58,10 @@ async function _renderGoogleMap(uLat, uLon) {
   let maps;
   try { maps = await loadGoogleMaps(); }
   catch { _renderMap(uLat, uLon); return; }   // repli OSM si Google indisponible
-  _gMaps = maps;
 
   // Repli OSM si Google REFUSE l'authentification (clé invalide, referrer non
   // autorisé, ou FACTURATION non activée → BillingNotEnabledMapError). Google
-  // appelle ce hook de façon asynchrone, HORS du try/catch ci-dessous, donc on
-  // le gère ici. On mémorise l'échec pour ne plus retenter Google cette session.
+  // appelle ce hook de façon asynchrone, HORS du try/catch ci-dessous.
   window.gm_authFailure = () => {
     _gAuthFailed = true;
     _gmap = null; _gCluster = null; _gMarkers = []; _gUserMarker = null;
@@ -70,9 +69,12 @@ async function _renderGoogleMap(uLat, uLon) {
     _renderMap(_lastU.lat, _lastU.lon);
   };
 
-  // Filet de sécurité : toute erreur du rendu Google (clé mal configurée, API
-  // qui évolue, etc.) bascule sur le rendu OpenStreetMap maison plutôt que de
-  // laisser une carte vide.
+  // AdvancedMarkerElement (marqueurs HTML, non dépréciés) si un Map ID est
+  // configuré ; sinon repli sur google.maps.Marker classique.
+  const useAdvanced = !!GOOGLE_MAPS_MAP_ID && !!(maps.marker && maps.marker.AdvancedMarkerElement);
+
+  // Filet de sécurité : toute erreur du rendu Google (API qui évolue, etc.)
+  // bascule sur le rendu OpenStreetMap maison plutôt que de laisser une carte vide.
   try {
     const stations = state._mapStations;
     const cfg = FUEL_CONFIG[state.currentType] || {};
@@ -80,22 +82,24 @@ async function _renderGoogleMap(uLat, uLon) {
     // (Ré)instancie la carte si besoin (sinon on réutilise → pas de re-création).
     if (!_gmap || _gmap.getDiv() !== container) {
       container.innerHTML = '';   // purge un éventuel rendu OSM antérieur
-      _gmap = new maps.Map(container, {
+      const opts = {
         mapTypeControl:    false,
         streetViewControl: false,
         fullscreenControl: false,
         zoomControl:       true,
         clickableIcons:    false,
         gestureHandling:   'greedy',   // glisser à un doigt sur mobile
-      });
+      };
+      if (GOOGLE_MAPS_MAP_ID) opts.mapId = GOOGLE_MAPS_MAP_ID;   // requis par AdvancedMarkerElement
+      _gmap = new maps.Map(container, opts);
       _gCluster = null;
     }
 
     // Nettoie le rendu précédent (nouvelle recherche).
     if (_gCluster) _gCluster.clearMarkers();
-    _gMarkers.forEach(m => m.setMap(null));
+    _gMarkers.forEach(_detach);
     _gMarkers = [];
-    if (_gUserMarker) { _gUserMarker.setMap(null); _gUserMarker = null; }
+    if (_gUserMarker) { _detach(_gUserMarker); _gUserMarker = null; }
 
     const bounds = new maps.LatLngBounds();
 
@@ -103,42 +107,58 @@ async function _renderGoogleMap(uLat, uLon) {
       const pos = { lat: s.lat, lng: s.lon };
       const price = s.prices ? s.prices[state.currentType] : null;
       const text  = price != null ? Number(price).toFixed(3) : (cfg.short || '⛽');
-      const marker = new maps.Marker({
-        position: pos,
-        title: s.name + (price != null ? ` — ${cfg.short || ''} ${Number(price).toFixed(3)} €/L` : ''),
-        icon: _priceBadge(maps, text, false),
-        optimized: false,
-        zIndex: 100 + i,
-      });
-      marker.__badgeText = text;
-      marker.addListener('click', () => {
+      const title = s.name + (price != null ? ` — ${cfg.short || ''} ${Number(price).toFixed(3)} €/L` : '');
+      const onClick = () => {
         _highlightGoogleMarker(i);
         if (typeof window.selectStationFromMap === 'function') window.selectStationFromMap(i);
-      });
+      };
+
+      let marker;
+      if (useAdvanced) {
+        const content = _badgeEl(text, false);
+        content.addEventListener('click', e => { e.stopPropagation(); onClick(); });
+        marker = new maps.marker.AdvancedMarkerElement({ position: pos, title, content, zIndex: 100 + i, gmpClickable: true });
+        marker.__setSel = sel => content.classList.toggle('sel', sel);
+      } else {
+        marker = new maps.Marker({ position: pos, title, icon: _priceBadge(maps, text, false), optimized: false, zIndex: 100 + i });
+        marker.addListener('click', onClick);
+        marker.__setSel = sel => marker.setIcon(_priceBadge(maps, text, sel));
+      }
       bounds.extend(pos);
       return marker;
     });
 
     // Point de recherche (position GPS ou adresse saisie).
     if (uLat != null && uLon != null) {
-      _gUserMarker = new maps.Marker({
-        position: { lat: uLat, lng: uLon },
-        icon: _userIcon(maps),
-        title: 'Point de recherche',
-        clickable: false,
-        zIndex: 50,
-      });
-      _gUserMarker.setMap(_gmap);
-      bounds.extend({ lat: uLat, lng: uLon });
+      const upos = { lat: uLat, lng: uLon };
+      if (useAdvanced) {
+        _gUserMarker = new maps.marker.AdvancedMarkerElement({ position: upos, title: 'Point de recherche', content: _userDotEl(), zIndex: 50 });
+      } else {
+        _gUserMarker = new maps.Marker({ position: upos, icon: _userIcon(maps), title: 'Point de recherche', clickable: false, zIndex: 50 });
+      }
+      _attach(_gUserMarker, _gmap);
+      bounds.extend(upos);
     }
 
     // Regroupement des marqueurs proches (optionnel : repli pose directe).
     const lib = await loadClusterer();
     if (lib && lib.MarkerClusterer) {
-      if (_gCluster) _gCluster.addMarkers(_gMarkers);
-      else _gCluster = new lib.MarkerClusterer({ map: _gmap, markers: _gMarkers });
+      if (_gCluster) {
+        _gCluster.addMarkers(_gMarkers);
+      } else {
+        // En mode Advanced, le rendu par défaut des bulles utilise Marker
+        // (déprécié) → on fournit un renderer AdvancedMarkerElement.
+        const renderer = useAdvanced ? {
+          render: ({ count, position }) => new maps.marker.AdvancedMarkerElement({
+            position, zIndex: 1000 + count, content: _clusterEl(count),
+          }),
+        } : undefined;
+        _gCluster = new lib.MarkerClusterer(
+          renderer ? { map: _gmap, markers: _gMarkers, renderer } : { map: _gmap, markers: _gMarkers }
+        );
+      }
     } else {
-      _gMarkers.forEach(m => m.setMap(_gmap));
+      _gMarkers.forEach(m => _attach(m, _gmap));
     }
 
     // Cadrage : station unique → centre + zoom rue ; sinon ajuste aux marqueurs.
@@ -159,16 +179,50 @@ async function _renderGoogleMap(uLat, uLon) {
   }
 }
 
-/** Recolore le marqueur sélectionné (bleu foncé) et le passe au premier plan. */
+/** Attache un marqueur (Advanced via .map / classique via setMap) à une carte. */
+function _attach(m, map) { if (typeof m.setMap === 'function') m.setMap(map); else m.map = map; }
+/** Détache un marqueur (Advanced ou classique). */
+function _detach(m) { _attach(m, null); }
+
+/** Met en évidence le marqueur sélectionné (via le hook __setSel posé au rendu). */
 function _highlightGoogleMarker(idx) {
-  if (!_gMaps) return;
   _gMarkers.forEach((m, i) => {
-    m.setIcon(_priceBadge(_gMaps, m.__badgeText, i === idx));
-    m.setZIndex(i === idx ? 999 : 100 + i);
+    if (typeof m.__setSel === 'function') m.__setSel(i === idx);
+    if (typeof m.setZIndex === 'function') m.setZIndex(i === idx ? 999 : 100 + i);
+    else m.zIndex = (i === idx ? 999 : 100 + i);
   });
 }
 
-/** Icône marqueur « station » : pastille prix avec pointeur (ancrée au point). */
+/** Contenu HTML d'un marqueur « station » (AdvancedMarkerElement) : pastille prix. */
+function _badgeEl(text, selected) {
+  const wrap = document.createElement('div');
+  wrap.className = 'gmap-badge-wrap' + (selected ? ' sel' : '');
+  const pill = document.createElement('div');
+  pill.className = 'gmap-badge';
+  pill.textContent = String(text);
+  const tip = document.createElement('div');
+  tip.className = 'gmap-badge-tip';
+  wrap.appendChild(pill);
+  wrap.appendChild(tip);
+  return wrap;
+}
+
+/** Contenu HTML du point de recherche (AdvancedMarkerElement) : pastille verte. */
+function _userDotEl() {
+  const d = document.createElement('div');
+  d.className = 'gmap-userdot';
+  return d;
+}
+
+/** Contenu HTML d'une bulle de cluster (AdvancedMarkerElement). */
+function _clusterEl(count) {
+  const d = document.createElement('div');
+  d.className = 'gmap-cluster';
+  d.textContent = String(count);
+  return d;
+}
+
+/** Icône SVG d'un marqueur « station » (google.maps.Marker classique, repli). */
 function _priceBadge(maps, text, selected) {
   const bg = selected ? '#1B3A5C' : '#2E75B6';
   const h = 22, r = 6, ptr = 7, ptrH = 8;
@@ -192,7 +246,7 @@ function _priceBadge(maps, text, selected) {
   };
 }
 
-/** Icône du point de recherche : pastille verte (cohérente avec le rendu OSM). */
+/** Icône SVG du point de recherche (google.maps.Marker classique, repli). */
 function _userIcon(maps) {
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22">` +
@@ -207,7 +261,7 @@ function _userIcon(maps) {
 /* ═══════════════════════════════════════════════════════════════════════
    Moteur 2 — Repli OpenStreetMap « maison » (tuiles statiques)
    Inchangé : utilisé quand aucune clé Google n'est configurée ou si
-   l'API Google échoue à charger.
+   l'API Google échoue/refuse l'authentification.
 ═══════════════════════════════════════════════════════════════════════ */
 
 function tileXY(lat, lon, z) {

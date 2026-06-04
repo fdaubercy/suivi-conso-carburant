@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.1.0.4] — 2026-06-04
+
+### Changed
+- **Marqueurs Google « Advanced » (W63)** — migration de `google.maps.Marker` (**déprécié** depuis février 2024) vers **`AdvancedMarkerElement`** pour supprimer l'avertissement de dépréciation en console. Les marqueurs (pastilles de prix), le point de recherche et les **bulles de clusters** sont désormais du **HTML/CSS** (`.gmap-badge`, `.gmap-userdot`, `.gmap-cluster`) au lieu d'icônes SVG. `js/gmap.js` charge la librairie `marker` ; `js/carte.js` gère l'attache Advanced (`.map`) vs classique (`setMap`) et un renderer de cluster `AdvancedMarkerElement`.
+- **Repli double** : si `GOOGLE_MAPS_MAP_ID` n'est pas renseigné, on retombe sur `google.maps.Marker` classique (le warning réapparaît mais tout fonctionne) ; si aucune clé Google → rendu OpenStreetMap maison. Aucune régression.
+
+### Note
+- ⚠️ **Pour supprimer le warning, un Map ID est requis** : Google Cloud Console → Google Maps → « Gestion des cartes » → créer un **ID de carte** (type JavaScript) → le coller dans `GOOGLE_MAPS_MAP_ID` (`js/config.js`). `AdvancedMarkerElement` exige une carte initialisée avec un `mapId`.
+
 ## [5.1.0.3] — 2026-06-04
 
 ### Fixed

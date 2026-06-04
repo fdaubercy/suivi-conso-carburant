@@ -503,6 +503,7 @@ export const CLIENT_ID_KEY  = 'suivi_e85_client_id';    // UUID client rate limi
 
 ```javascript
 export const GOOGLE_MAPS_API_KEY = '';   // vide ⇒ repli carte OpenStreetMap (défaut)
+export const GOOGLE_MAPS_MAP_ID  = '';   // optionnel ⇒ marqueurs « Advanced » (supprime le warning de dépréciation)
 ```
 
 La carte des résultats de recherche peut être rendue avec **Google Maps interactif** (zoom, glisser, clusters). Pour l'activer :
@@ -513,6 +514,7 @@ La carte des résultats de recherche peut être rendue avec **Google Maps intera
    - *Restrictions d'API* → **Maps JavaScript API** uniquement ;
    - *Restrictions d'application* → **Sites web (referrers HTTP)** : `https://fdaubercy.github.io/*`, `http://localhost:5173/*`, `http://localhost:4173/*`.
 4. Coller la clé dans **`js/config.js`** (`GOOGLE_MAPS_API_KEY`).
+5. *(Optionnel, recommandé)* Pour des marqueurs **`AdvancedMarkerElement`** et **supprimer l'avertissement de dépréciation** `google.maps.Marker` : Google Maps → **« Gestion des cartes »** → créer un **ID de carte** (type *JavaScript*) → le coller dans `GOOGLE_MAPS_MAP_ID`. Sans Map ID, des marqueurs classiques (fonctionnels) sont utilisés.
 
 > 🔒 Une clé d'API JS est **nécessairement publique** (servie au navigateur) : la **restriction par domaine** est la vraie protection. 👉 **Bascule souple** : tant que `GOOGLE_MAPS_API_KEY` reste vide, la carte utilise le **rendu OpenStreetMap maison** (comportement actuel) — aucune régression, aucune clé requise. Le géocodage d'adresse (Base Adresse Nationale) reste **gratuit et sans clé** dans tous les cas.
 

@@ -570,6 +570,34 @@ header h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 0; }
   user-select: none;
 }
 
+/* ─── W63 — marqueurs Google Maps (AdvancedMarkerElement, contenu HTML) ─── */
+.gmap-badge-wrap { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+.gmap-badge {
+  background: #2E75B6; color: #fff;
+  font: 700 12px/1 Arial, Helvetica, sans-serif;
+  padding: 5px 8px; border-radius: 7px; border: 1.5px solid #fff;
+  white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.35);
+}
+.gmap-badge-tip {
+  width: 0; height: 0; margin-top: -1px;
+  border: 6px solid transparent; border-top-color: #2E75B6;
+}
+.gmap-badge-wrap.sel .gmap-badge { background: #1B3A5C; }
+.gmap-badge-wrap.sel .gmap-badge-tip { border-top-color: #1B3A5C; }
+.gmap-userdot {
+  width: 16px; height: 16px; background: #1D9E75;
+  border-radius: 50%; border: 3px solid #fff;
+  box-shadow: 0 0 0 3px rgba(29,158,117,.35), 0 2px 6px rgba(0,0,0,.3);
+}
+.gmap-cluster {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 34px; height: 34px; padding: 0 6px;
+  background: #1B3A5C; color: #fff;
+  font: 700 13px Arial, Helvetica, sans-serif;
+  border-radius: 17px; border: 2px solid #fff;
+  box-shadow: 0 1px 5px rgba(0,0,0,.4);
+}
+
 /* ─── Recherche par code postal ─── */
 .cp-row { display: flex; gap: 8px; margin-top: 8px; }
 .cp-input {

@@ -55,6 +55,7 @@ export function loadGoogleMaps() {
     const s = document.createElement('script');
     s.src = 'https://maps.googleapis.com/maps/api/js?' + new URLSearchParams({
       key: GOOGLE_MAPS_API_KEY.trim(),
+      libraries: 'marker',   // AdvancedMarkerElement (marqueurs non dépréciés, W63)
       callback: CALLBACK_NAME,
       loading: 'async',
       language: 'fr',
