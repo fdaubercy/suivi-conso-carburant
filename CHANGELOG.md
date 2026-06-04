@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.1.0.2] — 2026-06-04
+
+### Fixed
+- **CSP bloquait Google Maps (W63)** — la **Content-Security-Policy** (`<meta>` d'`index.html`, appliquée sur GitHub Pages, + `_headers`) n'autorisait pas les domaines Google : le script `maps.googleapis.com/maps/api/js` était **bloqué** (`script-src`) et la carte retombait sur le repli OpenStreetMap. Ajout des domaines Google selon la liste officielle Maps JS : `script-src`/`connect-src` → `https://maps.googleapis.com https://maps.gstatic.com` ; `img-src` → `https://*.googleapis.com https://*.gstatic.com` ; `style-src` → `https://fonts.googleapis.com` ; `font-src` → `https://fonts.gstatic.com` (sans `'unsafe-eval'`). La librairie de clustering passe d'**unpkg** (hors `script-src`) à **jsDelivr** (déjà autorisé) — `js/gmap.js`.
+
 ## [5.1.0.1] — 2026-06-04
 
 ### Changed

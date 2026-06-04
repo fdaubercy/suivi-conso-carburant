@@ -12,7 +12,8 @@
 ═══════════════════════════════════════════════════════════════════════ */
 import { GOOGLE_MAPS_API_KEY } from './config.js';
 
-const CLUSTERER_CDN = 'https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js';
+// jsDelivr plutôt qu'unpkg : déjà autorisé par la CSP (`script-src … cdn.jsdelivr.net`).
+const CLUSTERER_CDN = 'https://cdn.jsdelivr.net/npm/@googlemaps/markerclusterer/dist/index.min.js';
 const CALLBACK_NAME = '__suiviGmapInit';
 
 let _mapsPromise    = null;
