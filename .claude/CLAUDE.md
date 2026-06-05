@@ -488,3 +488,23 @@ Au début de chaque discussion portant sur ce projet :
 | `/graphify --neo4j` | Cypher pour Neo4j | Neo4j Browser |
 
 **Recommandation** : `graph.html` pour explorer visuellement, `GRAPH_REPORT.md` pour lire rapidement sans navigateur, `--obsidian` si le projet est déjà géré dans Obsidian.
+
+# SELF-LEARNING
+
+## Règles de mémorisation des erreurs
+
+1. **Après chaque correction de ma part**, ajoute immédiatement une entrée dans `tasks/lessons.md` au format :
+   ```
+   [YYYY-MM-DD] | ce qui s'est mal passé | règle à suivre la prochaine fois
+   ```
+
+2. **Au début de chaque session**, lis `tasks/lessons.md` avant de faire quoi que ce soit d'autre.
+
+3. **Avant de toucher au code**, applique chaque règle listée dans `tasks/lessons.md`.
+
+## Comportement attendu
+
+- Si `tasks/lessons.md` n'existe pas, le créer avec un en-tête vide.
+- Chaque entrée doit être concise, factuelle et actionnable.
+- Ne jamais supprimer d'entrées existantes — append uniquement.
+- En début de session, résumer les règles actives avant de commencer le travail.
