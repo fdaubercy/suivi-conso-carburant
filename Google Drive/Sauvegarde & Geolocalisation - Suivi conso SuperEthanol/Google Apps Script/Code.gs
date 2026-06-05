@@ -90,7 +90,8 @@ const HEADERS = [
   'Photo ticket',                                       // P — URL Drive photo ticket
   'Modifié_le',                                         // Q — S5 horodatage derniere modif (ISO)
   'Supprimé',                                           // R — S3 tombstone soft-delete (ISO, vide = actif)
-  'Email'                                               // S — U7 compte propriétaire de la ligne (multi-utilisateur)
+  'Email',                                              // S — U7 compte propriétaire de la ligne
+  'Coût €'                                              // T — W71 coût exact du plein saisi par l'utilisateur
 ];
 
 // Index 0-based des colonnes dans les tableaux getValues()
@@ -98,7 +99,8 @@ const IDX_SYNC     = 14;  // O
 const IDX_PHOTO    = 15;  // P
 const IDX_MODIFIED = 16;  // Q — S5
 const IDX_DELETED  = 17;  // R — S3
-const IDX_EMAIL    = 18;  // S — U7 (multi-utilisateur : email du compte propriétaire de la ligne)
+const IDX_EMAIL    = 18;  // S — U7
+const IDX_COUT     = 19;  // T — W71 coût exact du plein
 
 // U7 — Une ligne appartient-elle au compte ? Les lignes héritées sans email
 // (avant migration) sont rattachées au propriétaire (OWNER_EMAIL, défini dans Auth.gs).
@@ -108,16 +110,13 @@ function _rowBelongsTo_(rowEmail, email) {
   return re === email;
 }
 
-// S3/S5 — garantit la presence des en-tetes Q (Modifié_le) et R (Supprimé)
-// sur un onglet _ImportGS deja existant (cree avant v3.8.0.0).
+// S3/S5/W71 — garantit la presence des en-tetes Q (Modifié_le), R (Supprimé) et T (Coût €)
+// sur un onglet _ImportGS deja existant.
 function ensureSyncColumns_(sheet) {
   const lastCol = sheet.getLastColumn();
-  if (lastCol < IDX_MODIFIED + 1) {
-    sheet.getRange(1, IDX_MODIFIED + 1).setValue('Modifié_le');
-  }
-  if (lastCol < IDX_DELETED + 1) {
-    sheet.getRange(1, IDX_DELETED + 1).setValue('Supprimé');
-  }
+  if (lastCol < IDX_MODIFIED + 1) sheet.getRange(1, IDX_MODIFIED + 1).setValue('Modifié_le');
+  if (lastCol < IDX_DELETED  + 1) sheet.getRange(1, IDX_DELETED  + 1).setValue('Supprimé');
+  if (lastCol < IDX_COUT     + 1) sheet.getRange(1, IDX_COUT     + 1).setValue('Coût €');
 }
 
 // Horodatage ISO local (timezone du classeur) — base de comparaison S5.
@@ -445,6 +444,7 @@ function doPost(e) {
     new Date(),                                         // Q — Modifié_le (S5)
     '',                                                 // R — Supprimé (S3, actif)
     ownerEmail,                                         // S — U7 email du compte
+    payload.cout ? Number(payload.cout) : '',           // T — W71 coût exact du plein
   ]);
 
   return jsonResponse({ success: true, sync_id: syncId });

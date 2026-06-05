@@ -2,7 +2,7 @@
 import { FUEL_CONFIG, FUEL_KEYS, FUEL_SELECT, FUEL_ANY, E85_RENTABLE_RATIO } from './config.js';
 import { state } from './state.js';
 import { haversine, odsUrl } from './utils.js';
-import { setS98Status, showCpSearch, hideCpSearch, setFieldPrice, updateCout } from './ui.js';
+import { setS98Status, showCpSearch, hideCpSearch, setFieldPrice, computeTriplet } from './ui.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
 import { checkPrixAlert, ALERT_FUELS } from './notifications.js';
 import { applyHistPriceToForm } from './secteur.js';
@@ -64,7 +64,7 @@ export function applyPricesResult(data) {
 
   const cfg = FUEL_CONFIG[state.currentType];
   setFieldPrice('fPrix', state._stationPrices[state.currentType] || null, cfg.ph);
-  updateCout();
+  computeTriplet('prix');
 
   // Prix maintenant affiches directement dans les boutons -> on efface le statut verbeux
   // Conserve uniquement le cas "aucun prix" (fallback vers la saisie manuelle)
@@ -117,7 +117,7 @@ export async function fetchPricesAtCoords(lat, lon, fallbackToUser = false) {
   } else {
     state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
     setFieldPrice('fPrix', null, FUEL_CONFIG[state.currentType].ph);
-    updateCout();
+    computeTriplet('prix');
     updateRentabilite();
     setS98Status('info', 'Prix non trouvés — entrez le code postal :'); showCpSearch();
     applyHistPriceToForm();   // W60 — conserve le prix historique si date passée
@@ -132,7 +132,7 @@ export async function fetchPricesNearUser() {
     // GPS indisponible : vider les prix stale avant d'afficher le CP search
     state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
     setFieldPrice('fPrix', null, FUEL_CONFIG[state.currentType].ph);
-    updateCout();
+    computeTriplet('prix');
     updateRentabilite();
     setS98Status('info', 'Position inconnue — entrez le code postal :');
     showCpSearch();

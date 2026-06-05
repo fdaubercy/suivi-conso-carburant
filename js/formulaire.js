@@ -1,7 +1,7 @@
 /* ─── Formulaire — soumission, réinitialisation et auto-save brouillon (W15) ─── */
 import { FUEL_CONFIG, FUEL_KEYS, GAS_URL, APP_TOKEN, DRAFT_KEY, CLIENT_ID_KEY } from './config.js';
 import { state } from './state.js';
-import { setAutreStatus, hideCpSearch, setSubmitState, showFeedback, updateCout } from './ui.js';
+import { setAutreStatus, hideCpSearch, setSubmitState, showFeedback, computeTriplet } from './ui.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
 import { fetchPricesNearUser, fetchPricesAtCoords, fetchNearestE85Price, evalRentabiliteE85 } from './prix.js';
 import { cancelOsmEnrich } from './osm.js';
@@ -36,12 +36,13 @@ export function saveDraft() {
     const km     = document.getElementById('fKm')?.value     || '';
     const litres = document.getElementById('fLitres')?.value || '';
     const prix   = document.getElementById('fPrix')?.value   || '';
+    const cout   = document.getElementById('fCout')?.value   || '';
     const autre  = document.getElementById('fAutre')?.value  || '';
     // Ne sauvegarder que si au moins un champ rempli
     if (!km && !litres && !prix && !autre) return;
     localStorage.setItem(DRAFT_KEY, JSON.stringify({
       date:    document.getElementById('fDate')?.value    || '',
-      km, litres, prix, autre,
+      km, litres, prix, cout, autre,
       station: document.getElementById('stationSel')?.value || '',
       type:    state.currentType,
     }));
@@ -59,7 +60,8 @@ export function restoreDraft() {
     if (d.date)   document.getElementById('fDate').value   = d.date;
     if (d.km)     document.getElementById('fKm').value     = d.km;
     if (d.litres) document.getElementById('fLitres').value = d.litres;
-    if (d.prix)   { document.getElementById('fPrix').value = d.prix; }
+    if (d.prix)   document.getElementById('fPrix').value   = d.prix;
+    if (d.cout)   document.getElementById('fCout').value   = d.cout;
 
     if (d.autre) {
       document.getElementById('fAutre').value = d.autre;
@@ -72,7 +74,7 @@ export function restoreDraft() {
         sel.value = d.station;
       }
     }
-    updateCout();
+    if (!document.getElementById('fCout')?.value) computeTriplet('litres');
     onKmInput();    // déclenche le warning rétrograde si le km du brouillon est invalide
     checkDuplicate();
     return d;
@@ -185,6 +187,7 @@ export async function submitForm() {
   const km      = document.getElementById('fKm').value.trim();
   const litres  = document.getElementById('fLitres').value.trim();
   const prix    = document.getElementById('fPrix').value.trim();
+  const cout    = document.getElementById('fCout').value.trim();
   const vehicule = state.currentVehiculeNom || '';
   let station = document.getElementById('stationSel').value;
   if (station === '__autre') station = document.getElementById('fAutre').value.trim();
@@ -240,7 +243,7 @@ export async function submitForm() {
 
   const payload = {
     date, type: FUEL_CONFIG[state.currentType].label,
-    km, litres, prix, station, vehicule, stationPrices,
+    km, litres, prix, cout: cout ? Number(cout) : '', station, vehicule, stationPrices,
     cid: _getClientId(),   // S7 — rate limiting côté GAS
     token: APP_TOKEN,      // S6 — token secret (souple)
     idToken: getIdToken(), // U7 — identité du compte (JWT vérifié côté GAS)
@@ -381,10 +384,9 @@ export function resetForm() {
   clearDraft(); // W15 — effacer le brouillon après submit ou reset
   const n = new Date();
   document.getElementById('fDate').value = n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
-  ['fKm', 'fLitres', 'fAutre'].forEach(id => document.getElementById(id).value = '');
+  ['fKm', 'fLitres', 'fCout', 'fAutre'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   const fp = document.getElementById('fPrix'); fp.value = ''; fp.placeholder = FUEL_CONFIG[state.currentType].ph; fp.classList.remove('autofilled');
   document.getElementById('stationSel').value = '';
-  document.getElementById('coutBox').style.display = 'none';
   document.getElementById('nearbyList').style.display = 'none';
   document.getElementById('autreField').classList.add('hidden');
   document.getElementById('s98Status').className = 's98-status';
@@ -392,7 +394,6 @@ export function resetForm() {
   setAutreStatus('', ''); hideCpSearch();
   state._stationPrices = {}; _buildTypeToggle({}); _updateHeaderBadges();
   evalRentabiliteE85();
-  updateCout();
   updateRentabilite();
 
   // W9 — effacer la photo du ticket

@@ -37,16 +37,38 @@ export function showFeedback(type, title, msg) {
   if (type === 'success') setTimeout(() => el.style.display = 'none', 5000);
 }
 
-export function updateCout() {
-  const l = parseFloat(document.getElementById('fLitres').value);
-  const p = parseFloat(document.getElementById('fPrix').value);
-  const box = document.getElementById('coutBox');
-  if (!isNaN(l) && !isNaN(p) && l > 0 && p > 0) {
-    box.style.display = 'flex';
-    document.getElementById('coutVal').textContent = (l * p).toFixed(2) + ' €';
-  } else {
-    box.style.display = 'none';
+/** Pure tri-directional calculation (testable without DOM).
+ *  source: 'litres' | 'cout' | 'prix'
+ *  Returns {L, C, P} with the computed field updated.
+ */
+export function calcTriplet(L, C, P, source) {
+  const lOk = isFinite(L) && L > 0;
+  const cOk = isFinite(C) && C > 0;
+  const pOk = isFinite(P) && P > 0;
+  const out = { L, C, P };
+  if (source === 'litres') {
+    if (lOk && pOk)      out.C = parseFloat((L * P).toFixed(2));
+    else if (lOk && cOk) out.P = parseFloat((C / L).toFixed(3));
+  } else if (source === 'cout') {
+    if (cOk && pOk)      out.L = parseFloat((C / P).toFixed(2));
+    else if (lOk && cOk) out.P = parseFloat((C / L).toFixed(3));
+  } else if (source === 'prix') {
+    if (lOk && pOk)      out.C = parseFloat((L * P).toFixed(2));
+    else if (cOk && pOk) out.L = parseFloat((C / P).toFixed(2));
   }
+  return out;
+}
+
+/** Reads fLitres/fCout/fPrix, computes the missing field, updates the DOM. */
+export function computeTriplet(source) {
+  const elL = document.getElementById('fLitres');
+  const elC = document.getElementById('fCout');
+  const elP = document.getElementById('fPrix');
+  if (!elL || !elC || !elP) return;
+  const res = calcTriplet(parseFloat(elL.value), parseFloat(elC.value), parseFloat(elP.value), source);
+  if (source !== 'litres' && isFinite(res.L) && res.L > 0) elL.value = res.L.toFixed(2);
+  if (source !== 'cout'   && isFinite(res.C) && res.C > 0) elC.value = res.C.toFixed(2);
+  if (source !== 'prix'   && isFinite(res.P) && res.P > 0) elP.value = res.P.toFixed(3);
 }
 
 /**

@@ -1,7 +1,7 @@
 /* ─── Toggle type de carburant + badges header ─── */
 import { FUEL_CONFIG } from './config.js';
 import { state } from './state.js';
-import { setFieldPrice, updateCout } from './ui.js';
+import { setFieldPrice, computeTriplet } from './ui.js';
 import { applyHistPriceToForm } from './secteur.js';
 
 /**
@@ -68,12 +68,12 @@ export function setType(type) {
   // Re-rendu des stats : conso/coût/100km sont filtrés par carburant courant
   if (typeof window.renderStats === 'function') window.renderStats();
   const fp = document.getElementById('fPrix'); fp.value = ''; fp.classList.remove('autofilled'); fp.placeholder = cfg.ph;
-  updateCout();
+  computeTriplet('prix');
 
   if (Object.keys(state._stationPrices).length > 0) {
     // Prix déjà chargés — application immédiate depuis le cache
     setFieldPrice('fPrix', state._stationPrices[type] || null, cfg.ph);
-    updateCout();
+    computeTriplet('prix');
   } else {
     const sel = document.getElementById('stationSel').value;
     if (sel && sel !== '__autre') _fetchPricesNearUser();

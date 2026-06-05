@@ -4,7 +4,7 @@
 ═══════════════════════════════════════ */
 import { APP_VERSION, FUEL_CONFIG } from './config.js';
 import { state }       from './state.js';
-import { updateCout, showFeedback }  from './ui.js';
+import { computeTriplet, showFeedback }  from './ui.js';
 import { showStationPopup } from './itineraire.js';
 
 import { chargerVehicules, onVehiculeChange, confirmerAjoutVehicule } from './vehicules.js';
@@ -184,8 +184,9 @@ function initStaticHandlers() {
   // Formulaire — W15 : saveDraft sur chaque modification
   document.getElementById('fDate')?.addEventListener('change', () => { applyHistPriceToForm(); checkDuplicate(); saveDraft(); });
   document.getElementById('fKm')?.addEventListener('input', () => { onKmInput(); checkDuplicate(); saveDraft(); });
-  document.getElementById('fLitres')?.addEventListener('input', () => { updateCout(); checkDuplicate(); saveDraft(); });
-  document.getElementById('fPrix')?.addEventListener('input', () => { updateCout(); saveDraft(); });
+  document.getElementById('fLitres')?.addEventListener('input', () => { computeTriplet('litres'); checkDuplicate(); saveDraft(); });
+  document.getElementById('fPrix')?.addEventListener('input', () => { computeTriplet('prix'); saveDraft(); });
+  document.getElementById('fCout')?.addEventListener('input', () => { computeTriplet('cout'); saveDraft(); });
   document.getElementById('fCp')?.addEventListener('keydown', e => { if (e.key === 'Enter') fetchPricesByCP(); });
   document.getElementById('cpSearchBtn')?.addEventListener('click', fetchPricesByCP);
 
@@ -285,7 +286,7 @@ Object.assign(window, {
   renderWrapped,  // vehicules.js/onVehiculeChange() → W37 bilan annuel suit le véhicule
   renderStationsCard, // vehicules.js/onVehiculeChange() → W47 carte re-défaut carburant
   setType,        // ticket.js/fillFormFromTicket() → window.setType
-  updateCout,     // ticket.js/fillFormFromTicket() → window.updateCout
+  computeTriplet, // ticket.js/fillFormFromTicket() → window.computeTriplet
 });
 
 /**

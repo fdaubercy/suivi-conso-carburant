@@ -659,7 +659,7 @@ async function fillFormFromTicket(data) {
     }
   }
 
-  if (typeof window.updateCout === 'function') window.updateCout();
+  if (typeof window.computeTriplet === 'function') window.computeTriplet('prix');
 
   const label = filled > 0
     ? `${filled} champ${filled > 1 ? 's' : ''} pré-rempli${filled > 1 ? 's' : ''} — vérifiez avant d'enregistrer`

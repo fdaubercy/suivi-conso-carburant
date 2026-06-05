@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.5.0.0] — 2026-06-05
+
+### Added
+- **Champ « Coût du plein » éditable + calcul tri-directionnel (W71)** — le montant total du plein est désormais un **champ de saisie** (`#fCout`) placé sous Litres/Prix dans le formulaire. Logique tri-directionnelle : **Coût = Litres × Prix** (si les deux sont connus) ; **Litres = Coût ÷ Prix** (si Prix connu) ; **Prix = Coût ÷ Litres** (si Prix inconnu mais Litres + Coût saisis). Le champ manquant est calculé automatiquement dès la saisie de l'un des trois champs. Nouveau module `calcTriplet(L, C, P, source)` (fonction pure, testable sans DOM) + DOM wrapper `computeTriplet(source)` en remplacement de l'ancienne boîte read-only. `js/ui.js`, `index.html`, `js/main.js`, `js/formulaire.js`, `js/secteur.js`.
+- **Persistance du coût dans Google Sheets (W71)** — le montant exact est transmis dans le payload GAS (`cout`) et stocké en **colonne T « Coût € »** de l'onglet `_ImportGS`. `HEADERS` et `appendRow` mis à jour, `ensureSyncColumns_` étendue pour ajouter col T sur les feuilles existantes. `Code.gs`.
+- **Tests `calcTriplet` (W71)** — `tests/cout.test.js` : 13 cas (source litres/cout/prix, déductions croisées, cas limites valeurs zéro/négatives, précision décimales). 154/154 tests passent.
+
+## [5.4.0.0] — 2026-06-05
+
+### Added
+- **Sélection de station depuis le popup de carte (W67)** — un bouton « Sélectionner cette station » apparaît dans la popup Google Maps des stations de recherche ; un clic coche la station dans la liste et ferme la carte sans effacer la saisie en cours. `js/itineraire.js` (`showStationPopup`), `js/formulaire.js`, `css/style.css`.
+- **Repli de nom de station par adresse (`resolveEnseigne`)** — quand l'enseigne OSM est inconnue, le nom de la station est construit depuis l'adresse (numéro + rue ou ville) plutôt que laissé vide. Appliqué au module principal `js/prix.js` et à la recherche manuelle `js/recherche.js`.
+
 ## [5.3.0.0] — 2026-06-05
 
 ### Added

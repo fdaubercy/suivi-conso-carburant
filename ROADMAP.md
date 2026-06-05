@@ -11,6 +11,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
+| W72 | **Tests unitaires manquants** : `formulaire.js` (saveDraft/restoreDraft/submitForm), `ui.js` (setFieldPrice), `carburant.js`, `state.js`, `recherche.js` | Couverture CI actuellement à 0 sur des modules critiques (cœur des saisies) |
+| W73 | **« Coût réel » dans les agrégats Excel** — `modHistorique.bas` `CoutPlein()` lira la col T de `_ImportGS` si renseignée (repli `litres×prix` si vide) ; `modDashboardKPI.bas` adapté pour afficher le coût stocké | Agrégats cohérents avec le montant exact saisi par l'utilisateur |
 | W57 | **Partage image du bilan « Wrapped »** : rendu de la carte Wrapped sur un `<canvas>` → `toBlob()` → **Web Share API** (`navigator.share`) avec repli téléchargement PNG | Partager son bilan E85 en 1 tap (réseaux, message) sans capture d'écran |
 | W58 | **Prochain plein estimé** : à partir du rythme moyen (km/jour & autonomie), afficher « prochain plein ≈ le JJ/MM » dans la vue Stats + badge sur l'onglet | Anticiper le passage à la pompe |
 
@@ -128,6 +130,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.5.0.0 | **Champ « Coût du plein » éditable + calcul tri-directionnel (W71)** — `#fCout` input sous Litres/Prix ; `calcTriplet`/`computeTriplet` (`js/ui.js`) ; Coût = L×P, Litres = C÷P, Prix = C÷L ; stocké en col T « Coût € » de `_ImportGS` (GAS). 13 tests `tests/cout.test.js`. |
+| v5.4.0.0 | **Sélection de station depuis popup carte (W67) + repli nom station par adresse** — bouton « Sélectionner » dans la popup Google Maps ; `resolveEnseigne` fallback adresse appliqué à `prix.js` et `recherche.js`. |
 | v5.3.0.0 | **Logos d'enseignes sur les marqueurs de carte (W66) + fix sync « Suivi Carburant »** — les deux cartes Google Maps (recherche `carte.js` + onglet Carte `stationsmap.js`, via `gmaprender.js`) affichent le **logo de l'enseigne** (`brand.js` `brandIconUrl`, `generic.svg` si inconnue) en badge bordé de la couleur de marque, au-dessus de la pastille prix, en remplacement du bandeau texte (W63). **Fix Excel** : `SyncCore` (`modSyncGS.bas`) enchaîne `SyncTableau2DepuisGS` à chaque ajout/suppression GS → un plein importé depuis Google Sheets apparaît enfin dans « Suivi Carburant » (`Tableau2`, vue dérivée qui n'était jamais réalignée après sync). |
 | v5.2.1.2 | **Fix Excel 1004 (feuille protégée) à l'import** — « Suivi Carburant » protégée (`UserInterfaceOnly` ne couvre pas `ListRows.Add`) ; déverrouillage/reverrouillage autour des ops de tableau (`ModuleImportGS`, `modFeatures`) + purge auto de Z1 sur erreur 1004 (force un import complet). |
 | v5.2.1.1 | **Fix prévisualisation (dev)** — le harness `preview_*` lançait `npm run dev` dans un mauvais dossier (`Github/suivi-e85`, surnom) → ENOENT. Jonction locale `suivi-e85 → suivi-conso-carburant` + bloc `server` dans `vite.config.js` (port/host/strictPort). |

@@ -22,7 +22,7 @@
 
 import { GAS_URL, APP_TOKEN, SECTOR_CACHE_KEY, FUEL_CONFIG } from './config.js';
 import { state } from './state.js';
-import { setFieldPrice, updateCout } from './ui.js';
+import { setFieldPrice, computeTriplet } from './ui.js';
 
 const CACHE_TTL = 2 * 60 * 60 * 1000;   // 2 h
 
@@ -198,7 +198,7 @@ export async function applyHistPriceToForm() {
   if (!date || date >= today) {
     if (state._histPriceApplied) {
       setFieldPrice('fPrix', state._stationPrices[fuel] || null, ph);
-      updateCout();
+      computeTriplet('prix');
       state._histPriceApplied = false;
     }
     _setHistNote('', '');
@@ -219,7 +219,7 @@ export async function applyHistPriceToForm() {
 
   if (res && res.prix > 0) {
     setFieldPrice('fPrix', res.prix, ph);
-    updateCout();
+    computeTriplet('prix');
     state._histPriceApplied = true;
     const lieu  = (res.scope === 'station' && station)
       ? station.replace(/^Secteur - /, '')
@@ -228,7 +228,7 @@ export async function applyHistPriceToForm() {
     _setHistNote(`📅 Prix ${short} ${quand} · ${lieu}`, 'ok');
   } else {
     setFieldPrice('fPrix', null, ph);
-    updateCout();
+    computeTriplet('prix');
     state._histPriceApplied = true;
     _setHistNote(`📅 Aucun relevé ${short} avant le ${_frDate(date)} — saisie manuelle`, 'warn');
   }
