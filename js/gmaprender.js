@@ -15,11 +15,12 @@
    méthode officielle avec loading=async (évite « Map is not a constructor »).
    Marqueurs : AdvancedMarkerElement (HTML, non déprécié) si GOOGLE_MAPS_MAP_ID
    est configuré ; sinon google.maps.Marker classique.
-   Distinction par enseigne : couleur + nom court (brand) + prix conservé.
+   Distinction par enseigne : LOGO de l'enseigne (brand.slug → public/icons/
+   brands/<slug>.svg, generic.svg si inconnue) au-dessus de la pastille prix.
 ═══════════════════════════════════════════════════════════════════════ */
 import { escHtml } from './utils.js';
 import { GOOGLE_MAPS_MAP_ID } from './config.js';
-import { DEFAULT_BRAND_COLOR } from './brand.js';
+import { DEFAULT_BRAND_COLOR, brandIconUrl } from './brand.js';
 import { googleMapsEnabled, loadGoogleMaps, loadClusterer } from './gmap.js';
 
 let _authFailed = false;                 // Google a refusé l'auth → repli OSM (session)
@@ -177,22 +178,28 @@ export async function renderGoogleStationMap(container, opts) {
 function _attach(m, map) { if (typeof m.setMap === 'function') m.setMap(map); else m.map = map; }
 
 /** Contenu HTML d'un marqueur « station » (AdvancedMarkerElement) :
- *  bandeau enseigne (couleur + nom) + pastille prix (bordure couleur enseigne). */
+ *  badge LOGO de l'enseigne (logo officiel, ou generic.svg si inconnue) +
+ *  pastille prix dessous. La couleur d'enseigne borde le logo et la pastille. */
 function _markerEl(text, brand, selected) {
   const color = (brand && brand.color) || DEFAULT_BRAND_COLOR;
   const wrap = document.createElement('div');
-  wrap.className = 'gmap-marker' + (selected ? ' sel' : '');
+  wrap.className = 'gmap-marker has-logo' + (selected ? ' sel' : '');
 
-  if (brand && brand.label) {
-    const b = document.createElement('div');
-    b.className = 'gmap-brand';
-    b.textContent = brand.label;
-    b.style.background = color;
-    wrap.appendChild(b);
-  }
+  // Badge logo de l'enseigne (W65 — generic.svg sert de repli pour une inconnue).
+  const pin = document.createElement('div');
+  pin.className = 'gmap-pin';
+  pin.style.borderColor = color;
+  const img = document.createElement('img');
+  img.src = brandIconUrl(brand && brand.slug);
+  img.alt = (brand && brand.label) || 'Station';
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  pin.appendChild(img);
+  wrap.appendChild(pin);
 
+  // Pastille prix, glissée juste sous le badge logo.
   const pill = document.createElement('div');
-  pill.className = 'gmap-badge' + (brand && brand.label ? ' has-brand' : '');
+  pill.className = 'gmap-badge has-brand';
   pill.textContent = String(text);
   pill.style.borderColor = color;
   pill.style.color = color;

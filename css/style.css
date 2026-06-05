@@ -627,6 +627,16 @@ header h1 {
   border: 6px solid transparent; border-top-color: #2E75B6;
 }
 .gmap-marker.sel .gmap-badge { box-shadow: 0 0 0 3px rgba(27,58,92,.30), 0 1px 4px rgba(0,0,0,.3); }
+/* Badge LOGO d'enseigne (logo officiel ou generic.svg) au-dessus de la pastille prix */
+.gmap-pin {
+  width: 38px; height: 38px; background: #fff;
+  border: 2px solid #2E75B6; border-radius: 10px;       /* couleur enseigne posee en inline */
+  box-shadow: 0 1px 4px rgba(0,0,0,.3); overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.gmap-pin img { width: 100%; height: 100%; object-fit: contain; padding: 4px; box-sizing: border-box; display: block; pointer-events: none; }
+.gmap-marker.has-logo .gmap-badge { margin-top: -5px; }  /* pastille prix glissee sous le logo */
+.gmap-marker.has-logo.sel .gmap-pin { box-shadow: 0 0 0 3px rgba(27,58,92,.30), 0 1px 5px rgba(0,0,0,.35); }
 .gmap-userdot {
   width: 16px; height: 16px; background: #1D9E75;
   border-radius: 50%; border: 3px solid #fff;

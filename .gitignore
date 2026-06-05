@@ -19,3 +19,9 @@ commit.log
 
 # Config GAS — contient scriptId, sheetId, deployId (données sensibles)
 .claude/gas-config.json
+
+# Sauvegardes VBA horodatées (transient, non versionné)
+vba-backup-*/
+
+# Skill Claude d'injection VBA (outil local, non versionné dans le projet)
+.claude/skills/vba-agent/

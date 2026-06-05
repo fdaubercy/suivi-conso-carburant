@@ -679,6 +679,16 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     If paramSync > 0 Then msg = msg & " / params:" & paramSync
     SetStatus msg
 
+    ' Propage les lignes GS_Pleins -> vue derivee "Suivi Carburant" (Tableau2).
+    ' Sans cela, un plein importe depuis Google Sheets reste dans GS_Pleins sans
+    ' apparaitre dans "Suivi Carburant". Le nb de lignes change si ajout/suppr
+    ' -> on realigne Tableau2 et on tire les colonnes brutes par formules INDEX.
+    If (addedFromGS + delFromGS) > 0 Then
+        On Error Resume Next
+        modFeatures.SyncTableau2DepuisGS
+        On Error GoTo ErrHandler
+    End If
+
     ' v2.9.1 : recreation automatique des graphiques si des donnees ont
     ' change (ajout / MAJ dans un sens ou l'autre). Mode silencieux :
     ' aucune MsgBox bloquante meme a l'ouverture du classeur.

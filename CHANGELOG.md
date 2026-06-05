@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.3.0.0] — 2026-06-05
+
+### Added
+- **Logos d'enseignes sur les marqueurs des cartes (W66)** — sur les **deux** cartes Google Maps (recherche/géoloc `carte.js` **et** onglet « Carte » des stations habituelles `stationsmap.js`, via le rendu partagé `gmaprender.js`), chaque marqueur affiche désormais le **logo de l'enseigne** (badge blanc bordé de la couleur de marque) au-dessus de la **pastille de prix conservée**, en remplacement de l'ancien bandeau texte coloré (W63). Le logo vient de `brand.js` (`brandIconUrl(slug)` → `public/icons/brands/<slug>.svg`) ; `generic.svg` (pompe) sert de **repli pour une enseigne inconnue**. L'état **sélectionné** (halo) est conservé. `js/gmaprender.js` (`_markerEl`, import `brandIconUrl`), `css/style.css` (`.gmap-pin`, `.gmap-marker.has-logo`). *(Marqueurs classiques de repli : pastille prix colorée inchangée — un SVG externe n'est pas embarquable dans une icône data-URL.)*
+
+### Fixed
+- **Excel — un plein importé depuis Google Sheets n'apparaissait pas dans « Suivi Carburant »** — l'onglet « Suivi Carburant » (`Tableau2`) est une **vue dérivée** de `GS_Pleins` (colonnes brutes tirées par formules `INDEX`, nombre de lignes réaligné par VBA). `SyncTableau2DepuisGS` (`modFeatures.bas`) était bien appelée lors d'une **saisie manuelle** (UserForm, `modSaisie`) mais **jamais après une synchro Google Sheets** : `SyncCore` (`modSyncGS.bas`) importait le plein dans `GS_Pleins` sans réaligner `Tableau2`. Résultat : le plein du **02/06/2026** figurait dans `GS_Pleins` (12 lignes) mais pas dans « Suivi Carburant » (resté à 11). **Correctif** : `SyncCore` enchaîne désormais `modFeatures.SyncTableau2DepuisGS` dès qu'une ligne est **ajoutée ou supprimée** côté GS → la vue dérivée est réalignée et tire ses colonnes par `INDEX`. *(Réparation immédiate du classeur ouvert effectuée en parallèle : Tableau2 repassé à 12 lignes, dernier plein = 02/06/2026.)*
+
 ## [5.2.1.2] — 2026-06-04
 
 ### Fixed
