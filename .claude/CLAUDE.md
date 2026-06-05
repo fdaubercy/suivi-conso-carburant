@@ -468,3 +468,23 @@ ou formuler directement une demande, ex :
 
 ## Lecture des fichiers
 Avant de lire des fichiers, consulte d'abord `graphify-out/graph.json` pour comprendre la structure et ne lire que le strict nécessaire.
+
+## Carte des connaissances du projet
+
+Au début de chaque discussion portant sur ce projet :
+- **Si `graphify-out/graph.json` existe** → la charger et s'y référer pour orienter la discussion.
+- **Si elle n'existe pas** → la créer via le skill `graphify` dès que le projet est suffisamment exploré.
+- **Au fil de la discussion** → compléter la carte avec chaque nouvel apport significatif (nouvelles entités, relations, décisions architecturales) via `/graphify --update`.
+
+## Visualisation de la carte (formats lisibles par un humain)
+
+| Fichier / commande | Format | Comment l'ouvrir |
+|---|---|---|
+| `graphify-out/graph.html` | Graphe interactif (généré par défaut) | N'importe quel navigateur |
+| `graphify-out/GRAPH_REPORT.md` | Rapport texte (god nodes, connexions, questions) | VS Code, Obsidian, tout éditeur |
+| `/graphify --obsidian` | Vault Obsidian (un `.md` par nœud, liens cliquables) | Obsidian |
+| `/graphify --svg` | Image vectorielle | Notion, GitHub, Draw.io |
+| `/graphify --graphml` | Format Gephi / yEd | Gephi, yEd |
+| `/graphify --neo4j` | Cypher pour Neo4j | Neo4j Browser |
+
+**Recommandation** : `graph.html` pour explorer visuellement, `GRAPH_REPORT.md` pour lire rapidement sans navigateur, `--obsidian` si le projet est déjà géré dans Obsidian.
