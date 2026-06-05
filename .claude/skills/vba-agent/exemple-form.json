@@ -1,0 +1,51 @@
+{
+  "name": "frmSaisie",
+  "caption": "Saisie du dossier",
+  "width": 420,
+  "height": 320,
+  "properties": {
+    "BackColor": 16448250,
+    "StartUpPosition": 1,
+    "ShowModal": true
+  },
+  "controls": [
+    {
+      "kind": "Label",
+      "name": "lblNom",
+      "caption": "Nom :",
+      "left": 12, "top": 18, "width": 110, "height": 18,
+      "props": { "Font.Bold": true, "Font.Size": 9 }
+    },
+    {
+      "kind": "TextBox",
+      "name": "txtNom",
+      "left": 130, "top": 16, "width": 260, "height": 20
+    },
+    {
+      "kind": "Label",
+      "name": "lblType",
+      "caption": "Type :",
+      "left": 12, "top": 48, "width": 110, "height": 18,
+      "props": { "Font.Bold": true, "Font.Size": 9 }
+    },
+    {
+      "kind": "ComboBox",
+      "name": "cboType",
+      "left": 130, "top": 46, "width": 260, "height": 20
+    },
+    {
+      "kind": "CommandButton",
+      "name": "btnOK",
+      "caption": "Valider",
+      "left": 310, "top": 280, "width": 80, "height": 26,
+      "props": { "BackColor": 3381606, "ForeColor": 16777215 }
+    },
+    {
+      "kind": "CommandButton",
+      "name": "btnAnnuler",
+      "caption": "Annuler",
+      "left": 222, "top": 280, "width": 80, "height": 26
+    }
+  ],
+  "code": "Private Sub UserForm_Initialize()\n    Me.cboType.List = Array(\"Entrée\", \"Sortie\", \"Transfert\")\nEnd Sub\n\nPrivate Sub btnOK_Click()\n    If Me.txtNom.Value = \"\" Then\n        MsgBox \"Le nom est obligatoire.\", vbExclamation\n        Exit Sub\n    End If\n    Unload Me\nEnd Sub\n\nPrivate Sub btnAnnuler_Click()\n    Unload Me\nEnd Sub"
+}

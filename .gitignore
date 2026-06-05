@@ -22,6 +22,3 @@ commit.log
 
 # Sauvegardes VBA horodatées (transient, non versionné)
 vba-backup-*/
-
-# Skill Claude d'injection VBA (outil local, non versionné dans le projet)
-.claude/skills/vba-agent/
