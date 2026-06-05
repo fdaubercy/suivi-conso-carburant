@@ -295,8 +295,9 @@ export async function submitForm() {
    W35 — Saisie km par dictée vocale
    ═══════════════════════════════════════ */
 
-/** Convertit une chaîne parlée en entier (gère chiffres + mots français courants). */
-function _parseSpeechToNumber(text) {
+/** Convertit une chaîne parlée en entier (gère chiffres + mots français courants).
+ *  Exporté (préfixe `_`) pour les tests unitaires — usage interne uniquement. */
+export function _parseSpeechToNumber(text) {
   const t = text.trim().toLowerCase();
   // Cas numérique direct : "12 430", "12.430", "12,430", "12430"
   const stripped = t.replace(/[\s.,]/g, '');

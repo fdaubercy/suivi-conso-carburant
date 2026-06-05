@@ -52,6 +52,44 @@ jobs:
         run: npm test
 
   # ────────────────────────────────────────
+  #  Couverture de code Vitest (W72)
+  #  Genere le rapport @vitest/coverage-v8 et
+  #  publie le resume dans le recap du job.
+  #  Non-bloquant (continue-on-error) — aucun
+  #  seuil, sert d'indicateur de tendance.
+  # ────────────────────────────────────────
+  coverage:
+    name: Couverture Vitest
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run coverage
+        run: npm run test:coverage 2>&1 | tee coverage-output.txt
+
+      - name: Resume de couverture dans le job
+        if: always()
+        run: |
+          {
+            echo "## 📊 Couverture de code (Vitest · @vitest/coverage-v8)"
+            echo '```'
+            grep -E '^(Statements|Branches|Functions|Lines)\s+:' coverage-output.txt || echo "(resume indisponible — voir le log du job)"
+            echo '```'
+            echo "_Indicateur non-bloquant — aucun seuil impose._"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ────────────────────────────────────────
   #  Audit des dépendances npm (S9)
   #  Signale les vulnérabilités moderate+
   #  Non-bloquant (continue-on-error: true)

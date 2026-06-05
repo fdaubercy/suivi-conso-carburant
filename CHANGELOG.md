@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.5.1.0] — 2026-06-05
+
+### Added
+- **Suite de tests unitaires Vitest — 9 modules non couverts (W72)** — `tests/state.test.js`, `ui.test.js`, `carburant.test.js`, `recherche.test.js`, `formulaire.test.js`, `offline.test.js`, `geo.test.js`, `carte.test.js`, `pwa.test.js`. Couvrent les fonctions à haute valeur : `state` (valeurs/refs par défaut), `ui` (`computeTriplet`, `setFieldPrice`, status setters), `carburant` (`_buildTypeToggle`, `initTypeToggle`, badges), `recherche` (`buildSearchClause` CP/ville, `buildStations` filtre/tri, debounce), `formulaire` (`saveDraft`/`restoreDraft`/`clearDraft`, `checkDuplicate`, `_parseSpeechToNumber`, `submitForm` — gate auth/validation/POST/repli offline), `offline` (`getQueue`/`queuePlein`/`syncQueue`), `geo` (`renderNearby`, `pickStation`), `carte` (`tileXY`, rendu OSM), `pwa` (bannière, `dismiss`, smoke `initPWA`). Exécutés automatiquement par le job `test` de la CI. **154 → 235 tests, tous au vert (22 fichiers).**
+- **Couverture de code dans la CI (W72)** — `@vitest/coverage-v8@4.1.7` + script `test:coverage` ; bloc `test.coverage` dans `vite.config.js` (provider `v8` ; rapports `text`/`text-summary`/`html`/`lcov` ; `include: js/**` ; `main.js`/`config.js` exclus ; **aucun seuil**). Nouveau job CI **`coverage`** non-bloquant (`continue-on-error: true`) qui publie le résumé dans `$GITHUB_STEP_SUMMARY`. `coverage/` ajouté au `.gitignore`.
+
+### Changed
+- **Exports test-only minimes (zéro changement de comportement)** — `js/formulaire.js` expose `_parseSpeechToNumber` (parsing vocal FR, fonction pure) et `js/carte.js` expose `tileXY` (math de tuiles Web-Mercator), dans la lignée des `_`-exports existants.
+- **`APP_VERSION` 5.5.0.0 → 5.5.1.0** (`js/config.js`, incrément PATCH = amélioration technique) ; `package.json` aligné ; README mis à jour (section CI : 4 → 5 jobs, « 93 cas » → 235 cas).
+
 ## [5.5.0.0] — 2026-06-05
 
 ### Added

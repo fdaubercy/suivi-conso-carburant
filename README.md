@@ -323,10 +323,11 @@ npm run test:e2e:headed   # navigateur visible
 npm run test:e2e:report   # ouvre le rapport HTML
 ```
 
-### 🔁 CI — GitHub Actions (W13 + S9)
-Quatre jobs automatiques sur chaque `push` / `pull_request` :
+### 🔁 CI — GitHub Actions (W13 + S9 + W72)
+Cinq jobs automatiques sur chaque `push` / `pull_request` :
 - **ESLint** : lint de tous les fichiers `js/` (règles `no-var`, `no-unused-vars`, `no-undef`…), **strict `--max-warnings=0`** (T11) — le moindre warning fait échouer le job
-- **Tests Vitest** : 93 cas unitaires (utils, prix, itineraire, notifications, stationsmap, **ticket/OCR — T10**, env `jsdom`)
+- **Tests Vitest** : **235 cas unitaires** sur 22 fichiers (utils, prix, itineraire, notifications, stationsmap, ticket/OCR, **+ state, ui, carburant, recherche, formulaire, offline, geo, carte, pwa — W72**), env `jsdom`
+- **Couverture (W72)** : `npm run test:coverage` (`@vitest/coverage-v8`, provider v8) — résumé publié dans le récap du job, **non-bloquant** (`continue-on-error: true`, aucun seuil)
 - **npm audit** (S9) : signale les vulnérabilités `moderate+` sur les dépendances — non-bloquant (`continue-on-error: true`)
 - **Version check** : compare `APP_VERSION` dans `config.js` au dernier tag Git — avertissement si divergence
 

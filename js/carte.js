@@ -64,7 +64,9 @@ function _renderGoogleMap(uLat, uLon) {
    échoue / refuse l'authentification.
 ═══════════════════════════════════════════════════════════════════════ */
 
-function tileXY(lat, lon, z) {
+/** Conversion lat/lon → indices de tuile Web-Mercator (zoom z).
+ *  Exporté pour les tests unitaires (math pure). */
+export function tileXY(lat, lon, z) {
   const n = 1 << z, lr = lat * Math.PI / 180;
   return {
     x: Math.floor((lon + 180) / 360 * n),

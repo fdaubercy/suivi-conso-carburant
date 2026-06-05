@@ -63,8 +63,27 @@ export default defineConfig(({ command }) => ({
   // ─── Vitest (W14) ───────────────────────────────────────────
   test: {
     globals: true,
-    environment: 'node',   // node suffit : les fonctions testées n'accèdent pas au DOM
+    // Environnement 'node' par défaut ; les suites qui touchent le DOM
+    // basculent en jsdom via le commentaire `// @vitest-environment jsdom`
+    // en tête de fichier (cf. ui/carburant/formulaire/geo/carte/offline…).
+    environment: 'node',
     include: ['tests/**/*.test.js'],
     reporters: ['verbose'],
+
+    // ─── Couverture (W72) — informatif, NON bloquant ───────────
+    // Rapport de couverture sur les modules js/ : aucun seuil défini,
+    // donc la CI ne casse jamais à cause de la couverture (job dédié
+    // `continue-on-error` côté GitHub Actions).
+    coverage: {
+      provider:         'v8',
+      // 'text' = détail par fichier dans les logs CI ; 'text-summary' = bloc
+      // synthétique repris dans le résumé du job ; 'html'/'lcov' = artefact.
+      reporter:         ['text', 'text-summary', 'html', 'lcov'],
+      reportsDirectory: 'coverage',
+      include:          ['js/**/*.js'],
+      // main.js = câblage/point d'entrée, config.js = constantes :
+      // aucune logique testable utile, exclus pour ne pas fausser le %.
+      exclude:          ['js/main.js', 'js/config.js'],
+    },
   },
 }));
