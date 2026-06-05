@@ -3,7 +3,6 @@ import { GAS_URL, APP_TOKEN, FUEL_CONFIG, HIST_CACHE_KEY, HIST_SINCE_KEY, CSV_SE
 import { getIdToken } from './auth.js';
 import { state } from './state.js';
 import { showFeedback } from './ui.js';
-import { renderStats } from './stats.js';
 import { renderStationsCard } from './stationsmap.js';
 import { getSectorMinForDate } from './secteur.js';   // W38 — prix mini du secteur par jour
 import { brandInfo } from './brand.js';                // W65 — icône d'enseigne (+ log inconnues)
@@ -124,7 +123,6 @@ export async function chargerHistorique() {
 
     _lastRecord = recent[0];
     el.innerHTML = recent.map(renderItem).join('');
-    renderStats();
     renderStationsCard();
 
     // W32 — Rafraîchir l'historique complet s'il est ouvert
@@ -146,7 +144,6 @@ export async function chargerHistorique() {
         .slice(0, 5);
       _lastRecord = recent[0];
       el.innerHTML = recent.map(renderItem).join('');
-      renderStats();
       renderStationsCard();
     } else {
       el.innerHTML = '<div class="hist-msg err">Erreur — ' + (e.message || 'réseau') + '</div>';
@@ -515,7 +512,6 @@ function _renderLists() {
       el.innerHTML = recent.map(renderItem).join('');
     }
   }
-  renderStats();
   renderStationsCard();
 
   const fullCard = document.getElementById('histoireFullCard');

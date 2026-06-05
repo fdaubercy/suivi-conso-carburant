@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.5.2.0] — 2026-06-05
+
+### Fixed
+- **Cycle d'import circulaire brisé** — `historique.js` importait `renderStats` depuis `stats.js`, qui lui-même importait `renderComparatif` depuis `comparatif.js`, qui importait `getAllRecords` depuis `historique.js` (cycle 3-fichiers). Résolution Option A : suppression de l'import `renderStats` et de ses 3 appels dans `historique.js` ; `main.js` (qui importe déjà `renderStats`) appelle désormais `renderStats()` explicitement après chaque `chargerHistorique()` et `rerenderHistorique()`. Aucun changement de comportement visible — 235 tests au vert.
+
+### Changed
+- **`APP_VERSION` 5.5.1.1 → 5.5.2.0** (`js/config.js`)
+
 ## [5.5.1.1] — 2026-06-05
 
 ### Changed

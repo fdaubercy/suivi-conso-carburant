@@ -84,11 +84,13 @@ if (persoAllowed()) chargerHistorique().then(() => {
 
   // U5 — met à jour la tuile « reprendre » avec le dernier plein fraîchement chargé
   renderHomeResume();
+  renderStats();
 
   // W38 — prix secteur : charge le snapshot quotidien puis enrichit l'historique
   loadSectorPrices().then(() => {
     renderSectorBestCard();
     rerenderHistorique();   // affiche l'écart « payé X €/L de plus que le secteur »
+    renderStats();
     refreshBadges();        // W45 — pastille Carte (meilleur prix secteur du jour)
   });
 
@@ -147,6 +149,7 @@ window.addEventListener('auth-changed', () => {
     initWrapped();
     refreshBadges();
     renderHomeResume();
+    renderStats();
   });
   prewarmServerStats(state.currentVehiculeNom || '');
   syncParametres();
