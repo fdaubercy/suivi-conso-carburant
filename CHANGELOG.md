@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.5.1.1] — 2026-06-05
+
+### Changed
+- **Migration CI vers Node.js 24** — tous les jobs CI (`lint`, `test`, `coverage`, `audit`) passent de `node-version: '20'` à `node-version: '24'` avant la deadline GitHub du 16 juin 2026. `engines.node` dans `package.json` mis à jour en `>=24`.
+- **`APP_VERSION` 5.5.1.0 → 5.5.1.1** (`js/config.js`, `package.json`)
+
 ## [5.5.1.0] — 2026-06-05
 
 ### Added

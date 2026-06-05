@@ -1,6 +1,6 @@
 {
   "name": "suivi-conso-carburant",
-  "version": "5.5.1.0",
+  "version": "5.5.1.1",
   "description": "Formulaire mobile de saisie des pleins carburant (E85/SP98/Gazole…) — GitHub Pages + Google Sheets",
   "type": "module",
   "scripts": {
@@ -35,7 +35,7 @@
     "vitest": "^4.1.7"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "dependencies": {
     "tesseract.js": "^7.0.0"
