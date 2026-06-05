@@ -458,3 +458,13 @@ ou formuler directement une demande, ex :
 > "Lis le code du script GAS et ajoute une fonction X"
 > "Écris la valeur Y dans la cellule Sheet1!B3"
 > "Redéploie le script avec la description Z"
+
+---
+
+# 🔎 GRAPHIFY (copie de la config globale ~/.claude/CLAUDE.md)
+
+- **graphify** (`~/.claude/skills/graphify/SKILL.md`) — transforme n'importe quelle entrée (code, docs, images, vidéos) en knowledge graph. Déclencheur : `/graphify`.
+- Quand l'utilisateur tape `/graphify`, invoquer le skill `graphify` avant toute autre action.
+
+## Lecture des fichiers
+Avant de lire des fichiers, consulte d'abord `graphify-out/graph.json` pour comprendre la structure et ne lire que le strict nécessaire.
