@@ -30,6 +30,8 @@ Private Sub Workbook_Open()
          UserInterfaceOnly:=True, _
          DrawingObjects:=False, Contents:=True, Scenarios:=False, _
          AllowFormattingColumns:=True
+     ThisWorkbook.Sheets("Suivi Carburant").Columns("Z").Hidden = True   ' Zone technique (Z1 import, Z2) masquee
+     ThisWorkbook.Sheets("Suivi Carburant").Columns("AA").Hidden = True   ' Zone technique AA masquée
 
     ' 3. Vue de depart (Accueil / Saisie / derniere vue) selon la feuille Reglages
     '    Tolerant : si modWorkbook n'est pas encore importe, l'ouverture continue.

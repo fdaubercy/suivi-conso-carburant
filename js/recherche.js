@@ -5,7 +5,7 @@
    La recherche des stations se fait dans le rayon choisi AUTOUR de ce point. */
 import { PRIX_API, BAN_API, FUEL_CONFIG, FUEL_SELECT } from './config.js';
 import { state } from './state.js';
-import { haversine, getCoords, stationLabel, stationSubLabel, composeStationName } from './utils.js';
+import { haversine, getCoords, stationLabel, stationSubLabel, composeStationName, resolveEnseigne } from './utils.js';
 import { setAutreStatus } from './ui.js';
 import { enrichStationsBulk } from './osm.js';
 import { showMap } from './carte.js';
@@ -75,12 +75,12 @@ export function buildStations(results, center) {
   return results.filter(r => getCoords(r)).map(r => {
     const c = getCoords(r);
     const dist = ref ? Math.round(haversine(ref.lat, ref.lon, c.lat, c.lon)) : null;
-    const rawName = stationLabel(r);
+    const rawName = stationLabel(r);                       // conservé pour la détection "connue"
     const ville   = r.ville || '';
-    const name    = composeStationName(rawName, ville);
+    const name    = composeStationName(resolveEnseigne(null, r.adresse), ville);
     const prices = {};
     Object.keys(FUEL_CONFIG).forEach(k => { if (r[FUEL_CONFIG[k].apiField] != null) prices[k] = r[FUEL_CONFIG[k].apiField]; });
-    return { name, ville, sub: stationSubLabel(r), dist, lat: c.lat, lon: c.lon, prices,
+    return { name, ville, adresse: r.adresse || '', sub: stationSubLabel(r), dist, lat: c.lat, lon: c.lon, prices,
              known: knownNames.some(k => k.includes(rawName.toLowerCase()) || k.includes(ville.toLowerCase())) };
   }).sort((a, b) => (a.dist ?? 99999) - (b.dist ?? 99999));
 }
@@ -146,7 +146,7 @@ export async function searchStationSuggestions(q) {
     showMap(center.lat, center.lon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
 
     enrichStationsBulk(stations,
-      (i, osmName) => { stations[i].name = composeStationName(osmName, stations[i].ville); updateNearbyName(i, stations[i].name); },
+      (i, osmName) => { stations[i].name = composeStationName(resolveEnseigne(osmName, stations[i].adresse), stations[i].ville); updateNearbyName(i, stations[i].name); },
       setAutreStatus
     ).then(ok => {
       if (!ok) return;                                // annulé (nouvelle recherche / station choisie)
@@ -182,7 +182,7 @@ export async function searchStationsCityOnly(searchClause, cityName, center) {
     showMap(mapLat, mapLon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
 
     enrichStationsBulk(stations,
-      (i, osmName) => { stations[i].name = composeStationName(osmName, stations[i].ville); updateNearbyName(i, stations[i].name); },
+      (i, osmName) => { stations[i].name = composeStationName(resolveEnseigne(osmName, stations[i].adresse), stations[i].ville); updateNearbyName(i, stations[i].name); },
       setAutreStatus
     ).then(ok => {
       if (!ok) return;                                // annulé (nouvelle recherche / station choisie)

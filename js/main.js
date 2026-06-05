@@ -294,18 +294,18 @@ Object.assign(window, {
  */
 window.selectStationFromMap = function(idx) {
   const s = state._mapStations[idx]; if (!s) return;
+
+  // Highlight visuel du marqueur cliqué (repli OSM maison ; inerte en Google Maps).
   state._mapStations.forEach((_, i) => {
     const p = document.getElementById('mapPinDot' + i);
     if (p) p.style.background = i === idx ? '#1B3A5C' : '#2E75B6';
   });
   showPinLabel(idx);
-  pickStation(s.name, s.lat, s.lon);
-  if (s.src === 'nearby') {
-    highlightNearbyItem(s.srcIdx);
-    document.getElementById('nearbyItem' + s.srcIdx)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
 
-  /* S11 — popup infos + itinéraire (Waze / Google Maps) */
+  /* S11/1a/1b — popup infos + itinéraire (Waze / Google Maps).
+     Le clic n'AUTO-SÉLECTIONNE plus la station (la liste reste affichée) : la
+     sélection pour le formulaire se fait explicitement via « Choisir cette
+     station » (onSelect), symétrique avec le clic dans la liste. */
   const cfg   = FUEL_CONFIG[state.currentType];
   const prix  = s.prices ? s.prices[state.currentType] : null;
   showStationPopup({
@@ -315,5 +315,12 @@ window.selectStationFromMap = function(idx) {
     dist: s.dist,
     sub:  s.sub,
     priceLabel: prix != null ? `${cfg.short} ${parseFloat(prix).toFixed(3)} €/L` : null,
+    onSelect: () => {
+      pickStation(s.name, s.lat, s.lon);
+      if (s.src === 'nearby') {
+        highlightNearbyItem(s.srcIdx);
+        document.getElementById('nearbyItem' + s.srcIdx)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    },
   });
 };

@@ -30,7 +30,10 @@ function _onKey(e) { if (e.key === 'Escape') _close(); }
 
 /**
  * Affiche la popup d'infos station + boutons d'itinéraire.
- * @param {{name:string, lat:number, lon:number, priceLabel?:string, sub?:string, dist?:number}} st
+ * Si `st.onSelect` est fourni (carte de l'onglet Saisie), un bouton
+ * « ⛽ Choisir cette station » est ajouté pour remplir le formulaire ;
+ * sinon la popup reste en navigation seule (carte « habituelles »).
+ * @param {{name:string, lat:number, lon:number, priceLabel?:string, sub?:string, dist?:number, onSelect?:Function}} st
  */
 export function showStationPopup(st) {
   if (!st || st.lat == null || st.lon == null) return;
@@ -49,6 +52,12 @@ export function showStationPopup(st) {
     st.sub        ? `<div class="stpop-row"><span>📍</span><span>${escHtml(st.sub)}</span></div>` : '',
   ].filter(Boolean).join('');
 
+  // 1a/1b — bouton de sélection (remplit le formulaire de saisie) présent
+  // uniquement si un callback onSelect est fourni (carte onglet Saisie).
+  const selectBtn = typeof st.onSelect === 'function'
+    ? `<button class="stpop-btn stpop-select" type="button" data-stpop-select>⛽ Choisir cette station</button>`
+    : '';
+
   _overlay = document.createElement('div');
   _overlay.className = 'stpop-overlay';
   _overlay.innerHTML = `
@@ -56,7 +65,8 @@ export function showStationPopup(st) {
       <button class="stpop-x" type="button" aria-label="Fermer">×</button>
       <p class="stpop-title">${escHtml(st.name)}</p>
       <div class="stpop-info">${rows || '<div class="stpop-row"><span>📍</span><span>Station E85</span></div>'}</div>
-      <p class="stpop-ask">Obtenir l'itinéraire vers cette station ?</p>
+      ${selectBtn ? `<div class="stpop-actions stpop-actions-select">${selectBtn}</div>` : ''}
+      <p class="stpop-ask">${selectBtn ? 'Ou obtenir l\'itinéraire :' : 'Obtenir l\'itinéraire vers cette station ?'}</p>
       <div class="stpop-actions">
         <a class="stpop-btn stpop-waze" href="${WAZE_URL(st.lat, st.lon)}" target="_blank" rel="noopener">🚗 Itinéraire Waze</a>
         <a class="stpop-btn stpop-gmaps" href="${GMAPS_URL(st.lat, st.lon)}" target="_blank" rel="noopener">🗺️ Google Maps</a>
@@ -66,7 +76,12 @@ export function showStationPopup(st) {
 
   _overlay.addEventListener('click', e => {
     if (e.target === _overlay || e.target.closest('.stpop-x')) { _close(); return; }
-    if (e.target.closest('.stpop-btn')) _close();   // ferme après lancement de l'app
+    if (e.target.closest('[data-stpop-select]')) {   // « Choisir cette station » → remplit le formulaire
+      _close();
+      if (typeof st.onSelect === 'function') st.onSelect();
+      return;
+    }
+    if (e.target.closest('.stpop-btn')) _close();    // ferme après lancement de l'app (Waze / Maps)
   });
 
   document.body.appendChild(_overlay);

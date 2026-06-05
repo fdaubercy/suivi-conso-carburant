@@ -1,5 +1,6 @@
 /* ─── Fonctions utilitaires pures ─── */
 import { PRIX_API } from './config.js';
+import { detectBrand } from './brand.js';
 
 export function haversine(lat1, lon1, lat2, lon2) {
   const R = 6371000, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
@@ -45,6 +46,39 @@ export function formatVille(city) {
 export function composeStationName(name, ville) {
   const v = formatVille(ville);
   return v && name ? name + ' - ' + v : (name || v);
+}
+
+/** Détecte une enseigne dans un texte d'adresse, en neutralisant les odonymes
+ *  courants (« av. du Général Leclerc » n'est PAS l'enseigne Leclerc). '' sinon. */
+function brandFromAddress(adresse) {
+  let s = String(adresse || '');
+  // « Leclerc » comme nom de voie (Général Leclerc, av./rue/bd… Leclerc) → pas l'enseigne.
+  if (/(?:g[ée]n[ée]ral|av(?:enue)?\.?|rue|bd|boulevard|place|pl\.?|chemin|route|rte|imp(?:asse)?)\s+(?:du\s+|de\s+|d['’]\s*)?(?:g[ée]n[ée]ral\s+)?leclerc/i.test(s)) {
+    s = s.replace(/leclerc/ig, ' ');
+  }
+  const b = detectBrand(s);
+  return b ? b.label : '';
+}
+
+/**
+ * Résout l'enseigne d'une station « à tout prix », sans JAMAIS renvoyer
+ * l'adresse comme identifiant (le dataset gouv. ne fournit pas la marque) :
+ *   1. nom OSM (brand/name/operator) → enseigne canonique si reconnue, sinon le
+ *      nom OSM brut ;
+ *   2. enseigne détectée dans l'adresse (gardes anti-odonymes) ;
+ *   3. repli générique « Station ».
+ * @param {?string} osmName  nom renvoyé par Overpass (null avant enrichissement)
+ * @param {?string} adresse  adresse gouv. (jamais utilisée telle quelle comme nom)
+ * @returns {string} l'enseigne (à composer ensuite avec la ville)
+ */
+export function resolveEnseigne(osmName, adresse) {
+  if (osmName) {
+    const b = detectBrand(osmName);
+    return b ? b.label : String(osmName).trim();
+  }
+  const fromAddr = brandFromAddress(adresse);
+  if (fromAddr) return fromAddr;
+  return 'Station';
 }
 
 /** Construit l'URL de l'API ODS avec les paramètres donnés. */

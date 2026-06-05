@@ -11,6 +11,7 @@ import {
   stationSubLabel,
   formatVille,
   composeStationName,
+  resolveEnseigne,
   odsUrl,
 } from '../js/utils.js';
 
@@ -101,6 +102,25 @@ describe('stationLabel', () => {
     // On teste avec une adresse sans accent pour isoler la logique de priorité
     const r = { adresse: 'avenue du general de gaulle', ville: 'PARIS' };
     expect(stationLabel(r)).toBe('Avenue Du General De Gaulle');
+  });
+});
+
+// ─── resolveEnseigne (nommage « à tout prix », jamais l'adresse) ──
+describe('resolveEnseigne', () => {
+  it('normalise un nom OSM en enseigne canonique', () => {
+    expect(resolveEnseigne('Station Total Access', null)).toBe('Total');
+  });
+  it('garde le nom OSM brut si enseigne inconnue', () => {
+    expect(resolveEnseigne('Relais du Coin', null)).toBe('Relais du Coin');
+  });
+  it('détecte l\'enseigne dans l\'adresse', () => {
+    expect(resolveEnseigne(null, 'Centre commercial Carrefour')).toBe('Carrefour');
+  });
+  it('ignore « Leclerc » comme odonyme (av. du Général Leclerc)', () => {
+    expect(resolveEnseigne(null, 'Avenue du Général Leclerc')).toBe('Station');
+  });
+  it('repli générique « Station », jamais l\'adresse', () => {
+    expect(resolveEnseigne(null, 'Allée des ailes')).toBe('Station');
   });
 });
 

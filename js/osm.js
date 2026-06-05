@@ -6,7 +6,7 @@ import { haversine } from './utils.js';
 
 const OVERPASS_API      = 'https://overpass-api.de/api/interpreter';
 const QUERY_RADIUS_M    = 300;   // rayon interrogé autour de chaque station
-const MATCH_THRESHOLD_M = 200;   // au-delà → on garde le nom gouv. (pas de faux nom)
+const MATCH_THRESHOLD_M = 300;   // = rayon interrogé : on apparie la pompe OSM la plus proche (nommage « à tout prix »)
 const OVERPASS_TIMEOUT  = 25000; // ms
 
 // Token d'annulation : une nouvelle recherche OU la sélection d'une station l'incrémente.

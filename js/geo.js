@@ -1,7 +1,7 @@
 /* ─── Géolocalisation + liste stations proches ─── */
 import { FUEL_CONFIG, FUEL_KEYS, FUEL_SELECT, GAS_URL, APP_TOKEN } from './config.js';
 import { state } from './state.js';
-import { haversine, escHtml, getCoords, stationLabel, stationSubLabel, composeStationName } from './utils.js';
+import { haversine, escHtml, getCoords, stationLabel, stationSubLabel, composeStationName, resolveEnseigne } from './utils.js';
 import { setGeoStatus } from './ui.js';
 import { cacheStationCoords } from './stationsmap.js';
 import { enrichStationsBulk, cancelOsmEnrich } from './osm.js';
@@ -108,7 +108,8 @@ export async function searchNearby(lat, lon, btn) {
       const ville   = c.r.ville || '';
       const prices  = {};
       FUEL_KEYS.forEach(k => { if (c.r[FUEL_CONFIG[k].apiField] != null) prices[k] = c.r[FUEL_CONFIG[k].apiField]; });
-      const o = { name: composeStationName(rawName, ville), ville, sub: stationSubLabel(c.r),
+      const o = { name: composeStationName(resolveEnseigne(null, c.r.adresse), ville), ville,
+                  adresse: c.r.adresse || '', sub: stationSubLabel(c.r),
                   dist: c.dist, lat: c.lat, lon: c.lon, prices };
       if (withKnown) o.known = knownNames.some(k => k.includes(rawName.toLowerCase()) || k.includes(ville.toLowerCase()));
       return o;
@@ -132,7 +133,7 @@ export async function searchNearby(lat, lon, btn) {
     /* Enseignes OSM en arrière-plan : 1 requête groupée, renommage au fur et à
        mesure. Annulé si l'utilisateur relance une recherche ou choisit une station. */
     enrichStationsBulk(stations,
-      (i, osmName) => { stations[i].name = composeStationName(osmName, stations[i].ville); updateNearbyName(i, stations[i].name); },
+      (i, osmName) => { stations[i].name = composeStationName(resolveEnseigne(osmName, stations[i].adresse), stations[i].ville); updateNearbyName(i, stations[i].name); },
       setGeoStatus
     ).then(ok => {
       if (!ok) return;                  // annulé → on garde l'affichage courant
