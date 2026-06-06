@@ -165,13 +165,14 @@
       <label for="fKm">Km compteur</label>
       <div class="km-input-wrap">
         <input type="number" id="fKm" placeholder="km compteur" inputmode="numeric">
-        <button type="button" id="voiceKmBtn" class="voice-btn" title="Dicter le kilométrage">
+        <button type="button" id="voiceKmBtn" class="voice-btn voice-btn--lbl" title="Dicter le kilométrage" aria-label="Dicter le kilométrage">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
             <rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/>
             <path d="M5 11a7 7 0 0 0 14 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             <line x1="8" y1="22" x2="16" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
+          <span class="vb-lbl">Dicter</span>
         </button>
       </div>
       <div class="km-warn" id="kmWarn"></div>
@@ -221,7 +222,7 @@
           <option value="__autre">+ Saisie manuelle</option>
         </optgroup>
       </select>
-      <button class="geo-btn" id="geoBtn">📍</button>
+      <button class="geo-btn geo-btn--lbl" id="geoBtn" aria-label="Utiliser ma position actuelle"><span class="gb-ico">📍</span><span class="gb-lbl">Ma position</span></button>
     </div>
     <div class="geo-status info" id="geoStatus"></div>
   </div>

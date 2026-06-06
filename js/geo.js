@@ -42,9 +42,15 @@ function saveLastGeoToServer(lat, lon) {
   } catch { /* cache best-effort */ }
 }
 
+/** Met à jour l'icône du bouton géoloc sans effacer le libellé « Ma position » (span .gb-ico). */
+function setGeoIcon(btn, icon) {
+  const ico = btn.querySelector('.gb-ico');
+  if (ico) ico.textContent = icon; else btn.textContent = icon;
+}
+
 export function geolocate() {
   if (!navigator.geolocation) { setGeoStatus('err', 'Géolocalisation non disponible.'); return; }
-  const btn = document.getElementById('geoBtn'); btn.classList.add('loading'); btn.textContent = '🔄';
+  const btn = document.getElementById('geoBtn'); btn.classList.add('loading'); setGeoIcon(btn, '🔄');
 
   /* W31 — Pré-remplir depuis la dernière géoloc connue pendant l'actualisation */
   const cached = loadGeoCache();
@@ -66,7 +72,7 @@ export function geolocate() {
       searchNearby(state.userLat, state.userLon, btn);
     },
     err => {
-      btn.classList.remove('loading'); btn.textContent = '📍';
+      btn.classList.remove('loading'); setGeoIcon(btn, '📍');
       const msgs = { 1: 'Accès refusé — autorisez dans Réglages.', 2: 'Position introuvable.', 3: 'Délai dépassé.' };
       setGeoStatus('err', msgs[err.code] || 'Erreur.');
     },
@@ -88,7 +94,7 @@ export async function searchNearby(lat, lon, btn) {
     );
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
-    btn.classList.remove('loading'); btn.textContent = '📍';
+    btn.classList.remove('loading'); setGeoIcon(btn, '📍');
     if (!data.results?.length) { setGeoStatus('info', `Aucune station ${cfg.short} trouvée dans 8 km.`); return; }
 
     /* Tous les candidats triés par distance */
@@ -144,7 +150,7 @@ export async function searchNearby(lat, lon, btn) {
       setGeoStatus('ok', stations.length + ' station(s) ' + cfg.short + ' trouvée(s)');
     });
   } catch(e) {
-    document.getElementById('geoBtn').classList.remove('loading'); document.getElementById('geoBtn').textContent = '📍';
+    const gb = document.getElementById('geoBtn'); gb.classList.remove('loading'); setGeoIcon(gb, '📍');
     setGeoStatus('err', 'Erreur de recherche (' + e.message + ').');
   }
 }

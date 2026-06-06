@@ -28,3 +28,23 @@ describe('Groupe A — boutons d’en-tête relabellisés', () => {
     expect(btn.getAttribute('aria-label')).toBe(aria);
   });
 });
+
+describe('Groupe B — boutons de champ', () => {
+  it('🎤 #voiceKmBtn : libellé « Dicter » + aria-label, SVG conservé', () => {
+    const b = doc.querySelector('#voiceKmBtn');
+    expect(b.classList.contains('voice-btn--lbl')).toBe(true);
+    expect(b.querySelector('svg'), 'icône SVG conservée').toBeTruthy();
+    expect(b.querySelector('.vb-lbl')?.textContent.trim()).toBe('Dicter');
+    expect(b.getAttribute('aria-label')).toBe('Dicter le kilométrage');
+  });
+
+  it('📍 #geoBtn : sorti de la superposition, libellé « Ma position » + aria-label', () => {
+    const b = doc.querySelector('#geoBtn');
+    expect(b.classList.contains('geo-btn--lbl')).toBe(true);
+    expect(b.querySelector('.gb-lbl')?.textContent.trim()).toBe('Ma position');
+    expect(b.getAttribute('aria-label')).toBe('Utiliser ma position actuelle');
+    // Frère direct du <select> dans .station-wrap (flux normal, plus de superposition absolue).
+    expect(b.parentElement.classList.contains('station-wrap')).toBe(true);
+    expect(b.previousElementSibling?.id).toBe('stationSel');
+  });
+});

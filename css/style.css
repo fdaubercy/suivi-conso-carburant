@@ -455,6 +455,8 @@ header h1 {
   color: var(--text-muted);
 }
 .voice-btn:active { background: var(--hover); }
+.voice-btn--lbl { width: auto; gap: 6px; padding: 0 10px; }
+.voice-btn--lbl .vb-lbl { font-size: 12px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
 .voice-btn.mic-active {
   border-color: var(--red);
   background: color-mix(in srgb, var(--red) 12%, transparent);
@@ -492,19 +494,20 @@ header h1 {
 .hist-note.warn { color: var(--amber); }
 .hist-note.info { color: var(--text-muted); }
 
-/* ─── Station + géo ─── */
-.station-wrap { position: relative; }
-.station-wrap select { padding-right: 50px; }
+/* ─── Station + géo ─── (bouton 📍 sorti de la superposition → bouton libellé adjacent) */
+.station-wrap { display: flex; gap: 8px; align-items: stretch; }
+.station-wrap select { flex: 1; min-width: 0; }
 .geo-btn {
-  position: absolute; right: 1px; top: 1px; bottom: 1px; width: 46px;
-  border: none; background: transparent;
-  border-left: 1.5px solid var(--border); border-radius: 0 9px 9px 0;
+  flex-shrink: 0; width: 46px;
+  border: 1.5px solid var(--border); background: transparent; border-radius: var(--radius);
   cursor: pointer; font-size: 20px;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
   -webkit-tap-highlight-color: transparent;
 }
+.geo-btn--lbl { width: auto; padding: 0 12px; font-size: 16px; }
+.geo-btn--lbl .gb-lbl { font-size: 12px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
 .geo-btn:active { background: var(--blue-light); }
-.geo-btn.loading { animation: spin .9s linear infinite; }
+.geo-btn.loading .gb-ico { animation: spin .9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .geo-status { font-size: 12px; margin-top: 5px; min-height: 16px; }
 .geo-status.ok   { color: var(--green); }
