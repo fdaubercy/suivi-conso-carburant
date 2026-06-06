@@ -117,9 +117,11 @@ Public Sub AjouterBoutonPleinEcran(ws As Worksheet)
 End Sub
 
 ' Pose le bouton sur tous les onglets du dashboard miroir presents.
+' Pose egalement le bouton hamburger de navigation (modNavMenu).
 Public Sub PoserBoutonsPleinEcran()
     Dim noms As Variant, i As Long, ws As Worksheet, n As Long
-    noms = Array("Accueil", "Reglages", "Historique", "Carte", "Tableau de bord")
+    noms = Array("Accueil", "Reglages", "Historique", "Carte", "Tableau de bord", _
+                 "Suivi Carburant", "Prix par Station")
     For i = LBound(noms) To UBound(noms)
         Set ws = Nothing
         On Error Resume Next
@@ -131,4 +133,9 @@ Public Sub PoserBoutonsPleinEcran()
         End If
     Next i
     Application.StatusBar = "[Affichage] " & ChrW(10003&) & " Bouton 'Quitter le plein ecran' pose sur " & n & " onglet(s)."
+
+    ' Boutons hamburger ☰ de navigation (modNavMenu, tolerant si module absent)
+    On Error Resume Next
+    Application.Run "modNavMenu.PoserBoutonsNavMenu"
+    On Error GoTo 0
 End Sub
