@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.6.0.0] — 2026-06-06
+
+### Changed
+- **Découvrabilité des boutons-icônes — libellés visibles sur 10 boutons (W77)** — les boutons jusque-là icône-seule exposent désormais une icône + un mot lisible au doigt, sans changer leur action :
+  - **Groupe A — en-têtes** (`.hist-btn--lbl`, pilule icône-au-dessus-du-libellé) : 🏍️ « Véhicule / tous » (`wrappedScopeBtn`), 📜 « Tout voir » (`voirTout`), 📋 « Dupliquer » (`dupliquerDernier`), ↻ « Actualiser » (`chargerHistorique`), 📥 « Export filtré » (`histExportBtn`), 📦 « Export tout » (`histExportAllBtn`), ✕ « Fermer » (`histFullCloseBtn`). Nouvelle classe `.hist-header--stack` (titre puis actions en colonne) pour loger `[select année] + [🏍️ Véhicule / tous]` sans débordement sur la carte Bilan annuel.
+  - **Groupe B — champs de saisie** (pilule horizontale icône + mot) : 🎤 « Dicter » (`voiceKmBtn`, SVG conservé) et 📍 « Ma position » (`geoBtn`, **sorti de la superposition du champ Station** vers `.station-wrap` pour ne plus chevaucher le texte saisi).
+  - **Groupe C — superposition carte** : ⛶ « Plein écran » / ✕ « Quitter le plein écran » (`.map-fs-btn--lbl`, les deux instances déclarées en dur — carte station et carte « stations habituelles ») ; libellé préservé au bascule plein écran via `setFsButtonState`.
+  - Chaque bouton porte un `aria-label` complet (couvert par `tests/buttons-a11y.test.js`, 9 cas) et conserve son `title` (infobulle au survol desktop). Couleur du libellé = `var(--text-muted)` (contraste ≥ 6,9:1 en mode sombre, conforme WCAG AA).
+  - **Non-régression** : base `.hist-btn`/`.geo-btn`/`.voice-btn`/`.map-fs-btn` intacte — les boutons `.card-fs-btn` injectés dynamiquement (plein écran générique des cartes) restent icône-seule, inchangés.
+- **`APP_VERSION` 5.5.2.0 → 5.6.0.0** (`js/config.js`, incrément MINOR = nouvelle fonctionnalité utilisateur visible)
+
 ## [5.5.2.0] — 2026-06-05
 
 ### Fixed

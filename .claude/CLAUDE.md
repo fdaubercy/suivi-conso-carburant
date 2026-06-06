@@ -149,6 +149,29 @@ Avant toute modification :
 
 ---
 
+## Délégation aux sous-agents
+
+Tu es un orchestrateur. Face à une tâche, évalue si elle gagne à être
+décomposée, puis spawne des sous-agents (general-purpose) SELON TES BESOINS,
+sans me demander confirmation.
+
+- Lance plusieurs sous-agents EN PARALLÈLE dès que les sous-tâches sont
+  indépendantes (domaines ou fichiers distincts, pas d'état partagé).
+- Confie à un sous-agent toute opération qui produit beaucoup de sortie
+  (exploration de fichiers, exécution de tests, lecture de docs/logs) :
+  le bruit reste dans son contexte, seul le résumé remonte au thread principal.
+- Donne à chaque sous-agent un prompt autonome : chemins de fichiers, messages
+  d'erreur et décisions doivent figurer explicitement dans la consigne, car son
+  contexte démarre vierge.
+- Enchaîne en séquentiel uniquement quand une sous-tâche dépend du résultat
+  d'une autre.
+
+Si un même rôle spécialisé revient régulièrement (ex. relecture de code),
+propose-moi de le formaliser en fichier .claude/agents/, plutôt que de le
+recréer à chaque fois.
+
+---
+
 ## 📚 Documentation obligatoire
 
 À chaque modification de code :
