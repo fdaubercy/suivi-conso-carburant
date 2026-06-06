@@ -12,13 +12,23 @@
      ré-injecte le bouton après chaque re-rendu (innerHTML remplacé).
 ═══════════════════════════════════════════════════════════════════════ */
 
+/** Met un bouton plein écran dans l'état (icône, libellé, titre).
+ *  Boutons relabellisés (spans .mfs-ico/.mfs-lbl) → met à jour les spans (le mot reste visible).
+ *  Boutons icône-seule (injectés .card-fs-btn) → repli sur textContent (comportement inchangé). */
+export function setFsButtonState(b, icon, label, title) {
+  const ico = b.querySelector('.mfs-ico');
+  if (ico) ico.textContent = icon; else b.textContent = icon;
+  const lbl = b.querySelector('.mfs-lbl');
+  if (lbl && label != null) lbl.textContent = label;
+  b.title = title;
+  b.setAttribute('aria-label', title);
+}
+
 function _exitAll() {
   document.querySelectorAll('.map-fs').forEach(t => t.classList.remove('map-fs'));
   document.body.classList.remove('map-fs-open');
   document.querySelectorAll('.map-fs-btn').forEach(b => {
-    b.textContent = '⛶';
-    b.title = 'Plein écran';
-    b.setAttribute('aria-label', 'Plein écran');
+    setFsButtonState(b, '⛶', 'Plein écran', 'Plein écran');
   });
   setTimeout(() => window.dispatchEvent(new Event('resize')), 60);
 }
@@ -88,9 +98,7 @@ export function initMapFullscreen() {
         target.classList.add('map-fs');
         document.body.classList.add('map-fs-open');
         target.scrollTop = 0;
-        fsBtn.textContent = '✕';
-        fsBtn.title = 'Quitter le plein écran';
-        fsBtn.setAttribute('aria-label', 'Quitter le plein écran');
+        setFsButtonState(fsBtn, '✕', 'Quitter', 'Quitter le plein écran');
         setTimeout(() => window.dispatchEvent(new Event('resize')), 60);
       }
       return;

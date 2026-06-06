@@ -286,7 +286,7 @@ export function renderStationsCard() {
     card.innerHTML = '<div class="smap-top"></div>'
                    + '<div class="map-fs-wrap" id="staticMapFsWrap">'
                    +   '<div id="staticStationMap" class="static-map"></div>'
-                   +   '<button class="map-fs-btn" type="button" data-fs-target="#staticMapFsWrap" title="Plein écran" aria-label="Plein écran">⛶</button>'
+                   +   '<button class="map-fs-btn map-fs-btn--lbl" type="button" data-fs-target="#staticMapFsWrap" title="Plein écran" aria-label="Plein écran"><span class="mfs-ico">⛶</span><span class="mfs-lbl">Plein écran</span></button>'
                    + '</div>'
                    + '<div class="smap-bottom"></div>';
   }

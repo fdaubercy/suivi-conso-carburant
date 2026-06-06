@@ -1589,6 +1589,9 @@ body.no-share .hist-share { display: none; }
   position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; font-size: 16px;
   background: rgba(255,255,255,.92); color: #1B3A5C; box-shadow: 0 1px 4px rgba(0,0,0,.3);
 }
+/* Bouton ⛶ relabellisé (pilule horizontale icône + mot) — §C spec. Couleur du texte = celle du bouton (blanc en-tête / bleu-fonce superposition). */
+.map-fs-btn--lbl { width: auto; gap: 5px; padding: 0 10px; }
+.map-fs-btn--lbl .mfs-lbl { font-size: 12px; font-weight: 600; white-space: nowrap; }
 /* Cible « plein écran » : remplit tout l'écran (pas d'API Fullscreen) */
 .map-fs {
   position: fixed !important; inset: 0 !important;
