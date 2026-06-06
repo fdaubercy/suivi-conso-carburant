@@ -1,3 +1,12 @@
+# Instructions de démarrage
+
+Au début de chaque session, lis obligatoirement le fichier `graphify/README.md`
+(ou le chemin exact de ton fichier Graphify) avant toute autre action.
+
+## Contexte projet
+- Graphify est le cœur du système, toutes les décisions doivent s'y référer
+- ...
+
 # CLAUDE.md — SUIVI E85 (MODE AUTONOME COMPLET)
 
 ## 🎯 Rôle

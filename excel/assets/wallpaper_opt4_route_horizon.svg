@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500">
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#EEF4FA" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0.0"/>
+    </linearGradient>
+    <linearGradient id="roadGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D5E4EF" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0.0"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="500" fill="white"/>
+
+  <!-- Ciel dégradé -->
+  <rect width="900" height="300" fill="url(#skyGrad)"/>
+
+  <!-- Horizon / route en perspective -->
+  <!-- Route principale en perspective -->
+  <path d="M450,280 L180,500 L720,500 Z" fill="#C8D8E8" opacity="0.18"/>
+  <!-- Bandes de route -->
+  <path d="M450,280 L430,500 L470,500 Z" fill="white" opacity="0.8"/>
+  <path d="M450,290 L437,500 L442,500 L450,300 L458,500 L463,500 Z" fill="#D0DCE8" opacity="0.25"/>
+
+  <!-- Ligne d'horizon -->
+  <line x1="50" y1="280" x2="850" y2="280" stroke="#B8CEDD" stroke-width="1.5" opacity="0.35"/>
+
+  <!-- MOTO de profil sur la route, grande, à gauche -->
+  <g opacity="0.14" transform="translate(100, 285) scale(0.95)">
+    <circle cx="80" cy="100" r="62" fill="none" stroke="#5882A0" stroke-width="12"/>
+    <circle cx="80" cy="100" r="35" fill="none" stroke="#5882A0" stroke-width="3.5"/>
+    <circle cx="310" cy="100" r="58" fill="none" stroke="#5882A0" stroke-width="12"/>
+    <circle cx="310" cy="100" r="32" fill="none" stroke="#5882A0" stroke-width="3.5"/>
+    <path d="M80,100 L120,0 L210,8 L258,44 L280,68 L310,100" fill="none" stroke="#5882A0" stroke-width="9" stroke-linejoin="round"/>
+    <line x1="80" y1="100" x2="170" y2="42" stroke="#5882A0" stroke-width="8"/>
+    <line x1="310" y1="100" x2="260" y2="-6" stroke="#5882A0" stroke-width="8"/>
+    <path d="M125,-12 Q185,-40 240,-32 Q265,-25 268,-10 L248,-3 Q200,-1 160,2 Q130,3 125,0 Z" fill="#7AAAC5"/>
+    <path d="M120,24 Q158,4 222,10 Q250,14 268,38 L252,60 Q208,46 158,44 Q120,44 100,54 Z" fill="#7AAAC5"/>
+    <path d="M255,0 Q268,-16 284,-20" fill="none" stroke="#5882A0" stroke-width="6"/>
+    <ellipse cx="245" cy="-46" rx="28" ry="26" fill="#7AAAC5"/>
+    <path d="M220,-22 Q228,-46 252,-50 Q266,-40 262,-5 L226,-3 Z" fill="#7AAAC5"/>
+    <ellipse cx="328" cy="46" rx="12" ry="18" fill="#8BBBD4"/>
+  </g>
+
+  <!-- VOITURE en arrière-plan (droite, plus petite = profondeur) -->
+  <g opacity="0.11" transform="translate(560, 248) scale(0.52)">
+    <path d="M0,130 L0,75 Q6,50 38,30 L130,8 Q178,0 220,12 L258,38 Q278,58 280,85 L280,130 Z" fill="#7AAAC5"/>
+    <path d="M32,85 Q42,30 110,10 L190,5 Q232,4 255,36 L262,85 Z" fill="#A5C4D8"/>
+    <rect x="0" y="125" width="280" height="12" rx="5" fill="#5882A0"/>
+    <circle cx="52" cy="138" r="34" fill="none" stroke="#5882A0" stroke-width="10"/>
+    <circle cx="52" cy="138" r="17" fill="none" stroke="#5882A0" stroke-width="3"/>
+    <circle cx="228" cy="138" r="34" fill="none" stroke="#5882A0" stroke-width="10"/>
+    <circle cx="228" cy="138" r="17" fill="none" stroke="#5882A0" stroke-width="3"/>
+    <ellipse cx="282" cy="90" rx="7" ry="16" fill="#8BBBD4"/>
+  </g>
+
+  <!-- Route (gradient sol) -->
+  <rect x="0" y="390" width="900" height="110" fill="url(#roadGrad)"/>
+
+  <text x="450" y="480" text-anchor="middle" font-family="Calibri,sans-serif" font-size="11"
+        fill="#8AAABF" opacity="0.28" letter-spacing="5">SUIVI CONSO CARBURANTS</text>
+</svg>

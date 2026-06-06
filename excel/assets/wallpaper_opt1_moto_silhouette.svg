@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500">
+  <rect width="900" height="500" fill="white"/>
+  <!-- Option 1 : Moto de profil — silhouette minimaliste, filigrane très discret -->
+  <g fill="#B8C8DA" opacity="0.18">
+    <!-- Roue arriere -->
+    <circle cx="220" cy="360" r="95" fill="none" stroke="#7A9BB5" stroke-width="18" opacity="0.22"/>
+    <circle cx="220" cy="360" r="55" fill="none" stroke="#7A9BB5" stroke-width="5" opacity="0.12"/>
+    <!-- Roue avant -->
+    <circle cx="660" cy="360" r="88" fill="none" stroke="#7A9BB5" stroke-width="18" opacity="0.22"/>
+    <circle cx="660" cy="360" r="50" fill="none" stroke="#7A9BB5" stroke-width="5" opacity="0.12"/>
+    <!-- Cadre / triangle de chasse -->
+    <polygon points="220,360 280,190 420,205 480,245 520,290 660,360" fill="none" stroke="#7A9BB5" stroke-width="12" stroke-linejoin="round" opacity="0.25"/>
+    <!-- Bras oscillant -->
+    <line x1="220" y1="360" x2="350" y2="280" stroke="#7A9BB5" stroke-width="10" opacity="0.20"/>
+    <!-- Fourche avant -->
+    <line x1="660" y1="360" x2="590" y2="210" stroke="#7A9BB5" stroke-width="10" opacity="0.22"/>
+    <line x1="660" y1="360" x2="570" y2="210" stroke="#7A9BB5" stroke-width="6" opacity="0.15"/>
+    <!-- Reservoir + selle -->
+    <path d="M310,160 Q380,125 460,135 Q510,140 530,165 Q490,180 430,185 Q360,188 310,175 Z" opacity="0.20"/>
+    <!-- Carénage moteur -->
+    <path d="M280,220 Q320,200 410,205 Q460,210 500,245 L480,285 Q430,265 360,260 Q300,255 265,270 Z" opacity="0.15"/>
+    <!-- Guidon -->
+    <path d="M565,190 Q580,170 605,165 Q615,163 618,175" fill="none" stroke="#7A9BB5" stroke-width="8" opacity="0.20"/>
+    <!-- Casque pilote -->
+    <ellipse cx="555" cy="155" rx="42" ry="38" opacity="0.12"/>
+    <!-- Corps pilote -->
+    <path d="M520,190 Q540,165 570,160 Q590,175 580,230 L540,235 Z" opacity="0.12"/>
+    <!-- Silencieux echappement -->
+    <path d="M220,360 Q150,365 110,370 L90,355 Q130,340 220,345" opacity="0.15"/>
+    <!-- Phare avant -->
+    <ellipse cx="688" cy="290" rx="18" ry="28" opacity="0.20" fill="#A8BDD0"/>
+  </g>
+  <!-- Texte discret en filigrane -->
+  <text x="450" y="480" text-anchor="middle" font-family="Calibri,sans-serif" font-size="11"
+        fill="#9AAFC0" opacity="0.25" letter-spacing="4">SUIVI CONSO CARBURANTS</text>
+</svg>

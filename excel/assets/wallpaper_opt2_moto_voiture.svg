@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500">
+  <rect width="900" height="500" fill="white"/>
+  <!-- Option 2 : Moto + Voiture côte à côte — duo véhicules, style épuré -->
+
+  <!-- MOTO (gauche, grande) -->
+  <g opacity="0.15">
+    <!-- Roues moto -->
+    <circle cx="155" cy="370" r="80" fill="none" stroke="#5E8AAA" stroke-width="16"/>
+    <circle cx="155" cy="370" r="44" fill="none" stroke="#5E8AAA" stroke-width="4"/>
+    <circle cx="520" cy="370" r="75" fill="none" stroke="#5E8AAA" stroke-width="16"/>
+    <circle cx="520" cy="370" r="40" fill="none" stroke="#5E8AAA" stroke-width="4"/>
+    <!-- Cadre moto -->
+    <path d="M155,370 L205,200 L330,210 L390,255 L430,300 L520,370" fill="none" stroke="#5E8AAA" stroke-width="11" stroke-linejoin="round"/>
+    <line x1="155" y1="370" x2="270" y2="290" stroke="#5E8AAA" stroke-width="9"/>
+    <line x1="520" y1="370" x2="455" y2="215" stroke="#5E8AAA" stroke-width="9"/>
+    <!-- Carrosserie moto -->
+    <path d="M220,170 Q300,138 385,148 Q420,154 435,175 L410,195 Q355,198 290,200 Q240,200 220,190 Z" fill="#7AAAC5"/>
+    <path d="M205,220 Q250,202 340,208 Q385,212 415,242 L398,272 Q345,255 280,252 Q220,250 190,265 Z" fill="#7AAAC5"/>
+    <!-- Guidon + phare -->
+    <path d="M442,198 Q456,178 475,172" fill="none" stroke="#5E8AAA" stroke-width="7"/>
+    <ellipse cx="540" cy="300" rx="15" ry="22" fill="#8BBBD4"/>
+    <!-- Pilote -->
+    <ellipse cx="425" cy="148" rx="35" ry="32" fill="#7AAAC5"/>
+    <path d="M395,178 Q408,150 445,144 Q462,158 455,205 L415,208 Z" fill="#7AAAC5"/>
+  </g>
+
+  <!-- VOITURE (droite) -->
+  <g opacity="0.13">
+    <!-- Carrosserie -->
+    <path d="M590,350 L590,295 Q595,270 625,245 L700,225 Q745,218 790,228 L840,245 Q865,265 870,295 L870,350 Z" fill="#7AAAC5"/>
+    <!-- Toit -->
+    <path d="M635,295 Q645,252 685,238 L770,230 Q815,228 845,252 L855,295 Z" fill="#A5C4D8"/>
+    <!-- Vitres -->
+    <path d="M648,290 Q655,258 690,245 L760,238 Q795,237 820,258 L828,290 Z" fill="white" opacity="0.4"/>
+    <!-- Roues voiture -->
+    <circle cx="645" cy="355" r="42" fill="none" stroke="#5E8AAA" stroke-width="13"/>
+    <circle cx="645" cy="355" r="22" fill="none" stroke="#5E8AAA" stroke-width="4"/>
+    <circle cx="820" cy="355" r="42" fill="none" stroke="#5E8AAA" stroke-width="13"/>
+    <circle cx="820" cy="355" r="22" fill="none" stroke="#5E8AAA" stroke-width="4"/>
+    <!-- Phares -->
+    <ellipse cx="875" cy="310" rx="8" ry="18" fill="#8BBBD4"/>
+    <ellipse cx="590" cy="315" rx="8" ry="16" fill="#8BBBD4"/>
+    <!-- Bas de caisse -->
+    <rect x="590" y="345" width="280" height="10" rx="4" fill="#5E8AAA"/>
+  </g>
+
+  <!-- Ligne de route subtile -->
+  <line x1="0" y1="400" x2="900" y2="400" stroke="#D0DDE8" stroke-width="2" opacity="0.35"/>
+  <text x="450" y="480" text-anchor="middle" font-family="Calibri,sans-serif" font-size="11"
+        fill="#9AAFC0" opacity="0.25" letter-spacing="4">SUIVI CONSO CARBURANTS</text>
+</svg>
