@@ -25,3 +25,13 @@ commit.log
 
 # Sauvegardes VBA horodatées (transient, non versionné)
 vba-backup-*/
+
+# Les maquettes y sont stockées
+.superpowers/
+
+# Graphify — ne suivre que le graphe publié ; ignorer tous les artefacts de build/cache
+# (temporaires .graphify_*, cache/ de --update, converted/, _build.py, manifest/cost…)
+graphify-out/*
+!graphify-out/graph.json
+!graphify-out/GRAPH_REPORT.md
+!graphify-out/graph.html
