@@ -301,11 +301,11 @@
 
 <!-- ─── W37 Bilan annuel « Wrapped » ─── -->
 <div class="card wrapped-card" id="wrappedCard">
-  <div class="hist-header">
+  <div class="hist-header hist-header--stack">
     <p class="section-title" style="margin-bottom:0">🎉 Bilan annuel</p>
     <div class="hist-actions">
       <select id="wrappedYear" class="hist-filter-sel" aria-label="Choisir l'année du bilan"></select>
-      <button class="hist-btn" id="wrappedScopeBtn" title="Basculer véhicule / tous">🏍️</button>
+      <button class="hist-btn hist-btn--lbl" id="wrappedScopeBtn" title="Basculer véhicule / tous" aria-label="Basculer entre le véhicule courant et tous les véhicules"><span class="hb-ico">🏍️</span><span class="hb-lbl">Véhicule / tous</span></button>
     </div>
   </div>
   <div id="wrappedBox"><div class="stats-msg">Chargement…</div></div>
@@ -327,12 +327,12 @@
 
 <!-- ─── Historique 5 derniers pleins ─── -->
 <div class="card hist-card">
-  <div class="hist-header">
+  <div class="hist-header hist-header--stack">
     <p class="section-title" style="margin-bottom:0">5 derniers pleins</p>
     <div class="hist-actions">
-      <button class="hist-btn" data-action="voirTout" title="Voir tout l'historique avec filtres">📜</button>
-      <button class="hist-btn" data-action="dupliquerDernier" title="Dupliquer le dernier plein dans le formulaire">📋</button>
-      <button class="hist-btn hist-refresh" data-action="chargerHistorique" title="Actualiser">↻</button>
+      <button class="hist-btn hist-btn--lbl" data-action="voirTout" title="Voir tout l'historique avec filtres" aria-label="Voir tout l'historique avec filtres"><span class="hb-ico">📜</span><span class="hb-lbl">Tout voir</span></button>
+      <button class="hist-btn hist-btn--lbl" data-action="dupliquerDernier" title="Dupliquer le dernier plein dans le formulaire" aria-label="Dupliquer le dernier plein dans le formulaire"><span class="hb-ico">📋</span><span class="hb-lbl">Dupliquer</span></button>
+      <button class="hist-btn hist-btn--lbl hist-refresh" data-action="chargerHistorique" title="Actualiser" aria-label="Actualiser"><span class="hb-ico">↻</span><span class="hb-lbl">Actualiser</span></button>
     </div>
   </div>
   <div id="historiqueList"><div class="hist-msg">Chargement…</div></div>
@@ -340,14 +340,14 @@
 
 <!-- ─── W32 — Historique complet + filtres ─── -->
 <div class="card hist-full-card" id="histoireFullCard" hidden>
-  <div class="hist-full-header">
+  <div class="hist-full-header hist-header--stack">
     <p class="section-title" style="margin-bottom:0">
       Tous les pleins <span id="histFullCount" class="hist-count"></span>
     </p>
     <div class="hist-actions">
-      <button class="hist-btn" id="histExportBtn" data-action="exportHistoriqueCSV" title="Exporter la vue filtrée en CSV">📥</button>
-      <button class="hist-btn" id="histExportAllBtn" data-action="exportHistoriqueAllCSV" title="Exporter tout l'historique en CSV">📦</button>
-      <button class="hist-btn" id="histFullCloseBtn" title="Fermer">✕</button>
+      <button class="hist-btn hist-btn--lbl" id="histExportBtn" data-action="exportHistoriqueCSV" title="Exporter la vue filtrée en CSV" aria-label="Exporter la vue filtrée en CSV"><span class="hb-ico">📥</span><span class="hb-lbl">Export filtré</span></button>
+      <button class="hist-btn hist-btn--lbl" id="histExportAllBtn" data-action="exportHistoriqueAllCSV" title="Exporter tout l'historique en CSV" aria-label="Exporter tout l'historique en CSV"><span class="hb-ico">📦</span><span class="hb-lbl">Export tout</span></button>
+      <button class="hist-btn hist-btn--lbl" id="histFullCloseBtn" title="Fermer" aria-label="Fermer"><span class="hb-ico">✕</span><span class="hb-lbl">Fermer</span></button>
     </div>
   </div>
   <div class="hist-filters">

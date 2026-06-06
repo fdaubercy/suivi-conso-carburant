@@ -1047,6 +1047,29 @@ header h1 {
 .hist-btn:active { background: var(--toggle-bg); }
 .hist-refresh:active { transform: rotate(180deg); }
 
+/* ─── Boutons d'action relabellisés (icône + libellé) — §A spec.
+   MODIFICATEUR : la base .hist-btn (réutilisée par .card-fs-btn injectés) reste intacte. ─── */
+.hist-btn--lbl {
+  flex-direction: column;
+  width: auto;
+  height: auto;
+  min-width: 46px;
+  gap: 2px;
+  padding: 4px 6px;
+}
+.hist-btn--lbl .hb-ico { font-size: 16px; line-height: 1; }
+.hist-btn--lbl .hb-lbl {
+  font-size: 10px; line-height: 1.1; font-weight: 600;
+  color: var(--text-muted); white-space: nowrap;
+}
+/* La rotation « actualiser » ne fait tourner que l'icône (pas le libellé). */
+.hist-btn--lbl.hist-refresh:active { transform: none; }
+.hist-btn--lbl.hist-refresh:active .hb-ico { transform: rotate(180deg); transition: transform .3s; }
+
+/* En-tête de carte passant sur 2 lignes quand sa rangée d'actions porte des libellés. */
+.hist-header--stack { flex-direction: column; align-items: stretch; gap: 8px; }
+.hist-header--stack .hist-actions { justify-content: flex-start; flex-wrap: wrap; }
+
 .hist-item {
   padding: 8px 0;
   border-bottom: 1px solid var(--border);

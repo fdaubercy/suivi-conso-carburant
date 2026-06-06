@@ -165,7 +165,9 @@ export function renderWrapped() {
   const scope = getScope();
   const scopeBtn = document.getElementById('wrappedScopeBtn');
   if (scopeBtn) {
-    scopeBtn.textContent = scope === 'all' ? '🚗🏍️' : '🏍️';
+    // Ne mettre à jour que l'icône — le libellé « Véhicule / tous » reste visible.
+    const ico = scopeBtn.querySelector('.hb-ico') || scopeBtn;
+    ico.textContent = scope === 'all' ? '🚗🏍️' : '🏍️';
     scopeBtn.title = scope === 'all'
       ? 'Périmètre : tous les véhicules (cliquer pour le véhicule courant)'
       : 'Périmètre : véhicule courant (cliquer pour tous les véhicules)';
