@@ -29,6 +29,7 @@
 - **Mise à jour de la carte** : `/graphify --update`
   - **en fin de chaque session de travail**, et
   - après **chaque feature / fix significatif** touchant l'architecture (nouvelles entités, relations, décisions).
+  - **OBLIGATOIREMENT avant tout commit** (voir section Git ci-dessous).
 - **Visualisation** : `graph.html` (navigateur), `GRAPH_REPORT.md` (lecture rapide sans navigateur), options `--obsidian`, `--svg`, `--graphml`, `--neo4j`.
 
 ---
@@ -186,6 +187,13 @@ recréer à chaque fois.
 ---
 
 ## ⚙️ Git — commit en fin de réponse
+
+### Pré-commit — OBLIGATOIRE
+INTERDICTION de commiter sans avoir exécuté `/graphify --update` au préalable.
+Ordre d'exécution obligatoire avant tout commit :
+1. `/graphify --update`
+2. MAJ README / CHANGELOG / ROADMAP
+3. `./commit.sh "type(scope): description [vX.Y.Z.W]"`
 
 À la fin de **chaque réponse ayant modifié du code**, fournir un bloc commit prêt :
 ```

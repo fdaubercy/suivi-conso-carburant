@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.8.0.0] — 2026-06-07
+
+### Added
+- **Web — Onglet Saisie** : boutons ⛶ Plein écran et ✕ Fermer déplacés en superposition semi-transparente sur la carte (coin haut-droit), `.smap-ctrl-overlay` ; la barre `.map-header` est supprimée. `index.html`, `css/style.css`.
+- **Web — Onglet Carte** : boutons zoom +/− personnalisés (34×34 px, même taille que le bouton Plein écran) ; contrôle natif Google Maps `zoomControl` désactivé ; `zoomGoogleMap()` exportée. `js/gmaprender.js`, `js/stationsmap.js`, `css/style.css`.
+- **Web — Google Maps** : bouton de rotation/direction (`rotateControl`) supprimé de la carte Saisie. `js/gmaprender.js`.
+- **Excel — X9** : graphique « Économies cumulées E85 vs SP98 » (courbe par date, bloc `AM:AN` dans `_GraphData`). `vba/modGraphiques.bas`.
+- **Excel — X15** : graphique scatter « Prix E85 €/L vs Conso L/100 km » avec droite de tendance (corrélation comportementale, bloc `AP:AQ` dans `_GraphData`). `vba/modGraphiques.bas`.
+- **Excel — X20** : interrupteur « Graphiques auto » (cellule B7 sur « Tableau de bord », Oui/Non, défaut Oui) ; `modSyncGS.SyncCore` ne déclenche `CreerGraphiquesWeb` que si actif. `vba/modGraphiques.bas`, `vba/modSyncGS.bas`.
+- **Excel — X21** : horodatage de dernière génération en B8 sur « Tableau de bord », écrit à chaque `CreerGraphiquesWeb`. `vba/modGraphiques.bas`.
+- **Excel — Menu hamburger** : couleur du bouton ☰ alignée sur la charte graphique (#1D9E75 vert → #1B3A5C bleu foncé). `vba/modNavMenu.bas`.
+- **C8 — Versionnage GAS** : script `scripts/sync-gas.sh` (déploie via `gas-deploy.mjs` puis git-commit les fichiers `.gs`).
+
+### Changed
+- **`APP_VERSION` 5.7.0.0 → 5.8.0.0** (`js/config.js`, incrément MINOR : nouvelles fonctionnalités utilisateur)
+
 ## [5.7.0.0] — 2026-06-07
 
 ### Added

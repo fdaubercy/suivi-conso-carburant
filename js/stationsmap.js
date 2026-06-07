@@ -5,7 +5,7 @@ import { PRIX_API, FUEL_CONFIG, FAVORITE_MIN_PLEINS, STATION_SORT_KEY, PINNED_ST
 import { state }          from './state.js';
 import { showStationPopup } from './itineraire.js';
 import { getSectorToday, loadSectorPrices } from './secteur.js';   // W48 prix secteur par carburant
-import { googleMapsActive, renderGoogleStationMap } from './gmaprender.js';   // W63 carte Google (onglet Carte)
+import { googleMapsActive, renderGoogleStationMap, zoomGoogleMap } from './gmaprender.js';   // W63 carte Google (onglet Carte)
 import { detectBrand } from './brand.js';   // W63 enseigne (couleur + nom) des marqueurs
 
 const COORD_CACHE_KEY = 'suivi_e85_station_coords';
@@ -286,9 +286,20 @@ export function renderStationsCard() {
     card.innerHTML = '<div class="smap-top"></div>'
                    + '<div class="map-fs-wrap" id="staticMapFsWrap">'
                    +   '<div id="staticStationMap" class="static-map"></div>'
-                   +   '<button class="map-fs-btn" type="button" data-fs-target="#staticMapFsWrap" title="Plein écran" aria-label="Plein écran"><span class="mfs-ico">⛶</span></button>'
+                   +   '<button class="map-fs-btn" type="button" data-fs-target="#staticMapFsWrap" title="Plein écran" aria-label="Plein écran"><span class="mfs-ico">&#x26F6;</span></button>'
+                   +   '<div class="smap-zoom-ctrl">'
+                   +     '<button type="button" class="smap-zoom-btn" data-delta="1" title="Zoom avant" aria-label="Zoom avant">+</button>'
+                   +     '<button type="button" class="smap-zoom-btn" data-delta="-1" title="Zoom arrière" aria-label="Zoom arrière">−</button>'
+                   +   '</div>'
                    + '</div>'
                    + '<div class="smap-bottom"></div>';
+    card.querySelector('#staticMapFsWrap').addEventListener('click', e => {
+      const btn = e.target.closest('.smap-zoom-btn');
+      if (!btn) return;
+      const delta = parseInt(btn.dataset.delta, 10);
+      const container = card.querySelector('#staticStationMap');
+      if (container && googleMapsActive()) zoomGoogleMap(container, delta);
+    });
   }
   card.querySelector('.smap-top').innerHTML = topHtml;
   card.querySelector('.smap-bottom').innerHTML = bottomHtml;
@@ -333,6 +344,7 @@ function _renderHabituellesMap(stations, userPos) {
   renderGoogleStationMap(container, {
     stations: gStations, userPos: uPos,
     onFallback: () => _renderStaticMap(stations, userPos),
+    zoomControl: false,
   });
 }
 

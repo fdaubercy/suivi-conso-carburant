@@ -81,7 +81,8 @@ export async function renderGoogleStationMap(container, opts) {
       container.innerHTML = '';   // purge un éventuel rendu OSM antérieur
       const o = {
         mapTypeControl: false, streetViewControl: false, fullscreenControl: false,
-        zoomControl: true, clickableIcons: false, gestureHandling: 'greedy',
+        rotateControl: false,
+        zoomControl: opts.zoomControl !== false, clickableIcons: false, gestureHandling: 'greedy',
       };
       if (GOOGLE_MAPS_MAP_ID) o.mapId = GOOGLE_MAPS_MAP_ID;
       it = { map: new Map(container, o), cluster: null, markers: [], userMarker: null };
@@ -249,6 +250,14 @@ function _priceBadge(Size, Point, text, color, selected) {
     scaledSize: new Size(w, totalH),
     anchor: new Point(cx, totalH),   // pointe = coordonnée exacte de la station
   };
+}
+
+/** Fait zoomer/dézoomer la carte identifiée par son container (utilisé par les boutons custom). */
+export function zoomGoogleMap(container, delta) {
+  const it = _inst.get(container);
+  if (!it) return;
+  const z = it.map.getZoom();
+  if (z != null) it.map.setZoom(z + delta);
 }
 
 /** Icône SVG du point de référence (google.maps.Marker classique, repli). */

@@ -1,7 +1,7 @@
 Attribute VB_Name = "modNavMenu"
 ' ============================================================
 '  MODULE : modNavMenu
-'  Objectif : Menu hamburger (☰) accessible depuis tous les
+'  Objectif : Menu hamburger (?) accessible depuis tous les
 '             onglets en mode plein ecran.
 '
 '  INSTALLATION (une seule fois) :
@@ -11,7 +11,7 @@ Attribute VB_Name = "modNavMenu"
 '
 '  USAGE :
 '    ShowNavMenu        -> ouvre le panneau de navigation
-'    PoserBoutonsNavMenu -> place le bouton ☰ sur tous les onglets
+'    PoserBoutonsNavMenu -> place le bouton ? sur tous les onglets
 '    NavToSheetPublic   -> cible des boutons du UserForm
 ' ============================================================
 Option Explicit
@@ -23,9 +23,9 @@ Private Const BTN_NAME  As String = "btnNavMenu"
 Private Const NAV_COUNT As Integer = 6
 
 
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 '  POINT D'ENTREE : ouvrir le menu hamburger
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 Public Sub ShowNavMenu()
     On Error GoTo ErrH
 
@@ -48,10 +48,10 @@ ErrH:
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 '  CIBLE DES BOUTONS DU USERFORM (Public = accessible depuis
 '  le code-behind injecte dans frmNavMenu)
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 Public Sub NavToSheetPublic(sName As String)
     On Error Resume Next
     ThisWorkbook.Sheets(sName).Activate
@@ -59,9 +59,9 @@ Public Sub NavToSheetPublic(sName As String)
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
-'  POSER LE BOUTON ☰ SUR TOUS LES ONGLETS DU DASHBOARD
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
+'  POSER LE BOUTON ? SUR TOUS LES ONGLETS DU DASHBOARD
+' ------------------------------------------------------------
 Public Sub PoserBoutonsNavMenu()
     Dim noms As Variant, i As Long, ws As Worksheet, n As Long
     noms = Array("Accueil", "Tableau de bord", "Carte", "Reglages", _
@@ -76,11 +76,11 @@ Public Sub PoserBoutonsNavMenu()
             n = n + 1
         End If
     Next i
-    Application.StatusBar = "[NavMenu] " & ChrW(10003) & " Bouton ☰ pose sur " & n & " onglet(s)."
+    Application.StatusBar = "[NavMenu] " & ChrW(10003) & " Bouton ? pose sur " & n & " onglet(s)."
 End Sub
 
 
-' Pose (ou rafraichit) le bouton ☰ sur UNE feuille. Idempotent.
+' Pose (ou rafraichit) le bouton ? sur UNE feuille. Idempotent.
 Public Sub AjouterBoutonNavMenu(ws As Worksheet)
     Dim sh As Shape
     On Error Resume Next
@@ -92,11 +92,11 @@ Public Sub AjouterBoutonNavMenu(ws As Worksheet)
     Set sh = ws.Shapes.AddShape(msoShapeRoundedRectangle, 4, 3, 32, 22)
     sh.name = BTN_NAME
     With sh
-        .fill.ForeColor.RGB = RGB(27, 58, 92)         ' bleu #1B3A5C
+        .fill.ForeColor.RGB = RGB(29, 158, 117)      ' vert #1D9E75
         .Line.Visible = msoFalse
         .Adjustments.Item(1) = 0.3
         With .TextFrame2
-            .TextRange.text = ChrW(9776)             ' ☰
+            .TextRange.text = ChrW(9776)             ' ?
             .TextRange.Font.fill.ForeColor.RGB = RGB(255, 255, 255)
             .TextRange.Font.bold = msoTrue
             .TextRange.Font.Size = 13
@@ -115,9 +115,9 @@ Public Sub AjouterBoutonNavMenu(ws As Worksheet)
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 '  CONSTRUCTION DU USERFORM PAR CODE
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 Private Sub ConstruireFormNav()
     Dim vbc As Object, dz As Object
 
@@ -142,7 +142,7 @@ Private Sub ConstruireFormNav()
     End With
     Set dz = vbc.Designer
 
-    ' ─── En-tete ───
+    ' --- En-tete ---
     Dim hdr As Object
     Set hdr = dz.Controls.Add("Forms.Label.1")
     With hdr
@@ -157,7 +157,7 @@ Private Sub ConstruireFormNav()
         .TextAlign = 2   ' fmTextAlignCenter
     End With
 
-    ' ─── Boutons de navigation ───
+    ' --- Boutons de navigation ---
     ' Format : icone(code), libelle, feuille cible, couleur fond
     Dim icons(5) As Long, labels(5) As String, targets(5) As String, clrs(5) As Long
 
@@ -193,7 +193,7 @@ Private Sub ConstruireFormNav()
         y = y + 32
     Next i
 
-    ' ─── Separateur ───
+    ' --- Separateur ---
     Dim sep As Object
     Set sep = dz.Controls.Add("Forms.Label.1")
     With sep
@@ -204,7 +204,7 @@ Private Sub ConstruireFormNav()
         .BackStyle = 1
     End With
 
-    ' ─── Bouton Fermer ───
+    ' --- Bouton Fermer ---
     Set ctl = dz.Controls.Add("Forms.CommandButton.1")
     With ctl
         .name = "btnFermer"
@@ -224,9 +224,9 @@ Private Sub ConstruireFormNav()
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 '  INJECTION DU CODE-BEHIND (handlers des boutons)
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 Private Sub InjecterCodeNav(vbc As Object, targets() As String)
     Dim c As Object: Set c = vbc.CodeModule
     c.DeleteLines 1, c.CountOfLines
@@ -252,9 +252,9 @@ Private Sub InjecterCodeNav(vbc As Object, targets() As String)
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 '  UTILITAIRES
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 ' Encode un code point Unicode (y compris > U+FFFF via paire de substitution)
 Private Function Emo(ByVal cp As Long) As String
     If cp <= &HFFFF& Then
@@ -279,3 +279,5 @@ Private Function AccesVBProjectOK() As Boolean
     AccesVBProjectOK = (Err.Number = 0)
     Err.Clear
 End Function
+
+

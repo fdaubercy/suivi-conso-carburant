@@ -34,7 +34,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi | Effort |
 |---|---|---|---|
-| C8 | **Sync GAS → GitHub via clasp** — script `sync-gas.sh` : `clasp pull` + `git add` + commit auto pour versionner le code GAS dans le repo | Traçabilité complète du code GAS dans git | ~3h |
+| ~~C8~~ | ~~**Sync GAS → GitHub via clasp**~~ — ✅ `scripts/sync-gas.sh` créé (v5.8.0.0) | — | — |
 | C9 | **Service account Google** — remplacer le token OAuth Playground (1h, lié au compte perso) par un compte de service JSON credentials | Authentification stable sans renouvellement manuel | ~2h |
 
 ---
@@ -51,10 +51,10 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| X9 | **Économies cumulées E85 vs SP98** (calcul rétroactif depuis colonne J SP98 station) | Le ROI E85 chiffré |
-| X15 | **Graphique scatter Prix E85/L vs L/100 km** : nuage de points pour voir si la conso augmente quand le prix baisse (comportemental) | Corrélation prix/comportement · effort ½ j · pure formule Excel |
-| X20 | **Interrupteur « graphiques auto »** : cellule paramètre (ex. `Graphiques!B5` Oui/Non) lue par `SyncCore` avant l'appel auto v4.5.0.0 | Laisser l'utilisateur désactiver le recalcul auto sur un gros historique (sync plus rapide) |
-| X21 | **Horodatage de dernière génération** sur l'onglet Graphiques (ex. `Graphiques!B6`) renseigné par `CreerGraphiquesWeb` | Savoir d'un coup d'œil si le tableau de bord reflète le dernier sync |
+| ~~X9~~ | ~~**Économies cumulées E85 vs SP98**~~ — ✅ graphique `gEcoDate` (v5.8.0.0) | — |
+| ~~X15~~ | ~~**Graphique scatter Prix E85/L vs L/100 km**~~ — ✅ graphique `gScatterE85` (v5.8.0.0) | — |
+| ~~X20~~ | ~~**Interrupteur « graphiques auto »**~~ — ✅ cellule B7 « Tableau de bord » (v5.8.0.0) | — |
+| ~~X21~~ | ~~**Horodatage de dernière génération**~~ — ✅ cellule B8 « Tableau de bord » (v5.8.0.0) | — |
 | X39 | **Accumulation journalière des prix marché** : le trigger GAS `RefreshPrix` écrase `Prix par Station` (Tableau12) à chaque relevé au lieu d'accumuler. Créer une table `_PrixHistoriqueJournalier` (Date, Station, Carburant, Prix) alimentée par append quotidien → `gPrice` afficherait l'évolution réelle tous les jours, pas seulement aux jours de plein. Actuellement SP95 = 1 pt et GAZOLE = 2 pts (seules les stations Carrefour-Flers enregistrent les prix multi-carburants) | Séries SP95/GAZOLE quasi vides dans `gPrice` ; avec un historique continu, toutes les 4 courbes deviendraient exploitables |
 
 ### 🛠️ Robustesse
@@ -109,9 +109,9 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | Rang | Item | Effort | Bénéfice |
 |---|---|---|---|
 | 1 | **X1** — Bouton "Synchroniser" sur la feuille GS_Pleins | 15 min | Ergonomie immédiate, plus besoin d'ouvrir l'IDE |
-| 2 | **X9** — Économies cumulées E85 vs SP98 | ½ j | ROI E85 chiffré depuis les données existantes |
-| 3 | **X15** — Graphique scatter Prix E85/L vs L/100 km | ½ j | Corrélation prix/comportement, pure formule Excel |
-| 4 | **X20** — Interrupteur « graphiques auto » (cellule param) | ½ j | Désactiver le recalcul auto sur un gros historique |
+| 2 | ~~**X9**~~ | ✅ v5.8.0.0 | — |
+| 3 | ~~**X15**~~ | ✅ v5.8.0.0 | — |
+| 4 | ~~**X20**~~ | ✅ v5.8.0.0 | — |
 | 5 | **X11** — Onglet `_SyncLog` (date, ←N, →N, durée) | — | Debug, historique des syncs |
 
 > ✅ S3/S4/S5 (suppression bidir., force resync, conflits par timestamp) implémentés en v4.8.0.0 — voir le tableau ci-dessous.
@@ -122,6 +122,15 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.8.0.0 | **C8 — Versionnage GAS** — `scripts/sync-gas.sh` : déploie via `gas-deploy.mjs` puis commit les `.gs` locaux dans git. |
+| v5.8.0.0 | **X9 — Économies cumulées E85 vs SP98** — graphique `gEcoDate` (courbe par date), bloc `AM:AN` dans `_GraphData`. `vba/modGraphiques.bas`. |
+| v5.8.0.0 | **X15 — Scatter Prix E85/L vs L/100 km** — graphique `gScatterE85` avec droite de tendance, bloc `AP:AQ`. `vba/modGraphiques.bas`. |
+| v5.8.0.0 | **X20 — Interrupteur graphiques auto** — cellule B7 « Tableau de bord » (Oui/Non, défaut Oui) ; `SyncCore` vérifie `GraphAutoActif()`. `vba/modGraphiques.bas`, `vba/modSyncGS.bas`. |
+| v5.8.0.0 | **X21 — Horodatage dernière génération** — cellule B8 mise à jour par chaque appel à `CreerGraphiquesWeb`. `vba/modGraphiques.bas`. |
+| v5.8.0.0 | **Menu hamburger bleu** — bouton ☰ passe de #1D9E75 vert à #1B3A5C bleu foncé (charte graphique). `vba/modNavMenu.bas`. |
+| v5.8.0.0 | **Web Saisie — overlay map** — boutons ⛶ et ✕ en superposition semi-transparente sur la carte (coin haut-droit), `.smap-ctrl-overlay`. `index.html`, `css/style.css`. |
+| v5.8.0.0 | **Web Carte — zoom custom** — boutons +/− 34×34 px remplacent le zoom natif Google Maps. `js/gmaprender.js`, `js/stationsmap.js`, `css/style.css`. |
+| v5.8.0.0 | **Web Saisie — suppression bouton direction** — `rotateControl: false` dans les options Google Maps. `js/gmaprender.js`. |
 | v5.7.0.0 | **U9 — Filtre véhicule global persistant** — sélecteur `#vehiculeSelGlobal` en header, événement `vehicule-changed`, synchronisation Stats/Carte/Historique. `index.html`, `js/vehicules.js`, `js/main.js`. |
 | v5.7.0.0 | **W58 — Prochain plein estimé** — « prochain plein ≈ le JJ/MM » dans la vue Stats, calculé depuis km/jour × autonomie. `js/stats.js` (`buildPrediction`). |
 | v5.7.0.0 | **W73 — Coût réel dans les agrégats Excel** — `CoutPlein()` lit col T (Coût € exact) si > 0, sinon `litres × prix`. `modDashboardKPI.bas` (`ComputeKPIs`/`ComputeDashboardStats`) aligné. Fix menu hamburger Excel (280 px, centré), fix validation B5/B6, fix CSS overflow boutons rayon, fix ⛶ sans annotation. `vba/modHistorique.bas`, `vba/modDashboardKPI.bas`, `vba/modNavMenu.bas`, `css/style.css`, `index.html`, `js/stationsmap.js`. |
