@@ -903,10 +903,11 @@ header h1 {
   font-size: 12px;
   color: var(--text-muted);
   white-space: nowrap;
+  flex-basis: 100%;            /* libellé sur sa propre ligne → les boutons wrappent proprement dessous (fix débordement du cadre) */
 }
 .radius-btn {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 auto;
+  min-width: 70px;            /* garantit un retour à la ligne propre (2 lignes sur mobile étroit) au lieu d'un débordement rogné */
   height: 32px;
   border: 1.5px solid var(--border);
   border-radius: 8px;
@@ -926,6 +927,29 @@ header h1 {
   border-color: var(--blue-dark);
   color: #fff;
   font-weight: 600;
+}
+
+/* ─── U9 — Barre de filtre véhicule globale (sous l'en-tête, vues Stats/Carte/Historique) ─── */
+.vehbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+}
+.vehbar-ico { font-size: 15px; line-height: 1; }
+.vehbar-label {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.vehbar-sel {
+  flex: 1; min-width: 0; height: 34px;
+  padding: 0 10px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  background: var(--white); color: var(--text);
+  font-family: inherit; font-size: 14px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
 
 /* ═══════════════════════════════════════
@@ -1589,9 +1613,7 @@ body.no-share .hist-share { display: none; }
   position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; font-size: 16px;
   background: rgba(255,255,255,.92); color: #1B3A5C; box-shadow: 0 1px 4px rgba(0,0,0,.3);
 }
-/* Bouton ⛶ relabellisé (pilule horizontale icône + mot) — §C spec. Couleur du texte = celle du bouton (blanc en-tête / bleu-fonce superposition). */
-.map-fs-btn--lbl { width: auto; gap: 5px; padding: 0 10px; }
-.map-fs-btn--lbl .mfs-lbl { font-size: 12px; font-weight: 600; white-space: nowrap; }
+/* Boutons ⛶ plein écran des cartes : icône seule (la variante libellée a été retirée). */
 /* Cible « plein écran » : remplit tout l'écran (pas d'API Fullscreen) */
 .map-fs {
   position: fixed !important; inset: 0 !important;

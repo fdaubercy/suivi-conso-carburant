@@ -11,15 +11,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| W73 | **« Coût réel » dans les agrégats Excel** — `modHistorique.bas` `CoutPlein()` lira la col T de `_ImportGS` si renseignée (repli `litres×prix` si vide) ; `modDashboardKPI.bas` adapté pour afficher le coût stocké | Agrégats cohérents avec le montant exact saisi par l'utilisateur |
 | W57 | **Partage image du bilan « Wrapped »** : rendu de la carte Wrapped sur un `<canvas>` → `toBlob()` → **Web Share API** (`navigator.share`) avec repli téléchargement PNG | Partager son bilan E85 en 1 tap (réseaux, message) sans capture d'écran |
-| W58 | **Prochain plein estimé** : à partir du rythme moyen (km/jour & autonomie), afficher « prochain plein ≈ le JJ/MM » dans la vue Stats + badge sur l'onglet | Anticiper le passage à la pompe |
-
-### 🎨 UX / Ergonomie
-
-| # | Idée | Pourquoi |
-|---|---|---|
-| U9 | **Filtre véhicule global persistant** : un sélecteur en header applique le périmètre véhicule à toutes les vues (Stats/Carte/Historique) au lieu d'un réglage par carte | Cohérence multi-véhicules, moins de clics |
 
 ---
 
@@ -130,6 +122,9 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.7.0.0 | **U9 — Filtre véhicule global persistant** — sélecteur `#vehiculeSelGlobal` en header, événement `vehicule-changed`, synchronisation Stats/Carte/Historique. `index.html`, `js/vehicules.js`, `js/main.js`. |
+| v5.7.0.0 | **W58 — Prochain plein estimé** — « prochain plein ≈ le JJ/MM » dans la vue Stats, calculé depuis km/jour × autonomie. `js/stats.js` (`buildPrediction`). |
+| v5.7.0.0 | **W73 — Coût réel dans les agrégats Excel** — `CoutPlein()` lit col T (Coût € exact) si > 0, sinon `litres × prix`. `modDashboardKPI.bas` (`ComputeKPIs`/`ComputeDashboardStats`) aligné. Fix menu hamburger Excel (280 px, centré), fix validation B5/B6, fix CSS overflow boutons rayon, fix ⛶ sans annotation. `vba/modHistorique.bas`, `vba/modDashboardKPI.bas`, `vba/modNavMenu.bas`, `css/style.css`, `index.html`, `js/stationsmap.js`. |
 | v5.6.0.0 | **Découvrabilité des boutons-icônes (W77)** — les 10 boutons jusque-là icône-seule affichent désormais une icône + un libellé visible au doigt : Groupe A (7 boutons d'en-tête : Véhicule/tous, Tout voir, Dupliquer, Actualiser, Export filtré, Export tout, Fermer), Groupe B (🎤 Dicter + 📍 Ma position sorti de la superposition absolue), Groupe C (⛶ Plein écran / ✕ Quitter, libellé préservé au toggle via `setFsButtonState`). Chaque bouton porte un `aria-label` complet (WCAG AA, contraste ≥ 6,9:1 sombre). Base `.hist-btn`/`.geo-btn`/`.voice-btn`/`.map-fs-btn` intacte — boutons `.card-fs-btn` injectés inchangés. 9 tests `buttons-a11y.test.js` + 2 tests `mapfullscreen-fsstate.test.js`. |
 | v5.5.3.0 | **X38 — `gPrice` multi-carburant** (E85, SP98, SP95, GAZOLE) — `BuildPriceBlockMerged` (`vba/modGraphiques.bas`) refondu : SOURCE 1 ajoute `Prix S98 jour (€/L)` sur **tous** les pleins (E85 inclus) pour couvrir toutes les dates de plein avec la série SP98 ; SOURCE 2 lit les colonnes croisées `E85/SP98/SP95/Gazole/GPLc station` de `PrixHistory` (la colonne `Type`+`Prix` cherchée auparavant n'existe pas — le vrai nom est `PrixL`). Résultat : 4 séries dans `gPrice` — E85 (10 pts), SP98 (13 pts, toutes les dates), GAZOLE (2 pts), SP95 (1 pt). SP95/GAZOLE restent épars car seule la station Carrefour-Flers enregistre les prix multi-carburants → voir X39 pour la solution complète. |
 | v5.5.1.0 | **Suite de tests Vitest pour 9 modules + couverture CI (W72)** — `state`, `ui` (`computeTriplet`/`setFieldPrice`), `carburant` (`_buildTypeToggle`), `recherche` (`buildSearchClause`/`buildStations`), `formulaire` (`saveDraft`/`restoreDraft`/`submitForm`/`_parseSpeechToNumber`), `offline` (`syncQueue`/`queuePlein`), `geo` (`renderNearby`/`pickStation`), `carte` (`tileXY`/rendu OSM), `pwa` → **+81 tests (154 → 235, 22 fichiers, tous verts)**. Exports test-only `_parseSpeechToNumber`/`tileXY`. Job CI `coverage` non-bloquant (`@vitest/coverage-v8`, sans seuil). |

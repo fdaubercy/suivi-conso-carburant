@@ -7,7 +7,7 @@ import { state }       from './state.js';
 import { computeTriplet, showFeedback }  from './ui.js';
 import { showStationPopup } from './itineraire.js';
 
-import { chargerVehicules, onVehiculeChange, confirmerAjoutVehicule } from './vehicules.js';
+import { chargerVehicules, onVehiculeChange, confirmerAjoutVehicule, setCurrentVehicule } from './vehicules.js';
 import { showPinLabel, hideMap, initMapInteractions } from './carte.js';
 import { initMapFullscreen } from './mapfullscreen.js';
 import { initStationsMapInteractions, renderStationsCard } from './stationsmap.js';
@@ -18,7 +18,7 @@ import { onAutreInput, setRadius } from './recherche.js';
 import { onStationChange, onKmInput, submitForm, checkDuplicate, saveDraft, restoreDraft, initVoiceKm } from './formulaire.js';
 import { chargerStations, mergeHistoryStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
-import { chargerHistorique, dupliquerDernier, voirTout, exportHistoriqueCSV, exportHistoriqueAllCSV, initCsvSepSetting, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords, rerenderHistorique } from './historique.js';
+import { chargerHistorique, dupliquerDernier, voirTout, exportHistoriqueCSV, exportHistoriqueAllCSV, initCsvSepSetting, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords, rerenderHistorique, renderFullHistory } from './historique.js';
 import { renderStats, initSparkToggles, getNextKmPrediction, initKitSetting, initBudgetSetting, initCo2ObjectifSetting, initRapport } from './stats.js';
 import { initComparatifExport } from './comparatif.js';
 import { prewarmServerStats } from './statsApi.js';
@@ -179,6 +179,8 @@ function initStaticHandlers() {
 
   // Véhicule
   document.getElementById('vehiculeSel')?.addEventListener('change', onVehiculeChange);
+  // U9 — sélecteur véhicule GLOBAL (barre sous l'en-tête) → source unique de vérité
+  document.getElementById('vehiculeSelGlobal')?.addEventListener('change', e => setCurrentVehicule(e.target.value));
   document.getElementById('fNouveauVehicule')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') confirmerAjoutVehicule();
   });
@@ -278,9 +280,36 @@ initPreferences();     // preferences.js — U4 vue de départ · U5 tuile repre
 initCompteUI();        // parametres.js — U7 « Mon compte » + suppression RGPD
 
 /* W42 — la carte statique est rendue hors écran (offsetWidth=0) : on la re-cadre
-   à l'affichage de l'onglet Carte pour un dimensionnement correct. */
+   à l'affichage de l'onglet Carte pour un dimensionnement correct.
+   U9 — on (dé)montre aussi la barre véhicule globale selon la vue active. */
+let _curView = '';
+function _refreshVehBar() {
+  const bar = document.getElementById('vehBar');
+  if (!bar) return;
+  const hasVeh   = (document.getElementById('vehiculeSelGlobal')?.options.length || 0) > 1;
+  const gateOpen = !document.getElementById('loginGate')?.hidden;
+  bar.hidden = !(hasVeh && !gateOpen && ['stats', 'carte', 'historique'].includes(_curView));
+}
 window.addEventListener('viewchange', e => {
-  if (e.detail?.view === 'carte') renderStationsCard();
+  _curView = e.detail?.view || _curView;
+  if (_curView === 'carte') renderStationsCard();
+  _refreshVehBar();
+});
+
+/* U9 — Changement de véhicule GLOBAL (barre header, select saisie, ajout/suppression)
+   → re-render de toutes les vues filtrées par véhicule (source : 'vehicule-changed'). */
+window.addEventListener('vehicule-changed', () => {
+  onKmInput();            // km de référence dépend du véhicule
+  renderStats();          // KPIs / prédiction / CO₂ / bilan
+  renderWrapped();        // bilan annuel (périmètre véhicule)
+  renderStationsCard();   // carte stations (carburant par défaut du véhicule)
+  // Historique complet : suit le véhicule global (source = state, pas le select masqué
+  // dont les options ne sont peuplées qu'à l'ouverture de l'historique complet).
+  renderFullHistory(
+    state.currentVehiculeNom || '',
+    document.getElementById('histTypeFilter')?.value || ''
+  );
+  _refreshVehBar();       // U9 — réévalue la barre (ex. 1er véhicule ajouté → la barre peut apparaître)
 });
 
 /* ─── Exposition globale minimale (requise par modules non-importants) ─── */

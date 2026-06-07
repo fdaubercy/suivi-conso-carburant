@@ -22,13 +22,45 @@ export function _populateVehiculeSelect(liste) {
   });
 }
 
+/** U9 — Peuple le sélecteur véhicule GLOBAL (barre sous l'en-tête). new Option() = sûr (pas d'innerHTML). */
+export function _populateGlobalVehiculeSelect(liste) {
+  const sel = document.getElementById('vehiculeSelGlobal');
+  if (!sel) return;
+  const cur = sel.value || state.currentVehiculeNom || '';
+  sel.innerHTML = '';
+  sel.add(new Option('Tous les véhicules', ''));
+  liste.forEach(nom => sel.add(new Option(nom, nom)));
+  if (Array.from(sel.options).some(o => o.value === cur)) sel.value = cur;
+}
+
+/** U9 — Reflète le véhicule courant dans les 3 sélecteurs (saisie, barre globale,
+ *  filtre historique) en posant juste .value, sans déclencher leurs handlers. */
+export function syncVehiculeControls(nom) {
+  const v = nom || '';
+  ['vehiculeSel', 'vehiculeSelGlobal', 'histVehFilter'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel && Array.from(sel.options).some(o => o.value === v)) sel.value = v;
+  });
+}
+
+/** U9 — Source UNIQUE de vérité du véhicule courant : écrit l'état, persiste,
+ *  synchronise les sélecteurs puis notifie toutes les vues via 'vehicule-changed'. */
+export function setCurrentVehicule(nom) {
+  const v = nom || '';
+  state.currentVehiculeNom = v;
+  if (v) localStorage.setItem(LAST_VEHICULE_KEY, v);
+  else   localStorage.removeItem(LAST_VEHICULE_KEY);
+  syncVehiculeControls(v);
+  window.dispatchEvent(new window.CustomEvent('vehicule-changed', { detail: { vehicule: v } }));
+}
+
 export function _autoSelectLastVehicule() {
   const last = localStorage.getItem(LAST_VEHICULE_KEY);
   if (!last) return;
   const sel = document.getElementById('vehiculeSel');
-  if (Array.from(sel.options).some(o => o.value === last)) {
-    sel.value                 = last;
+  if (sel && Array.from(sel.options).some(o => o.value === last)) {
     state.currentVehiculeNom = last;
+    syncVehiculeControls(last);   // U9 — reflète aussi dans la barre globale + filtre historique
   }
 }
 
@@ -41,6 +73,7 @@ export async function chargerVehicules() {
   const listeLocale = getVehicules();
   if (listeLocale.length > 0) {
     _populateVehiculeSelect(listeLocale);
+    _populateGlobalVehiculeSelect(listeLocale);   // U9
     _autoSelectLastVehicule();
     return;
   }
@@ -63,6 +96,7 @@ export async function chargerVehicules() {
     } catch(e) { console.warn('[Véhicules] Import GS échoué :', e.message); }
   }
   _populateVehiculeSelect(getVehicules());
+  _populateGlobalVehiculeSelect(getVehicules());   // U9
   _autoSelectLastVehicule();
 }
 
@@ -86,29 +120,22 @@ export function onVehiculeChange() {
     if (confirm('Supprimer "' + state.currentVehiculeNom + '" ?')) {
       const nom = state.currentVehiculeNom;
       sauvegarderVehicules(getVehicules().filter(v => v !== nom));
-      if (localStorage.getItem(LAST_VEHICULE_KEY) === nom) localStorage.removeItem(LAST_VEHICULE_KEY);
-      state.currentVehiculeNom = '';
       _populateVehiculeSelect(getVehicules());
-      sel.value = '';
+      _populateGlobalVehiculeSelect(getVehicules());   // U9
       setVehiculeStatus('', '');
+      setCurrentVehicule('');   // U9 — efface l'état, persiste, synchronise les selects, notifie les vues
     } else {
       sel.value = state.currentVehiculeNom;
     }
     return;
   }
-  state.currentVehiculeNom = val;
-  if (val) localStorage.setItem(LAST_VEHICULE_KEY, val);
+  // Cas normal : véhicule choisi → source unique de vérité (U9).
   addField.classList.add('hidden');
   setVehiculeStatus('', '');
-
-  // Le km de reference change avec le vehicule -> re-valide l'avertissement
-  if (typeof window.onKmInput === 'function') window.onKmInput();
-  // Les stats sont filtrees par vehicule -> re-render
-  if (typeof window.renderStats === 'function') window.renderStats();
-  // W37 — le bilan annuel (perimetre vehicule) suit aussi le vehicule courant
-  if (typeof window.renderWrapped === 'function') window.renderWrapped();
-  // W47 — la carte des stations re-défaut sur le dernier carburant du vehicule
-  if (typeof window.renderStationsCard === 'function') window.renderStationsCard();
+  // setCurrentVehicule écrit l'état + persiste + synchronise les 3 selects + dispatch
+  // 'vehicule-changed' (les vues — km, stats, wrapped, carte, historique — sont
+  // re-rendues par le listener de main.js, plus besoin des window.render*() ici).
+  setCurrentVehicule(val);
 }
 
 export async function confirmerAjoutVehicule() {
@@ -117,9 +144,8 @@ export async function confirmerAjoutVehicule() {
   const liste = getVehicules();
   if (!liste.includes(nom)) { liste.push(nom); sauvegarderVehicules(liste); }
   _populateVehiculeSelect(getVehicules());
-  document.getElementById('vehiculeSel').value = nom;
-  state.currentVehiculeNom = nom;
-  localStorage.setItem(LAST_VEHICULE_KEY, nom);
+  _populateGlobalVehiculeSelect(getVehicules());   // U9
+  setCurrentVehicule(nom);   // U9 — sélectionne le nouveau véhicule partout + notifie les vues
   document.getElementById('fNouveauVehicule').value = '';
   document.getElementById('vehiculeAddField').classList.add('hidden');
   setVehiculeStatus('ok', '"' + nom + '" enregistré');

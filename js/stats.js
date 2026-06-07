@@ -428,22 +428,30 @@ function buildPrediction() {
 
   const { avgKm, avgDay, nextKm, count, lastDate } = data;
 
-  let mainText;
+  let mainText, subText;
   if (avgDay && lastDate) {
-    const daysElapsed  = (Date.now() - lastDate.getTime()) / 86400000;
-    const daysLeft     = avgDay - daysElapsed;
-    const kmLeft       = avgKm  - daysElapsed * (avgKm / avgDay);
+    // W58 — date calendaire estimée du prochain plein : dernier plein + intervalle moyen.
+    const daysElapsed = (Date.now() - lastDate.getTime()) / 86400000;
+    const daysLeft    = avgDay - daysElapsed;
+    const kmLeft      = Math.round(avgKm - daysElapsed * (avgKm / avgDay));
+    const nextDate    = new Date(lastDate.getTime() + avgDay * 86400000);
+    const dateStr     = nextDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
 
     if (daysLeft > 1) {
-      mainText = `Prochain plein dans <strong>~${Math.round(kmLeft).toLocaleString('fr-FR')} km</strong> · ~${Math.round(daysLeft)} j`;
+      mainText = `Prochain plein <strong>≈ le ${dateStr}</strong>`;
+      subText  = `dans ~${Math.round(daysLeft)} j · ~${Math.max(0, kmLeft).toLocaleString('fr-FR')} km · vers ${nextKm.toLocaleString('fr-FR')} km`;
     } else if (daysLeft > 0) {
-      mainText = `Prochain plein dans <strong>~${Math.round(kmLeft).toLocaleString('fr-FR')} km</strong> · aujourd'hui`;
+      mainText = `Prochain plein <strong>aujourd'hui</strong> (≈ ${dateStr})`;
+      subText  = `~${Math.max(0, kmLeft).toLocaleString('fr-FR')} km restants · vers ${nextKm.toLocaleString('fr-FR')} km`;
     } else {
       const overdue = Math.round(-daysLeft);
-      mainText = `Plein prévu <strong>il y a ${overdue} j</strong>`;
+      mainText = `Plein prévu <strong>≈ le ${dateStr}</strong>`;
+      subText  = `il y a ${overdue} j · vers ${nextKm.toLocaleString('fr-FR')} km`;
     }
+    subText += ` · ${count} plein${count > 1 ? 's' : ''}`;
   } else {
     mainText = `Prochain plein dans <strong>~${avgKm.toLocaleString('fr-FR')} km</strong>`;
+    subText  = `vers ${nextKm.toLocaleString('fr-FR')} km · basé sur ${count} plein${count > 1 ? 's' : ''}`;
   }
 
   return `
@@ -451,7 +459,7 @@ function buildPrediction() {
       <span class="pred-icon">🔮</span>
       <div class="pred-content">
         <div class="pred-main">${mainText}</div>
-        <div class="pred-sub">vers ${nextKm.toLocaleString('fr-FR')} km · basé sur ${count} plein${count > 1 ? 's' : ''}</div>
+        <div class="pred-sub">${subText}</div>
       </div>
     </div>`;
 }

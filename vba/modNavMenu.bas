@@ -85,20 +85,20 @@ Public Sub AjouterBoutonNavMenu(ws As Worksheet)
     Dim sh As Shape
     On Error Resume Next
     For Each sh In ws.Shapes
-        If sh.Name = BTN_NAME Then sh.Delete
+        If sh.name = BTN_NAME Then sh.Delete
     Next sh
     On Error GoTo 0
 
     Set sh = ws.Shapes.AddShape(msoShapeRoundedRectangle, 4, 3, 32, 22)
-    sh.Name = BTN_NAME
+    sh.name = BTN_NAME
     With sh
-        .Fill.ForeColor.RGB = RGB(29, 158, 117)      ' vert #1D9E75
+        .fill.ForeColor.RGB = RGB(29, 158, 117)      ' vert #1D9E75
         .Line.Visible = msoFalse
         .Adjustments.Item(1) = 0.3
         With .TextFrame2
-            .TextRange.Text = ChrW(9776)             ' ☰
-            .TextRange.Font.Fill.ForeColor.RGB = RGB(255, 255, 255)
-            .TextRange.Font.Bold = msoTrue
+            .TextRange.text = ChrW(9776)             ' ☰
+            .TextRange.Font.fill.ForeColor.RGB = RGB(255, 255, 255)
+            .TextRange.Font.bold = msoTrue
             .TextRange.Font.Size = 13
             .TextRange.ParagraphFormat.Alignment = msoAlignCenter
             .HorizontalAnchor = msoAnchorCenter
@@ -127,16 +127,16 @@ Private Sub ConstruireFormNav()
         ThisWorkbook.VBProject.VBComponents(FORM_NAME)
     On Error GoTo 0
 
-    Dim DARK  As Long: DARK  = RGB(27, 58, 92)      ' #1B3A5C
+    Dim DARK  As Long: DARK = RGB(27, 58, 92)       ' #1B3A5C
     Dim WHITE As Long: WHITE = RGB(255, 255, 255)
-    Dim FW    As Integer: FW  = 210
+    Dim FW    As Integer: FW = 280   ' W73-bis : elargi 210->280 pour eviter debordement
 
     Set vbc = ThisWorkbook.VBProject.VBComponents.Add(3)  ' vbext_ct_MSForm
-    vbc.Name = FORM_NAME
+    vbc.name = FORM_NAME
     With vbc
         .Properties("Caption") = "Navigation"
-        .Properties("Width")   = FW
-        .Properties("Height")  = 30
+        .Properties("Width") = FW
+        .Properties("Height") = 30
         .Properties("BackColor") = DARK
         .Properties("BorderStyle") = 0   ' fmBorderStyleNone
     End With
@@ -146,14 +146,14 @@ Private Sub ConstruireFormNav()
     Dim hdr As Object
     Set hdr = dz.Controls.Add("Forms.Label.1")
     With hdr
-        .Name = "lblHdr"
-        .Caption = ChrW(9776) & "   Navigation"
+        .name = "lblHdr"
+        .caption = ChrW(9776) & "   Navigation"
         .Left = 0: .Top = 0: .Width = FW: .Height = 30
         .ForeColor = WHITE
         .BackColor = RGB(18, 40, 65)     ' #12283E encore plus fonce
         .BackStyle = 1
-        .Font.Size = 11: .Font.Bold = True
-        .Font.Name = "Calibri"
+        .Font.Size = 11: .Font.bold = True
+        .Font.name = "Calibri"
         .TextAlign = 2   ' fmTextAlignCenter
     End With
 
@@ -181,14 +181,14 @@ Private Sub ConstruireFormNav()
     For i = 0 To 5
         Set ctl = dz.Controls.Add("Forms.CommandButton.1")
         With ctl
-            .Name = "btn" & i
-            .Caption = Emo(icons(i)) & labels(i)
-            .Left = 6: .Top = y: .Width = FW - 12: .Height = 28
+            .name = "btn" & i
+            .caption = Emo(icons(i)) & labels(i)
+            .Left = 10: .Top = y: .Width = FW - 20: .Height = 28
             .BackColor = clrs(i)
             .ForeColor = WHITE
             .Font.Size = 9
-            .Font.Name = "Calibri"
-            .Font.Bold = False
+            .Font.name = "Calibri"
+            .Font.bold = False
         End With
         y = y + 32
     Next i
@@ -197,8 +197,8 @@ Private Sub ConstruireFormNav()
     Dim sep As Object
     Set sep = dz.Controls.Add("Forms.Label.1")
     With sep
-        .Name = "lblSep"
-        .Caption = ""
+        .name = "lblSep"
+        .caption = ""
         .Left = 0: .Top = y + 2: .Width = FW: .Height = 1
         .BackColor = RGB(60, 100, 140)
         .BackStyle = 1
@@ -207,13 +207,13 @@ Private Sub ConstruireFormNav()
     ' ─── Bouton Fermer ───
     Set ctl = dz.Controls.Add("Forms.CommandButton.1")
     With ctl
-        .Name = "btnFermer"
-        .Caption = ChrW(10005) & "  Fermer"
-        .Left = 6: .Top = y + 8: .Width = FW - 12: .Height = 22
+        .name = "btnFermer"
+        .caption = ChrW(10005) & "  Fermer"
+        .Left = 10: .Top = y + 8: .Width = FW - 20: .Height = 22
         .BackColor = RGB(45, 45, 60)
         .ForeColor = RGB(160, 185, 210)
         .Font.Size = 8
-        .Font.Name = "Calibri"
+        .Font.name = "Calibri"
     End With
 
     ' Ajuster la hauteur du formulaire
@@ -234,8 +234,7 @@ Private Sub InjecterCodeNav(vbc As Object, targets() As String)
     Dim code As String
     code = "Option Explicit" & vbLf
     code = code & "Private Sub UserForm_Initialize()" & vbLf
-    code = code & "    Me.StartUpPosition = 0" & vbLf
-    code = code & "    Me.Left = 50: Me.Top = 30" & vbLf
+    code = code & "    Me.StartUpPosition = 1" & vbLf   ' centre sur la fenetre Excel
     code = code & "End Sub" & vbLf
 
     Dim i As Integer
@@ -276,7 +275,7 @@ End Function
 
 Private Function AccesVBProjectOK() As Boolean
     On Error Resume Next
-    Dim n As Long: n = ThisWorkbook.VBProject.VBComponents.Count
+    Dim n As Long: n = ThisWorkbook.VBProject.VBComponents.count
     AccesVBProjectOK = (Err.Number = 0)
     Err.Clear
 End Function

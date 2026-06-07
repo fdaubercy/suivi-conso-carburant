@@ -36,11 +36,12 @@ Private Const COL_LITRES     As Long = 5
 Private Const COL_PRIX       As Long = 6
 Private Const COL_STATION    As Long = 7
 Private Const COL_VEHICULE   As Long = 8
+Private Const COL_COUT       As Long = 20   ' col T : Cout EUR exact (W71/W73, fallback litres*prix)
 
 
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 '  POINT D'ENTREE
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 Public Sub CreerFeuilleHistorique()
     Dim ws As Worksheet
     Application.ScreenUpdating = False
@@ -51,7 +52,7 @@ Public Sub CreerFeuilleHistorique()
     Dim shp As Shape
     For Each shp In ws.Shapes: shp.Delete: Next shp
 
-    ws.Tab.Color = RGB(124, 58, 237)
+    ws.Tab.color = RGB(124, 58, 237)
     ws.Activate
     On Error Resume Next
     ActiveWindow.DisplayGridlines = False
@@ -67,8 +68,8 @@ Public Sub CreerFeuilleHistorique()
     ws.Columns("I").ColumnWidth = 18
 
     With ws.Range("B1")
-        .Value = Emo(&H1F4DC&) & " Historique"
-        .Font.Size = 18: .Font.Bold = True: .Font.Color = RGB(27, 58, 92)
+        .value = Emo(&H1F4DC) & " Historique"
+        .Font.Size = 18: .Font.bold = True: .Font.color = RGB(27, 58, 92)
     End With
     ws.Rows(1).RowHeight = 34
 
@@ -76,17 +77,17 @@ Public Sub CreerFeuilleHistorique()
     RafraichirHistorique
 
     ws.Range("B1").Select
-    GoTo Done
+    GoTo done
 ErrH:
     SetStatus "[Historique] " & ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description
-Done:
+done:
     Application.ScreenUpdating = True
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 '  RAFRAICHISSEMENT (recharge depuis GS_Pleins)
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 Public Sub RafraichirHistorique()
     Dim ws As Worksheet, lo As ListObject
     Dim data As Variant, idx() As Long
@@ -96,51 +97,51 @@ Public Sub RafraichirHistorique()
     On Error GoTo ErrH
 
     Set ws = GetOrCreateSheet(WS_HIST)
-    If ws.Shapes.Count = 0 Then CreateButtons ws
-    If CStr(ws.Range("B1").Value) = "" Then ws.Range("B1").Value = Emo(&H1F4DC&) & " Historique"
+    If ws.Shapes.count = 0 Then CreateButtons ws
+    If CStr(ws.Range("B1").value) = "" Then ws.Range("B1").value = Emo(&H1F4DC) & " Historique"
 
     ' Supprime l'ancien tableau (sans toucher aux boutons : ce sont des formes)
     On Error Resume Next
     ws.ListObjects(TBL_NAME).Unlist
     On Error GoTo 0
     ws.Range("B3:Z9").Clear
-    ws.Range("A11:Z" & ws.Rows.Count).Clear
+    ws.Range("A11:Z" & ws.Rows.count).Clear
     ' Demasque les lignes (un filtre precedent a pu en laisser de masquees apres Unlist)
     On Error Resume Next
-    ws.Range("A" & HDR_ROW & ":A" & ws.Rows.Count).EntireRow.Hidden = False
+    ws.Range("A" & HDR_ROW & ":A" & ws.Rows.count).EntireRow.Hidden = False
     On Error GoTo 0
 
     Set lo = GetDataTable()
     If lo Is Nothing Then
         ' Message VISIBLE sur la feuille (la barre d'etat est masquee en plein ecran).
-        ws.Range("B3").Value = "Donnees indisponibles : feuille '" & WS_DATA & "' ou son tableau introuvable." & _
+        ws.Range("B3").value = "Donnees indisponibles : feuille '" & WS_DATA & "' ou son tableau introuvable." & _
                                " Lancez la synchronisation (Alt+F8 -> SyncManuel), puis cliquez Actualiser."
-        ws.Range("B3").Font.Color = RGB(180, 60, 60): ws.Range("B3").Font.Bold = True
+        ws.Range("B3").Font.color = RGB(180, 60, 60): ws.Range("B3").Font.bold = True
         SetStatus "[Historique] " & ChrW(9888) & " Feuille '" & WS_DATA & "' ou tableau introuvable."
-        GoTo Done
+        GoTo done
     End If
     If lo.DataBodyRange Is Nothing Then
-        ws.Range("B3").Value = "Aucun plein dans '" & WS_DATA & "'. Lancez la synchronisation (Alt+F8 -> SyncManuel)."
-        ws.Range("B3").Font.Color = RGB(180, 60, 60): ws.Range("B3").Font.Bold = True
+        ws.Range("B3").value = "Aucun plein dans '" & WS_DATA & "'. Lancez la synchronisation (Alt+F8 -> SyncManuel)."
+        ws.Range("B3").Font.color = RGB(180, 60, 60): ws.Range("B3").Font.bold = True
         SetStatus "[Historique] Aucune donnee."
-        GoTo Done
+        GoTo done
     End If
 
-    data = lo.DataBodyRange.Value
+    data = lo.DataBodyRange.value
     n = UBound(data, 1)
     idx = BuildSortedIndex(data, n)
 
-    ' ── En-tete du tableau complet (B12:I12) ──
+    ' -- En-tete du tableau complet (B12:I12) --
     Dim hdr As Variant
     hdr = Array("Date", "Type", "Km", "Litres", "Prix EUR/L", "Cout EUR", "Station", "Vehicule")
     For i = 0 To 7
-        ws.Cells(HDR_ROW, 2 + i).Value = hdr(i)
+        ws.Cells(HDR_ROW, 2 + i).value = hdr(i)
     Next i
-    ws.Cells(11, 2).Value = "Tous les pleins (" & n & ")"
-    ws.Cells(11, 2).Font.Bold = True
-    ws.Cells(11, 2).Font.Color = RGB(27, 58, 92)
+    ws.Cells(11, 2).value = "Tous les pleins (" & n & ")"
+    ws.Cells(11, 2).Font.bold = True
+    ws.Cells(11, 2).Font.color = RGB(27, 58, 92)
 
-    ' ── Donnees (recent -> ancien) ──
+    ' -- Donnees (recent -> ancien) --
     Dim outArr() As Variant
     ReDim outArr(1 To n, 1 To 8)
     For i = 1 To n
@@ -150,36 +151,38 @@ Public Sub RafraichirHistorique()
         outArr(i, 3) = SafeNum(data(src, COL_KM))
         outArr(i, 4) = SafeNum(data(src, COL_LITRES))
         outArr(i, 5) = SafeNum(data(src, COL_PRIX))
-        outArr(i, 6) = CoutPlein(data(src, COL_LITRES), data(src, COL_PRIX))
+        Dim coutT As Variant: coutT = Empty
+        If UBound(data, 2) >= COL_COUT Then coutT = data(src, COL_COUT)
+        outArr(i, 6) = CoutPlein(data(src, COL_LITRES), data(src, COL_PRIX), coutT)
         outArr(i, 7) = CStr(data(src, COL_STATION))
         outArr(i, 8) = CStr(data(src, COL_VEHICULE))
     Next i
-    ws.Range(ws.Cells(HDR_ROW + 1, 2), ws.Cells(HDR_ROW + n, 9)).Value = outArr
+    ws.Range(ws.Cells(HDR_ROW + 1, 2), ws.Cells(HDR_ROW + n, 9)).value = outArr
 
-    ' ── Cree le ListObject + mise en forme ──
+    ' -- Cree le ListObject + mise en forme --
     Set lo = ws.ListObjects.Add(xlSrcRange, _
         ws.Range(ws.Cells(HDR_ROW, 2), ws.Cells(HDR_ROW + n, 9)), , xlYes)
-    lo.Name = TBL_NAME
+    lo.name = TBL_NAME
     On Error Resume Next
     lo.TableStyle = "TableStyleMedium2"
     On Error GoTo 0
     FormatColonnes lo
 
-    ' ── Carte "5 derniers pleins" ──
+    ' -- Carte "5 derniers pleins" --
     RenderRecents ws, outArr, n
 
     SetStatus "[Historique] " & ChrW(10003) & " " & n & " pleins charges (filtre auto sur Vehicule / Carburant)."
-    GoTo Done
+    GoTo done
 ErrH:
     SetStatus "[Historique] " & ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description
-Done:
+done:
     Application.ScreenUpdating = True
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 '  EXPORT CSV
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 Public Sub HistoExportFiltre()
     ExportCSV True
 End Sub
@@ -227,7 +230,7 @@ NextRow:
     End If
 
     fn = Application.GetSaveAsFilename( _
-        InitialFileName:="historique_" & Format$(Now, "yyyymmdd_hhmmss") & ".csv", _
+        InitialFileName:="historique_" & Format$(now, "yyyymmdd_hhmmss") & ".csv", _
         FileFilter:="Fichier CSV (*.csv),*.csv")
     If VarType(fn) = vbBoolean Then If fn = False Then Exit Sub
 
@@ -241,9 +244,9 @@ ErrH:
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 '  AUTRES ACTIONS (boutons)
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 Public Sub HistoDupliquerDernier()
     ' Etape 1 : ouvre le formulaire de saisie (le pre-remplissage avec le
     ' dernier plein sera cable a l'etape "Saisie").
@@ -254,9 +257,9 @@ Public Sub HistoDupliquerDernier()
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 '  HELPERS - DONNEES
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 
 ' Index 1..n trie par date DECROISSANTE (recent d'abord). Cle = Horodatage,
 ' sinon Date. Tri par insertion (suffisant pour la volumetrie attendue).
@@ -296,7 +299,13 @@ Private Function SafeNum(v As Variant) As Variant
     If IsNumeric(v) Then SafeNum = CDbl(v) Else SafeNum = ""
 End Function
 
-Private Function CoutPlein(litres As Variant, prix As Variant) As Variant
+Private Function CoutPlein(litres As Variant, prix As Variant, Optional cout As Variant) As Variant
+    ' W73 : priorite au cout saisi exact (col T) si disponible et positif
+    If Not IsMissing(cout) Then
+        If IsNumeric(cout) And CDbl(cout) > 0 Then
+            CoutPlein = CDbl(cout): Exit Function
+        End If
+    End If
     If IsNumeric(litres) And IsNumeric(prix) Then
         CoutPlein = CDbl(litres) * CDbl(prix)
     Else
@@ -305,9 +314,9 @@ Private Function CoutPlein(litres As Variant, prix As Variant) As Variant
 End Function
 
 
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 '  HELPERS - MISE EN FORME
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 
 Private Sub FormatColonnes(lo As ListObject)
     On Error Resume Next
@@ -323,18 +332,18 @@ End Sub
 
 ' Carte "5 derniers pleins" (rows 3..9).
 Private Sub RenderRecents(ws As Worksheet, outArr As Variant, n As Long)
-    ws.Cells(3, 2).Value = Emo(&H1F4C5&) & " 5 derniers pleins"
-    ws.Cells(3, 2).Font.Bold = True
-    ws.Cells(3, 2).Font.Color = RGB(27, 58, 92)
+    ws.Cells(3, 2).value = Emo(&H1F4C5) & " 5 derniers pleins"
+    ws.Cells(3, 2).Font.bold = True
+    ws.Cells(3, 2).Font.color = RGB(27, 58, 92)
 
     Dim hdr As Variant
     hdr = Array("Date", "Type", "Km", "Litres", "Prix EUR/L", "Cout EUR", "Station", "Vehicule")
     Dim c As Long
     For c = 0 To 7
         With ws.Cells(4, 2 + c)
-            .Value = hdr(c)
-            .Font.Bold = True: .Font.Color = vbWhite
-            .Interior.Color = RGB(46, 117, 182)
+            .value = hdr(c)
+            .Font.bold = True: .Font.color = vbWhite
+            .Interior.color = RGB(46, 117, 182)
             .HorizontalAlignment = xlCenter
         End With
     Next c
@@ -342,14 +351,14 @@ Private Sub RenderRecents(ws As Worksheet, outArr As Variant, n As Long)
     Dim k As Long, rr As Long
     For k = 1 To Application.Min(5, n)
         rr = 4 + k
-        ws.Cells(rr, 2).Value = outArr(k, 1): ws.Cells(rr, 2).NumberFormat = "dd/mm/yyyy"
-        ws.Cells(rr, 3).Value = outArr(k, 2)
-        ws.Cells(rr, 4).Value = outArr(k, 3): ws.Cells(rr, 4).NumberFormat = "#,##0"
-        ws.Cells(rr, 5).Value = outArr(k, 4): ws.Cells(rr, 5).NumberFormat = "0.00"
-        ws.Cells(rr, 6).Value = outArr(k, 5): ws.Cells(rr, 6).NumberFormat = "0.000"
-        ws.Cells(rr, 7).Value = outArr(k, 6): ws.Cells(rr, 7).NumberFormat = "0.00"
-        ws.Cells(rr, 8).Value = outArr(k, 7)
-        ws.Cells(rr, 9).Value = outArr(k, 8)
+        ws.Cells(rr, 2).value = outArr(k, 1): ws.Cells(rr, 2).NumberFormat = "dd/mm/yyyy"
+        ws.Cells(rr, 3).value = outArr(k, 2)
+        ws.Cells(rr, 4).value = outArr(k, 3): ws.Cells(rr, 4).NumberFormat = "#,##0"
+        ws.Cells(rr, 5).value = outArr(k, 4): ws.Cells(rr, 5).NumberFormat = "0.00"
+        ws.Cells(rr, 6).value = outArr(k, 5): ws.Cells(rr, 6).NumberFormat = "0.000"
+        ws.Cells(rr, 7).value = outArr(k, 6): ws.Cells(rr, 7).NumberFormat = "0.00"
+        ws.Cells(rr, 8).value = outArr(k, 7)
+        ws.Cells(rr, 9).value = outArr(k, 8)
         ws.Range(ws.Cells(rr, 2), ws.Cells(rr, 9)).HorizontalAlignment = xlCenter
         ws.Cells(rr, 8).HorizontalAlignment = xlLeft
     Next k
@@ -358,30 +367,30 @@ End Sub
 Private Sub CreateButtons(ws As Worksheet)
     Dim shp As Shape
     For Each shp In ws.Shapes
-        If Left$(shp.Name, 7) = "btnHist" Then shp.Delete
+        If Left$(shp.name, 7) = "btnHist" Then shp.Delete
     Next shp
 
     Dim L As Single: L = ws.Cells(3, 11).Left      ' colonne K
-    Dim T As Single: T = ws.Cells(3, 2).Top
-    AddButton ws, "btnHist1", L, T + 0, "Actualiser", "RafraichirHistorique", RGB(46, 117, 182)
-    AddButton ws, "btnHist2", L, T + 30, "Export (vue filtree)", "HistoExportFiltre", RGB(29, 158, 117)
-    AddButton ws, "btnHist3", L, T + 60, "Export (tout)", "HistoExportTout", RGB(29, 158, 117)
-    AddButton ws, "btnHist4", L, T + 90, "Dupliquer le dernier", "HistoDupliquerDernier", RGB(217, 119, 6)
-    AddButton ws, "btnHist5", L, T + 120, "Accueil", "NavAccueil", RGB(75, 85, 99)
+    Dim t As Single: t = ws.Cells(3, 2).Top
+    AddButton ws, "btnHist1", L, t + 0, "Actualiser", "RafraichirHistorique", RGB(46, 117, 182)
+    AddButton ws, "btnHist2", L, t + 30, "Export (vue filtree)", "HistoExportFiltre", RGB(29, 158, 117)
+    AddButton ws, "btnHist3", L, t + 60, "Export (tout)", "HistoExportTout", RGB(29, 158, 117)
+    AddButton ws, "btnHist4", L, t + 90, "Dupliquer le dernier", "HistoDupliquerDernier", RGB(217, 119, 6)
+    AddButton ws, "btnHist5", L, t + 120, "Accueil", "NavAccueil", RGB(75, 85, 99)
 End Sub
 
-Private Sub AddButton(ws As Worksheet, nm As String, L As Single, T As Single, _
+Private Sub AddButton(ws As Worksheet, nm As String, L As Single, t As Single, _
                       caption As String, macro As String, fill As Long)
     Dim sh As Shape
-    Set sh = ws.Shapes.AddShape(msoShapeRoundedRectangle, L, T, 170, 26)
-    sh.Name = nm
+    Set sh = ws.Shapes.AddShape(msoShapeRoundedRectangle, L, t, 170, 26)
+    sh.name = nm
     With sh
-        .Fill.ForeColor.RGB = fill
+        .fill.ForeColor.RGB = fill
         .Line.Visible = msoFalse
         With .TextFrame2
-            .TextRange.Text = caption
-            .TextRange.Font.Fill.ForeColor.RGB = vbWhite
-            .TextRange.Font.Bold = msoTrue
+            .TextRange.text = caption
+            .TextRange.Font.fill.ForeColor.RGB = vbWhite
+            .TextRange.Font.bold = msoTrue
             .TextRange.Font.Size = 10
             .TextRange.ParagraphFormat.Alignment = msoAlignCenter
             .HorizontalAnchor = msoAnchorCenter
@@ -392,22 +401,22 @@ Private Sub AddButton(ws As Worksheet, nm As String, L As Single, T As Single, _
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 '  HELPERS - CSV
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 
 Private Function CsvLine(lr As ListRow, sep As String, decChar As String) As String
     Dim cel As Range
     Set cel = lr.Range
     Dim parts(0 To 7) As String
-    parts(0) = IIf(IsDate(cel.Cells(1, 1).Value), Format$(cel.Cells(1, 1).Value, "dd/mm/yyyy"), "")
-    parts(1) = CsvTxt(CStr(cel.Cells(1, 2).Value), sep)
-    parts(2) = FmtNum(cel.Cells(1, 3).Value, 0, decChar)
-    parts(3) = FmtNum(cel.Cells(1, 4).Value, 2, decChar)
-    parts(4) = FmtNum(cel.Cells(1, 5).Value, 3, decChar)
-    parts(5) = FmtNum(cel.Cells(1, 6).Value, 2, decChar)
-    parts(6) = CsvTxt(CStr(cel.Cells(1, 7).Value), sep)
-    parts(7) = CsvTxt(CStr(cel.Cells(1, 8).Value), sep)
+    parts(0) = IIf(IsDate(cel.Cells(1, 1).value), Format$(cel.Cells(1, 1).value, "dd/mm/yyyy"), "")
+    parts(1) = CsvTxt(CStr(cel.Cells(1, 2).value), sep)
+    parts(2) = FmtNum(cel.Cells(1, 3).value, 0, decChar)
+    parts(3) = FmtNum(cel.Cells(1, 4).value, 2, decChar)
+    parts(4) = FmtNum(cel.Cells(1, 5).value, 3, decChar)
+    parts(5) = FmtNum(cel.Cells(1, 6).value, 2, decChar)
+    parts(6) = CsvTxt(CStr(cel.Cells(1, 7).value), sep)
+    parts(7) = CsvTxt(CStr(cel.Cells(1, 8).value), sep)
     CsvLine = Join(parts, sep)
 End Function
 
@@ -470,9 +479,9 @@ Fallback:
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 '  HELPERS - COMMUNS
-' ════════════════════════════════════════════════════════════
+' ------------------------------------------------------------
 
 Private Function GetDataTable() As ListObject
     Dim dataWs As Worksheet
@@ -480,7 +489,7 @@ Private Function GetDataTable() As ListObject
     Set dataWs = ThisWorkbook.Sheets(WS_DATA)
     On Error GoTo 0
     If dataWs Is Nothing Then Exit Function
-    If dataWs.ListObjects.Count = 0 Then Exit Function
+    If dataWs.ListObjects.count = 0 Then Exit Function
     Set GetDataTable = dataWs.ListObjects(1)
 End Function
 
@@ -490,13 +499,13 @@ Private Function GetOrCreateSheet(nm As String) As Worksheet
     Set ws = ThisWorkbook.Sheets(nm)
     On Error GoTo 0
     If ws Is Nothing Then
-        Set ws = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
+        Set ws = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.count))
         On Error Resume Next
-        ws.Name = nm
+        ws.name = nm
         ' Si le renommage echoue (nom deja pris par une feuille existante) :
         ' supprime l'orpheline cree par Add (evite une "Feuil#" vide non renommee)
         ' et reutilise la feuille existante.
-        If ws.Name <> nm Then
+        If ws.name <> nm Then
             Application.DisplayAlerts = False
             ws.Delete
             Application.DisplayAlerts = True
@@ -515,3 +524,5 @@ Private Function Emo(ByVal cp As Long) As String
         Emo = ChrW(&HD800& Or (v \ &H400&)) & ChrW(&HDC00& Or (v And &H3FF&))
     End If
 End Function
+
+

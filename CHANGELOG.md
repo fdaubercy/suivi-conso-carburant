@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.7.0.0] — 2026-06-07
+
+### Added
+- **U9 — Filtre véhicule global persistant** — sélecteur `#vehiculeSelGlobal` en header ; synchronise le périmètre véhicule sur toutes les vues (Stats, Carte, Historique) via l'événement `vehicule-changed`. `index.html`, `js/vehicules.js`, `js/main.js`.
+- **W58 — Prochain plein estimé** — la vue Stats affiche « prochain plein ≈ le JJ/MM » calculé depuis le rythme moyen (km/jour × autonomie). `js/stats.js` (`buildPrediction`).
+- **W73 — Coût réel dans les agrégats Excel** — `CoutPlein()` (`modHistorique.bas`) lit la colonne T (Coût € exact, W71) si renseignée et > 0, sinon recalcule `litres × prix`. `modDashboardKPI.bas` (`ComputeKPIs`, `ComputeDashboardStats`) adapté avec le même garde-fou `UBound(a,2) >= 20`. `vba/modHistorique.bas`, `vba/modDashboardKPI.bas`.
+
+### Fixed
+- **Excel — Validation B5/B6 (sélecteur véhicule/carburant)** — menu déroulant du Tableau de bord inaccessible ; `EnsureSelectors` recrée les listes AZ/BA et pose la validation sur B5/B6 après `MAJ_Dashboard_Graphiques`.
+- **Excel — Menu hamburger repositionné et centré** — `modNavMenu.bas` : largeur 210 → 280 px, marges intérieures normalisées (`Left=10`, `Width=FW-20`), `StartUpPosition=1` pour centrage sur la fenêtre Excel.
+- **CSS — Overflow des boutons rayon** — `.radius-label { flex-basis: 100% }` empêche les libellés de déborder du cadre. `css/style.css`.
+- **Bouton plein écran sans annotation** — `<span>` de libellé retiré du bouton ⛶ sur la carte stations. `index.html`, `js/stationsmap.js`.
+
+### Changed
+- **`APP_VERSION` 5.6.0.0 → 5.7.0.0** (`js/config.js`, incrément MINOR : nouvelles fonctionnalités utilisateur U9, W58, W73)
+
 ## [5.6.0.0] — 2026-06-06
 
 ### Changed

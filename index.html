@@ -64,6 +64,17 @@
   </div>
 </header>
 
+<!-- U9 — Filtre véhicule GLOBAL : s'applique à Stats / Carte / Historique.
+     Masqué par défaut ; affiché par main.js sur ces vues (s'il existe ≥ 1 véhicule). -->
+<div class="vehbar" id="vehBar" hidden>
+  <span class="vehbar-ico" aria-hidden="true">🚗</span>
+  <label class="vehbar-label" for="vehiculeSelGlobal">Véhicule</label>
+  <select id="vehiculeSelGlobal" class="vehbar-sel"
+          aria-label="Véhicule appliqué à toutes les vues (Stats, Carte, Historique)">
+    <option value="">Tous les véhicules</option>
+  </select>
+</div>
+
 <main id="app-main">
 
 <!-- ════════════ U7 — Mur de connexion ════════════
@@ -251,7 +262,7 @@
     <div class="map-header">
       <span class="map-title">🗺️ Carte des stations</span>
       <span class="map-header-btns">
-        <button class="map-fs-btn map-fs-btn--lbl" type="button" data-fs-target="#stationMapWrap" title="Plein écran" aria-label="Plein écran"><span class="mfs-ico">⛶</span><span class="mfs-lbl">Plein écran</span></button>
+        <button class="map-fs-btn" type="button" data-fs-target="#stationMapWrap" title="Plein écran" aria-label="Plein écran"><span class="mfs-ico">⛶</span></button>
         <button class="map-close-btn">✕</button>
       </span>
     </div>
@@ -352,7 +363,9 @@
     </div>
   </div>
   <div class="hist-filters">
-    <select id="histVehFilter" class="hist-filter-sel">
+    <!-- U9 — filtre véhicule masqué : la sélection se fait via la barre véhicule globale
+         (sous l'en-tête). Ce select reste dans le DOM et synchronisé pour le filtrage. -->
+    <select id="histVehFilter" class="hist-filter-sel" hidden>
       <option value="">Tous les véhicules</option>
     </select>
     <select id="histTypeFilter" class="hist-filter-sel">
