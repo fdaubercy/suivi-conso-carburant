@@ -73,7 +73,7 @@ Private Function Nz(v As Variant) As Double
     If IsNumeric(v) Then Nz = CDbl(v) Else Nz = 0
 End Function
 
-Private Function FuelKeyK(t As String) As String
+Public Function FuelKeyK(t As String) As String
     Dim u As String: u = UCase$(Trim$(t))
     If InStr(u, "E85") > 0 Or InStr(u, "ETHANOL") > 0 Then
         FuelKeyK = "E85"
@@ -88,6 +88,19 @@ Private Function FuelKeyK(t As String) As String
     ElseIf Len(u) > 0 Then
         FuelKeyK = u
     End If
+End Function
+
+' Verifie si fk (cle normalisee) est dans la selection multi-carburant sel.
+' sel peut etre "(tous)", une valeur simple, ou une liste "E85, SP95".
+Public Function FuelInSel(ByVal fk As String, ByVal sel As String) As Boolean
+    If Len(sel) = 0 Or sel = KPI_TOUS Then FuelInSel = True: Exit Function
+    Dim parts() As String: parts = Split(sel, ",")
+    Dim i As Long
+    For i = 0 To UBound(parts)
+        If StrComp(FuelKeyK(Trim(parts(i))), fk, vbTextCompare) = 0 Then
+            FuelInSel = True: Exit Function
+        End If
+    Next i
 End Function
 
 Private Function surconso() As Double
@@ -250,7 +263,7 @@ Public Sub ComputeKPIs(ByVal veh As String, ByVal fuel As String, _
         End If
         Dim fk0 As String: fk0 = ""
         If ciType > 0 Then fk0 = FuelKeyK(CStr(a(i, ciType)))
-        If filtFuel Then If fk0 <> fuel Then GoTo P1NX
+        If filtFuel Then If Not FuelInSel(fk0, fuel) Then GoTo P1NX
         Dim km0 As Double: km0 = Nz(a(i, ciKm))
         If km0 > 0 Then
             If Not haveKm Then
@@ -275,7 +288,7 @@ P1NX:
         fk = ""
         If ciType > 0 Then fk = FuelKeyK(CStr(a(i, ciType)))
         If filtFuel Then
-            If fk <> fuel Then GoTo NX
+            If Not FuelInSel(fk, fuel) Then GoTo NX
         End If
 
         Dim km As Double: km = Nz(a(i, ciKm))
@@ -374,8 +387,7 @@ Public Sub ComputeDashboardStats(ByVal veh As String, ByVal fuel As String, _
             nVeh = nVeh + 1
             If fkA = "E85" Then nE85 = nE85 + 1
             ' prix moyen : carburant filtr�, sinon E85 par d�faut
-            Dim fuelPrix As String: fuelPrix = IIf(filtFuel, fuel, "E85")
-            If fkA = fuelPrix Then
+            If FuelInSel(fkA, IIf(filtFuel, fuel, "E85")) Then
                 Dim pp As Double: pp = Nz(a(i, ciPrix))
                 If pp > 0 Then sumPrix = sumPrix + pp: nPrix = nPrix + 1
             End If
@@ -392,7 +404,7 @@ Public Sub ComputeDashboardStats(ByVal veh As String, ByVal fuel As String, _
         If filtVeh And ciVeh > 0 Then
             If StrComp(Trim$(CStr(a(i, ciVeh))), veh, vbTextCompare) <> 0 Then GoTo P1NX
         End If
-        If filtFuel Then If fkA <> fuel Then GoTo P1NX
+        If filtFuel Then If Not FuelInSel(fkA, fuel) Then GoTo P1NX
         Dim km0 As Double: km0 = Nz(a(i, ciKm))
         If km0 > 0 Then
             If Not haveKm Then
@@ -413,7 +425,7 @@ P1NX:
             End If
             Dim fk As String: fk = ""
             If ciType > 0 Then fk = FuelKeyK(CStr(a(i, ciType)))
-            If filtFuel Then If fk <> fuel Then GoTo P2NX
+            If filtFuel Then If Not FuelInSel(fk, fuel) Then GoTo P2NX
 
             Dim km As Double: km = Nz(a(i, ciKm))
             Dim li As Double: li = Nz(a(i, ciLit))

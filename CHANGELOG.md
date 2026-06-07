@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.10.0.0] — 2026-06-07
+
+### Added
+- **Excel — Filtre carburant multi-sélection** : `FuelInSel(fk, sel)` dans `modDashboardKPI.bas` (public) — interprète `sel` comme une liste séparée par virgules (ex. `"E85, SP95"`) ; retourne `True` si `fk` appartient à la sélection ou si `sel` vaut `KPI_TOUS`/vide.
+- **Excel — `FuelKeyK` public** : la fonction de normalisation des clés carburant est désormais accessible depuis tous les modules.
+
+### Changed
+- **Excel — `modDashboardKPI.bas`** : toutes les comparaisons directes `fk <> fuel` remplacées par `Not FuelInSel(fk, fuel)` dans les deux passes de `ComputeConsumption` et `ComputeDashboardStats` (4 sites). Le calcul du prix moyen utilise désormais `FuelInSel` pour inclure tous les carburants sélectionnés.
+- **Excel — `modGraphiques.bas`** : filtre `fk <> selFuel` remplacé par `Not modDashboardKPI.FuelInSel(fk, selFuel)`. `BuildPriceBlockMerged` reçoit `""` (tous) quand la sélection contient une virgule — affiche toutes les courbes de prix en mode multi-carburant.
+- **Excel — `modDashboardGraphiques.bas`** : `EnsureSelectors` ne réinitialise plus B6 quand la valeur contient une virgule (sélection multi-carburant préservée).
+
 ## [5.9.0.0] — 2026-06-07
 
 ### Added

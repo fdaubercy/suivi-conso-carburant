@@ -488,10 +488,13 @@ Private Sub EnsureSelectors(ws As Worksheet)
         If Len(dv) = 0 Then dv = modDashboardKPI.KPI_TOUS
         ws.Range(CELL_SEL_VEH).value = dv
     End If
-    If Not InTechList(ws, COL_LIST_FUEL, nFuel, CStr(ws.Range(CELL_SEL_FUEL).value)) Then
-        Dim df As String: df = modDashboardKPI.KPIDefautCarburant()
-        If Len(df) = 0 Then df = modDashboardKPI.KPI_TOUS
-        ws.Range(CELL_SEL_FUEL).value = df
+    Dim fuelVal As String: fuelVal = CStr(ws.Range(CELL_SEL_FUEL).value)
+    If InStr(fuelVal, ",") = 0 Then
+        If Not InTechList(ws, COL_LIST_FUEL, nFuel, fuelVal) Then
+            Dim df As String: df = modDashboardKPI.KPIDefautCarburant()
+            If Len(df) = 0 Then df = modDashboardKPI.KPI_TOUS
+            ws.Range(CELL_SEL_FUEL).value = df
+        End If
     End If
 
     On Error GoTo 0

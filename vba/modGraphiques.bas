@@ -386,7 +386,7 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsD As Workshee
             If StrComp(Trim$(CStr(a(i, ciVehT2))), selVeh, vbTextCompare) <> 0 Then GoTo NextRow
         End If
         If filtFuel Then
-            If fk <> selFuel Then GoTo NextRow
+            If Not modDashboardKPI.FuelInSel(fk, selFuel) Then GoTo NextRow
         End If
 
         Dim litres As Double: litres = NumOr0(a(i, ciLitres))
@@ -464,7 +464,9 @@ NextRow:
     Next i
     ' X30/X35 : fusion PrixHistory (marche) + pleins, tous carburants detectes.
     ' X36 : si un carburant est sélectionné, le bloc prix se limite à celui-ci.
-    rPrice = BuildPriceBlockMerged(wsD, t2, rPriceCols, IIf(filtFuel, selFuel, ""))
+    Dim fuelFilter As String
+    If filtFuel And InStr(selFuel, ",") = 0 Then fuelFilter = selFuel Else fuelFilter = ""
+    rPrice = BuildPriceBlockMerged(wsD, t2, rPriceCols, fuelFilter)
     rConso = rCo
     rKit = rK
     rCoutKm = rCk

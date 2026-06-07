@@ -122,6 +122,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.10.0.0 | **Filtre carburant multi-sélection** — `FuelInSel(fk, sel)` public dans `modDashboardKPI.bas` ; B6 accepte une liste séparée par virgules (ex. `"E85, SP95"`). Toutes les comparaisons de filtre dans `modDashboardKPI.bas` et `modGraphiques.bas` utilisent `FuelInSel`. `EnsureSelectors` préserve les valeurs multi. |
 | v5.9.0.0 | **Sidebar navigation verticale (Variante A)** — `modSidebar.bas` (UserForm modeless) : 44 pt au repos (icônes), 182 pt expandé (icône + libellé), hamburger ☰, auto-repli 4 s via `OnTime`, 6 destinations, `ShowSidebar` depuis `Workbook_Open`. |
 | v5.9.0.0 | **Auto-zoom centralisé** — `AutoZoomFitWidth` dans `Affichage.bas` ; ajuste le zoom à la largeur visible à chaque `SheetActivate` (borne 50 %–200 %). |
 | v5.9.0.0 | **B6 liste carburants exhaustive** — liste fixe canonique (E85, SP95, SP98, Gazole, GPL, E10) + valeurs distinctes de `GS_Pleins` absentes. `vba/modDashboardGraphiques.bas`. |
