@@ -116,6 +116,27 @@ Public Sub AjouterBoutonPleinEcran(ws As Worksheet)
     On Error GoTo 0
 End Sub
 
+' ════════════════════════════════════════════════════════════
+'  AUTO-ZOOM : adapte le zoom de l'onglet actif pour que la largeur
+'  du contenu (UsedRange) soit entierement visible.
+'  Appele par Workbook_SheetActivate (ThisWorkbook).
+' ════════════════════════════════════════════════════════════
+Public Sub AutoZoomFitWidth()
+    On Error Resume Next
+    Dim wb As Window: Set wb = Application.ActiveWindow
+    If wb Is Nothing Then Exit Sub
+    Dim ws As Worksheet: Set ws = ActiveSheet
+    If ws Is Nothing Then Exit Sub
+    Dim usedW As Double: usedW = ws.UsedRange.Width
+    If usedW < 10 Then Exit Sub          ' feuille vide ou non calculee
+    Dim winW As Double: winW = wb.Width - 18   ' -18 : approximation barre de defilement
+    If winW < 100 Then Exit Sub
+    Dim z As Long: z = CLng(winW / usedW * 100)
+    z = Application.Max(50, Application.Min(200, z))
+    wb.Zoom = z
+    On Error GoTo 0
+End Sub
+
 ' Pose le bouton sur tous les onglets du dashboard miroir presents.
 ' Pose egalement le bouton hamburger de navigation (modNavMenu).
 Public Sub PoserBoutonsPleinEcran()

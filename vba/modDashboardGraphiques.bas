@@ -70,6 +70,14 @@ Public Sub MAJ_Dashboard_Graphiques()
     topCharts = BuildHeaderAndKPIs(ws)   ' renvoie le Top où commencer la grille
     LayoutCharts ws, topCharts
 
+    ' Remettre au premier plan les boutons de modGraphiques (couverts par le bandeau)
+    Dim sBtns As Shape
+    For Each sBtns In ws.Shapes
+        If sBtns.Name = "btnRecreerGraph" Or sBtns.Name = "btnExportGraph" Then
+            sBtns.ZOrder msoBringToFront
+        End If
+    Next sBtns
+
     Application.ScreenUpdating = True
     ws.Activate
     ws.Range("A1").Select
@@ -278,6 +286,8 @@ Private Function BuildHeaderAndKPIs(ws As Worksheet) As Single
     AddBanner ws, bnLeft, hT, bnW, hH
     ' Bouton « Actualiser » en haut à droite du bandeau
     AddButton ws, bnLeft + bnW - 152, hT + (hH - 26) / 2, 142, 26
+    ' Infos B7/B8 en bas à droite du bandeau (petite police)
+    AddBannerParamsInfo ws, bnLeft, hT, bnW, hH, ws.Range("B7").value, ws.Range("B8").value
 
     ' -- Cartes KPI --
     Dim kpiTop As Single: kpiTop = rowsBottom + 2
@@ -435,14 +445,34 @@ Private Sub EnsureSelectors(ws As Worksheet)
             ws.Cells(nVeh, COL_LIST_VEH).value = vehs(i)
         End If
     Next i
+    ' ---- FUEL : liste fixe exhaustive + valeurs distinctes de GS_Pleins ----
+    Dim FIXED_FUELS(5) As String
+    FIXED_FUELS(0) = "E85":    FIXED_FUELS(1) = "SP95": FIXED_FUELS(2) = "SP98"
+    FIXED_FUELS(3) = "Gazole": FIXED_FUELS(4) = "GPL":  FIXED_FUELS(5) = "E10"
+
     ws.Cells(1, COL_LIST_FUEL).value = modDashboardKPI.KPI_TOUS
     nFuel = 1
+    Dim fi As Long
+    For fi = 0 To 5
+        nFuel = nFuel + 1
+        ws.Cells(nFuel, COL_LIST_FUEL).value = FIXED_FUELS(fi)
+    Next fi
+    ' Ajouter valeurs distinctes de GS_Pleins absentes de la liste fixe
     For i = LBound(fuels) To UBound(fuels)
         If Len(fuels(i)) > 0 Then
-            nFuel = nFuel + 1
-            ws.Cells(nFuel, COL_LIST_FUEL).value = fuels(i)
+            Dim alreadyIn As Boolean: alreadyIn = False
+            For fi = 0 To 5
+                If StrComp(fuels(i), FIXED_FUELS(fi), vbTextCompare) = 0 Then
+                    alreadyIn = True: Exit For
+                End If
+            Next fi
+            If Not alreadyIn Then
+                nFuel = nFuel + 1
+                ws.Cells(nFuel, COL_LIST_FUEL).value = fuels(i)
+            End If
         End If
     Next i
+    ' ---- FIN liste carburants ----
 
     ' Colonnes techniques masquées (sources de validation)
     ws.Columns(COL_LIST_VEH).Hidden = True
@@ -535,6 +565,40 @@ Private Sub AddKpiCard(ws As Worksheet, x As Single, y As Single, w As Single, h
     Set un = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x + 16, y + 56, w - 24, 14)
     un.Name = "dash_kpiunit"
     SetText un, unit, FONT_UI, 9, False, cMuted, msoAlignLeft
+End Sub
+
+'---- Infos parametres (B7/B8) dans le bandeau — bas droite, petite police ---
+Private Sub AddBannerParamsInfo(ws As Worksheet, bx As Single, by As Single, _
+                                bw As Single, bh As Single, _
+                                graphAuto As Variant, lastGen As Variant)
+    Dim sAuto As String
+    sAuto = Trim$(CStr(graphAuto))
+    If Len(sAuto) = 0 Then sAuto = "Oui"
+    Dim sGen As String
+    On Error Resume Next
+    If IsDate(lastGen) And CDate(lastGen) > CDate("01/01/1900") Then
+        sGen = Format(CDate(lastGen), "dd/mm hh:mm")
+    Else
+        sGen = "—"
+    End If
+    On Error GoTo 0
+    Dim txt As Shape
+    Set txt = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, _
+        bx + bw - 220, by + bh - 20, 215, 16)
+    txt.Name = "dash_meta_params"
+    On Error Resume Next
+    With txt.TextFrame2
+        .TextRange.Text = "Auto: " & sAuto & "   Derniere gen: " & sGen
+        .TextRange.Font.Name = FONT_UI
+        .TextRange.Font.Size = 8
+        .TextRange.Font.Fill.ForeColor.RGB = RGB(140, 170, 200)
+        .TextRange.ParagraphFormat.Alignment = msoAlignRight
+        .VerticalAnchor = msoAnchorBottom
+        .MarginLeft = 0: .MarginRight = 4: .MarginTop = 0: .MarginBottom = 2
+    End With
+    txt.Fill.Visible = msoFalse
+    txt.Line.Visible = msoFalse
+    On Error GoTo 0
 End Sub
 
 '---- Bandeau méta (bleu clair) ---------------------------------------------

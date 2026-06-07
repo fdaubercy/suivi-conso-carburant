@@ -972,6 +972,17 @@ Private Sub EnsureParamBlock(ws As Worksheet)
         .Font.Color = RGB(107, 114, 128)
         .Locked = True
     End With
+    ' B7 : liste deroulante Oui / Non (au lieu de texte libre)
+    ws.Cells(1, 54).Value = "Oui"   ' BB1
+    ws.Cells(2, 54).Value = "Non"   ' BB2
+    ws.Columns(54).Hidden = True
+    With ws.Range(CELL_GRAPH_AUTO).Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
+             Formula1:="='" & ws.Name & "'!$BB$1:$BB$2"
+        .IgnoreBlank = True
+        .InCellDropdown = True
+    End With
     On Error GoTo 0
 End Sub
 
@@ -1060,10 +1071,19 @@ End Sub
 ' repli sur une Shape stylee si le fichier image est absent.
 ' Espaces des parametres (poses a gauche) et decales sous le bandeau.
 Private Sub EnsureButtons(ws As Worksheet)
+    ' Positions dans la zone du bandeau, sous le titre/sous-titre (Top ~88)
+    ' BringToFront appele par MAJ_Dashboard_Graphiques apres creation du bandeau
     EnsurePictureButton ws, "btnRecreerGraph", "btn_recreer.png", _
-        "Recreer les graphiques", C_E85, 560, 44, 190, 30, "CreerGraphiquesWeb"
+        "Recreer les graphiques", C_E85, 315, 88, 185, 27, "CreerGraphiquesWeb"
     EnsurePictureButton ws, "btnExportGraph", "btn_export_pdf.png", _
-        "Exporter en PDF", C_COUT, 760, 44, 170, 30, "ExporterGraphiquesPDF"
+        "Exporter en PDF", C_COUT, 510, 88, 160, 27, "ExporterGraphiquesPDF"
+    ' S'assurer qu'ils sont au premier plan
+    Dim s As Shape
+    For Each s In ws.Shapes
+        If s.Name = "btnRecreerGraph" Or s.Name = "btnExportGraph" Then
+            s.ZOrder msoBringToFront
+        End If
+    Next s
 End Sub
 
 Private Sub EnsurePictureButton(ws As Worksheet, nm As String, fileName As String, _

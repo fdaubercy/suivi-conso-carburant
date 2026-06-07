@@ -122,6 +122,12 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.9.0.0 | **Sidebar navigation verticale (Variante A)** — `modSidebar.bas` (UserForm modeless) : 44 pt au repos (icônes), 182 pt expandé (icône + libellé), hamburger ☰, auto-repli 4 s via `OnTime`, 6 destinations, `ShowSidebar` depuis `Workbook_Open`. |
+| v5.9.0.0 | **Auto-zoom centralisé** — `AutoZoomFitWidth` dans `Affichage.bas` ; ajuste le zoom à la largeur visible à chaque `SheetActivate` (borne 50 %–200 %). |
+| v5.9.0.0 | **B6 liste carburants exhaustive** — liste fixe canonique (E85, SP95, SP98, Gazole, GPL, E10) + valeurs distinctes de `GS_Pleins` absentes. `vba/modDashboardGraphiques.bas`. |
+| v5.9.0.0 | **Boutons dashboard visibles** — `btnRecreerGraph` / `btnExportGraph` repositionnés à `Top=88` (sous le texte du bandeau) + `ZOrder msoBringToFront`. `vba/modGraphiques.bas`, `vba/modDashboardGraphiques.bas`. |
+| v5.9.0.0 | **B7 liste déroulante** — validation `xlValidateList` sur B7 depuis cellules BB1:BB2 (col. 54 masquée, locale-indépendant). `vba/modGraphiques.bas`. |
+| v5.9.0.0 | **Infos B7/B8 dans le bandeau** — `AddBannerParamsInfo` : textbox `dash_meta_params` en bas-droit du bandeau bleu, police 8 pt, « Auto: [B7]   Dernière gén: [B8] ». `vba/modDashboardGraphiques.bas`. |
 | v5.8.0.0 | **C8 — Versionnage GAS** — `scripts/sync-gas.sh` : déploie via `gas-deploy.mjs` puis commit les `.gs` locaux dans git. |
 | v5.8.0.0 | **X9 — Économies cumulées E85 vs SP98** — graphique `gEcoDate` (courbe par date), bloc `AM:AN` dans `_GraphData`. `vba/modGraphiques.bas`. |
 | v5.8.0.0 | **X15 — Scatter Prix E85/L vs L/100 km** — graphique `gScatterE85` avec droite de tendance, bloc `AP:AQ`. `vba/modGraphiques.bas`. |

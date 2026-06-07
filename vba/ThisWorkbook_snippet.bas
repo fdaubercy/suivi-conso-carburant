@@ -38,9 +38,29 @@ Private Sub Workbook_Open()
     On Error Resume Next
     AfficherVueDeDepart
     On Error GoTo 0
+
+    ' 4. Sidebar de navigation (modeless, persistante sur tous les onglets)
+    On Error Resume Next
+    modSidebar.ShowSidebar
+    On Error GoTo 0
+End Sub
+
+Private Sub Workbook_SheetActivate(ByVal Sh As Object)
+    ' Auto-zoom : ajuste la largeur visible pour l'onglet actif
+    On Error Resume Next
+    AutoZoomFitWidth
+    On Error GoTo 0
+    ' Repositionner la sidebar si elle est deja affichee
+    On Error Resume Next
+    modSidebar.RepositionSidebar
+    On Error GoTo 0
 End Sub
 
 Private Sub Workbook_BeforeClose(Cancel As Boolean)
+    ' Fermer proprement la sidebar avant la fermeture du classeur
+    On Error Resume Next
+    modSidebar.HideSidebar
+    On Error GoTo 0
     Call DesactiverPleinEcran   ' Restaure l'interface à la fermeture
 End Sub
 

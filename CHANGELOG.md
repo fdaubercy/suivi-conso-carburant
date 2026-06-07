@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.9.0.0] — 2026-06-07
+
+### Added
+- **Excel — Sidebar navigation (Variante A)** : `modSidebar.bas` (nouveau module). UserForm modeless persistant sur tous les onglets ; largeur 44 pt au repos (icônes seules), 182 pt à l'ouverture (icône + libellé). Hamburger ☰ déclenche l'animation, auto-repli après 4 s via `Application.OnTime`. 6 destinations : Accueil, Tableau de bord, Carte, Suivi Carburant, Prix/Station, Réglages. Appelée depuis `Workbook_Open` ; `RepositionSidebar` à chaque `SheetActivate`.
+- **Excel — Auto-zoom centralisé** : `AutoZoomFitWidth` dans `Affichage.bas` (calcule le rapport `UsedRange.Width / ActiveWindow.Width`, borne à [50 %–200 %]). Appelée depuis `Workbook_SheetActivate` dans `ThisWorkbook`.
+- **Excel — B7 liste déroulante** : `EnsureParamBlock` dans `modGraphiques.bas` écrit "Oui"/"Non" dans les cellules BB1:BB2 (col. 54, masquée) et pose une validation `xlValidateList` sur B7 depuis cette plage (indépendant de la locale Excel).
+- **Excel — Infos B7/B8 dans le bandeau** : sous-programme `AddBannerParamsInfo` dans `modDashboardGraphiques.bas` ; insère une textbox `dash_meta_params` en bas-droit du bandeau bleu, police 8 pt, couleur #8CAAC8, texte « Auto: [B7]   Dernière gén: [B8 formaté] ».
+
+### Fixed
+- **Excel — Boutons `btnRecreerGraph` / `btnExportGraph` masqués** : repositionnés à `Top=88` (sous le texte titre/sous-titre du bandeau `dash_banner`) dans `modGraphiques.EnsureButtons` ; `ZOrder msoBringToFront` appliqué dans `EnsureButtons` ET dans `MAJ_Dashboard_Graphiques`.
+- **Excel — Liste B6 carburants exhaustive** : `EnsureSelectors` dans `modDashboardGraphiques.bas` commence désormais par la liste fixe (tous), E85, SP95, SP98, Gazole, GPL, E10, puis ajoute les valeurs distinctes de `GS_Pleins` absentes de cette liste.
+
+### Changed
+- **ThisWorkbook** : ajout `Workbook_SheetActivate` (auto-zoom + repositionnement sidebar) ; `Workbook_BeforeClose` appelle `modSidebar.HideSidebar` avant `DesactiverPleinEcran`.
+- **`APP_VERSION` 5.8.0.0 → 5.9.0.0** (`js/config.js`, incrément MINOR : nouvelles fonctionnalités Excel — sidebar, auto-zoom, améliorations dashboard)
+
 ## [5.8.0.0] — 2026-06-07
 
 ### Added
