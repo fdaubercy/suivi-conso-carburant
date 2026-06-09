@@ -27,21 +27,23 @@ Attribute VB_Name = "modWorkbook"
 ' ============================================================
 Option Explicit
 
+Public Const WB_VERSION  As String = "5.11.1.0"
+
 Private Const WS_ACCUEIL As String = "Accueil"
 Private Const WS_STATS   As String = "Tableau de bord"   ' cree par modGraphiques (CreerGraphiquesWeb)
 Private Const WS_CARTE   As String = "Carte"             ' cree par modCarte (etape 3)
-Private Const WS_HIST    As String = "Historique"
-Private Const WS_REG     As String = "Reglages"
+Private Const WS_HIST    As String = "Hist. Carburant"
 Private Const WS_DATA    As String = "GS_Pleins"
+Private Function WS_REG() As String: WS_REG = "R" & ChrW(233) & "glages": End Function
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  INSTALLATION COMPLETE DU DASHBOARD (toutes les feuilles miroir)
 '  Prerequis : modReglages, modHistorique, modCarte importes
 '  (+ modGraphiques pour monter la feuille Stats "Tableau de bord").
 '  Cree : Reglages + Historique + Carte + Stats (Tableau de bord) + Accueil.
 '  Apres : coller les 3 snippets (ThisWorkbook / Reglages / Carte).
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub InstallerDashboard()
     Application.ScreenUpdating = False
     On Error GoTo ErrH
@@ -80,7 +82,7 @@ Done:
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  GO ! — INSTALLATION COMPLETE EN UN CLIC
 '  A lancer (Alt+F8 -> Installer) APRES avoir importe tous les .bas
 '  et colle les snippets de feuille. Tolerant : chaque etape est
@@ -90,7 +92,7 @@ End Sub
 '       Stats (Tableau de bord) est montee via modGraphiques.CreerGraphiquesWeb.
 '    2. Analyse (MFC prix + Suivi auto + Tableau2)        [modFeatures]
 '    3. Verification finale                               [modFeatures]
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub Installer()
     Dim rap As String, okN As Long, koN As Long
     Application.ScreenUpdating = False
@@ -116,9 +118,9 @@ Public Sub Installer()
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  INSTALLATION GROUPEE - ETAPE 1 (Reglages + Historique + Accueil)
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub InstallerEtape1()
     Application.ScreenUpdating = False
     On Error GoTo ErrH
@@ -141,9 +143,9 @@ Done:
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  FEUILLE ACCUEIL (tuiles)
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub CreerAccueil()
     Dim ws As Worksheet
     Application.ScreenUpdating = False
@@ -192,7 +194,7 @@ Public Sub CreerAccueil()
     labels(2) = Emo(&H1F4CA&) & Chr(13) & "Stats":     macros(2) = "NavStats":      cols(2) = RGB(29, 158, 117)
     labels(3) = Emo(&H1F5FA&) & Chr(13) & "Carte":     macros(3) = "NavCarte":      cols(3) = RGB(217, 119, 6)
     labels(4) = Emo(&H1F4DC&) & Chr(13) & "Historique": macros(4) = "NavHistorique": cols(4) = RGB(124, 58, 237)
-    labels(5) = Emo(&H2699&) & Chr(13) & "Reglages":   macros(5) = "NavReglages":   cols(5) = RGB(75, 85, 99)
+    labels(5) = Emo(&H2699&) & Chr(13) & "R" & ChrW(233) & "glages": macros(5) = "NavReglages": cols(5) = RGB(75, 85, 99)
 
     Dim i As Long, tw As Single, th As Single, gap As Single, T2 As Single
     tw = 150: th = 96: gap = 12: T2 = T1 + 56
@@ -215,9 +217,9 @@ Done:
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  NAVIGATION (cibles des tuiles - OnAction)
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub NavAccueil()
     GoSheet WS_ACCUEIL, "Accueil"
 End Sub
@@ -239,7 +241,7 @@ End Sub
 
 Public Sub NavReglages()
     ReglageSetDerniereVue "reglages"
-    GoSheet WS_REG, "Reglages"
+    GoSheet WS_REG, "R" & ChrW(233) & "glages"
 End Sub
 
 ' Saisie = UserForm (modSaisie). Tolerant si le module n'est pas importe.
@@ -271,15 +273,15 @@ Public Sub NavReprendre()
         Case "saisie":     NavSaisie
         Case "stats":      GoSheet WS_STATS, "Stats (etape 2)"
         Case "carte":      GoSheet WS_CARTE, "Carte (etape 3)"
-        Case "reglages":   GoSheet WS_REG, "Reglages"
+        Case "reglages":   GoSheet WS_REG, "R" & ChrW(233) & "glages"
         Case Else:         GoSheet WS_HIST, "Historique"
     End Select
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  DEMARRAGE (appele par Workbook_Open via ThisWorkbook_snippet)
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub AfficherVueDeDepart()
     On Error Resume Next
     Select Case ReglagePageOuverture()
@@ -295,9 +297,9 @@ Public Sub AfficherVueDeDepart()
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  HELPERS (prives)
-' ════════════════════════════════════════════════════════════
+' ============================================================
 
 ' Active une feuille ; si elle n'existe pas encore, la CONSTRUIT via son
 ' createur (auto-reparation). Evite un bouton "mort" quand la feuille manque -
@@ -431,6 +433,16 @@ Private Function Emo(ByVal cp As Long) As String
         Emo = ChrW(&HD800& Or (v \ &H400&)) & ChrW(&HDC00& Or (v And &H3FF&))
     End If
 End Function
+
+' ============================================================
+'  X17 : GARDE-FOU DE VERSION
+'  Affiche WB_VERSION en barre d'etat a l'ouverture.
+'  Si le classeur est en retard sur le depot, l'utilisateur le voit.
+' ============================================================
+Public Sub VerifierVersionWorkbook()
+    Application.StatusBar = "[Version] Classeur v" & WB_VERSION & _
+        "  |  Comparez avec la derniere entree du CHANGELOG pour verifier la synchronisation VBA."
+End Sub
 
 ' Execute une macro par son nom (tolerant) et renvoie une ligne de bilan.
 ' Met a jour les compteurs OK / echec passes par reference. Sert a la macro

@@ -1,3 +1,4 @@
+Attribute VB_Name = "modDashboardGraphiques"
 '---------------------------------------------------------------------------
 '  modDashboardGraphiques  —  Suivi Conso Carburants
 '  Met en page la feuille « Graphiques » en tableau de bord et applique la
@@ -69,6 +70,11 @@ Public Sub MAJ_Dashboard_Graphiques()
     Dim topCharts As Single
     topCharts = BuildHeaderAndKPIs(ws)   ' renvoie le Top où commencer la grille
     LayoutCharts ws, topCharts
+
+    ' Panneau filtre carburant Option C (bouton + shapes toggle)
+    On Error Resume Next
+    modFuelPanel.InstallFuelPanel
+    On Error GoTo 0
 
     ' Remettre au premier plan les boutons de modGraphiques (couverts par le bandeau)
     Dim sBtns As Shape

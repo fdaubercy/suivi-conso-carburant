@@ -597,12 +597,14 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     Dim localIds    As Object
     Dim updFromGS   As Long   ' v2.9 : MAJ GS->Excel
     Dim sentUpdToGS As Long   ' v2.9 : MAJ Excel->GS (bulkUpdate)
+    Dim tStart      As Date   ' X11 : chrono pour _SyncLog
 
     On Error GoTo ErrHandler
 
     SetStatus "Connexion a Google Sheets..."
     Application.Cursor = xlWait
 
+    tStart = Now
     Set ws = ThisWorkbook.Sheets(WS_NAME)
 
     ' v2.9 : s'assurer que la col P est bien initialisee
@@ -678,6 +680,11 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     If pushedStations >= 0 Then msg = msg & " / stations:" & pushedStations
     If paramSync > 0 Then msg = msg & " / params:" & paramSync
     SetStatus msg
+
+    ' X11 : journalise cette sync dans l'onglet _SyncLog
+    On Error Resume Next
+    LogToSyncLog addedFromGS, sentToGS, DateDiff("s", tStart, Now)
+    On Error GoTo ErrHandler
 
     ' Propage les lignes GS_Pleins -> vue derivee "Suivi Carburant" (Tableau2).
     ' Sans cela, un plein importe depuis Google Sheets reste dans GS_Pleins sans
@@ -1476,6 +1483,39 @@ Private Function HttpGet(url As String) As String
 Err_:
     HttpGet = ""
 End Function
+
+' ============================================================
+'  X11 : JOURNAL DE SYNC (_SyncLog)
+'  Ajoute une ligne date | <- GS | -> GS | duree(s) a chaque sync.
+' ============================================================
+Private Sub LogToSyncLog(ByVal fromGS As Long, ByVal toGS As Long, ByVal dureeS As Long)
+    Const LOG_SH As String = "_SyncLog"
+    Dim wsL As Worksheet
+    On Error Resume Next
+    Set wsL = ThisWorkbook.Sheets(LOG_SH)
+    On Error GoTo 0
+    If wsL Is Nothing Then
+        Set wsL = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
+        wsL.Name = LOG_SH
+        wsL.Visible = xlSheetHidden
+        With wsL.Rows(1)
+            wsL.Cells(1, 1).Value = "Horodatage"
+            wsL.Cells(1, 2).Value = "<- GS"
+            wsL.Cells(1, 3).Value = "-> GS"
+            wsL.Cells(1, 4).Value = "Duree (s)"
+        End With
+        wsL.Cells(1, 1).Font.Bold = True
+        wsL.Cells(1, 2).Font.Bold = True
+        wsL.Cells(1, 3).Font.Bold = True
+        wsL.Cells(1, 4).Font.Bold = True
+    End If
+    Dim nxt As Long: nxt = wsL.Cells(wsL.Rows.Count, 1).End(xlUp).Row + 1
+    wsL.Cells(nxt, 1).Value = Now
+    wsL.Cells(nxt, 1).NumberFormat = "dd/mm/yyyy hh:mm:ss"
+    wsL.Cells(nxt, 2).Value = fromGS
+    wsL.Cells(nxt, 3).Value = toGS
+    wsL.Cells(nxt, 4).Value = dureeS
+End Sub
 
 Private Function HttpPost(url As String, body As String) As String
     Dim h As Object

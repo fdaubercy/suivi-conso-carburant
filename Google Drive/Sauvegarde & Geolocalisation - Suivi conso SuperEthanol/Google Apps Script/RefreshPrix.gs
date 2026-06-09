@@ -1,5 +1,7 @@
 // ============================================================
-//  SUIVI CONSO CARBURANTS — Refresh quotidien des prix    v3.10.0.0
+//  SUIVI CONSO CARBURANTS — Refresh quotidien des prix    v5.11.0.0
+//  v5.11.0.0 — S15 : detection d'anomalies de saisie au refresh quotidien
+//  (km retrograde, conso aberrante). Email si nouvelle anomalie detectee.
 //  Roadmap S8 + W38 + W48 (multi-carburant) + W49 (push multi-carburant)
 //
 //  v4.18.0.0 — W61 : le relevé ~7h couvre désormais 6 carburants —
@@ -148,6 +150,11 @@ function refreshPrixCarburants() {
   } else {
     Logger.log('WebPush.gs absent — push non envoyée.');
   }
+
+  // ── S15 — détection d'anomalies de saisie ──
+  try { detecterAnomalies_(ss); } catch (e) {
+    Logger.log('S15 detecterAnomalies_ erreur : ' + e.message);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -241,4 +248,147 @@ function getOrCreatePrixHistorySheet(ss) {
     sh.setColumnWidth(1, 220);
   }
   return sh;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  S15 — Detection d'anomalies de saisie
+//
+//  Seuils configurables via les proprietes de script :
+//    ANOMALIE_CONSO_MIN : L/100km minimum acceptable (defaut 3)
+//    ANOMALIE_CONSO_MAX : L/100km maximum acceptable (defaut 25)
+//
+//  Les anomalies deja signalees sont memorisees dans ANOMALIE_REPORTED
+//  pour ne pas envoyer de doublons d'email.
+// ─────────────────────────────────────────────────────────────
+function detecterAnomalies_(ss) {
+  const sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet || sheet.getLastRow() < 2) {
+    Logger.log('S15 : onglet ' + SHEET_NAME + ' vide ou absent.');
+    return;
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0].map(String);
+
+  const idx = {
+    km:    headers.findIndex(h => h.includes('Km compteur')),
+    lit:   headers.findIndex(h => h.includes('Litres')),
+    veh:   headers.findIndex(h => h.includes('ehicule')),
+    del:   headers.findIndex(h => h.includes('upprim')),
+    date:  headers.findIndex(h => h === 'Date'),
+  };
+
+  if (idx.km < 0 || idx.lit < 0 || idx.veh < 0) {
+    Logger.log('S15 : colonnes introuvables dans ' + SHEET_NAME);
+    return;
+  }
+
+  const props    = PropertiesService.getScriptProperties();
+  const consoMin = Number(props.getProperty('ANOMALIE_CONSO_MIN') || '3');
+  const consoMax = Number(props.getProperty('ANOMALIE_CONSO_MAX') || '25');
+
+  let reported = {};
+  try { reported = JSON.parse(props.getProperty('ANOMALIE_REPORTED') || '{}'); } catch(e) {}
+
+  // Grouper les lignes actives par vehicule
+  const byVeh = {};
+  data.slice(1).forEach(row => {
+    if (idx.del >= 0 && row[idx.del]) return;
+    const veh = String(row[idx.veh] || '').trim();
+    const km  = Number(row[idx.km]);
+    const lit = Number(row[idx.lit]);
+    if (!veh || !isFinite(km) || km <= 0) return;
+    if (!byVeh[veh]) byVeh[veh] = [];
+    byVeh[veh].push({ km, lit, date: row[idx.date] });
+  });
+
+  const nouvelles = [];
+
+  Object.entries(byVeh).forEach(function(entry) {
+    const veh     = entry[0];
+    const records = entry[1];
+    records.sort(function(a, b) { return a.km - b.km; });
+
+    for (var i = 1; i < records.length; i++) {
+      const prev = records[i - 1];
+      const curr = records[i];
+      const dKm  = curr.km - prev.km;
+
+      // km retrograde
+      if (dKm < 0) {
+        const key = veh + '|retro|' + curr.km;
+        if (!reported[key]) {
+          nouvelles.push({ key: key, vehicule: veh,
+            msg: 'km retrograde : ' + prev.km + ' -> ' + curr.km + ' km (delta ' + dKm + ' km)' });
+        }
+      }
+
+      // conso aberrante
+      if (dKm > 0 && curr.lit > 0) {
+        const conso = (curr.lit / dKm) * 100;
+        if (conso < consoMin || conso > consoMax) {
+          const key = veh + '|conso|' + curr.km;
+          if (!reported[key]) {
+            nouvelles.push({ key: key, vehicule: veh,
+              msg: 'conso aberrante : ' + conso.toFixed(1) + ' L/100km' +
+                   ' (seuils : ' + consoMin + '-' + consoMax + ')' +
+                   ' au plein de ' + curr.km + ' km' });
+          }
+        }
+      }
+    }
+  });
+
+  if (!nouvelles.length) {
+    Logger.log('S15 : aucune nouvelle anomalie.');
+    return;
+  }
+
+  // Email recapitulatif
+  const dest = Session.getActiveUser().getEmail() ||
+               PropertiesService.getScriptProperties().getProperty('OWNER_EMAIL') || '';
+  if (dest) {
+    const sujet = '[Suivi Carburant] ' + nouvelles.length + ' anomalie(s) de saisie detectee(s)';
+    const corps = nouvelles.map(function(a) {
+      return '- [' + a.vehicule + '] ' + a.msg;
+    }).join('\n');
+    MailApp.sendEmail(dest, sujet, corps);
+    Logger.log('S15 : email envoye a ' + dest + ' (' + nouvelles.length + ' anomalie(s))');
+  } else {
+    Logger.log('S15 : ' + nouvelles.length + ' anomalie(s) detectee(s) (pas de destinataire email configure)');
+    nouvelles.forEach(function(a) { Logger.log('  ' + a.vehicule + ' : ' + a.msg); });
+  }
+
+  // Memoriser les nouvelles anomalies pour ne pas re-notifier
+  nouvelles.forEach(function(a) { reported[a.key] = true; });
+  props.setProperty('ANOMALIE_REPORTED', JSON.stringify(reported));
+}
+
+// ─────────────────────────────────────────────────────────────
+//  S15 — Trigger autonome quotidien (optionnel, en plus du refresh prix).
+//  Utile si refreshPrixCarburants() ne tourne pas tous les jours.
+// ─────────────────────────────────────────────────────────────
+function installerTriggerAnomalies() {
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === 'triggerAnomalies') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('triggerAnomalies').timeBased().everyDays(1).atHour(8).create();
+  Logger.log('S15 : trigger anomalies installe (quotidien ~8h).');
+}
+
+function supprimerTriggerAnomalies() {
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === 'triggerAnomalies') ScriptApp.deleteTrigger(t);
+  });
+  Logger.log('S15 : trigger anomalies supprime.');
+}
+
+function triggerAnomalies() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  detecterAnomalies_(ss);
+}
+
+// Test immediat : appeler manuellement depuis l'editeur GAS.
+function testDetecterAnomalies() {
+  triggerAnomalies();
 }

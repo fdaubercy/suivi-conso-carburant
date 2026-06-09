@@ -29,13 +29,13 @@ Attribute VB_Name = "modReglages"
 ' ============================================================
 Option Explicit
 
-Private Const WS_REG  As String = "Reglages"
 Private Const WS_CARB As String = "Suivi Carburant"
+Private Function WS_REG() As String: WS_REG = "R" & ChrW(233) & "glages": End Function
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  CONSTRUCTION DE LA FEUILLE
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub CreerFeuilleReglages()
     Dim ws As Worksheet
     Dim r As Long
@@ -101,6 +101,81 @@ Public Sub CreerFeuilleReglages()
     WSection ws, r, Emo(&H21A9&) & " Etat (interne)": r = r + 1
     WInput ws, r, "Derniere vue consultee", "Reg_DerniereVue", "", "", "": r = r + 1
 
+    ' ── 3) Zoom par onglet ──────────────────────────────────
+    r = r + 1
+    WSection ws, r, Emo(&H1F50D&) & " Zoom par onglet": r = r + 1
+    With ws.Cells(r, 2)
+        .Value = "Feuille"
+        .Font.Bold = True: .Font.Color = RGB(107, 114, 128)
+    End With
+    With ws.Cells(r, 4)
+        .Value = "Nb colonnes"
+        .Font.Bold = True: .Font.Color = RGB(107, 114, 128): .HorizontalAlignment = xlCenter
+    End With
+    r = r + 1
+    On Error Resume Next
+    ThisWorkbook.Names.Add Name:="Zoom_TableStart", RefersTo:=ws.Cells(r, 2)
+    On Error GoTo ErrH
+    Dim shZ(5) As String, nZ(5) As Long
+    shZ(0) = "Tableau de bord": nZ(0) = 14
+    shZ(1) = "Hist. Carburant":  nZ(1) = 12
+    shZ(2) = "Carte":           nZ(2) = 10
+    shZ(3) = "Suivi Carburant": nZ(3) = 16
+    shZ(4) = "R" & ChrW(233) & "glages": nZ(4) = 8
+    shZ(5) = "Accueil":         nZ(5) = 12
+    Dim zi As Long
+    For zi = 0 To 5
+        ws.Cells(r + zi, 2).Value = shZ(zi)
+        ws.Cells(r + zi, 2).Font.Color = RGB(55, 65, 81)
+        With ws.Cells(r + zi, 4)
+            .Value = nZ(zi)
+            .Font.Bold = True: .HorizontalAlignment = xlCenter
+            .Interior.Color = RGB(243, 244, 246)
+            .Borders.LineStyle = xlContinuous
+            .Borders.Color = RGB(209, 213, 219)
+            .Borders.Weight = xlThin
+        End With
+        ws.Rows(r + zi).RowHeight = 22
+    Next zi
+    r = r + 8
+
+    ' ── 4) Charte graphique ──────────────────────────────────
+    WSection ws, r, Emo(&H1F3A8&) & " Charte graphique": r = r + 1
+    With ws.Cells(r, 2)
+        .Value = "Modifiez le remplissage de la cellule (Accueil > Couleur de remplissage), puis cliquez Appliquer."
+        .Font.Italic = True: .Font.Color = RGB(107, 114, 128): .Font.Size = 9
+    End With
+    r = r + 2
+    Dim chNm(5) As String, chClr(5) As Long, chLbl(5) As String
+    chNm(0) = "Primaire": chClr(0) = RGB(27, 58, 92):    chLbl(0) = "Couleur primaire (bleu nuit)"
+    chNm(1) = "Vert":     chClr(1) = RGB(29, 158, 117):  chLbl(1) = "Couleur accent (vert)"
+    chNm(2) = "Ambre":    chClr(2) = RGB(240, 165, 0):   chLbl(2) = "Couleur alerte (ambre)"
+    chNm(3) = "Rouge":    chClr(3) = RGB(226, 75, 74):   chLbl(3) = "Couleur danger (rouge)"
+    chNm(4) = "Texte":    chClr(4) = RGB(26, 26, 26):    chLbl(4) = "Couleur texte"
+    chNm(5) = "Subtil":   chClr(5) = RGB(107, 114, 128): chLbl(5) = "Couleur secondaire"
+    Dim ci As Long
+    For ci = 0 To 5
+        ws.Cells(r + ci, 2).Value = chLbl(ci)
+        ws.Cells(r + ci, 2).Font.Color = RGB(55, 65, 81)
+        ws.Cells(r + ci, 2).Font.Size = 11
+        ws.Cells(r + ci, 2).IndentLevel = 1
+        With ws.Cells(r + ci, 4)
+            .Value = ""
+            .Interior.Color = chClr(ci)
+            .Borders.LineStyle = xlContinuous
+            .Borders.Color = RGB(209, 213, 219)
+            .Borders.Weight = xlThin
+            On Error Resume Next
+            .Name = "C_" & chNm(ci)
+            On Error GoTo ErrH
+        End With
+        ws.Rows(r + ci).RowHeight = 22
+    Next ci
+    AddButton ws, "btnAppliquerCharte", _
+              ws.Cells(r, 6).Left, ws.Cells(r + 6, 2).Top + 4, _
+              "Appliquer la charte", "modCharte.AppliquerCharte", RGB(29, 158, 117)
+    r = r + 8
+
     ' Remplit les 4 cellules metier depuis les cellules canoniques
     ReglagePullParametres
 
@@ -114,9 +189,9 @@ Done:
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  PARAMETRES METIER <-> CELLULES CANONIQUES
-' ════════════════════════════════════════════════════════════
+' ============================================================
 
 ' Remplit les cellules de la feuille Reglages depuis les cellules sources.
 Public Sub ReglagePullParametres()
@@ -175,9 +250,9 @@ Public Sub ReglRecharger()
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  LECTEURS (utilises par les autres modules)
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Function ReglageVal(nm As String) As Variant
     On Error Resume Next
     ReglageVal = ThisWorkbook.Names(nm).RefersToRange.Value
@@ -211,9 +286,9 @@ Public Sub ReglageSetDerniereVue(token As String)
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  HELPERS (prives au module)
-' ════════════════════════════════════════════════════════════
+' ============================================================
 
 ' Onglet du tableau de bord (ex-"Graphiques", renomme "Tableau de bord").
 Private Function DashSheet() As Worksheet

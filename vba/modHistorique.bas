@@ -22,7 +22,7 @@ Attribute VB_Name = "modHistorique"
 ' ============================================================
 Option Explicit
 
-Private Const WS_HIST As String = "Historique"
+Private Const WS_HIST As String = "Hist. Carburant"
 Private Const WS_DATA As String = "GS_Pleins"
 Private Const TBL_NAME As String = "tblHistorique"
 Private Const HDR_ROW As Long = 12          ' ligne d'en-tete du tableau complet

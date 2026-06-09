@@ -61,10 +61,9 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| X11 | **Onglet `_SyncLog`** : chaque sync ajoute une ligne (date, ←N, →N, durée) | Debug, historique des syncs |
-| X12 | **Backup auto** dans `Google Drive/Sauvegardes/Suivi Conso Carburants_YYYYMMDD.xlsm` avant chaque sync majeure | Filet de sécurité |
-| X17 | **Garde-fou de version du classeur** : `Workbook_Open` compare une constante `WB_VERSION` à la version attendue et avertit en barre d'état si le `.xlsm` est en retard sur le dépôt | Évite la dérive silencieuse `.xlsm` ↔ `vba/*.bas` (cf. retard token S6 / `modFeatures` constaté en v4.3.0.4) |
-| X18 | **Script `check-vba-drift`** (CI ou local) : décompile le `vbaProject.bin` du `.xlsm` et `diff` chaque module contre `vba/*.bas`, échoue si divergence fonctionnelle | Détecte automatiquement un classeur non resynchronisé avant un commit |
+| X40 | **Lint VBA pré-commit** (`scripts/check_vba_compile.py`) : détecter (a) les `Const`/`Dim`/`Type` au niveau module placés **après** la 1ʳᵉ procédure (→ « Variable non définie » en compile-on-demand) et (b) les `Call`/OnAction/OnTime/Run vers des procédures **inexistantes** (modules supprimés). | Évite les -2146788248 latents, invisibles hors clic réel ; 3 trouvés/corrigés en v5.11.1.0. |
+| X41 | **Garde-erreur `Feuil2.Worksheet_Activate`** : enrober `ImporterNouveauxPleinsAuto` d'un `On Error Resume Next` (comme `Feuil7`/Réglages). | Défense en profondeur : un échec réseau d'import ne bloquerait jamais la navigation vers « Suivi Carburant ». |
+| X42 | **Nettoyer les orphelins** : supprimer `vba/synchroniseGoogleForm.bas` (module retiré du classeur) et le module quasi vide `Module1` du `.xlsm`. | Cohérence disque ↔ classeur. |
 
 ---
 
@@ -91,8 +90,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi |
 |---|---|---|
 | S13 | **Rapport mensuel illustré** : `RapportMensuel.gs` insère des mini-graphes via URLs **QuickChart** (image dans l'email HTML) | Email plus parlant sans pièce jointe lourde |
-| S14 | **Sauvegarde quotidienne du classeur GS** : trigger journalier exporte le Google Sheet en `.xlsx` vers `Google Drive/Sauvegardes/` (rotation 30 j) | Filet de sécurité côté cloud, indépendant d'Excel |
-| S15 | **Alerte d'anomalie de saisie** : au refresh, détecter conso aberrante (> seuil) ou km rétrograde et notifier (push/email) | Qualité des données, détection rapide d'une faute de frappe |
 
 ### 📋 Onglets Google Sheets
 
@@ -112,7 +109,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | 2 | ~~**X9**~~ | ✅ v5.8.0.0 | — |
 | 3 | ~~**X15**~~ | ✅ v5.8.0.0 | — |
 | 4 | ~~**X20**~~ | ✅ v5.8.0.0 | — |
-| 5 | **X11** — Onglet `_SyncLog` (date, ←N, →N, durée) | — | Debug, historique des syncs |
+| 5 | ~~**X11**~~ | ✅ v5.11.0.0 | — |
 
 > ✅ S3/S4/S5 (suppression bidir., force resync, conflits par timestamp) implémentés en v4.8.0.0 — voir le tableau ci-dessous.
 
@@ -122,6 +119,16 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.11.1.0 | **Fix clic icône menu (« Variable non définie »)** — `PREVIEW_DELAY` remontée en section déclarations de `modSidebar.bas` (erreur compile-on-demand au clic). |
+| v5.11.1.0 | **Fix navigation Réglages & Suivi Carburant (-2146788248)** — consts mal placées `WS_CARB`/`WS_DATA` (`modReglages`/`modWorkbook`) remontées en déclarations + appel orphelin `SyncStationsVersGoogleSheets` (module supprimé) retiré de `ModuleImportGS`. Les 6 boutons de navigation fonctionnent. |
+| v5.11.1.0 | **Bouton « Exporter en PDF » en vert** — PNG régénéré #1D9E75 (cohérent avec « Recréer les graphiques ») + repli `C_E85`. `excel/assets/_make_buttons.ps1`, `vba/modGraphiques.bas`. |
+| v5.11.1.0 | **Nettoyage code mort** — ancienne ListBox carburant (`SetupFuelListBox` & co, −143 lignes) retirée de `modDashboardGraphiques.bas` (remplacée par `modFuelPanel`). |
+| v5.11.0.0 | **X11 — Onglet `_SyncLog`** — chaque sync ajoute une ligne (date, N lignes reçues, N lignes envoyées, durée) dans `_SyncLog` ; `LogSync` dans `modSyncGS.bas`. |
+| v5.11.0.0 | **X17 — Garde-fou de version du classeur** — `Workbook_Open` compare `WB_VERSION` à la version attendue et affiche un avertissement en barre d'état si le `.xlsm` est en retard sur le dépôt. `vba/modWorkbook.bas`. |
+| v5.11.0.0 | **X18 — Script `check-vba-drift`** — `scripts/check_vba_drift.py` extrait les modules VBA du `.xlsm` via `oletools` et les compare aux `vba/*.bas` ; exit 1 si divergence. À appeler avant chaque commit. |
+| v5.11.0.0 | **S15 — Alerte d'anomalie de saisie** — `detecterAnomalies_()` dans `RefreshPrix.gs` : détecte km rétrograde et conso aberrante (seuils configurables `ANOMALIE_CONSO_MIN`/`MAX`) et envoie un email en cas de nouvelle anomalie. Appelée automatiquement dans `refreshPrixCarburants()`. |
+| v5.11.0.0 | **Sidebar coins asymétriques** — `modSidebar.bas` : shape 158 (`msoShapeRound2SameSideCornerRectangle`) rotation 90° → coins gauches droits, coins droits arrondis. |
+| v5.11.0.0 | **Onglet `Réglages`** (accent) — renommé depuis `Reglages` ; `modReglages.bas` mis à jour. |
 | v5.10.0.0 | **Filtre carburant multi-sélection** — `FuelInSel(fk, sel)` public dans `modDashboardKPI.bas` ; B6 accepte une liste séparée par virgules (ex. `"E85, SP95"`). Toutes les comparaisons de filtre dans `modDashboardKPI.bas` et `modGraphiques.bas` utilisent `FuelInSel`. `EnsureSelectors` préserve les valeurs multi. |
 | v5.9.0.0 | **Sidebar navigation verticale (Variante A)** — `modSidebar.bas` (UserForm modeless) : 44 pt au repos (icônes), 182 pt expandé (icône + libellé), hamburger ☰, auto-repli 4 s via `OnTime`, 6 destinations, `ShowSidebar` depuis `Workbook_Open`. |
 | v5.9.0.0 | **Auto-zoom centralisé** — `AutoZoomFitWidth` dans `Affichage.bas` ; ajuste le zoom à la largeur visible à chaque `SheetActivate` (borne 50 %–200 %). |

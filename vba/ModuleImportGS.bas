@@ -196,28 +196,29 @@ NextLigne:
         SetStatus nbImportes & " plein(s) importé(s) avec succès."
     End If
 
-    Call SyncStationsVersGoogleSheets
+    ' Push des stations vers GS : desormais gere par modSyncGS (SyncOnOpen / SyncManuel).
+    ' Ancien Call SyncStationsVersGoogleSheets retire (module synchroniseGoogleForm supprime).
     VerrouillerSuivi                       ' reverrouille la feuille apres l'import
     Exit Sub
 
 GestionErreur:
-    Dim eNum As Long, eDesc As String
-    eNum = Err.Number: eDesc = Err.Description
+    Dim errNum As Long, eDesc As String
+    errNum = Err.Number: eDesc = Err.Description
     ' Recuperation : sur erreur 1004 (tableau/feuille protegee), on VIDE Z1 pour
     ' forcer un import COMPLET au prochain lancement. Deverrouillage prealable
     ' (Z1 est sur la feuille protegee), puis reverrouillage systematique.
     On Error Resume Next
     DeverrouillerSuivi
-    If eNum = 1004 Then ThisWorkbook.Worksheets(SHEET_SUIVI).Range(CELL_LAST_IMPORT).ClearContents
+    If errNum = 1004 Then ThisWorkbook.Worksheets(SHEET_SUIVI).Range(CELL_LAST_IMPORT).ClearContents
     VerrouillerSuivi
     On Error GoTo 0
     ResetStatus
     Application.ScreenUpdating = True
-    If eNum = 1004 Then
+    If errNum = 1004 Then
         SetStatus "[Import E85] " & ChrW(9888) & " Erreur 1004 (feuille protegee) : '" & _
                   CELL_LAST_IMPORT & "' vide -> relancez l'import (il sera complet)."
     Else
-        SetStatus "[Import E85] " & ChrW(9888) & " Erreur " & eNum & " : " & eDesc & _
+        SetStatus "[Import E85] " & ChrW(9888) & " Erreur " & errNum & " : " & eDesc & _
                   " (vider '" & CELL_LAST_IMPORT & "' pour forcer un import complet)."
     End If
 End Sub

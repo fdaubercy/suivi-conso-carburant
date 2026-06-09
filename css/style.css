@@ -618,6 +618,8 @@ header h1 {
   box-shadow: 0 1px 4px rgba(0,0,0,.25);
 }
 .smap-ctrl-overlay .map-close-btn:active { background: rgba(255,255,255,.97); }
+/* En plein écran, décale l'overlay vers le bas pour éviter le notch iOS */
+.map-fs .smap-ctrl-overlay { top: calc(8px + env(safe-area-inset-top, 0px)); }
 #stationMap {
   display: block;
   width: 100%;

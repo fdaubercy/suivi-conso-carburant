@@ -30,9 +30,9 @@ Private Const TYPES_LISTE As String = _
     "SuperEthanol E85|Super 98|Sans Plomb 95|Sans Plomb E10|Gazole|GPLc"
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  POINT D'ENTREE : construire (si besoin) puis afficher
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub NouveauPlein()
     On Error GoTo ErrHandler
 
@@ -57,9 +57,9 @@ ErrHandler:
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  Construction du UserForm par code + injection du code-behind
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Private Sub ConstruireForm()
     Dim vbc As Object, dz As Object, ctl As Object
 
@@ -205,9 +205,9 @@ Private Sub InjecterCode(vbc As Object)
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  LOGIQUE METIER (appelee par le code-behind du form)
-' ════════════════════════════════════════════════════════════
+' ============================================================
 
 ' Remplit un ComboBox avec les valeurs distinctes :
 '  - depuis la feuille nomFeuille (col A) si elle existe,
@@ -372,9 +372,9 @@ Public Function DernierVehicule() As String
 End Function
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  UTILITAIRES
-' ════════════════════════════════════════════════════════════
+' ============================================================
 
 ' Conversion robuste en Double (gere virgule decimale, vide, texte).
 Public Function ToNum(v As Variant) As Double

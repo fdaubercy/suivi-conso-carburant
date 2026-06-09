@@ -65,9 +65,9 @@ New-Button -Path (Join-Path $dir 'btn_recreer.png') `
     -Fill ([System.Drawing.Color]::FromArgb(33,176,131)) `
     -FillBottom ([System.Drawing.Color]::FromArgb(29,158,117))
 
-# Bleu fonce --blue-dark #1B3A5C
+# Vert --green #1D9E75 (aligne sur btnRecreerGraph, demande utilisateur 2026-06-08)
 New-Button -Path (Join-Path $dir 'btn_export_pdf.png') `
     -Text 'Exporter en PDF' `
-    -Fill ([System.Drawing.Color]::FromArgb(36,74,114)) `
-    -FillBottom ([System.Drawing.Color]::FromArgb(27,58,92)) `
+    -Fill ([System.Drawing.Color]::FromArgb(33,176,131)) `
+    -FillBottom ([System.Drawing.Color]::FromArgb(29,158,117)) `
     -W 340

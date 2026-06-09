@@ -57,9 +57,9 @@ Private g_userLat As Double
 Private g_userLon As Double
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  CONSTRUCTION DE LA FEUILLE
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub CreerFeuilleCarte()
     Dim ws As Worksheet
     Application.ScreenUpdating = False
@@ -134,9 +134,9 @@ Done:
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  RAFRAICHISSEMENT (prix moyens + geocodage + tableau)
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub RafraichirCarte()
     Dim ws As Worksheet
     Application.ScreenUpdating = False
@@ -186,9 +186,9 @@ Public Sub ReinitialiserCoords()
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  OUVERTURE DE LA CARTE OSM DANS LE NAVIGATEUR
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub OuvrirCarteNavigateur()
     Dim html As String, path As String
     On Error GoTo ErrH
@@ -217,9 +217,9 @@ ErrH:
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  DIAGNOSTIC (a lancer si le geocodage ne ramene rien)
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub DiagnoseCarte()
     Dim msg As String, i As Long
     ComputeAverages CurrentFuelKey()
@@ -274,9 +274,9 @@ Public Sub DiagnoseCarte()
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  DONNEES : prix moyens + coordonnees
-' ════════════════════════════════════════════════════════════
+' ============================================================
 
 ' Calcule g_st()/g_n pour le carburant, puis complete les coordonnees.
 Private Sub EnsureData(fuelKey As String)
@@ -442,9 +442,9 @@ Private Sub AttacherCoords()
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  TABLEAU PRIX MOYENS
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Private Sub RenderTable(ws As Worksheet)
     ws.Range("B5:F100000").Clear
 
@@ -486,10 +486,10 @@ Private Sub RenderTable(ws As Worksheet)
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  GENERATION HTML DE LA CARTE (Leaflet via CDN)
 '  Carte interactive OSM (pan/zoom) + marqueurs prix. Necessite Internet.
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Private Function GenererHtmlCarte(titre As String) As String
     ' Points geolocalises -> tableau JS [lat, lon, "nom", "prix"]
     Dim pts As String, i As Long, n As Long
@@ -579,9 +579,9 @@ Private Function EscJs(s As String) As String
 End Function
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  GEOCODAGE (API gouv. v2.1)
-' ════════════════════════════════════════════════════════════
+' ============================================================
 
 ' Extrait la ville d'un nom "Enseigne - Ville" -> "Ville".
 ' Repli : si pas de separateur " - ", on tente le nom entier comme ville.
@@ -718,9 +718,9 @@ Private Function DecSep() As String
 End Function
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  CACHE COORDONNEES (_StationCoords)
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Private Function CoordsSheet() As Worksheet
     On Error Resume Next
     Set CoordsSheet = ThisWorkbook.Sheets(WS_COORDS)
@@ -761,9 +761,9 @@ Private Sub SaveCoord(name As String, lat As Double, lon As Double, src As Strin
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  HELPERS
-' ════════════════════════════════════════════════════════════
+' ============================================================
 
 Private Function CurrentFuelKey() As String
     Dim v As String: v = LCase$(CStr(ReadName("Carte_Fuel")))

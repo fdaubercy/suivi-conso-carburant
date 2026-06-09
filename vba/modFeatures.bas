@@ -38,9 +38,9 @@ Private Const BLEU_MID  As Long = 11957550      ' RGB(46,117,182)
 Private Const GRIS_TXT  As Long = 8224125       ' RGB(107,114,128)
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  POINT D'ENTREE GROUPE
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub RafraichirFeatures()
     Application.ScreenUpdating = False
     On Error GoTo ErrHandler
@@ -59,11 +59,11 @@ ErrHandler:
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  X4 - MISE EN FORME CONDITIONNELLE "Prix EUR/L"
 '  Vert si le prix de la ligne < moyenne des 30 jours precedant
 '  sa date pour le MEME carburant ; rouge si superieur.
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub AppliquerMFCPrix()
     Application.ScreenUpdating = False
     On Error GoTo ErrHandler
@@ -274,12 +274,12 @@ Private Function ListerEntetes(ws As Worksheet, ByVal r As Long) As String
 End Function
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  X14 - ONGLET "Suivi (auto)" : vue derivee de GS_Pleins
 '  Reconstruite par formules INDEX pointant sur le ListObject.
 '  Colonnes : Date | Type | Vehicule | Km | Nb km | Litres |
 '             Prix EUR/L | Cout plein | L/100km | Station
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub CreerSuiviAuto()
     Application.ScreenUpdating = False
     On Error GoTo ErrHandler
@@ -456,7 +456,7 @@ ErrHandler:
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  Tableau2 (Suivi Carburant) = vue derivee de GS_Pleins
 '  Les colonnes BRUTES sont tirees de GS_Pleins par formules INDEX ;
 '  les colonnes de CALCUL de Tableau2 sont CONSERVEES telles quelles.
@@ -464,7 +464,7 @@ End Sub
 '    Brut : Date, Type, Km compteur, Nb. Litres, Prix EUR/L, Station essence
 '    Calcul (intacts) : N°, Nb. km, Cout c€/km, Cout Plein, Conso,
 '                       Prix S98 jour, Cout equiv. S98, Economie(s)
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub SyncTableau2DepuisGS()
     On Error GoTo done
 
@@ -555,10 +555,10 @@ Private Sub SetT2ColFromGS(t2 As ListObject, t2ColName As String, _
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  VERIFICATION DE L'INSTALLATION
 '  Controle feuilles + tableaux requis ; rapport Immediate + barre.
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub VerifierInstallation()
     Dim rap As String, ok As Long, ko As Long
     rap = "=== Verification installation Suivi E85 ===" & vbNewLine
@@ -636,11 +636,11 @@ Private Function ChkTableau(nomFeuille As String, nomTbl As String, _
 End Function
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  HELPERS
 '  Note : l'affichage barre d'etat reutilise SetStatus / ResetStatus
 '  (publics, definis dans ModuleImportGS.bas) -> pas de doublon.
-' ════════════════════════════════════════════════════════════
+' ============================================================
 
 ' Nom reel de la colonne i (1-based) d'un ListObject, "" si absente.
 Private Function ColNom(tbl As ListObject, i As Long) As String

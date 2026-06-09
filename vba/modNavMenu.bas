@@ -23,9 +23,9 @@ Private Const BTN_NAME  As String = "btnNavMenu"
 Private Const NAV_COUNT As Integer = 6
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  POINT D'ENTREE : ouvrir le menu hamburger
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub ShowNavMenu()
     On Error GoTo ErrH
 
@@ -48,10 +48,10 @@ ErrH:
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  CIBLE DES BOUTONS DU USERFORM (Public = accessible depuis
 '  le code-behind injecte dans frmNavMenu)
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub NavToSheetPublic(sName As String)
     On Error Resume Next
     ThisWorkbook.Sheets(sName).Activate
@@ -59,12 +59,12 @@ Public Sub NavToSheetPublic(sName As String)
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  POSER LE BOUTON ☰ SUR TOUS LES ONGLETS DU DASHBOARD
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Public Sub PoserBoutonsNavMenu()
     Dim noms As Variant, i As Long, ws As Worksheet, n As Long
-    noms = Array("Accueil", "Tableau de bord", "Carte", "Reglages", _
+    noms = Array("Accueil", "Tableau de bord", "Carte", "R" & ChrW(233) & "glages", _
                  "Suivi Carburant", "Prix par Station")
     For i = LBound(noms) To UBound(noms)
         Set ws = Nothing
@@ -115,9 +115,9 @@ Public Sub AjouterBoutonNavMenu(ws As Worksheet)
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  CONSTRUCTION DU USERFORM PAR CODE
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Private Sub ConstruireFormNav()
     Dim vbc As Object, dz As Object
 
@@ -166,7 +166,7 @@ Private Sub ConstruireFormNav()
     icons(2) = &H1F5FA:  labels(2) = "  Carte":             targets(2) = "Carte"
     icons(3) = &H26FD:   labels(3) = "  Suivi Carburant":   targets(3) = "Suivi Carburant"
     icons(4) = &H1F4B6:  labels(4) = "  Prix par Station":  targets(4) = "Prix par Station"
-    icons(5) = &H2699:   labels(5) = "  Reglages":          targets(5) = "Reglages"
+    icons(5) = &H2699:   labels(5) = "  R" & ChrW(233) & "glages": targets(5) = "R" & ChrW(233) & "glages"
 
     clrs(0) = RGB(46, 117, 182)    ' #2E75B6 bleu
     clrs(1) = RGB(29, 158, 117)    ' #1D9E75 vert
@@ -224,9 +224,9 @@ Private Sub ConstruireFormNav()
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  INJECTION DU CODE-BEHIND (handlers des boutons)
-' ════════════════════════════════════════════════════════════
+' ============================================================
 Private Sub InjecterCodeNav(vbc As Object, targets() As String)
     Dim c As Object: Set c = vbc.CodeModule
     c.DeleteLines 1, c.CountOfLines
@@ -252,9 +252,9 @@ Private Sub InjecterCodeNav(vbc As Object, targets() As String)
 End Sub
 
 
-' ════════════════════════════════════════════════════════════
+' ============================================================
 '  UTILITAIRES
-' ════════════════════════════════════════════════════════════
+' ============================================================
 ' Encode un code point Unicode (y compris > U+FFFF via paire de substitution)
 Private Function Emo(ByVal cp As Long) As String
     If cp <= &HFFFF& Then

@@ -4,6 +4,34 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.11.1.0] — 2026-06-09
+
+### Fixed
+- **Excel — Clic sur une icône du menu latéral (« Variable non définie »)** : `Private Const PREVIEW_DELAY` était déclarée au milieu de `modSidebar.bas` (après des procédures). Sous « Compile à la demande », l'erreur ne surgissait qu'au premier appel de `PreviewIcon` (donc au clic sur une icône). Constante remontée en section déclarations. `vba/modSidebar.bas`.
+- **Excel — Navigation « Réglages » impossible (erreur -2146788248)** : `Private Const WS_CARB` déclarée après la fonction `WS_REG` dans `modReglages.bas` → `WS_CARB` non reconnue → `CarbSheet()` levait « Variable non définie », propagée par `Worksheet_Activate` → `ReglagePullParametres`. Constante remontée en déclarations. `vba/modReglages.bas`.
+- **Excel — Navigation « Suivi Carburant » impossible (erreur -2146788248)** : `Worksheet_Activate` → `ImporterNouveauxPleinsAuto` → `ImporterNouveauxPleins` contenait un appel orphelin `Call SyncStationsVersGoogleSheets` (procédure du module `synchroniseGoogleForm` supprimé) → « Sub or Function not defined ». Appel retiré ; le push de stations vers GS est désormais assuré par `modSyncGS`. `vba/ModuleImportGS.bas`.
+- **Excel — `modWorkbook.bas`** : `Private Const WS_DATA` déclarée après la fonction `WS_REG` (même classe de bug latent) → remontée en déclarations (préventif).
+
+### Changed
+- **Excel — Bouton « Exporter en PDF » (`btnExportGraph`) en vert** : PNG `excel/assets/btn_export_pdf.png` régénéré avec le dégradé vert #1D9E75 (identique à « Recréer les graphiques ») ; couleur de repli `C_COUT` → `C_E85` dans `EnsureButtons`. `excel/assets/_make_buttons.ps1`, `vba/modGraphiques.bas`.
+- **Excel — `WB_VERSION`** 5.11.0.0 → 5.11.1.0. `vba/modWorkbook.bas`.
+- **Version unifiée — `APP_VERSION`** (`js/config.js`) 5.10.0.0 → 5.11.1.0 : rattrapage du retard de la PWA sur le CHANGELOG / `WB_VERSION`.
+
+### Removed
+- **Excel — Code mort liste carburant** : procédures `SetupFuelListBox`, `RefreshFuelListBox`, `SyncFuelFromListBox`, `ApplyFuelSelection` (ancienne ListBox ActiveX) retirées de `modDashboardGraphiques.bas` (−143 lignes), remplacées par le panneau Option C `modFuelPanel`.
+
+## [5.11.0.0] — 2026-06-07
+
+### Added
+- **Excel — Sidebar Variante C "Pill coulissant"** : `modSidebar.bas` réécrit entièrement. Shapes fixes (`sb_*`) sur chaque onglet, sans UserForm. Pill `msoShapeRoundedRectangle` avec `xlFreeFloating` ; largeur 44 pt → 220 pt animée (8 frames, step 22). Auto-repli 4 s. 6 items de navigation. `RepositionSidebar` remet l'état expanded à zéro lors d'un changement d'onglet.
+- **Excel — Charte graphique** : nouveau module `modCharte.bas`. 6 cellules nommées `C_Primaire`, `C_Vert`, `C_Ambre`, `C_Rouge`, `C_Texte`, `C_Subtil` dans la feuille Réglages. L'admin modifie le remplissage via Excel, puis clique « Appliquer la charte » → `AppliquerCharte` reconstruit la sidebar et le dashboard avec les nouvelles couleurs.
+- **Excel — Zoom par onglet** : table « Zoom par onglet » dans Réglages (plage nommée `Zoom_TableStart`). `AutoZoomFitCols` dans `Affichage.bas` lit le nombre de colonnes cible par onglet et calcule le zoom exact ; repli sur `AutoZoomFitWidth` si l'onglet n'est pas configuré. Appelée depuis `Workbook_SheetActivate` (remplace `AutoZoomFitWidth`).
+- **Excel — ListBox multi-sélection carburant** : `SetupFuelListBox` dans `modDashboardGraphiques.bas` pose un ActiveX `Forms.ListBox.1` (`fmMultiSelectExtended`) sur « Tableau de bord » près de B6. Bouton « ↻ Rafraîchir » appelle `ApplyFuelSelection` → `SyncFuelFromListBox` écrit la sélection comma-séparée dans B6 → `MAJ_Dashboard_Graphiques`. `RefreshFuelListBox` pré-sélectionne les items selon la valeur actuelle de B6.
+
+### Changed
+- **Excel — `modReglages.bas`** : `CreerFeuilleReglages` crée deux nouvelles sections : « Zoom par onglet » (table + plage nommée `Zoom_TableStart`) et « Charte graphique » (cellules colorées + bouton « Appliquer »).
+- **Excel — `ThisWorkbook`** : `Workbook_SheetActivate` appelle désormais `AutoZoomFitCols` au lieu de `AutoZoomFitWidth`.
+
 ## [5.10.0.0] — 2026-06-07
 
 ### Added

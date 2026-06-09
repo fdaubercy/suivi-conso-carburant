@@ -1078,7 +1078,7 @@ Private Sub EnsureButtons(ws As Worksheet)
     EnsurePictureButton ws, "btnRecreerGraph", "btn_recreer.png", _
         "Recreer les graphiques", C_E85, 315, 88, 185, 27, "CreerGraphiquesWeb"
     EnsurePictureButton ws, "btnExportGraph", "btn_export_pdf.png", _
-        "Exporter en PDF", C_COUT, 510, 88, 160, 27, "ExporterGraphiquesPDF"
+        "Exporter en PDF", C_E85, 510, 88, 160, 27, "ExporterGraphiquesPDF"
     ' S'assurer qu'ils sont au premier plan
     Dim s As Shape
     For Each s In ws.Shapes

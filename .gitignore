@@ -26,6 +26,11 @@ commit.log
 # Sauvegardes VBA horodatées (transient, non versionné)
 vba-backup-*/
 
+# Sauvegardes locales path-spécifiques + fichiers temp VBA (non versionnés)
+vba/backup/
+excel/backup_*/
+temp_*.bas
+
 # Les maquettes y sont stockées
 .superpowers/
 
