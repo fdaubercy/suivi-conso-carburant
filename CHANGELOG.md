@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.11.2.0] — 2026-06-09
+
+### Changed
+- **Excel — Boutons d'action du tableau de bord en ICÔNES** : « Recréer les graphiques » (`btnRecreerGraph`, glyphe graphique), « Exporter en PDF » (`btnExportGraph`, glyphe fichier PDF) et « Actualiser » (`dash_btn`, glyphe synchro) deviennent des boutons-image carrés 28×28 — glyphes Segoe MDL2 Assets blancs sur vert charte #1D9E75 — **groupés et alignés dans le bas de la bannière bleue** (Top 88, Left 338/374/410), avec info-bulle au survol (`AlternativeText`). PNG générés par `excel/assets/_make_final_icons.ps1`. `vba/modGraphiques.bas` (`EnsureButtons`/`EnsurePictureButton`), `vba/modDashboardGraphiques.bas` (`AddButton` → image, ex-shape texte « Actualiser »).
+- **Excel — `WB_VERSION` / `APP_VERSION`** 5.11.1.0 → 5.11.2.0.
+
+### Fixed
+- **Excel — Dérive horizontale des boutons-image (+23 pt)** : les boutons héritaient du `Placement` par défaut `xlMoveAndSize` et se décalaient à droite quand `StyleParamsPanel` élargissait les colonnes A:B (Left 374 rendu à 397.6…). `Placement = xlFreeFloating` ajouté sur les boutons-image → positionnement absolu stable à tout zoom. `vba/modGraphiques.bas`, `vba/modDashboardGraphiques.bas`.
+
+### Removed
+- **Dépôt — `extract.json`** (0 o) à la racine : parasite de redirection shell, supprimé (committé par mégarde en 5.11.1.0 via `git add -A`).
+
 ## [5.11.1.0] — 2026-06-09
 
 ### Fixed

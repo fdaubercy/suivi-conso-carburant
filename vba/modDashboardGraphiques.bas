@@ -291,7 +291,8 @@ Private Function BuildHeaderAndKPIs(ws As Worksheet) As Single
     Dim bnW As Single: bnW = (L0 + WTOT) - bnLeft
     AddBanner ws, bnLeft, hT, bnW, hH
     ' Bouton « Actualiser » en haut à droite du bandeau
-    AddButton ws, bnLeft + bnW - 152, hT + (hH - 26) / 2, 142, 26
+    ' Actualiser : icone carree 28x28, posee a gauche du trio (Recreer 374 / Export 410)
+    AddButton ws, 338, 88, 28, 28
     ' Infos B7/B8 en bas à droite du bandeau (petite police)
     AddBannerParamsInfo ws, bnLeft, hT, bnW, hH, ws.Range("B7").value, ws.Range("B8").value
 
@@ -364,23 +365,34 @@ End Sub
 
 '---- Bouton « Actualiser » : relance la macro d'un clic ------------------
 Private Sub AddButton(ws As Worksheet, x As Single, y As Single, w As Single, h As Single)
-    Dim b As Shape
-    Set b = ws.Shapes.AddShape(msoShapeRoundedRectangle, x, y, w, h)
-    b.Name = "dash_btn"
-    StyleRect b, cAmber, -1, 6
+    ' Bouton-icone "Actualiser" (PNG sync vert) ; repli carre vert si image absente.
+    Dim p As String
+    p = ThisWorkbook.Path & Application.PathSeparator & "assets" & _
+        Application.PathSeparator & "btn_actualiser.png"
+    Dim ok As Boolean: ok = False
     On Error Resume Next
-    With b.TextFrame2
-        .TextRange.Text = "Actualiser"
-        .TextRange.Font.Name = FONT_UI
-        .TextRange.Font.Size = 11
-        .TextRange.Font.bold = True
-        .TextRange.Font.Fill.ForeColor.RGB = cBlueDark
-        .VerticalAnchor = msoAnchorMiddle
-        .TextRange.ParagraphFormat.Alignment = msoAlignCenter
-        .MarginLeft = 0: .MarginRight = 0: .MarginTop = 0: .MarginBottom = 0
-    End With
-    b.OnAction = "MAJ_Dashboard_Graphiques"
+    If Dir(p) <> "" Then
+        Dim pic As Shape
+        Set pic = ws.Shapes.AddPicture(p, msoFalse, msoTrue, x, y, w, h)
+        If Not pic Is Nothing Then
+            pic.Name = "dash_btn"
+            pic.OnAction = "MAJ_Dashboard_Graphiques"
+            pic.AlternativeText = "Actualiser"
+            pic.Placement = xlFreeFloating
+            ok = True
+        End If
+    End If
     On Error GoTo 0
+    If Not ok Then
+        Dim b As Shape
+        Set b = ws.Shapes.AddShape(msoShapeRoundedRectangle, x, y, w, h)
+        b.Name = "dash_btn"
+        b.Fill.ForeColor.RGB = RGB(29, 158, 117)
+        b.Line.Visible = msoFalse
+        b.OnAction = "MAJ_Dashboard_Graphiques"
+        b.AlternativeText = "Actualiser"
+        b.Placement = xlFreeFloating
+    End If
 End Sub
 
 '---- Panneau Paramètres ÉDITABLE (formate les cellules A1:B3 en carte) -----

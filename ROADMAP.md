@@ -119,6 +119,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.11.2.0 | **Boutons d'action du dashboard en ICÔNES** — « Recréer » (glyphe graphique), « Exporter PDF » (glyphe fichier), « Actualiser » (glyphe sync) → boutons-image carrés 28×28 (Segoe MDL2 blanc sur vert charte), **groupés dans le bas de la bannière bleue** (Left 338/374/410, Top 88), info-bulles. Fix dérive via `Placement=xlFreeFloating`. `excel/assets/_make_final_icons.ps1`, `vba/modGraphiques.bas`, `vba/modDashboardGraphiques.bas`. |
 | v5.11.1.0 | **Fix clic icône menu (« Variable non définie »)** — `PREVIEW_DELAY` remontée en section déclarations de `modSidebar.bas` (erreur compile-on-demand au clic). |
 | v5.11.1.0 | **Fix navigation Réglages & Suivi Carburant (-2146788248)** — consts mal placées `WS_CARB`/`WS_DATA` (`modReglages`/`modWorkbook`) remontées en déclarations + appel orphelin `SyncStationsVersGoogleSheets` (module supprimé) retiré de `ModuleImportGS`. Les 6 boutons de navigation fonctionnent. |
 | v5.11.1.0 | **Bouton « Exporter en PDF » en vert** — PNG régénéré #1D9E75 (cohérent avec « Recréer les graphiques ») + repli `C_E85`. `excel/assets/_make_buttons.ps1`, `vba/modGraphiques.bas`. |

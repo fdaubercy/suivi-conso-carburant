@@ -1075,10 +1075,12 @@ End Sub
 Private Sub EnsureButtons(ws As Worksheet)
     ' Positions dans la zone du bandeau, sous le titre/sous-titre (Top ~88)
     ' BringToFront appele par MAJ_Dashboard_Graphiques apres creation du bandeau
+    ' Boutons-icone carres (28x28) alignes dans le bas du bandeau bleu.
+    ' Actualiser (dash_btn) est pose a gauche par modDashboardGraphiques (Left 338).
     EnsurePictureButton ws, "btnRecreerGraph", "btn_recreer.png", _
-        "Recreer les graphiques", C_E85, 315, 88, 185, 27, "CreerGraphiquesWeb"
+        "Recreer les graphiques", C_E85, 374, 88, 28, 28, "CreerGraphiquesWeb"
     EnsurePictureButton ws, "btnExportGraph", "btn_export_pdf.png", _
-        "Exporter en PDF", C_E85, 510, 88, 160, 27, "ExporterGraphiquesPDF"
+        "Exporter en PDF", C_E85, 410, 88, 28, 28, "ExporterGraphiquesPDF"
     ' S'assurer qu'ils sont au premier plan
     Dim s As Shape
     For Each s In ws.Shapes
@@ -1110,6 +1112,8 @@ Private Sub EnsurePictureButton(ws As Worksheet, nm As String, fileName As Strin
         If Not pic Is Nothing Then
             pic.Name = nm
             pic.OnAction = action
+            pic.AlternativeText = fallbackTxt   ' tooltip au survol
+            pic.Placement = xlFreeFloating      ' ne pas deriver au redim. des colonnes A:B
             ok = True
         End If
     End If
@@ -1122,6 +1126,7 @@ Private Sub EnsurePictureButton(ws As Worksheet, nm As String, fileName As Strin
         b.Name = nm
         StyleShape b, fallbackTxt, fallbackFill, RGB(255, 255, 255), 10, True
         b.OnAction = action
+        b.Placement = xlFreeFloating
     End If
 End Sub
 

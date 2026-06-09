@@ -27,7 +27,7 @@ Attribute VB_Name = "modWorkbook"
 ' ============================================================
 Option Explicit
 
-Public Const WB_VERSION  As String = "5.11.1.0"
+Public Const WB_VERSION  As String = "5.11.2.0"
 
 Private Const WS_ACCUEIL As String = "Accueil"
 Private Const WS_STATS   As String = "Tableau de bord"   ' cree par modGraphiques (CreerGraphiquesWeb)
