@@ -1,4 +1,3 @@
-Attribute VB_Name = "modWorkbook"
 ' ============================================================
 '  SUIVI E85 - Accueil a tuiles + Navigation + Demarrage   v1.0.0.0
 '  Etape 1/3 du dashboard miroir de l'app PWA.
@@ -27,7 +26,7 @@ Attribute VB_Name = "modWorkbook"
 ' ============================================================
 Option Explicit
 
-Public Const WB_VERSION  As String = "5.11.2.0"
+Public Const WB_VERSION  As String = "5.12.0.0"
 
 Private Const WS_ACCUEIL As String = "Accueil"
 Private Const WS_STATS   As String = "Tableau de bord"   ' cree par modGraphiques (CreerGraphiquesWeb)
@@ -74,10 +73,10 @@ Public Sub InstallerDashboard()
 
     SetStatus "[Dashboard] " & ChrW(10003) & " Reglages + Historique + Carte + Stats + Accueil installes. " & _
               "Collez les snippets ThisWorkbook / Reglages / Carte, puis Debug > Compiler."
-    GoTo Done
+    GoTo done
 ErrH:
     SetStatus "[Dashboard] " & ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description
-Done:
+done:
     Application.ScreenUpdating = True
 End Sub
 
@@ -135,10 +134,10 @@ Public Sub InstallerEtape1()
 
     SetStatus "[Etape 1] " & ChrW(10003) & " Reglages + Historique + Accueil installes. " & _
               "Pensez a coller ThisWorkbook_snippet.bas dans ThisWorkbook."
-    GoTo Done
+    GoTo done
 ErrH:
     SetStatus "[Etape 1] " & ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description
-Done:
+done:
     Application.ScreenUpdating = True
 End Sub
 
@@ -156,50 +155,50 @@ Public Sub CreerAccueil()
     Dim shp As Shape
     For Each shp In ws.Shapes: shp.Delete: Next shp
 
-    ws.Tab.Color = RGB(27, 58, 92)
+    ws.Tab.color = RGB(27, 58, 92)
     ws.Activate
     On Error Resume Next
     ActiveWindow.DisplayGridlines = False
     On Error GoTo ErrH
     ws.Range("A1").ColumnWidth = 2
 
-    ' ── Bandeau titre ──
+    ' -- Bandeau titre --
     With ws.Range("B1")
-        .Value = Emo(&H26FD&) & " Suivi Conso. Carburants"
-        .Font.Size = 20: .Font.Bold = True: .Font.Color = RGB(27, 58, 92)
+        .value = Emo(&H26FD&) & " Suivi Conso. Carburants"
+        .Font.Size = 20: .Font.bold = True: .Font.color = RGB(27, 58, 92)
     End With
-    ws.Rows(1).RowHeight = 40
+    ws.rows(1).RowHeight = 40
     With ws.Range("B2")
-        .Value = "Tableau de bord - copie des onglets de l'application"
-        .Font.Italic = True: .Font.Color = RGB(107, 114, 128): .Font.Size = 10
+        .value = "Tableau de bord - copie des onglets de l'application"
+        .Font.Italic = True: .Font.color = RGB(107, 114, 128): .Font.Size = 10
     End With
 
     Dim L0 As Single: L0 = ws.Range("B4").Left
-    Dim T0 As Single: T0 = ws.Range("B4").Top
+    Dim T0 As Single: T0 = ws.Range("B4").top
 
-    ' ── Tuile "reprendre" (large) ──
+    ' -- Tuile "reprendre" (large) --
     AddTile ws, L0, T0, 520, 46, Emo(&H21A9&) & "  Reprendre   " & DernierPleinResume(), _
             "NavReprendre", RGB(241, 245, 249), RGB(27, 58, 92), 11
 
-    ' ── Raccourcis ──
+    ' -- Raccourcis --
     Dim T1 As Single: T1 = T0 + 58
     AddTile ws, L0, T1, 252, 40, Emo(&H2795&) & "  Nouveau plein", _
             "AccNouveauPlein", RGB(27, 58, 92), vbWhite, 12
-    AddTile ws, L0 + 268, T1, 252, 40, Emo(&H1F4CB&) & "  Dupliquer le dernier", _
+    AddTile ws, L0 + 268, T1, 252, 40, Emo(&H1F4CB) & "  Dupliquer le dernier", _
             "AccDupliquerDernier", RGB(46, 117, 182), vbWhite, 12
 
-    ' ── Grille de tuiles principales ──
+    ' -- Grille de tuiles principales --
     Dim labels(1 To 5) As String, macros(1 To 5) As String, cols(1 To 5) As Long
     labels(1) = Emo(&H26FD&) & Chr(13) & "Saisie":     macros(1) = "NavSaisie":     cols(1) = RGB(46, 117, 182)
-    labels(2) = Emo(&H1F4CA&) & Chr(13) & "Stats":     macros(2) = "NavStats":      cols(2) = RGB(29, 158, 117)
-    labels(3) = Emo(&H1F5FA&) & Chr(13) & "Carte":     macros(3) = "NavCarte":      cols(3) = RGB(217, 119, 6)
-    labels(4) = Emo(&H1F4DC&) & Chr(13) & "Historique": macros(4) = "NavHistorique": cols(4) = RGB(124, 58, 237)
+    labels(2) = Emo(&H1F4CA) & Chr(13) & "Stats":      macros(2) = "NavStats":      cols(2) = RGB(29, 158, 117)
+    labels(3) = Emo(&H1F5FA) & Chr(13) & "Carte":      macros(3) = "NavCarte":      cols(3) = RGB(217, 119, 6)
+    labels(4) = Emo(&H1F4DC) & Chr(13) & "Historique": macros(4) = "NavHistorique": cols(4) = RGB(124, 58, 237)
     labels(5) = Emo(&H2699&) & Chr(13) & "R" & ChrW(233) & "glages": macros(5) = "NavReglages": cols(5) = RGB(75, 85, 99)
 
-    Dim i As Long, tw As Single, th As Single, gap As Single, T2 As Single
-    tw = 150: th = 96: gap = 12: T2 = T1 + 56
+    Dim i As Long, tw As Single, th As Single, gap As Single, t2 As Single
+    tw = 150: th = 96: gap = 12: t2 = T1 + 56
     For i = 1 To 5
-        AddTile ws, L0 + (i - 1) * (tw + gap), T2, tw, th, labels(i), macros(i), cols(i), vbWhite, 14
+        AddTile ws, L0 + (i - 1) * (tw + gap), t2, tw, th, labels(i), macros(i), cols(i), vbWhite, 14
     Next i
 
     ' Bouton "Quitter le plein ecran" (module Affichage, tolerant).
@@ -209,10 +208,10 @@ Public Sub CreerAccueil()
 
     ws.Range("B1").Select
     SetStatus "[Accueil] " & ChrW(10003) & " Ecran d'accueil cree."
-    GoTo Done
+    GoTo done
 ErrH:
     SetStatus "[Accueil] " & ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description
-Done:
+done:
     Application.ScreenUpdating = True
 End Sub
 
@@ -355,7 +354,7 @@ Private Function DernierPleinResume() As String
     If lo Is Nothing Then DernierPleinResume = "(aucune donnee)": Exit Function
     If lo.DataBodyRange Is Nothing Then DernierPleinResume = "(aucun plein)": Exit Function
 
-    data = lo.DataBodyRange.Value
+    data = lo.DataBodyRange.value
     n = UBound(data, 1)
     bestRow = 1: bestKey = -1
     For r = 1 To n
@@ -389,22 +388,22 @@ Private Function GetDataTable() As ListObject
     Set dataWs = ThisWorkbook.Sheets(WS_DATA)
     On Error GoTo 0
     If dataWs Is Nothing Then Exit Function
-    If dataWs.ListObjects.Count = 0 Then Exit Function
+    If dataWs.ListObjects.count = 0 Then Exit Function
     Set GetDataTable = dataWs.ListObjects(1)
 End Function
 
 ' Cree une tuile (forme arrondie cliquable) avec texte centre + macro.
-Private Sub AddTile(ws As Worksheet, L As Single, T As Single, W As Single, H As Single, _
+Private Sub AddTile(ws As Worksheet, l As Single, t As Single, w As Single, h As Single, _
                     txt As String, macro As String, fill As Long, fcolor As Long, fsize As Single)
-    Dim sh As Shape
-    Set sh = ws.Shapes.AddShape(msoShapeRoundedRectangle, L, T, W, H)
-    With sh
-        .Fill.ForeColor.RGB = fill
-        .Line.Visible = msoFalse
+    Dim Sh As Shape
+    Set Sh = ws.Shapes.AddShape(msoShapeRoundedRectangle, l, t, w, h)
+    With Sh
+        .fill.ForeColor.RGB = fill
+        .Line.visible = msoFalse
         With .TextFrame2
-            .TextRange.Text = txt
-            .TextRange.Font.Fill.ForeColor.RGB = fcolor
-            .TextRange.Font.Bold = msoTrue
+            .TextRange.text = txt
+            .TextRange.Font.fill.ForeColor.RGB = fcolor
+            .TextRange.Font.bold = msoTrue
             .TextRange.Font.Size = fsize
             .TextRange.ParagraphFormat.Alignment = msoAlignCenter
             .HorizontalAnchor = msoAnchorCenter
@@ -420,8 +419,8 @@ Private Function GetOrCreateSheet(nm As String) As Worksheet
     Set GetOrCreateSheet = ThisWorkbook.Sheets(nm)
     On Error GoTo 0
     If GetOrCreateSheet Is Nothing Then
-        Set GetOrCreateSheet = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
-        GetOrCreateSheet.Name = nm
+        Set GetOrCreateSheet = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.count))
+        GetOrCreateSheet.name = nm
     End If
 End Function
 
@@ -462,3 +461,4 @@ Private Function RunStep(label As String, macroName As String, ByRef okN As Long
     Err.Clear
     On Error GoTo 0
 End Function
+

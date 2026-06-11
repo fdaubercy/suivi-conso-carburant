@@ -51,9 +51,9 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
 
     ' -- 2. Dernier horodatage importé ------------------------------------
     SetStatus "[2/4] Lecture du dernier horodatage importé…"
-    If IsDate(cellLastImport.Value) Then
+    If IsDate(cellLastImport.value) Then
         On Error Resume Next
-        dernierHorodatage = CDate(cellLastImport.Value)
+        dernierHorodatage = CDate(cellLastImport.value)
         If Err.Number <> 0 Then Err.Clear: dernierHorodatage = DateSerial(1900, 1, 1)
         On Error GoTo GestionErreur
     Else
@@ -78,7 +78,7 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
     colSP98 = 0
     Dim colNom As String, kk As Long
     For kk = 1 To tblImport.ListColumns.count
-        colNom = LCase(Trim(tblImport.ListColumns(kk).Name))
+        colNom = LCase(Trim(tblImport.ListColumns(kk).name))
         If colNom = "station essence" Then colStation = kk
         If InStr(colNom, "sp98 station") > 0 Then colSP98 = kk
     Next kk
@@ -104,9 +104,9 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
     Dim rrSuivi As ListRow, cleEx As String
     If Not tbl.DataBodyRange Is Nothing Then
         For Each rrSuivi In tbl.ListRows
-            cleEx = PleinKey(rrSuivi.Range.Cells(1, 4).Value, _
-                             rrSuivi.Range.Cells(1, 6).Value, _
-                             rrSuivi.Range.Cells(1, 7).Value)
+            cleEx = PleinKey(rrSuivi.Range.Cells(1, 4).value, _
+                             rrSuivi.Range.Cells(1, 6).value, _
+                             rrSuivi.Range.Cells(1, 7).value)
             If Len(cleEx) > 0 Then existing(cleEx) = True
         Next rrSuivi
     End If
@@ -121,7 +121,7 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
         SetStatus "[4/4] Examen du plein " & i & " / " & nbTotal & "…"
 
         ' Ignorer horodatage vide
-        horodatageTxt = CStr(ligneSrc.Range.Cells(1, 1).Value)
+        horodatageTxt = CStr(ligneSrc.Range.Cells(1, 1).value)
         If Len(Trim(horodatageTxt)) = 0 Then GoTo NextLigne
 
         ' Parser l'horodatage — skip si invalide
@@ -135,11 +135,20 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
 
         ' Parser les champs obligatoires — skip si erreur
         On Error Resume Next
-        dateValue = ParseGoogleDate(CStr(ligneSrc.Range.Cells(1, 2).Value))
-        typeStr = Trim(CStr(ligneSrc.Range.Cells(1, 3).Value))
-        kmVal = CLng(ToDouble(ligneSrc.Range.Cells(1, 4).Value))
-        litresVal = ToDouble(ligneSrc.Range.Cells(1, 5).Value)
-        prixVal = ToDouble(ligneSrc.Range.Cells(1, 6).Value)
+        ' X41 fix date : la cellule _ImportGS!Date est une VRAIE date (PQ) -> l'utiliser
+        '  telle quelle (serial, locale-independant). NE PAS la stringifier puis re-parser :
+        '  CStr donne "09/06/2026" (locale FR) et ParseGoogleDate, croyant lire du M/J/A US,
+        '  interpretait 09 comme un mois (jour<=12) -> 6 sept au lieu du 9 juin. Repli
+        '  ParseGoogleDate seulement si la cellule n'est pas deja une date (texte ISO/gviz brut).
+        If IsDate(ligneSrc.Range.Cells(1, 2).value) Then
+            dateValue = CDate(ligneSrc.Range.Cells(1, 2).value)
+        Else
+            dateValue = ParseGoogleDate(CStr(ligneSrc.Range.Cells(1, 2).value))
+        End If
+        typeStr = Trim(CStr(ligneSrc.Range.Cells(1, 3).value))
+        kmVal = CLng(ToDouble(ligneSrc.Range.Cells(1, 4).value))
+        litresVal = ToDouble(ligneSrc.Range.Cells(1, 5).value)
+        prixVal = ToDouble(ligneSrc.Range.Cells(1, 6).value)
         If Err.Number <> 0 Then Err.Clear: GoTo NextLigne
         On Error GoTo GestionErreur
 
@@ -155,23 +164,23 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
         ' Prix SP98 station (optionnel) — colonne detectee par en-tete, jamais la 7 (= Station essence)
         prixS98Val = Empty
         If colSP98 > 0 Then
-            If Len(Trim(CStr(ligneSrc.Range.Cells(1, colSP98).Value))) > 0 Then
-                prixS98Val = ToDouble(ligneSrc.Range.Cells(1, colSP98).Value)
+            If Len(Trim(CStr(ligneSrc.Range.Cells(1, colSP98).value))) > 0 Then
+                prixS98Val = ToDouble(ligneSrc.Range.Cells(1, colSP98).value)
             End If
         End If
 
-        stationVal = Trim(CStr(ligneSrc.Range.Cells(1, colStation).Value))
+        stationVal = Trim(CStr(ligneSrc.Range.Cells(1, colStation).value))
 
         ' Ajouter la ligne dans Tableau2
         Set nouvLigne = tbl.ListRows.Add
         With nouvLigne.Range
-            .Cells(1, 2).Value = dateValue
-            .Cells(1, 3).Value = typeStr
-            .Cells(1, 4).Value = kmVal
-            .Cells(1, 6).Value = litresVal
-            .Cells(1, 7).Value = prixVal
-            If Not IsEmpty(prixS98Val) Then .Cells(1, 11).Value = prixS98Val
-            If stationVal <> "" Then .Cells(1, 15).Value = stationVal
+            .Cells(1, 2).value = dateValue
+            .Cells(1, 3).value = typeStr
+            .Cells(1, 4).value = kmVal
+            .Cells(1, 6).value = litresVal
+            .Cells(1, 7).value = prixVal
+            If Not IsEmpty(prixS98Val) Then .Cells(1, 11).value = prixS98Val
+            If stationVal <> "" Then .Cells(1, 15).value = stationVal
         End With
 
         If stationVal <> "" Then Call AjouterStationSiInconnue(stationVal)
@@ -183,7 +192,7 @@ NextLigne:
 
     ' -- 5. Fin -----------------------------------------------------------
     If nbImportes > 0 Then
-        cellLastImport.Value = maxHorodatage
+        cellLastImport.value = maxHorodatage
         cellLastImport.NumberFormat = "dd/mm/yyyy hh:mm:ss"
     End If
 
@@ -290,7 +299,7 @@ Public Sub NettoyerDoublons()
     ' Parcours du haut vers le bas : on garde la 1ere occurrence de chaque cle
     For i = 1 To tbl.ListRows.count
         With tbl.ListRows(i).Range
-            cle = PleinKey(.Cells(1, 4).Value, .Cells(1, 6).Value, .Cells(1, 7).Value)
+            cle = PleinKey(.Cells(1, 4).value, .Cells(1, 6).value, .Cells(1, 7).value)
         End With
         If cle <> "0|0.00|0.000" Then
             If seen.Exists(cle) Then
@@ -341,8 +350,8 @@ Private Function ChargerCSVDansFeuilleImport() As Boolean
     On Error GoTo 0
     If wsImport Is Nothing Then
         Set wsImport = ThisWorkbook.Worksheets.Add
-        wsImport.Name = SHEET_IMPORT
-        wsImport.Visible = xlSheetVeryHidden
+        wsImport.name = SHEET_IMPORT
+        wsImport.visible = xlSheetVeryHidden
     End If
 
     ' Vider la feuille
@@ -371,7 +380,7 @@ Private Function ChargerCSVDansFeuilleImport() As Boolean
     colonnes = ParseCSVLine(lignes(0))
     nbCols = UBound(colonnes) + 1
     For j = 0 To nbCols - 1
-        wsImport.Cells(1, j + 1).Value = Trim(colonnes(j))
+        wsImport.Cells(1, j + 1).value = Trim(colonnes(j))
     Next j
 
     ' Données (lignes 1..n)
@@ -379,7 +388,7 @@ Private Function ChargerCSVDansFeuilleImport() As Boolean
         If Trim(lignes(i)) = "" Then GoTo SuivanteLigne
         colonnes = ParseCSVLine(lignes(i))
         For j = 0 To UBound(colonnes)
-            wsImport.Cells(i + 1, j + 1).Value = colonnes(j)
+            wsImport.Cells(i + 1, j + 1).value = colonnes(j)
         Next j
 SuivanteLigne:
     Next i
@@ -388,7 +397,7 @@ SuivanteLigne:
     Dim rng As Range
     Set rng = wsImport.Range(wsImport.Cells(1, 1), wsImport.Cells(nbLignes, nbCols))
     Set lo = wsImport.ListObjects.Add(xlSrcRange, rng, , xlYes)
-    lo.Name = "DonneesExternes_1"
+    lo.name = "DonneesExternes_1"
 
     ChargerCSVDansFeuilleImport = True
 End Function
@@ -403,7 +412,7 @@ Private Function TelechargerCSV() As String
     Dim urls(1) As String
     Dim url     As String
     Dim statut  As Long
-    Dim K       As Integer
+    Dim k       As Integer
 
     ' ? URL 1 : cible l'onglet _ImportGS par son nom (fix principal)
     urls(0) = "https://docs.google.com/spreadsheets/d/" & GS_SHEET_ID & _
@@ -417,8 +426,8 @@ Private Function TelechargerCSV() As String
     Set http = CreateObject("WinHttp.WinHttpRequest.5.1")
     http.Option(6) = True   ' suit automatiquement les redirections Google
 
-    For K = 0 To 1
-        url = urls(K)
+    For k = 0 To 1
+        url = urls(k)
         http.Open "GET", url, False
         http.setRequestHeader "User-Agent", "Mozilla/5.0"
         http.setRequestHeader "Cache-Control", "no-cache"
@@ -430,7 +439,7 @@ Private Function TelechargerCSV() As String
             TelechargerCSV = http.ResponseText
             Exit Function
         End If
-    Next K
+    Next k
 
     SetStatus "[Import E85] " & ChrW(9888) & " Google Sheets a répondu HTTP " & statut & _
               " (vérifier le partage du Sheet : « Tout le monde avec le lien peut consulter »)."
@@ -510,7 +519,7 @@ Public Sub DiagnosticImport()
     On Error GoTo Erreur
     If wsLog Is Nothing Then
         Set wsLog = ThisWorkbook.Worksheets.Add
-        wsLog.Name = "DiagLog"
+        wsLog.name = "DiagLog"
     Else
         wsLog.Cells.ClearContents
     End If
@@ -528,8 +537,8 @@ Public Sub DiagnosticImport()
     Set wsSuivi = ThisWorkbook.Worksheets(SHEET_SUIVI)
     Set cellLastImport = wsSuivi.Range(CELL_LAST_IMPORT)
 
-    If IsDate(cellLastImport.Value) Then
-        dernierHorodatage = cellLastImport.Value
+    If IsDate(cellLastImport.value) Then
+        dernierHorodatage = cellLastImport.value
     Else
         dernierHorodatage = DateSerial(1900, 1, 1)
     End If
@@ -538,7 +547,7 @@ Public Sub DiagnosticImport()
         Set tblImport = wsImport.ListObjects(1)
         If Not tblImport.DataBodyRange Is Nothing Then
             For Each ligneSrc In tblImport.ListRows
-                horodatageTxt = CStr(ligneSrc.Range.Cells(1, 1).Value)
+                horodatageTxt = CStr(ligneSrc.Range.Cells(1, 1).value)
                 wsLog.Cells(ligne, 1) = ligne - 1
                 wsLog.Cells(ligne, 2) = horodatageTxt
                 If Len(horodatageTxt) = 0 Then
@@ -583,7 +592,7 @@ End Sub
 
 ' Clé naturelle d'un plein pour la déduplication.
 ' Basée sur km|litres|prix (PAS la date) : robuste même si une date est mal parsée.
-' Le compteur kilométrique est strictement croissant → identifie un plein de façon fiable.
+' Le compteur kilométrique est strictement croissant ? identifie un plein de façon fiable.
 Private Function PleinKey(vKm As Variant, vLitres As Variant, vPrix As Variant) As String
     PleinKey = CStr(CLng(ToDouble(vKm))) & "|" & _
                Format(ToDouble(vLitres), "0.00") & "|" & _
@@ -676,3 +685,4 @@ Private Function ParseGoogleDateTime(s As String) As Date
         ParseGoogleDateTime = ParseGoogleDate(s)
     End If
 End Function
+

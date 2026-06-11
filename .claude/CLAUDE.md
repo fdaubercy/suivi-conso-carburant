@@ -186,6 +186,15 @@ recréer à chaque fois.
 
 ---
 
+## 📈 Rapport d'avancée par étape (exécution d'un plan)
+
+Lors de l'exécution d'un **plan multi-étapes** :
+- **Après chaque étape réalisée ET testée**, fournir un **point d'avancée** par rapport au plan **et le persister** dans un fichier de suivi dédié (`docs/superpowers/plans/AVANCEMENT-<id>.md` ou équivalent) : étapes faites / restantes (cases à cocher), **résultat du test**, **prochaine étape**, éléments de reprise.
+- Objectif : **permettre de reprendre dans une autre session**. Le fichier de suivi + le code déployé (modules VBA du classeur, miroir disque `vba/*.bas`) font foi.
+- **Si la session est interrompue** (limite de tokens/usage, coupure) : se mettre **en attente** et **reprendre dès que possible** depuis le fichier de suivi, sans refaire le travail déjà testé.
+
+---
+
 ## ⚙️ Git — commit en fin de réponse
 
 ### Pré-commit — OBLIGATOIRE

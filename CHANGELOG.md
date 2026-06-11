@@ -4,6 +4,28 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.12.0.0] — 2026-06-11
+
+### Added
+- **Excel — Filtres natifs du tableau de bord (Segments + Chronologie)** : barre de 3 contrôles sous la bannière — Segment **Véhicule** (`slcVehicule`), Segment **Carburant** (`slcCarburant`, 6 carburants canoniques E85/SP95/SP98/E10/GAZOLE/GPLc toujours présents via *seed*) et **Chronologie « Période »** (`slcPeriode`, cache `tlPeriode`). Hébergés par un TCD caché `ptFiltres` (table `tFilterSrc` dérivée de `GS_Pleins`). Toute sélection déclenche `Workbook_SheetPivotTableUpdate` → `modFiltres.ApplyFiltersFromControls` → écrit l'état (B5/B6 + B9/B10) → `RecreerDashboardComplet` recalcule **tous** les graphiques. Nouveau module `vba/modFiltres.bas`. La chronologie est **créée par programmation (COM)** : `SlicerCaches.Add2(ptFiltres,"Date",nom,2)` puis `cache.Slicers.Add` (le handoff manuel n'est plus nécessaire).
+- **Excel — `gConso` : 1 courbe L/100 km par véhicule** (source `GS_Pleins`) : `BuildConsoBlock` (col BC de `_GraphData`), conso = Litres ÷ Δkm × 100 avec garde-fou 0–60.
+- **Excel — Filtre Période sur toutes les séries datées** : noms `PERIODE_DEB`/`PERIODE_FIN` (cellules d'état B9/B10) bornant prix, coût mensuel, CO2, conso, rentabilité kit, coût/km, éco cumulée, scatter et KPI annuels (`gVeh` reste une comparaison tous-véhicules, sans dimension date).
+- **Excel — Calage automatique de la Chronologie à la 1ʳᵉ ouverture** (`modFiltres.ApplyDefaultPeriodOnce`) : à la première activation du Tableau de bord dans la session, les poignées de la chronologie sont calées sur **[1ᵉʳ plein ; dernier plein]** (jours pleins, `Int`) et la période reste **non bornée** (B9/B10 vidés = tous les pleins). Sémantique **« once »** : un réglage manuel ultérieur n'est plus écrasé. `modFiltres.RefreshFilterData` rafraîchit en outre les données de filtre (`tFilterSrc` ← `GS_Pleins` + seeds carburants) **à chaque ouverture** de l'onglet, en préservant la sélection et sans détruire TCD / segments / chronologie.
+
+### Changed
+- **Excel — `gPrice` respecte la multi-sélection carburant** (B6 en CSV) : `BuildPriceBlockMerged(selFuels)` construit un `wantSet` (FuelKey) appliqué aux 2 sources (pleins Tableau2 + marché `PrixHistory`).
+- **Excel — `btnRecreerGraph` reproduit le rendu d'ouverture** : `RecreerDashboardComplet` = `CreerGraphiquesWeb` + `MAJ_Dashboard_Graphiques`.
+- **Excel — Cellules d'état masquées (P6)** : les listes déroulantes B5/B6 (validation) et le panneau carburant dessiné (`fup_btn` / `modFuelPanel`) sont **retirés**, remplacés par les segments. Le bloc paramètres A1:B10 est rendu invisible (police/fond blancs) en **conservant la géométrie** (largeurs A/B → bannière ; hauteurs 1–6 → bande segments). B2..B10 deviennent des cellules d'état cachées lues par le moteur.
+- **Excel — Barre de filtres sur 1 rangée** : 3 contrôles alignés à largeur égale (Véhicule / Carburant / Chronologie) couvrant le bandeau, en **bleu charte** (`SlicerStyleLight5` / `TimeSlicerStyleLight5`, réappliqué à chaque MAJ).
+- **Excel — Bannière pleine largeur** (`dash_banner` posée après le rail d'icônes via `SidebarRailRight`) ; titre 22 pt gras **centré** + sous-titre centré.
+- **Excel — 3 boutons d'action verts à gauche** (Actualiser / Recréer / Export) avec **mini-titres** (`dash_btnlbl_0..2`) ; libellé méta « Dernière gen » → « Mise à jour ».
+- **Excel — `WB_VERSION` / `APP_VERSION`** 5.11.2.0 → 5.12.0.0.
+
+### Fixed
+- **Excel — Sidebar préservée au rebuild** : `PurgeUnknown` (`CreerGraphiquesWeb`) ne détruit plus les shapes `sb_*` / `fup_*` ; `RecreerDashboardComplet` / `btnRecreerGraph` ne cassent plus la barre latérale (22 shapes conservées).
+- **Excel — Date du dernier plein décalée (6 sept. au lieu de 9 juin)** : `ModuleImportGS.ImporterNouveauxPleins` re-parsait une vraie date via `CStr` (FR jj/mm) interprétée en M/J US (jour ≤ 12 ⇒ mois). Corrigé : `If IsDate(cell.value) Then CDate(cell.value)` (lecture du sérial, locale-indépendant).
+- **Excel — Calage chronologie sans effet (no-op)** : `TimelineState.SetFilterDateRange` ignore silencieusement une borne portant une **heure** (dernier plein à 02:00). Bornes **arrondies au jour plein** (`Int`) dans `ApplyDefaultPeriodOnce`, séquence à **événements OFF** pour qu'un `RecreerDashboardComplet` ne ré-applique pas l'ancien filtre.
+
 ## [5.11.2.0] — 2026-06-09
 
 ### Changed

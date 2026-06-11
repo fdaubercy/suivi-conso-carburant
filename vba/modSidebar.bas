@@ -180,6 +180,7 @@ Public Sub ExpandSidebar()
     Dim ws As Worksheet: Set ws = ActiveSheet
     Dim bg As Shape: Set bg = GetShape(ws, SB_BG)
     If bg Is Nothing Then Exit Sub
+    bg.Visible = msoTrue                           ' X39 : reaffiche le fond a l'ouverture
     Dim z As Single: z = ZoomFactor()
     Dim wExp As Single: wExp = DocW_Exp(z)
     Dim anim As Single: anim = DocAnim(z)
@@ -212,6 +213,7 @@ Public Sub CollapseSidebar()
         bg.Width = W: DoEvents
     Next W
     bg.Width = wColl
+    bg.Visible = msoFalse                          ' X39 : masque le fond une fois replie
 End Sub
 
 Public Sub NavToFromSidebar(ByVal target As String)
@@ -430,6 +432,7 @@ Public Sub PoserSidebarSurFeuille(ws As Worksheet, Optional zOverride As Single 
     bg.top = top
     bg.Fill.ForeColor.RGB = C_BG()
     bg.Line.Visible = msoFalse
+    bg.Visible = msoFalse                          ' X39 : fond invisible tant que la sidebar est repliee (defaut)
 
     ' -- Hamburger (rectangle legerement arrondi) -------------
     Dim ham As Shape

@@ -1,4 +1,3 @@
-Attribute VB_Name = "modDashboardGraphiques"
 '---------------------------------------------------------------------------
 '  modDashboardGraphiques  —  Suivi Conso Carburants
 '  Met en page la feuille « Graphiques » en tableau de bord et applique la
@@ -26,6 +25,7 @@ Private Const WS_DASH As String = "Tableau de bord"
 '---- Sélecteurs X32 (cellules libres : modGraphiques n'utilise que B2/B3/B4) --
 Private Const CELL_SEL_VEH  As String = "B5"   ' Véhicule sélectionné
 Private Const CELL_SEL_FUEL As String = "B6"   ' Carburant sélectionné
+Private Const SEG_BAND As Single = 76          ' X39 : hauteur bande segments par defaut (repli si modFiltres absent)
 Private Const COL_LIST_VEH  As Long = 52       ' colonne technique AZ (liste véhicules)
 Private Const COL_LIST_FUEL As Long = 53       ' colonne technique BA (liste carburants)
 
@@ -45,7 +45,7 @@ Private Function cWhite() As Long:     cWhite = RGB(255, 255, 255):    End Funct
 '---- Geometrie de la planche (en points) ----
 Private Function L0() As Single:      L0 = 10:           End Function   ' marge gauche
 Private Function WTOT() As Single:    WTOT = 1160:       End Function   ' largeur utile
-Private Function GAP() As Single:     GAP = 12:          End Function
+Private Function gap() As Single:     gap = 12:          End Function
 Private Function FONT_UI() As String: FONT_UI = "Segoe UI": End Function
 
 '---------------------------------------------------------------------------
@@ -71,15 +71,18 @@ Public Sub MAJ_Dashboard_Graphiques()
     topCharts = BuildHeaderAndKPIs(ws)   ' renvoie le Top où commencer la grille
     LayoutCharts ws, topCharts
 
-    ' Panneau filtre carburant Option C (bouton + shapes toggle)
+    ' X39 : segments (filtres) dans la bande reservee sous la banniere, au 1er plan
     On Error Resume Next
-    modFuelPanel.InstallFuelPanel
+    modFiltres.EnsureFilterUI ws, ws.Range("A7").top + 4, L0, WTOT
     On Error GoTo 0
+
+    ' X39 P6 : panneau carburant (modFuelPanel / fup_btn) RETIRE — remplace par le
+    '  segment Carburant (slcCarburant). On ne reinstalle plus le bouton.
 
     ' Remettre au premier plan les boutons de modGraphiques (couverts par le bandeau)
     Dim sBtns As Shape
     For Each sBtns In ws.Shapes
-        If sBtns.Name = "btnRecreerGraph" Or sBtns.Name = "btnExportGraph" Then
+        If sBtns.name = "btnRecreerGraph" Or sBtns.name = "btnExportGraph" Then
             sBtns.ZOrder msoBringToFront
         End If
     Next sBtns
@@ -90,16 +93,25 @@ Public Sub MAJ_Dashboard_Graphiques()
     Application.StatusBar = "Dashboard « Graphiques » mis à jour."
 End Sub
 
+'---- X39 : reconstruction COMPLETE (data + mise en page) = rendu identique a l'ouverture ----
+Public Sub RecreerDashboardComplet()
+    On Error Resume Next
+    Application.Run "CreerGraphiquesWeb", False   ' rebuild data + graphiques (modGraphiques)
+    MAJ_Dashboard_Graphiques                      ' restyle + layout + KPI + panneaux + boutons
+    On Error GoTo 0
+End Sub
+
 '---------------------------------------------------------------------------
 '  1. Nettoyage des formes générées (idempotence)
 '---------------------------------------------------------------------------
 Private Sub CleanupDashShapes(ws As Worksheet)
-    Dim sh As Shape, i As Long
+    Dim Sh As Shape, i As Long
     For i = ws.Shapes.count To 1 Step -1
-        Set sh = ws.Shapes(i)
+        Set Sh = ws.Shapes(i)
         ' "dash_*" = formes de CE module ; "kpi*" = ancien bloc "Bilan annuel"
         ' (BuildKPICards de modGraphiques, retiré X36) à purger s'il subsiste.
-        If Left$(sh.Name, 5) = "dash_" Or Left$(sh.Name, 3) = "kpi" Then sh.Delete
+        If Left$(Sh.name, 5) = "dash_" Or Left$(Sh.name, 3) = "kpi" _
+           Or Left$(Sh.name, 4) = "fup_" Then Sh.Delete   ' X39 P6 : purge ancien panneau carburant
     Next i
 End Sub
 
@@ -132,20 +144,20 @@ End Sub
 Private Sub StyleOneChart(ch As Chart)
     On Error Resume Next
     ' — Cadre & fond —
-    ch.ChartArea.Format.Fill.ForeColor.RGB = cWhite
-    ch.ChartArea.Format.Line.Visible = msoFalse
+    ch.ChartArea.Format.fill.ForeColor.RGB = cWhite
+    ch.ChartArea.Format.Line.visible = msoFalse
     ch.ChartArea.Border.LineStyle = xlNone
-    ch.PlotArea.Format.Fill.Visible = msoFalse
-    ch.PlotArea.Format.Line.Visible = msoFalse
+    ch.PlotArea.Format.fill.visible = msoFalse
+    ch.PlotArea.Format.Line.visible = msoFalse
 
     ' — Police générale —
-    ch.ChartArea.Font.Name = FONT_UI
+    ch.ChartArea.Font.name = FONT_UI
     ch.ChartArea.Font.Size = 9
     ch.ChartArea.Font.color = cMuted
 
     ' — Titre —
     If ch.HasTitle Then
-        ch.ChartTitle.Font.Name = FONT_UI
+        ch.ChartTitle.Font.name = FONT_UI
         ch.ChartTitle.Font.Size = 11
         ch.ChartTitle.Font.bold = True
         ch.ChartTitle.Font.color = cBlueDark
@@ -161,7 +173,7 @@ Private Sub StyleOneChart(ch As Chart)
         End If
         va.TickLabels.Font.color = cMuted
         va.TickLabels.Font.Size = 9
-        va.Format.Line.Visible = msoFalse
+        va.Format.Line.visible = msoFalse
     End If
     Set ca = ch.Axes(xlCategory)
     If Not ca Is Nothing Then
@@ -174,10 +186,10 @@ Private Sub StyleOneChart(ch As Chart)
     ' — Légende —
     If ch.HasLegend Then
         ch.Legend.Position = xlLegendPositionBottom
-        ch.Legend.Font.Name = FONT_UI
+        ch.Legend.Font.name = FONT_UI
         ch.Legend.Font.Size = 9
         ch.Legend.Font.color = cMuted
-        ch.Legend.Format.Fill.Visible = msoFalse
+        ch.Legend.Format.fill.visible = msoFalse
     End If
 
     ' — Séries : couleur selon le nom —
@@ -193,7 +205,7 @@ End Sub
 ' Couleur d'une série d'après son nom (E85?vert, SP98?bleu, objectif/kit?ambre…)
 Private Sub ColorSeries(s As Series, idx As Long)
     On Error Resume Next
-    Dim nm As String: nm = LCase$(s.Name)
+    Dim nm As String: nm = LCase$(s.name)
     Dim c As Long, dashed As Boolean
     dashed = False
 
@@ -224,8 +236,8 @@ Private Sub ColorSeries(s As Series, idx As Long)
     End If
 
     ' Remplissage (barres / aires / parts) ET trait (courbes)
-    s.Format.Fill.ForeColor.RGB = c
-    s.Format.Fill.Visible = msoTrue
+    s.Format.fill.ForeColor.RGB = c
+    s.Format.fill.visible = msoTrue
     s.Format.Line.ForeColor.RGB = c
     s.Format.Line.Weight = 2.25
     If dashed Then s.Format.Line.DashStyle = msoLineDash
@@ -284,22 +296,28 @@ Private Function BuildHeaderAndKPIs(ws As Worksheet) As Single
     vPctE85 = ds.pctE85
 
     ' -- Bandeau d'en-tête (à droite du panneau Paramètres) --
-    Dim rowsBottom As Single: rowsBottom = ws.Range("A7").Top
-    Dim hT As Single: hT = 2
-    Dim hH As Single: hH = rowsBottom - hT - 2
-    Dim bnLeft As Single: bnLeft = ws.Range("C1").Left + GAP
+    Dim rowsBottom As Single: rowsBottom = ws.Range("A7").top
+    Dim ht As Single: ht = 2
+    Dim hH As Single: hH = rowsBottom - ht - 2
+    Dim bnLeft As Single: bnLeft = SidebarRailRight(ws) + 6   ' X39 : bandeau pleine largeur, juste apres le rail d'icones
     Dim bnW As Single: bnW = (L0 + WTOT) - bnLeft
-    AddBanner ws, bnLeft, hT, bnW, hH
+    AddBanner ws, bnLeft, ht, bnW, hH
     ' Bouton « Actualiser » en haut à droite du bandeau
-    ' Actualiser : icone carree 28x28, posee a gauche du trio (Recreer 374 / Export 410)
-    AddButton ws, 338, 88, 28, 28
+    ' Actualiser : icone carree 28x28, a gauche du trio (Recreer 131 / Export 201)
+    AddButton ws, 61, 82, 28, 28
     ' Infos B7/B8 en bas à droite du bandeau (petite police)
-    AddBannerParamsInfo ws, bnLeft, hT, bnW, hH, ws.Range("B7").value, ws.Range("B8").value
+    AddBannerParamsInfo ws, bnLeft, ht, bnW, hH, ws.Range("B7").value, ws.Range("B8").value
+    ' X39 : mini-titres (role) sous les 3 boutons d'action
+    AddButtonLabels ws
 
     ' -- Cartes KPI --
-    Dim kpiTop As Single: kpiTop = rowsBottom + 2
+    Dim bandH As Single: bandH = SEG_BAND
+    On Error Resume Next
+    bandH = modFiltres.SegBandHeight()                          ' X39 : hauteur auto selon items
+    On Error GoTo 0
+    Dim kpiTop As Single: kpiTop = rowsBottom + 2 + bandH   ' X39 : reserve la bande segments
     Dim kpiH As Single: kpiH = 78
-    Dim cardW As Single: cardW = (WTOT - 3 * GAP) / 4
+    Dim cardW As Single: cardW = (WTOT - 3 * gap) / 4
     Dim x As Single: x = L0
 
     ' Sous-titre commun : périmètre de filtrage (X33)
@@ -308,18 +326,18 @@ Private Function BuildHeaderAndKPIs(ws As Worksheet) As Single
 
     AddKpiCard ws, x, kpiTop, cardW, kpiH, cGreen, "CONSO MOYENNE", _
                Format(vConso, "0.0"), "L / 100 km · " & sScope
-    x = x + cardW + GAP
+    x = x + cardW + gap
     AddKpiCard ws, x, kpiTop, cardW, kpiH, cBlueMid, "COÛT AUX 100 KM", _
                Format(vCoutKm * 100, "0.00") & " €", sScope
-    x = x + cardW + GAP
+    x = x + cardW + gap
     AddKpiCard ws, x, kpiTop, cardW, kpiH, cGreen, "ÉCONOMIES E85 vs SP98", _
                Format(vEcon, "0") & " €", "estimées · " & SelLabel(selVeh, "tous véhicules")
-    x = x + cardW + GAP
+    x = x + cardW + gap
     AddKpiCard ws, x, kpiTop, cardW, kpiH, cAmber, "CO2 ÉVITÉ", _
                Format(vCo2, "0") & " kg", "vs essence · objectif " & Format(vObjCo2, "0") & " kg"
 
     ' -- Bandeau méta (ligne 1 : volumétrie) --
-    Dim metaTop As Single: metaTop = kpiTop + kpiH + GAP
+    Dim metaTop As Single: metaTop = kpiTop + kpiH + gap
     Dim metaTxt As String
     metaTxt = "Pleins : " & Format(vPleins, "0") & "      ·      " & _
               "Distance : " & Format(vKm, "# ##0") & " km      ·      " & _
@@ -340,34 +358,67 @@ Private Function BuildHeaderAndKPIs(ws As Worksheet) As Single
                "Station préférée : " & sStation
     AddMetaStrip ws, L0, metaTop2, WTOT, 26, metaTxt2
 
-    BuildHeaderAndKPIs = metaTop2 + 26 + GAP
+    BuildHeaderAndKPIs = metaTop2 + 26 + gap
 End Function
 
 '---- Bandeau d'en-tête bleu nuit -------------------------------------------
 Private Sub AddBanner(ws As Worksheet, x As Single, y As Single, w As Single, h As Single)
     Dim bg As Shape
     Set bg = ws.Shapes.AddShape(msoShapeRoundedRectangle, x, y, w, h)
-    bg.Name = "dash_banner"
+    bg.name = "dash_banner"
     StyleRect bg, cBlueDark, -1, 6
-    bg.Shadow.Visible = msoFalse
+    bg.Shadow.visible = msoFalse
 
-    ' Titre (centré verticalement dans le bandeau)
+    ' Titre — GRAND, GRAS, CENTRE dans toute la largeur du bandeau
     Dim t As Shape
-    Set t = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x + 18, y + h / 2 - 19, w - 180, 22)
-    t.Name = "dash_title"
-    SetText t, "Suivi Consommation Carburant", FONT_UI, 16, True, cWhite, msoAlignLeft
-    ' Sous-titre
+    Set t = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x, y + h / 2 - 26, w, 30)
+    t.name = "dash_title"
+    SetText t, "Suivi Consommation Carburant", FONT_UI, 22, True, cWhite, msoAlignCenter
+    ' Sous-titre — centre sous le titre
     Dim st As Shape
-    Set st = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x + 19, y + h / 2 + 4, w - 180, 16)
-    st.Name = "dash_subtitle"
-    SetText st, "Tableau de bord — vue d'ensemble", FONT_UI, 10, False, RGB(150, 175, 200), msoAlignLeft
+    Set st = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x, y + h / 2 + 7, w, 16)
+    st.name = "dash_subtitle"
+    SetText st, "Tableau de bord — vue d'ensemble", FONT_UI, 10, False, RGB(150, 175, 200), msoAlignCenter
+End Sub
+
+' X39 : bord droit du rail d'icones de la sidebar (toujours visible) -> debut du bandeau.
+Private Function SidebarRailRight(ws As Worksheet) As Single
+    Dim r As Single, sh As Shape
+    On Error Resume Next
+    For Each sh In ws.Shapes
+        If Left$(sh.name, 7) = "sb_ico_" Or sh.name = "sb_ham" Or Left$(sh.name, 7) = "sb_sep_" Then
+            If sh.Left + sh.Width > r Then r = sh.Left + sh.Width
+        End If
+    Next sh
+    On Error GoTo 0
+    If r < 10 Then r = 41    ' garde-fou si sidebar absente
+    SidebarRailRight = r
+End Function
+
+' X39 : mini-titres (role) sous les 3 boutons d'action — police mini blanche centree.
+Private Sub AddButtonLabels(ws As Worksheet)
+    AddBtnLabel ws, "dash_btnlbl_0", "Actualiser", 40, 111, 70
+    AddBtnLabel ws, "dash_btnlbl_1", "Recr" & ChrW(233) & "er", 110, 111, 70
+    AddBtnLabel ws, "dash_btnlbl_2", "Export", 180, 111, 70
+End Sub
+Private Sub AddBtnLabel(ws As Worksheet, nm As String, txt As String, x As Single, y As Single, w As Single)
+    Dim s As Shape
+    Set s = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x, y, w, 11)
+    s.name = nm
+    SetText s, txt, FONT_UI, 7, False, cWhite, msoAlignCenter
+    s.Placement = xlFreeFloating
+    On Error Resume Next
+    With s.TextFrame2
+        .MarginLeft = 0: .MarginRight = 0: .MarginTop = 0: .MarginBottom = 0
+    End With
+    On Error GoTo 0
 End Sub
 
 '---- Bouton « Actualiser » : relance la macro d'un clic ------------------
 Private Sub AddButton(ws As Worksheet, x As Single, y As Single, w As Single, h As Single)
     ' Bouton-icone "Actualiser" (PNG sync vert) ; repli carre vert si image absente.
     Dim p As String
-    p = ThisWorkbook.Path & Application.PathSeparator & "assets" & _
+    p = ThisWorkbook.path & Application.PathSeparator & "assets" & _
         Application.PathSeparator & "btn_actualiser.png"
     Dim ok As Boolean: ok = False
     On Error Resume Next
@@ -375,7 +426,7 @@ Private Sub AddButton(ws As Worksheet, x As Single, y As Single, w As Single, h 
         Dim pic As Shape
         Set pic = ws.Shapes.AddPicture(p, msoFalse, msoTrue, x, y, w, h)
         If Not pic Is Nothing Then
-            pic.Name = "dash_btn"
+            pic.name = "dash_btn"
             pic.OnAction = "MAJ_Dashboard_Graphiques"
             pic.AlternativeText = "Actualiser"
             pic.Placement = xlFreeFloating
@@ -386,9 +437,9 @@ Private Sub AddButton(ws As Worksheet, x As Single, y As Single, w As Single, h 
     If Not ok Then
         Dim b As Shape
         Set b = ws.Shapes.AddShape(msoShapeRoundedRectangle, x, y, w, h)
-        b.Name = "dash_btn"
-        b.Fill.ForeColor.RGB = RGB(29, 158, 117)
-        b.Line.Visible = msoFalse
+        b.name = "dash_btn"
+        b.fill.ForeColor.RGB = RGB(29, 158, 117)
+        b.Line.visible = msoFalse
         b.OnAction = "MAJ_Dashboard_Graphiques"
         b.AlternativeText = "Actualiser"
         b.Placement = xlFreeFloating
@@ -400,40 +451,23 @@ End Sub
 '  l'utilisateur les édite directement ici, puis clique « Actualiser ».
 Private Sub StyleParamsPanel(ws As Worksheet)
     On Error Resume Next
+    ' X39 P6 : la barre A (segments + chronologie) remplace les selecteurs visibles.
+    '  On CONSERVE la geometrie — largeurs A/B (-> Range("C1").Left de la banniere)
+    '  et hauteurs des lignes 1..6 (-> Range("A7").Top de la bande segments) — mais on
+    '  rend le bloc d'etat INVISIBLE. B2..B10 gardent leurs valeurs (budget, CO2,
+    '  annee, vehicule, carburant, periode) : cellules d'etat cachees lues par le moteur.
     ws.Columns("A").ColumnWidth = 27
     ws.Columns("B").ColumnWidth = 13
-    ws.Rows(1).RowHeight = 22
+    ws.rows(1).RowHeight = 22
     Dim rr As Long
-    For rr = 2 To 6: ws.Rows(rr).RowHeight = 21: Next rr
-
-    ' Titre (ligne 1)
-    With ws.Range("A1:B1")
-        If Not .MergeCells Then .Merge
-        .Interior.color = cBlueDark
-        .Font.Name = FONT_UI: .Font.Size = 10: .Font.bold = True: .Font.color = cWhite
-        .HorizontalAlignment = xlLeft: .VerticalAlignment = xlCenter: .IndentLevel = 1
+    For rr = 2 To 6: ws.rows(rr).RowHeight = 21: Next rr
+    With ws.Range("A1:B10")
+        .Interior.color = cWhite
+        .Font.color = cWhite
+        .Borders.LineStyle = xlNone
     End With
-    ' Libellés (A2:A6)
-    With ws.Range("A2:A6")
-        .Interior.color = RGB(248, 250, 252)
-        .Font.Name = FONT_UI: .Font.Size = 10: .Font.bold = False: .Font.color = cMuted
-        .HorizontalAlignment = xlLeft: .VerticalAlignment = xlCenter: .IndentLevel = 1
-    End With
-    ' Valeurs éditables (B2:B6) — surlignées bleu clair
-    With ws.Range("B2:B6")
-        .Interior.color = cBlueLight
-        .Font.Name = FONT_UI: .Font.Size = 11: .Font.bold = True: .Font.color = cBlueDark
-        .HorizontalAlignment = xlCenter: .VerticalAlignment = xlCenter
-    End With
-    ws.Range("B2:B4").NumberFormat = "0"        ' Budget / CO2 / Année
-    ws.Range("B5:B6").NumberFormat = "@"        ' Véhicule / Carburant (texte)
-    ws.Range("B5:B6").HorizontalAlignment = xlCenter
-    ' Bordures du panneau
-    With ws.Range("A1:B6")
-        .Borders.LineStyle = xlContinuous
-        .Borders.color = cBorder
-        .Borders.Weight = xlThin
-    End With
+    ws.Range("B2:B4").NumberFormat = "0"        ' Budget / CO2 / Annee
+    ws.Range("B5:B6").NumberFormat = "@"        ' Vehicule / Carburant (texte)
     On Error GoTo 0
 End Sub
 
@@ -496,9 +530,10 @@ Private Sub EnsureSelectors(ws As Worksheet)
     ws.Columns(COL_LIST_VEH).Hidden = True
     ws.Columns(COL_LIST_FUEL).Hidden = True
 
-    ' Validation listes déroulantes
-    ApplyListValidation ws.Range(CELL_SEL_VEH), ws, COL_LIST_VEH, nVeh
-    ApplyListValidation ws.Range(CELL_SEL_FUEL), ws, COL_LIST_FUEL, nFuel
+    ' X39 P6 : les segments slcVehicule/slcCarburant remplacent les listes B5/B6.
+    '  On retire toute validation (plus de fleche de liste deroulante visible).
+    ws.Range(CELL_SEL_VEH).Validation.Delete
+    ws.Range(CELL_SEL_FUEL).Validation.Delete
 
     ' Défauts (dernier plein) si cellule vide ou hors liste
     If Not InTechList(ws, COL_LIST_VEH, nVeh, CStr(ws.Range(CELL_SEL_VEH).value)) Then
@@ -518,15 +553,15 @@ Private Sub EnsureSelectors(ws As Worksheet)
     On Error GoTo 0
 End Sub
 
-Private Sub ApplyListValidation(target As Range, ws As Worksheet, col As Long, count As Long)
+Private Sub ApplyListValidation(Target As Range, ws As Worksheet, col As Long, count As Long)
     On Error Resume Next
     If count < 1 Then Exit Sub
     Dim addr As String
     ' X36 : quotes simples autour du nom de feuille — indispensable depuis le
     ' renommage en « Tableau de bord » (nom AVEC espaces) ; sinon la formule de
     ' validation est invalide et la liste déroulante ne se crée pas.
-    addr = "='" & ws.Name & "'!" & ws.Range(ws.Cells(1, col), ws.Cells(count, col)).Address
-    With target.Validation
+    addr = "='" & ws.name & "'!" & ws.Range(ws.Cells(1, col), ws.Cells(count, col)).Address
+    With Target.Validation
         .Delete
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:=addr
         .IgnoreBlank = True
@@ -560,31 +595,31 @@ Private Sub AddKpiCard(ws As Worksheet, x As Single, y As Single, w As Single, h
                        accent As Long, label As String, value As String, unit As String)
     Dim card As Shape
     Set card = ws.Shapes.AddShape(msoShapeRoundedRectangle, x, y, w, h)
-    card.Name = "dash_kpi"
+    card.name = "dash_kpi"
     StyleRect card, cWhite, cBorder, 5
 
     ' Barre d'accent à gauche
     Dim bar As Shape
     Set bar = ws.Shapes.AddShape(msoShapeRectangle, x + 2, y + 6, 4, h - 12)
-    bar.Name = "dash_kpibar"
+    bar.name = "dash_kpibar"
     StyleRect bar, accent, -1, 0
 
     ' Label
     Dim lab As Shape
     Set lab = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x + 16, y + 10, w - 24, 14)
-    lab.Name = "dash_kpilabel"
+    lab.name = "dash_kpilabel"
     SetText lab, label, FONT_UI, 9, True, cMuted, msoAlignLeft
 
     ' Valeur
     Dim val As Shape
     Set val = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x + 15, y + 26, w - 24, 30)
-    val.Name = "dash_kpivalue"
+    val.name = "dash_kpivalue"
     SetText val, value, FONT_UI, 24, True, accent, msoAlignLeft
 
     ' Unité
     Dim un As Shape
     Set un = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x + 16, y + 56, w - 24, 14)
-    un.Name = "dash_kpiunit"
+    un.name = "dash_kpiunit"
     SetText un, unit, FONT_UI, 9, False, cMuted, msoAlignLeft
 End Sub
 
@@ -606,19 +641,19 @@ Private Sub AddBannerParamsInfo(ws As Worksheet, bx As Single, by As Single, _
     Dim txt As Shape
     Set txt = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, _
         bx + bw - 220, by + bh - 20, 215, 16)
-    txt.Name = "dash_meta_params"
+    txt.name = "dash_meta_params"
     On Error Resume Next
     With txt.TextFrame2
-        .TextRange.Text = "Auto: " & sAuto & "   Derniere gen: " & sGen
-        .TextRange.Font.Name = FONT_UI
+        .TextRange.text = "Auto: " & sAuto & "   Mise " & ChrW(224) & " jour: " & sGen
+        .TextRange.Font.name = FONT_UI
         .TextRange.Font.Size = 8
-        .TextRange.Font.Fill.ForeColor.RGB = RGB(140, 170, 200)
+        .TextRange.Font.fill.ForeColor.RGB = RGB(140, 170, 200)
         .TextRange.ParagraphFormat.Alignment = msoAlignRight
         .VerticalAnchor = msoAnchorBottom
         .MarginLeft = 0: .MarginRight = 4: .MarginTop = 0: .MarginBottom = 2
     End With
-    txt.Fill.Visible = msoFalse
-    txt.Line.Visible = msoFalse
+    txt.fill.visible = msoFalse
+    txt.Line.visible = msoFalse
     On Error GoTo 0
 End Sub
 
@@ -626,11 +661,11 @@ End Sub
 Private Sub AddMetaStrip(ws As Worksheet, x As Single, y As Single, w As Single, h As Single, txt As String)
     Dim bg As Shape
     Set bg = ws.Shapes.AddShape(msoShapeRoundedRectangle, x, y, w, h)
-    bg.Name = "dash_meta"
+    bg.name = "dash_meta"
     StyleRect bg, cBlueLight, -1, 5
     Dim t As Shape
     Set t = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x + 16, y + 4, w - 32, h - 8)
-    t.Name = "dash_metatxt"
+    t.name = "dash_metatxt"
     SetText t, txt, FONT_UI, 10.5, False, cBlueDark, msoAlignLeft
 End Sub
 
@@ -639,9 +674,9 @@ End Sub
 '---------------------------------------------------------------------------
 Private Sub LayoutCharts(ws As Worksheet, topStart As Single)
     Dim cols As Long: cols = 3
-    Dim chartW As Single: chartW = (WTOT - (cols - 1) * GAP) / cols
+    Dim chartW As Single: chartW = (WTOT - (cols - 1) * gap) / cols
     Dim chartH As Single: chartH = 196
-    Dim pitchY As Single: pitchY = chartH + GAP
+    Dim pitchY As Single: pitchY = chartH + gap
 
     ' Ordre logique souhaité (par mot-clé du titre)
     Dim order As Variant
@@ -660,13 +695,13 @@ Private Sub LayoutCharts(ws As Worksheet, topStart As Single)
         Set co = FindChartByTitle(ws, CStr(order(k)))
         If Not co Is Nothing Then
             PlaceChart co, topStart, chartW, chartH, pitchY, slot, cols
-            placed(co.Name) = True
+            placed(co.name) = True
             slot = slot + 1
         End If
     Next k
     ' 2) place les éventuels graphiques restants
     For Each co In ws.ChartObjects
-        If Not placed.Exists(co.Name) Then
+        If Not placed.Exists(co.name) Then
             PlaceChart co, topStart, chartW, chartH, pitchY, slot, cols
             slot = slot + 1
         End If
@@ -677,8 +712,8 @@ Private Sub PlaceChart(co As ChartObject, topStart As Single, w As Single, h As 
                        pitchY As Single, slot As Long, cols As Long)
     Dim r As Long: r = slot \ cols
     Dim cIdx As Long: cIdx = slot Mod cols
-    co.Left = L0 + cIdx * (w + GAP)
-    co.Top = topStart + r * pitchY
+    co.Left = L0 + cIdx * (w + gap)
+    co.top = topStart + r * pitchY
     co.Width = w
     co.Height = h
     co.Placement = xlMove
@@ -689,7 +724,7 @@ Private Function FindChartByTitle(ws As Worksheet, keyword As String) As ChartOb
     For Each co In ws.ChartObjects
         ttl = ""
         On Error Resume Next
-        If co.Chart.HasTitle Then ttl = LCase$(co.Chart.ChartTitle.Text)
+        If co.Chart.HasTitle Then ttl = LCase$(co.Chart.ChartTitle.text)
         On Error GoTo 0
         If Len(keyword) > 0 And InStr(ttl, keyword) > 0 Then
             Set FindChartByTitle = co
@@ -702,41 +737,42 @@ End Function
 '---------------------------------------------------------------------------
 '  Helpers de mise en forme des formes
 '---------------------------------------------------------------------------
-Private Sub StyleRect(sh As Shape, fillColor As Long, lineColor As Long, radius As Single)
+Private Sub StyleRect(Sh As Shape, fillColor As Long, lineColor As Long, radius As Single)
     On Error Resume Next
-    sh.Fill.ForeColor.RGB = fillColor
-    sh.Fill.Solid
+    Sh.fill.ForeColor.RGB = fillColor
+    Sh.fill.Solid
     If lineColor = -1 Then
-        sh.Line.Visible = msoFalse
+        Sh.Line.visible = msoFalse
     Else
-        sh.Line.Visible = msoTrue
-        sh.Line.ForeColor.RGB = lineColor
-        sh.Line.Weight = 1
+        Sh.Line.visible = msoTrue
+        Sh.Line.ForeColor.RGB = lineColor
+        Sh.Line.Weight = 1
     End If
     ' Rayon des coins arrondis (0..0.5)
-    If sh.AutoShapeType = msoShapeRoundedRectangle And radius > 0 Then
-        sh.Adjustments(1) = radius / (Application.Min(sh.Width, sh.Height))
+    If Sh.AutoShapeType = msoShapeRoundedRectangle And radius > 0 Then
+        Sh.Adjustments(1) = radius / (Application.Min(Sh.Width, Sh.Height))
     End If
-    sh.Shadow.Visible = msoFalse
+    Sh.Shadow.visible = msoFalse
     On Error GoTo 0
 End Sub
 
-Private Sub SetText(sh As Shape, txt As String, fontName As String, sz As Single, _
+Private Sub SetText(Sh As Shape, txt As String, fontName As String, sz As Single, _
                     bold As Boolean, color As Long, align As Long)
     On Error Resume Next
-    With sh.TextFrame2
-        .TextRange.Text = txt
-        .TextRange.Font.Name = fontName
+    With Sh.TextFrame2
+        .TextRange.text = txt
+        .TextRange.Font.name = fontName
         .TextRange.Font.Size = sz
         .TextRange.Font.bold = bold
-        .TextRange.Font.Fill.ForeColor.RGB = color
+        .TextRange.Font.fill.ForeColor.RGB = color
         .TextRange.ParagraphFormat.Alignment = IIf(align = msoAlignRight, msoAlignRight, IIf(align = msoAlignCenter, msoAlignCenter, msoAlignLeft))
         .VerticalAnchor = msoAnchorTop
         .MarginLeft = 0: .MarginRight = 0: .MarginTop = 0: .MarginBottom = 0
         .WordWrap = msoTrue
         .AutoSize = msoAutoSizeNone
     End With
-    sh.Line.Visible = msoFalse
-    sh.Fill.Visible = msoFalse
+    Sh.Line.visible = msoFalse
+    Sh.fill.visible = msoFalse
     On Error GoTo 0
 End Sub
+

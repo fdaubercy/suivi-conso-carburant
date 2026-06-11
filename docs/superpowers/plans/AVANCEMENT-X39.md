@@ -1,0 +1,80 @@
+# AVANCEMENT — X39 · Filtres natifs (Segments + Chronologie), gConso/gPrice, survol — v5.12.0.0
+
+**Plan détaillé :** `docs/superpowers/plans/2026-06-10-dashboard-graphs-multiselect-hover.md`
+**Backup :** `vba\backup_X39_20260610-065317\` (21 .bas) + `excel\backup_X39\Suivi Conso Carburants_X39_20260610-065317.xlsm`
+**Classeur cible :** `excel\Suivi Conso Carburants.xlsm` (OUVERT — piloté en COM/pywin32)
+**Règle de vérité :** les modules déployés dans le classeur font foi ; le miroir disque `vba\*.bas` est mis à jour après chaque tâche.
+
+## État global
+- [x] **Task 0** — Backup + baseline qui compile
+- [x] **Task 1** — gPrice respecte multi-carburant (B6 CSV)
+- [x] **Task 2** — gConso 1 courbe/véhicule (GS_Pleins)
+- [x] **Task 1c** — Filtre Période dans le moteur
+- [x] **Task 4** — btnRecreerGraph = rendu d'ouverture
+- [x] **Task 5** — Survol **ABANDONNÉ** (test UI user : clic mort + pas d'étiquette ; hyperlien intercepte le clic sur shape-image) → repli **mini-titres** sous les 3 boutons verts
+- [x] **Phase 2 / P1** — table `_FilterSrc`
+- [x] **Phase 2 / P2** — TCD caché `ptFiltres`
+- [x] **Phase 2 / P3** — Segments Véhicule + Carburant (créés, non encore branchés)
+- [x] **Phase 2 / P4** — Chronologie (créée par COM, branchée) — layout final à valider en P6
+- [x] **Phase 2 / P5** — Évènement `Workbook_SheetPivotTableUpdate` → recalcul
+- [x] **Phase 2 / P6** — Cellules d'état masquées + panneau carburant retiré + chronologie repositionnée
+- [x] **Auto-init Chronologie** (2026-06-11, post-session b) — `ApplyDefaultPeriodOnce` (calage [min;max] « once ») + `RefreshFilterData` (refresh données à chaque ouverture) ; **fix no-op** `SetFilterDateRange` (borne horaire → `Int`) ; **fix date** 6 sept→9 juin. **Validé bout-en-bout** (test d'intégration `Worksheet_Activate`).
+- [~] **Phase 3** — Docs CHANGELOG/ROADMAP/lessons **réconciliées** (2026-06-11 : survol reverté corrigé, auto-init + fixes documentés, version 5.12.0.0) ✅ ; **`/graphify --update` + commit EN COURS**
+
+## Journal (1 ligne par étape testée)
+- 2026-06-10 — **Task 0 OK** : 21 modules sauvegardés, classeur copié (987 Ko), baseline OK.
+- 2026-06-10 — **Task 1 OK** : `modGraphiques` déployé (1441 l.). `BuildPriceBlockMerged(selFuels)` + site d'appel. Test : B6=`E85,SP98`→2 séries gPrice ; `(tous)`→4. B6 réel `E85,SP95,SP98` désormais respecté. Miroir disque `vba\modGraphiques.bas` à jour.
+- 2026-06-10 — **Task 2 OK** : `modGraphiques` déployé (1541 l.). Ajout `InCsvSel` + `BuildConsoBlock` (conso=Litres÷Δkm×100 par véhicule, **col BC=55** pour éviter collision prix G..M / véh O..Q) ; `BuildAggregates(+rConsoCols)` ; gConso multi-séries. Test : B5=`(tous)`→séries `[Z900]` ; B5=`Z900`→`[Z900]`. Donnée actuelle = 1 véhicule. Classeur sauvegardé.
+- 2026-06-10 — **Task 4 OK** : `RecreerDashboardComplet` (modDashboardGraphiques) = CreerGraphiquesWeb + MAJ ; `btnRecreerGraph.OnAction` → RecreerDashboardComplet. Test : exécution OK, 13 graphiques, OnAction correct. Sauvegardé.
+- 2026-06-10 — **sb_bg (demande hors-plan) OK** : `modSidebar` masque `sb_bg` (fond du menu latéral) quand le menu est replié (build + collapse → invisible ; expand → visible). Masqué sur 6 onglets. Test cycle Accueil : Expand→visible, Collapse→masqué. ✅
+- 2026-06-10 — **Fix PurgeUnknown (hors-plan) OK** : `PurgeUnknown` (CreerGraphiquesWeb) détruisait les AutoShapes `sb_*`/`fup_*` à chaque rebuild → sidebar du dashboard cassée (7 shapes). Guard ajouté (préserve `sb_`/`fup_`). Sidebar dashboard reconstruite (7→**22**) via `PoseSidebarSurNom`. **Test régression** : après `CreerGraphiquesWeb`, sidebar **survit (22 shapes)**, `sb_bg` masqué. Vérif : `sb_ico_*` = **6/6 visibles**, `sb_ham` visible (dashboard + Accueil). `modGraphiques` 1545 l. Sauvegardé.
+- ➡️ **Note régression évitée** : `RecreerDashboardComplet`/`btnRecreerGraph` ne casse plus la sidebar (correctif PurgeUnknown).
+- 2026-06-10 — **Phase 2 P1+P2+P3 OK** : nouveau module **`modFiltres`** (215 l.). `SetupFilterControls` = RebuildFilterSrc (`_FilterSrc`/`tFilterSrc` 13 l. depuis GS_Pleins, carburant normalisé via FuelKeyF) + EnsureFilterPivot (`ptFiltres` caché) + EnsureSlicers (segments `slcVehicule`/`slcCarburant`). Test : Véhicule→[Z900], Carburant→[E85, SP98] (après fix « SUPER 98 »→SP98). Pièges résolus : `Worksheet.Slicers` n'existe pas (→ Shapes) ; `Slicer.Shape` non plus (→ Shapes(name).Placement). Segments à L=270/428 T=213 (**provisoire**), **pas encore branchés**.
+
+- 2026-06-10 — **Phase 2 P6 (layout) OK** : bande segments sous la bannière. `modDashboardGraphiques` : const `SEG_BAND=54`, `kpiTop += SEG_BAND` (décale KPI+méta+graphiques), MAJ appelle `modFiltres.EnsureFilterUI ws, A7.Top+4, L0, WTOT`. `modFiltres` : `PlaceSlicers` (positionne + `ZOrder BringToFront`) + `EnsureFilterUI` (crée si absent sinon positionne). Test : segments T=131 (Z=66/67), KPI 129→183. **Affiné (retour user)** : décalés après la sidebar (`SidebarRight`+12 → L=53/289, sidebar=41) ; hauteur **auto** `SlicerH(items)` (=64, NumberOfColumns=2) ; bande **auto** `SegBandHeight` (=76, max des 2 segments) → KPI=205. Reste : retrait B4/B5/B6 visibles (cells) en fin de P6.
+
+- 2026-06-10 — **Seed carburants (retour user) OK** : `RebuildFilterSrc` ajoute les carburants canoniques manquants (E85/SP95/SP98/E10/GAZOLE/GPLc) en réutilisant 1ʳᵉ date + véhicule réels → segment Carburant = 6 items, segment Véhicule inchangé (Z900). **Réglage final (retour user)** : `SLC_COLS=3` (Carburant 6 items en 3 col × 2 lignes) ; `PlaceSlicers` impose la **même hauteur aux 2 segments** (= max, 90 px) ; band=102, KPI=231. Position/hauteur des segments **validées**.
+
+- 2026-06-10 — **Phase 2 P5 (branchement) OK** : `modFiltres.ApplyFiltersFromControls` (g_Applying anti-réentrance) lit `SlicerCsv(field)` (items cochés → CSV ; tous/aucun → "(tous)") → écrit B5/B6 → `RecreerDashboardComplet`. Évènement `Workbook_SheetPivotTableUpdate` ajouté à **ThisWorkbook** (`If Target.Name="ptFiltres" Then ApplyFiltersFromControls`). Hauteur segments 82→**77**. Test : Carburant=E85 → B6='E85', gPrice=[E85] ; restore → '(tous)'. ⚠️ chaque clic = RecreerDashboardComplet (lourd ~20-30s) — optimisable plus tard.
+
+- 2026-06-10 (session b) — **Task 1c (moteur Période) OK** : `modGraphiques` déployé (1581 l.). Vars module `mPerDeb`/`mPerFin` (serial date, 0=non borné) lues en tête de `CreerGraphiquesWeb` depuis **B9/B10** du dashboard ; `EnsurePeriodNames` crée/maj les noms **PERIODE_DEB→B9 / PERIODE_FIN→B10** (idempotent). Garde `If mPer.. >0 Then If CDbl(date) </>.. Then GoTo <label>` ajoutée dans **les 3 builders datés** : `BuildAggregates` (boucle Tableau2 → GoTo NextRow ; couvre coût mensuel/CO2/kit/coût-km/éco/scatter/KPI annuels), `BuildConsoBlock` (point conso `arr(j)(0)` → label SkipJ, filtre le point pas le plein brut pour ne pas fausser les Δkm), `BuildPriceBlockMerged` (Source1 Tableau2→NextP2 ; Source2 PrixHistory→label NextH). **gVeh non filtré** (comparaison tous-véhicules, sans dimension date — décision figée). Choix cellules **B9/B10** (et non `_GraphData!BC1/BC2` du plan) car BC=col conso **et** `_GraphData` subit `Cells.Clear` à chaque build (PERIODE y serait perdu). Test COM (3 builds) : baseline 14/12/4 (prix/conso/mois) → borné au 15/05 **7/6/3** (shrunk) → restauré **14/12/4** (retour exact), 0 erreur. Miroir disque + classeur sauvegardés.
+
+- 2026-06-10 (session b) — **Phase 2 P4 (Chronologie) OK — SANS handoff** : découverte que la chronologie **est créable par COM** (late-binding pywin32) là où le PoC VBA early-bound échouait (Err 5). Séquence : `wb.SlicerCaches.Add2(ptFiltres, "Date", "tlPeriode", 2)` (cache type 2) **puis** `cache.Slicers.Add(dash, Name=..., Caption=..., Top, Left, Width, Height)` (contrôle visible). Contrôle renommé `slcPeriode`, caption « Période », style `TimeSlicerStyleLight2`, posé dans la bande (L=525,T=131,W=430,H=77, à droite des 2 segments). **Branchement** (`modFiltres` 390 l.) : `WritePeriodFromTimeline` lit `SlicerCaches("tlPeriode").TimelineState.StartDate/EndDate` (lisible **en VBA**, pas en Python) → écrit B9/B10 (sinon vide=non borné) ; appelé dans `ApplyFiltersFromControls` ; `PlaceSlicers` repositionne aussi la chronologie. Tests COM : (1) `TimelineState` VBA lisible (setErr=0/readErr=0) ; (2) filtre 15/05→31/12 → ApplyFilters → B9/B10 écrits, séries 7/6/3 ; clear → vide, 14/12/4 ; (3) **l'event `Workbook_SheetPivotTableUpdate` se déclenche aussi pour la chronologie** (B9/B10 remplis sans appel manuel). ⚠️ Fragilité (comme l'approche manuelle) : `SetupFilterControls` recrée `ptFiltres` → casserait le lien du timeline (création COM non rejouée en VBA). Module de test temp retiré, classeur sauvegardé.
+
+- 2026-06-10 (session b) — **Phase 2 P6 OK** : `modDashboardGraphiques` (743 l.) déployé. (1) `StyleParamsPanel` rend le bloc A1:B10 **invisible** (Interior+Font blancs, bordures none) en **conservant la géométrie** (largeurs A=27/B=13 → `C1.Left` bannière ; hauteurs 1..6 → `A7.Top` bande) → B2..B10 = cellules d'état cachées (valeurs préservées : B2=200,B3=200,B4=2026,B5=(tous),B6=E85,GAZOLE,SP98). (2) `EnsureSelectors` : validations B5/B6 **retirées** (plus de dropdown). (3) `modFuelPanel.InstallFuelPanel` **retiré** de MAJ + `CleanupDashShapes` purge `fup_*` (fup_btn supprimé). Test rebuild : 0 erreur, fup absent, 3 segments alignés (L=53/289/525, T=131, H=77), 13 graphiques, police d'état blanche. Screenshot validé. Classeur + miroir sauvegardés. ⚠️ budget/CO2 (B2/B3) désormais cachés mais éditables (clic cellule) — affichés dans les cartes KPI.
+
+- 2026-06-10 (session b) — **Task 5 (survol) déployé — repli natif (ScreenTip)** : choix du **repli documenté** du plan plutôt que l'ActiveX (risque d'instabilité + `LoadPicture` ne charge pas les PNG). Sur les 3 boutons (`btnRecreerGraph`/`btnExportGraph`/`dash_btn`) : **OnAction conservé** + hyperlien interne inoffensif (→ `'Tableau de bord'!A1`) portant le **ScreenTip** (« Recréer les graphiques »/« Exporter en PDF »/« Actualiser »). Helper `AddTipLink` (modGraphiques.EnsurePictureButton, 2 branches) + inline (modDashboardGraphiques.AddButton, 2 branches). Filet de sécurité : `Feuil3.Worksheet_FollowHyperlink` relaie vers la macro via `Application.OnTime Now` (différé — la macro reconstruit les boutons) si l'hyperlien intercepte le clic. Vérif COM : rebuild 0 erreur, 3 boutons avec OnAction + ScreenTip + SubAddress A1. ⚠️ **À confirmer en UI** (je ne peux pas survoler/cliquer en COM) : (a) le ScreenTip s'affiche au survol ? (b) le clic lance bien la macro (via OnAction, sinon via FollowHyperlink) ? Si clic KO → retirer les hyperliens (revert trivial) et documenter.
+
+- 2026-06-10 (session b, retours user) — **Task 5 REVERT + Bug date + Dispo C + Bleu + Bannière** :
+  - **Task 5 survol RETIRÉ** : test UI user = survol sans étiquette ET clic mort (l'hyperlien intercepte le clic sur shape-image sans déclencher `Worksheet_FollowHyperlink`). Hyperliens retirés des 3 boutons → retour PNG+OnAction (clic OK). `modGraphiques`/`modDashboardGraphiques`/`Feuil3` revert + `AddTipLink`/`Worksheet_FollowHyperlink` supprimés.
+  - **Bug date 06/09 vs 09/06 CORRIGÉ** : `ModuleImportGS.ImporterNouveauxPleins` faisait `ParseGoogleDate(CStr(cell.value))` sur une cellule `_ImportGS!Date` = vraie date → CStr "09/06/2026" (FR) → heuristique US (jour≤12 ⇒ mois) → 6 sept. Fix : `If IsDate(cell.value) Then CDate(cell.value)`. Donnée Suivi Carburant ligne 14 corrigée 6 sept→9 juin (sérial Excel, anti-décalage TZ pywin32). Vérifié : dernière date = 09/06, 0 septembre dans `_GraphData`.
+  - **Disposition C** (user, no-preference → 2 rangées) : `modFiltres.PlaceSlicers` — segments en rangée 1, **Chronologie pleine largeur** en rangée 2 (`ROW_GAP`/`TL_ROW_H`) ; `SegBandHeight` = 2 rangées.
+  - **Bleu charte** (user) : segments + chronologie en **`SlicerStyleLight5`/`TimeSlicerStyleLight5`** (accent bleu du thème ; le custom `TableStyles.Add` échoue « params invalides » → built-in). Appliqué dans `PlaceSlicers` (à chaque MAJ, pas seulement à la création).
+  - **Bannière élargie** (user) : `modDashboardGraphiques` `bnLeft = SidebarRailRight(ws)+6` → `dash_banner` pleine largeur (L=47, W=1123) après le rail d'icônes ; titre/sous-titre suivent (positionnés relativement).
+  - ⏭️ Reste : **Task 5 via ActiveX** (choix user) — à retester en UI ; puis docs + commit.
+
+- 2026-06-10 (session b, retours user — banniere/filtres) :
+  - **Filtres : retour 1 rangee** (annule dispo C 2-rangees) — `modFiltres.PlaceSlicers` : 3 controles **alignes, largeur egale** (`wEach=(rightEdge-leftX-2*gap)/3`) couvrant la largeur du bandeau ; `SegBandHeight = m+8`.
+  - **Bleu** : segments + chronologie = `SlicerStyleLight5` / `TimeSlicerStyleLight5` (le custom `TableStyles.Add` est rejete « params invalides » a l'application → built-in).
+  - **`dash_banner` pleine largeur** : `bnLeft = SidebarRailRight(ws)+6` (apres le rail d'icones).
+  - **Titre** `dash_title` : 22 pt gras **centre** (pleine largeur, `msoAlignCenter`) ; sous-titre centre aussi.
+  - **3 boutons verts a gauche** (Actualiser 61 / Recreer 131 / Export 201, T=82) + **mini-titres** dessous (`dash_btnlbl_0..2`, 7 pt blanc centre : Actualiser / Recreer / Export) via `AddButtonLabels`/`AddBtnLabel`. (Solution choisie par l'user parmi banniere/infobulle/mini-titre.)
+  - **`dash_meta_params`** : « Derniere gen » → « Mise a jour » (`ChrW(224)` pour le a accent).
+  - Tout deploye + mirroir + sauvegarde. Survol ActiveX **abandonne** (risque/non testable ; mini-titres a la place).
+
+- 2026-06-11 (reprise apres limite 429) — **Auto-init Chronologie + fixes OK** :
+  - `ApplyDefaultPeriodOnce` (modFiltres) cale `slcPeriode` sur [1ᵉʳ ; dernier plein] a la 1ʳᵉ activation (drapeau `g_PeriodDefaultDone`, events OFF), periode non bornee (B9/B10 vides). `RefreshFilterData` reecrit `tFilterSrc` EN PLACE (ClearContents+Resize, sans Unlist) a chaque ouverture → segments+chronologie refletent les imports recents sans casser la chronologie COM.
+  - **Bug calage no-op trouve** : `SetFilterDateRange` ignore une borne a HEURE (dernier plein 02:00 = artefact du fix date). Fix = `Int(dMin)`/`Int(dMax)`. Isole via helper `ReadTL` (lecture sans rebuild) → prouve que `RecreerDashboardComplet` ne reverte PAS (grep : ne touche pas le filtre) ; coupable = borne fractionnaire.
+  - **Tests** : `TestCalage` (preset narrow B9/B10 → calage → 19/04..09/06 + B9/B10 vides) ✅ ; **integration `Worksheet_Activate`** : 1ʳᵉ ouverture (savedNarrow 05-01..05-10 → plein 19/04..09/06) ✅, 2ᵉ ouverture (userNarrow 05-05..05-20 → respecte) ✅. Classeur sauve propre (`_FilterSrc` masquee, modules test retires).
+  - ⏸️ `VerifyTL` (relecture etat sauvegarde → `_FilterSrc!H1`) ecrit en Temp mais **non lance** (429). Verif optionnelle a la reprise.
+  - **Doc reconciliee 2026-06-11** : CHANGELOG/ROADMAP corriges (survol Task 5 reverte retire des « Added » ; auto-init + fix date + fix no-op + layout bleu/banniere ajoutes). lessons.md += `SetFilterDateRange` borne horaire.
+
+## Prochaine étape
+➡️ **Reprise 2026-06-11 (après limite 429).** Feature X39 + auto-init **validés** (intégration bout-en-bout OK ; classeur sauvé propre). Docs **réconciliées** ce jour (CHANGELOG/ROADMAP/lessons). Reste : (1) `/graphify --update` → (2) `./commit.sh "feat(excel): filtres natifs Segments+Chronologie + auto-init periode, gConso multi-vehicule [v5.12.0.0]"` → (3) fusion `CLAUDE_3.md` (commit `chore` séparé).
+**Vérif optionnelle (Excel fermé)** : rouvrir le classeur + lancer `VerifyTL` (écrit l'état sauvegardé de la chronologie dans `_FilterSrc!H1`) — l'intégration l'a déjà validé.
+
+Entrée (re)build filtres : `modFiltres.SetupFilterControls`. Caches auto-nommés `Segment_Vehicule`/`Segment_Carburant` (SourceName Vehicule/Carburant). Event recalcul : ThisWorkbook.Workbook_SheetPivotTableUpdate.
+
+## Notes de reprise
+- Décisions figées : Chronologie **hybride** (insertion manuelle 1×, Err 5 en VBA) ; disposition **A** ; carburant **normalisé** ; filtre Véhicule **limité à gConso** (Tableau2 sans colonne véhicule).
+- Déploiement = set-module COM en retirant les lignes `Attribute VB_*` (cf. lessons.md).
