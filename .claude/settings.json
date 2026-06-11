@@ -7,7 +7,7 @@
             "type": "command",
             "shell": "powershell",
             "statusMessage": "Vérification documentation…",
-            "command": "$r = (git status --porcelain 2>$null | Where-Object { $_ -match '\\.(js|css|html)$' }); if ($r) { Write-Output '{\"systemMessage\":\"📝 Rappel suivi-conso-carburant : mettre à jour README.md et CHANGELOG.md avant de commiter !\"}' }"
+            "command": "$r = @(git -C 'C:/Users/fdaub/Documents/Github/suivi-conso-carburant' status --porcelain | Where-Object { $_ -match '\\.(js|css|html)$' }); if ($r.Count -gt 0) { Write-Output '{\"systemMessage\":\"Rappel suivi-conso-carburant : mettre a jour README.md et CHANGELOG.md avant de commiter.\"}' }"
           }
         ]
       }
