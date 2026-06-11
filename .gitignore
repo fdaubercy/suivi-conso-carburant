@@ -32,6 +32,14 @@ vba/backup_*/
 excel/backup_*/
 temp_*.bas
 
+# Fichiers vides parasites (redirection shell mal interprétée par hooks / messages de commit) — ne jamais versionner
+/$null
+/code
+/corrige
+/reconstruire
+/ui-coder
+/sheetname
+
 # Les maquettes y sont stockées
 .superpowers/
 
