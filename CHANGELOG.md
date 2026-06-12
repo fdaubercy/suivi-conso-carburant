@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.13.0.0] — 2026-06-11
+
+### Added
+- **Excel — Bouton « Synchroniser » sur la feuille `GS_Pleins` (X1)** : bouton vert posé à droite de l'en-tête de la table `GS_Pleins` (jamais par-dessus les données), `OnAction = SyncManuel` → lance la synchro Excel ↔ Google Sheets **sans passer par Alt+F11/Alt+F8**. Macro idempotente `EnsureSyncButtonGSPleins` (`vba/modSyncGS.bas`), câblée dans `Installer` (`vba/modWorkbook.bas`) et lançable seule (`Alt+F8`).
+
+### Changed
+- **Excel — Rebuild du tableau de bord non bloquant & coalescé (X43)** : `modFiltres.ApplyFiltersFromControls` ne relance plus un `RecreerDashboardComplet` complet (~20-30 s) **à chaque** changement de segment/chronologie.
+  1. **Écriture de B5/B6 à événements OFF** → supprime le cascade `Feuil3.Worksheet_Change(B2:B6)` qui déclenchait un rebuild complet pour **chaque** cellule écrite, en plus du rebuild explicite (jusqu'à **3 rebuilds** par changement).
+  2. **Debounce** via `Application.OnTime` (~1 s, plancher fiable) : N filtres changés à la suite (Véhicule → Carburant → Période) = **un seul** rebuild (`DebouncedRebuild`).
+  3. Rebuild **silencieux** (chemin `CreerGraphiquesWeb silent:=True` + `MAJ_Dashboard_Graphiques`, comme `Worksheet_Change`) + **sablier** (`xlWait`) et barre d'état pendant le calcul.
+  Nouveaux helpers `ScheduleRebuild` / `CancelPendingRebuild` / `DebouncedRebuild` dans `vba/modFiltres.bas`.
+- **Excel — `WB_VERSION` / `APP_VERSION`** 5.12.0.0 → 5.13.0.0.
+
 ## [5.12.0.0] — 2026-06-11
 
 ### Added

@@ -623,6 +623,7 @@ La table `GS_Pleins` est alimentée **à la fois** par la Power Query (lecture C
 |---|---|
 | `SyncOnOpen` | Sync silencieuse à l'ouverture (appelée par `Workbook_Open`) |
 | `SyncManuel` | Sync manuelle complète (4 directions) avec compte-rendu |
+| `EnsureSyncButtonGSPleins` | X1 — pose un bouton vert **« Synchroniser »** (→ `SyncManuel`) sur la feuille `GS_Pleins` ; idempotent, posé par `Installer` |
 | `SyncDiagnose` | Compteurs GS/Excel/intersections/dirty pour debug |
 | `TestConnexion` | Vérifie l'accès au GAS (code HTTP + extrait JSON) |
 | `ForceFormatDates` | Applique le format date français + initialise col P |

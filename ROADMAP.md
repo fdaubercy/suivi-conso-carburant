@@ -13,6 +13,14 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|
 | W57 | **Partage image du bilan « Wrapped »** : rendu de la carte Wrapped sur un `<canvas>` → `toBlob()` → **Web Share API** (`navigator.share`) avec repli téléchargement PNG | Partager son bilan E85 en 1 tap (réseaux, message) sans capture d'écran |
 
+### ⚡ Performance & accessibilité
+
+| # | Idée | Pourquoi | Effort |
+|---|---|---|---|
+| W78 | **Lazy-load carte / Google Maps** : import dynamique de `js/carte.js` + `js/gmap.js` (chargeur Maps lourd) uniquement à l'entrée sur la route `#/carte` | Démarrage plus rapide et moins de JS au 1ᵉʳ rendu : le chargeur Google Maps n'est plus tiré au boot pour les sessions qui ne consultent jamais la carte | ~1-2 h |
+| W79 | **Audit a11y automatisé** : job CI **non-bloquant** (axe-core ou Lighthouse) sur les vues principales (saisie, stats, historique) | Prolonge W77 (aria-labels) en verrouillant l'accessibilité AA : toute régression de contraste/label est signalée au lieu de passer inaperçue | ~2 h |
+| W80 | **UI file d'attente offline** : badge « N pleins en attente de sync » + bouton *retry* visible (la file `queuePlein` d'`offline.js` existe déjà mais est muette) | Confiance utilisateur en mode hors-ligne : on voit ce qui n'est pas encore remonté et on peut forcer l'envoi | ~2-3 h |
+
 ---
 
 ## 🛠️ Dev / Outillage Claude
@@ -45,7 +53,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| X1 | **Bouton "Synchroniser"** sur la feuille `GS_Pleins` qui appelle `SyncManuel` | Pas besoin d'Alt+F11 pour lancer le sync |
+| ~~X1~~ | ~~**Bouton "Synchroniser"** sur la feuille `GS_Pleins` qui appelle `SyncManuel`~~ — ✅ `EnsureSyncButtonGSPleins` (v5.13.0.0) | — |
 
 ### 🎯 Onglet "Tableau de bord"
 
@@ -57,6 +65,12 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | ~~X21~~ | ~~**Horodatage de dernière génération**~~ — ✅ cellule B8 « Tableau de bord » (v5.8.0.0) | — |
 | X39 | **Accumulation journalière des prix marché** : le trigger GAS `RefreshPrix` écrase `Prix par Station` (Tableau12) à chaque relevé au lieu d'accumuler. Créer une table `_PrixHistoriqueJournalier` (Date, Station, Carburant, Prix) alimentée par append quotidien → `gPrice` afficherait l'évolution réelle tous les jours, pas seulement aux jours de plein. Actuellement SP95 = 1 pt et GAZOLE = 2 pts (seules les stations Carrefour-Flers enregistrent les prix multi-carburants) | Séries SP95/GAZOLE quasi vides dans `gPrice` ; avec un historique continu, toutes les 4 courbes deviendraient exploitables |
 
+### ⚡ Performance
+
+| # | Idée | Pourquoi | Effort |
+|---|---|---|---|
+| X43c | **Rebuild dashboard incrémental** : ne recalculer que les séries impactées par le filtre changé au lieu du rebuild complet (`BuildAggregates`), `EnsureChart` réutilisant déjà les objets graphiques. *(Le non-bloquant + anti-cascade + debounce — parties (a)/(b) — a été livré en v5.13.0.0.)* | Réduire encore le temps après filtrage, au-delà de la coalescence : un changement isolé déclenche toujours un recalcul complet de ~20-30 s. | ~1 j |
+
 ### 🛠️ Robustesse
 
 | # | Idée | Pourquoi |
@@ -64,6 +78,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | X40 | **Lint VBA pré-commit** (`scripts/check_vba_compile.py`) : détecter (a) les `Const`/`Dim`/`Type` au niveau module placés **après** la 1ʳᵉ procédure (→ « Variable non définie » en compile-on-demand) et (b) les `Call`/OnAction/OnTime/Run vers des procédures **inexistantes** (modules supprimés). | Évite les -2146788248 latents, invisibles hors clic réel ; 3 trouvés/corrigés en v5.11.1.0. |
 | X41 | **Garde-erreur `Feuil2.Worksheet_Activate`** : enrober `ImporterNouveauxPleinsAuto` d'un `On Error Resume Next` (comme `Feuil7`/Réglages). | Défense en profondeur : un échec réseau d'import ne bloquerait jamais la navigation vers « Suivi Carburant ». |
 | X42 | **Nettoyer les orphelins** : supprimer `vba/synchroniseGoogleForm.bas` (module retiré du classeur) et le module quasi vide `Module1` du `.xlsm`. | Cohérence disque ↔ classeur. |
+| X44 | **Modularisation des gros modules VBA** : `modGraphiques.bas` (**72 Ko**, ~1500 lignes) → `modGraphData` (agrégats `BuildAggregates`/`BuildPriceBlockMerged`/`BuildConsoBlock`) + `modGraphRender` (`EnsureChart`/`CreerGraphiquesWeb`) + `modGraphExport` (PDF) ; idem `modSyncGS.bas` (57 Ko). | Viole la règle « fichiers < 500 lignes » (CLAUDE.md) ; surface réduite → moins de risque de `Const` mal placée (cf. X40) et navigation plus simple. |
+| X45 | **Tests VBA des fonctions pures** : module `modTests` (`Test_CoutPlein`, `Test_FuelInSel`, `Test_FuelKeyP`, `Test_ParseGoogleDate`, conso L/100 km) exécutable et vérifiable en CI via `check_vba_drift`. | Aucune couverture VBA aujourd'hui (Vitest = JS seul) ; verrouille les régressions de calcul (ex. bug date 6 sept / 9 juin de v5.12.0.0). |
 
 ---
 
@@ -74,6 +90,12 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi |
 |---|---|---|
 | _(aucune en attente)_ | — | S3/S4/S5 implémentés en v4.8.0.0 |
+
+### 📊 Observabilité
+
+| # | Idée | Pourquoi |
+|---|---|---|
+| X46 | **Santé de la sync dans l'onglet `Réglages`** : afficher la dernière sync (OK/KO), son horodatage, le nb de lignes échangées et la durée, lus depuis `_SyncLog` (déjà alimenté par X11/`LogSync`). | Diagnostic en un coup d'œil sans ouvrir `_SyncLog` ni l'IDE VBA. |
 
 ### 🛡️ Sécurité
 
@@ -105,7 +127,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Rang | Item | Effort | Bénéfice |
 |---|---|---|---|
-| 1 | **X1** — Bouton "Synchroniser" sur la feuille GS_Pleins | 15 min | Ergonomie immédiate, plus besoin d'ouvrir l'IDE |
+| 1 | ~~**X1**~~ — Bouton "Synchroniser" sur la feuille GS_Pleins | ✅ v5.13.0.0 | — |
 | 2 | ~~**X9**~~ | ✅ v5.8.0.0 | — |
 | 3 | ~~**X15**~~ | ✅ v5.8.0.0 | — |
 | 4 | ~~**X20**~~ | ✅ v5.8.0.0 | — |
@@ -119,6 +141,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.13.0.0 | **X43 — Rebuild dashboard non bloquant & coalescé** — `modFiltres.ApplyFiltersFromControls` n'enchaîne plus jusqu'à **3** `RecreerDashboardComplet` par changement de filtre : écriture B5/B6 à **événements OFF** (supprime le cascade `Feuil3.Worksheet_Change(B2:B6)`), **debounce** `Application.OnTime` (~1 s) → **1 seul** rebuild pour N filtres changés à la suite, rebuild **silencieux** (`CreerGraphiquesWeb silent:=True` + `MAJ_Dashboard_Graphiques`) + **sablier** (`xlWait`) et barre d'état. Helpers `ScheduleRebuild` / `CancelPendingRebuild` / `DebouncedRebuild` (`vba/modFiltres.bas`). Le rebuild **incrémental** reste à faire (→ X43c). |
+| v5.13.0.0 | **X1 — Bouton « Synchroniser » sur `GS_Pleins`** — bouton vert (`OnAction = SyncManuel`) posé à droite de l'en-tête de la table, jamais par-dessus les données ; macro idempotente `EnsureSyncButtonGSPleins` (`vba/modSyncGS.bas`) câblée dans `Installer` (`vba/modWorkbook.bas`) et lançable seule. Plus besoin d'Alt+F11/Alt+F8 pour lancer la sync. |
 | v5.12.0.0 | **Filtres natifs du dashboard** — Segments **Véhicule** + **Carburant** (6 carburants *seedés*) + **Chronologie « Période »** dans une barre sous la bannière, pilotant TOUS les graphiques via TCD caché `ptFiltres` + `Workbook_SheetPivotTableUpdate` → `modFiltres.ApplyFiltersFromControls`. Chronologie **créée par COM** (`SlicerCaches.Add2(…,xlTimeline)` + `Slicers.Add`), pas de handoff manuel. Nouveau `vba/modFiltres.bas`. Remplace les listes B5/B6 + le panneau carburant (`fup_btn`/`modFuelPanel`). |
 | v5.12.0.0 | **`gConso` multi-véhicule** — 1 courbe L/100 km par véhicule depuis `GS_Pleins` (`BuildConsoBlock`, col BC), conso = Litres ÷ Δkm × 100. |
 | v5.12.0.0 | **Filtre Période (moteur)** — noms `PERIODE_DEB`/`PERIODE_FIN` (B9/B10) bornent toutes les séries datées (prix, conso, coût mensuel, CO2, kit, coût/km, éco, scatter, KPI annuels) ; `gVeh` reste tous-véhicules. `vba/modGraphiques.bas`. |

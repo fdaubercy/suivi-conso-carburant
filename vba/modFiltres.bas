@@ -24,6 +24,8 @@ Private Const SLC_STYLE As String = "SlicerStyleLight5"      ' X39 : BLEU charte
 Private Const TL_STYLE  As String = "TimeSlicerStyleLight5"  ' X39 : chronologie en bleu
 Private g_Applying As Boolean                  ' X39 P5 : anti-reentrance du recalcul
 Private g_PeriodDefaultDone As Boolean         ' X39 : calage chronologie min<->max applique 1x/session
+Private g_RebuildAt As Double                  ' X43 : echeance OnTime du rebuild debounce (0 = aucun planifie)
+Private Const REBUILD_DELAY As Long = 1        ' X43 : secondes de coalescence (plancher fiable d'Application.OnTime)
 
 ' --------------------------------------------------------------------------
 '  POINT D'ENTREE : (re)construit toute la chaine de filtres
@@ -52,15 +54,70 @@ End Sub
 Public Sub ApplyFiltersFromControls()
     If g_Applying Then Exit Sub
     g_Applying = True
+    Dim evt As Boolean: evt = Application.EnableEvents
     On Error GoTo done
     Dim wsd As Worksheet: Set wsd = SheetByName(WS_DASH)
     If wsd Is Nothing Then GoTo done
+    ' X43 : events OFF pendant l'ecriture de B5/B6 -> evite le cascade
+    '  Feuil3.Worksheet_Change(B2:B6) qui relancait un rebuild COMPLET a CHAQUE
+    '  cellule ecrite (B5 puis B6) EN PLUS du rebuild explicite -> jusqu'a 3 rebuilds.
+    Application.EnableEvents = False
     wsd.Range("B5").value = SlicerCsv("Vehicule")
     wsd.Range("B6").value = SlicerCsv("Carburant")
     WritePeriodFromTimeline wsd          ' X39 P4 : Chronologie -> PERIODE_DEB/FIN (B9/B10)
-    Application.Run "RecreerDashboardComplet"
+    Application.EnableEvents = evt
+    ScheduleRebuild                      ' X43 : un SEUL rebuild, coalesce (debounce)
 done:
+    Application.EnableEvents = evt
     g_Applying = False
+    On Error GoTo 0
+End Sub
+
+' X43 : (re)planifie le rebuild lourd apres un court delai. Chaque changement de
+'  filtre ANNULE le rendez-vous precedent -> N changements rapides (ex. Vehicule
+'  puis Carburant puis glissement de la Chronologie) = UN SEUL rebuild au lieu de N
+'  (chacun ~20-30 s). Le rebuild reel est fait par DebouncedRebuild.
+Private Sub ScheduleRebuild()
+    On Error Resume Next
+    CancelPendingRebuild
+    g_RebuildAt = Now + TimeSerial(0, 0, REBUILD_DELAY)
+    Application.OnTime g_RebuildAt, "DebouncedRebuild"
+    Application.StatusBar = "Filtre pris en compte - mise a jour du tableau de bord..."
+    On Error GoTo 0
+End Sub
+
+' X43 : annule un rebuild planifie non encore declenche (idempotent).
+Private Sub CancelPendingRebuild()
+    If g_RebuildAt = 0 Then Exit Sub
+    On Error Resume Next
+    Application.OnTime g_RebuildAt, "DebouncedRebuild", , False
+    On Error GoTo 0
+    g_RebuildAt = 0
+End Sub
+
+' X43 : execute le rebuild differe (appele par Application.OnTime). Rebuild SILENCIEUX
+'  (meme chemin que Feuil3.Worksheet_Change) : erreurs en barre d'etat, pas de MsgBox
+'  modale. Events OFF pendant le rebuild -> ne re-declenche pas ApplyFiltersFromControls.
+'  Sablier + barre d'etat -> supprime l'effet "fige" pendant les ~20-30 s de calcul.
+Public Sub DebouncedRebuild()
+    g_RebuildAt = 0
+    Dim evt As Boolean: evt = Application.EnableEvents
+    Dim cur As Long: cur = Application.Cursor
+    On Error GoTo restore
+    Application.EnableEvents = False
+    Application.Cursor = xlWait
+    Application.StatusBar = "Mise a jour du tableau de bord..."
+    Application.Run "CreerGraphiquesWeb", True    ' rebuild data + graphiques (silencieux)
+    Application.Run "MAJ_Dashboard_Graphiques"    ' restyle + layout + KPI + panneaux + boutons
+    Application.StatusBar = False
+    Application.Cursor = cur
+    Application.EnableEvents = evt
+    On Error GoTo 0
+    Exit Sub
+restore:
+    Application.StatusBar = False
+    Application.Cursor = cur
+    Application.EnableEvents = evt
     On Error GoTo 0
 End Sub
 

@@ -26,7 +26,7 @@
 ' ============================================================
 Option Explicit
 
-Public Const WB_VERSION  As String = "5.12.0.0"
+Public Const WB_VERSION  As String = "5.13.0.0"
 
 Private Const WS_ACCUEIL As String = "Accueil"
 Private Const WS_STATS   As String = "Tableau de bord"   ' cree par modGraphiques (CreerGraphiquesWeb)
@@ -99,6 +99,7 @@ Public Sub Installer()
 
     rap = rap & RunStep("Dashboard miroir + Stats (Reglages/Historique/Carte/Stats/Accueil)", "InstallerDashboard", okN, koN)
     rap = rap & RunStep("Analyse (MFC prix + Suivi auto + Tableau2)", "RafraichirFeatures", okN, koN)
+    rap = rap & RunStep("Bouton Synchroniser sur GS_Pleins (X1)", "EnsureSyncButtonGSPleins", okN, koN)
     rap = rap & RunStep("Verification finale", "VerifierInstallation", okN, koN)
 
     rap = rap & "-------------------------------------------" & vbNewLine

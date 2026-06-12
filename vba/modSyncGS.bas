@@ -390,6 +390,59 @@ Public Sub SyncManuel()
 End Sub
 
 ' ============================================================
+'  X1 : bouton "Synchroniser" sur la feuille GS_Pleins -> SyncManuel
+'  Plus besoin d'Alt+F11/Alt+F8 pour lancer la sync. Idempotent (supprime
+'  l'ancien avant recreation), place a droite de l'en-tete de la table
+'  GS_Pleins (jamais par-dessus les donnees). Appele par Installer ;
+'  lancable seul (Alt+F8 -> EnsureSyncButtonGSPleins). Persiste ensuite
+'  dans le classeur enregistre.
+' ============================================================
+Public Sub EnsureSyncButtonGSPleins()
+    Const BTN As String = "btnSyncGS"
+    Const GS As String = "GS_Pleins"
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Worksheets(GS)
+    On Error GoTo 0
+    If ws Is Nothing Then Exit Sub
+
+    ' position : a droite de l'en-tete de la table (repli : coin haut-gauche)
+    Dim l As Single, t As Single
+    l = 6: t = 4
+    Dim lo As ListObject
+    On Error Resume Next
+    Set lo = ws.ListObjects(GS)
+    On Error GoTo 0
+    If Not lo Is Nothing Then
+        l = lo.Range.Left + lo.Range.Width + 12
+        t = lo.Range.top
+    End If
+
+    On Error Resume Next
+    ws.Shapes(BTN).Delete
+    On Error GoTo 0
+
+    Dim Sh As Shape
+    Set Sh = ws.Shapes.AddShape(msoShapeRoundedRectangle, l, t, 120, 30)
+    Sh.name = BTN
+    Sh.Placement = xlFreeFloating
+    On Error Resume Next
+    Sh.fill.ForeColor.RGB = RGB(29, 158, 117)      ' vert charte (#1D9E75)
+    Sh.Line.visible = msoFalse
+    With Sh.TextFrame2
+        .TextRange.text = "Synchroniser"
+        .TextRange.Font.fill.ForeColor.RGB = RGB(255, 255, 255)
+        .TextRange.Font.bold = msoTrue
+        .TextRange.Font.Size = 11
+        .TextRange.ParagraphFormat.Alignment = msoAlignCenter
+        .HorizontalAnchor = msoAnchorCenter
+        .VerticalAnchor = msoAnchorMiddle
+    End With
+    Sh.OnAction = "SyncManuel"
+    On Error GoTo 0
+End Sub
+
+' ============================================================
 '  Rafraichit la Power Query "PrixHistory" (prix marche quotidien)
 '  depuis le Google Sheet. Sans cet appel, l'onglet _PrixHistory
 '  local reste FIGE : la requete ne se rafraichit pas toute seule
