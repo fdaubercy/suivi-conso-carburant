@@ -1401,7 +1401,7 @@ body.no-share .hist-share { display: none; }
 
 [data-theme="dark"] .badge { background: var(--amber); color: #0f172a; }
 
-[data-theme="dark"] .radius-btn.active { color: #0f172a; }
+[data-theme="dark"] .radius-btn.active { background: var(--blue-mid); border-color: var(--blue-mid); color: #0f172a; }
 
 [data-theme="dark"] .cout-label,
 [data-theme="dark"] .cout-val { color: var(--text); }

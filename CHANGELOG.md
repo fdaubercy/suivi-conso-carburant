@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.14.1.0] — 2026-06-12
+
+### Fixed
+- **Style — Bouton de rayon sélectionné illisible en thème sombre** : en mode sombre, le bouton de rayon actif (`.radius-btn.active`, ex. « 5 km ») affichait un texte sombre (`#0f172a`) sur un fond `var(--blue-dark)` lui aussi sombre (`#0f1e30`) → contraste **1.06:1**, label invisible. Le fond de l'état actif passe désormais à `var(--blue-mid)` (bleu vif `#60a5fa`), alignant le bouton sur le patron `.submit-btn` → contraste **7.02:1** (AA), label net et état sélectionné bien distinct. `css/style.css`.
+- **Versions** — `APP_VERSION` / `package.json` 5.14.0.0 → 5.14.1.0.
+
 ## [5.14.0.0] — 2026-06-12
 
 ### Added
