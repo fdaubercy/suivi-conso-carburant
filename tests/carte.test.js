@@ -48,6 +48,17 @@ describe('_renderMap — repli OpenStreetMap maison', () => {
     expect(html).toContain('Shell &lt;a&gt;');   // nom échappé
     expect(html).toContain('© OSM');
   });
+
+  it('dessine un cercle de rayon vert quand radiusM est fourni, rien sinon', () => {
+    state._mapStations = [{ name: 'X', lat: 50.37, lon: 3.08, prices: {} }];
+    _renderMap(50.38, 3.09, 5000);
+    const withR = document.getElementById('stationMap').innerHTML;
+    expect(withR).toContain('rgba(29,158,117,.92)');   // bordure du cercle de rayon
+    expect(withR).toContain('rgba(29,158,117,.12)');   // remplissage translucide
+
+    _renderMap(50.38, 3.09);                            // sans rayon → pas de cercle
+    expect(document.getElementById('stationMap').innerHTML).not.toContain('rgba(29,158,117,.92)');
+  });
 });
 
 describe('showMap / hideMap', () => {

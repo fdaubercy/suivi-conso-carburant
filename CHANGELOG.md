@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.14.0.0] — 2026-06-12
+
+### Added
+- **App — Cercle de rayon sur la carte Saisie (W81)** : la recherche manuelle par adresse trace désormais un **cercle vert** (charte `--green`) autour du point sélectionné, matérialisant le rayon choisi (2 / 5 / 10 / 20 / 50 km). Rendu via `google.maps.Circle` (moteur Google) et **cercle CSS proportionnel** (mètres → pixels Web-Mercator) en repli OpenStreetMap ; le cadrage de la carte **s'étend** pour montrer tout le périmètre. `js/gmaprender.js`, `js/carte.js`, `js/recherche.js`. La géoloc « autour de moi » et le mode « Ville seule » restent **sans** cercle (pas de rayon explicite).
+- **App — Partage image du bilan « Wrapped » (W57)** : bouton **« Partager »** sur la carte de bilan annuel → rend une image **1080×1350** (carte charte dessinée sur `<canvas>`, **sans dépendance**) → **Web Share API** (`navigator.share` avec fichier PNG) sur mobile, **repli téléchargement PNG** sur navigateur sans partage de fichiers. Bouton masqué tant qu'aucune carte n'est rendue. `js/wrapped.js`, `index.html`.
+
+### Changed
+- **ESLint** — ajout du global navigateur `File` (Web Share API). `eslint.config.js`.
+- **Tests** — `tests/carte.test.js` (cercle de rayon en repli OSM) ; nouveau `tests/wrapped.test.js` (branchement partage fichier / repli téléchargement / annulation).
+- **Versions** — `APP_VERSION` / `package.json` 5.13.0.1 → 5.14.0.0.
+
 ## [5.13.0.1] — 2026-06-12
 
 ### Fixed

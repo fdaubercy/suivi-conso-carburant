@@ -143,7 +143,7 @@ export async function searchStationSuggestions(q) {
     state._nearbyStations = stations;                 // pour le clic (sélection)
     statusOk();
     renderNearby(stations);
-    showMap(center.lat, center.lon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
+    showMap(center.lat, center.lon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})), state.searchRadiusM);
 
     enrichStationsBulk(stations,
       (i, osmName) => { stations[i].name = composeStationName(resolveEnseigne(osmName, stations[i].adresse), stations[i].ville); updateNearbyName(i, stations[i].name); },
@@ -151,7 +151,7 @@ export async function searchStationSuggestions(q) {
     ).then(ok => {
       if (!ok) return;                                // annulé (nouvelle recherche / station choisie)
       renderNearby(stations);
-      showMap(center.lat, center.lon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})));
+      showMap(center.lat, center.lon, stations.map((s, i) => ({...s, src: 'nearby', srcIdx: i})), state.searchRadiusM);
       statusOk();
     });
   } catch(e) {

@@ -7,12 +7,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 ## 🌐 Web app
 
-### 🔥 Quick wins (< 2 h chacun)
-
-| # | Idée | Pourquoi |
-|---|---|---|
-| W57 | **Partage image du bilan « Wrapped »** : rendu de la carte Wrapped sur un `<canvas>` → `toBlob()` → **Web Share API** (`navigator.share`) avec repli téléchargement PNG | Partager son bilan E85 en 1 tap (réseaux, message) sans capture d'écran |
-
 ### ⚡ Performance & accessibilité
 
 | # | Idée | Pourquoi | Effort |
@@ -120,7 +114,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | 2 | **X43c** — Rebuild dashboard incrémental | ~1 j | Réduit encore l'attente après filtrage (au-delà du debounce v5.13.0.0) |
 | 3 | **W78** — Lazy-load carte / Google Maps | ~1-2 h | Démarrage de l'app plus rapide |
 | 4 | **C9** — Service account Google | ~2 h | Auth stable sans renouvellement manuel du token |
-| 5 | **W57** — Partage image du bilan « Wrapped » | <2 h | Partage en 1 tap |
+| 5 | **X42** — Nettoyer les orphelins VBA (`synchroniseGoogleForm.bas`, `Module1`) | <1 h | Cohérence disque ↔ classeur |
 
 > ✅ S3/S4/S5 (suppression bidir., force resync, conflits par timestamp) implémentés en v4.8.0.0 — voir le tableau ci-dessous.
 
@@ -130,6 +124,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.14.0.0 | **W81 — Cercle de rayon sur la carte Saisie** — la recherche manuelle par adresse trace un **cercle vert** (charte) autour du point sélectionné, matérialisant le rayon choisi (2/5/10/20/50 km) : `google.maps.Circle` (moteur Google) + **cercle CSS proportionnel** (repli OSM), cadrage de la carte **étendu** à tout le périmètre. La géoloc et « Ville seule » restent sans cercle. `js/gmaprender.js`, `js/carte.js`, `js/recherche.js`. |
+| v5.14.0.0 | **W57 — Partage image du bilan « Wrapped »** — bouton « Partager » → image **1080×1350** dessinée sur `<canvas>` (sans dépendance) → **Web Share API** (`navigator.share` + fichier PNG) sur mobile, **repli téléchargement PNG** sinon. Bouton masqué tant qu'aucune carte n'est rendue. `js/wrapped.js`, `index.html`. |
 | v5.13.0.0 | **X43 — Rebuild dashboard non bloquant & coalescé** — `modFiltres.ApplyFiltersFromControls` n'enchaîne plus jusqu'à **3** `RecreerDashboardComplet` par changement de filtre : écriture B5/B6 à **événements OFF** (supprime le cascade `Feuil3.Worksheet_Change(B2:B6)`), **debounce** `Application.OnTime` (~1 s) → **1 seul** rebuild pour N filtres changés à la suite, rebuild **silencieux** (`CreerGraphiquesWeb silent:=True` + `MAJ_Dashboard_Graphiques`) + **sablier** (`xlWait`) et barre d'état. Helpers `ScheduleRebuild` / `CancelPendingRebuild` / `DebouncedRebuild` (`vba/modFiltres.bas`). Le rebuild **incrémental** reste à faire (→ X43c). |
 | v5.13.0.0 | **X1 — Bouton « Synchroniser » sur `GS_Pleins`** — bouton vert (`OnAction = SyncManuel`) posé à droite de l'en-tête de la table, jamais par-dessus les données ; macro idempotente `EnsureSyncButtonGSPleins` (`vba/modSyncGS.bas`) câblée dans `Installer` (`vba/modWorkbook.bas`) et lançable seule. Plus besoin d'Alt+F11/Alt+F8 pour lancer la sync. |
 | v5.12.0.0 | **Filtres natifs du dashboard** — Segments **Véhicule** + **Carburant** (6 carburants *seedés*) + **Chronologie « Période »** dans une barre sous la bannière, pilotant TOUS les graphiques via TCD caché `ptFiltres` + `Workbook_SheetPivotTableUpdate` → `modFiltres.ApplyFiltersFromControls`. Chronologie **créée par COM** (`SlicerCaches.Add2(…,xlTimeline)` + `Slicers.Add`), pas de handoff manuel. Nouveau `vba/modFiltres.bas`. Remplace les listes B5/B6 + le panneau carburant (`fup_btn`/`modFuelPanel`). |

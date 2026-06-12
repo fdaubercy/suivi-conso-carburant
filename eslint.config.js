@@ -38,6 +38,7 @@ export default [
         performance:     'readonly',
         // Canvas / File API
         HTMLCanvasElement: 'readonly',
+        File:              'readonly',
       },
     },
     rules: {

@@ -32,7 +32,7 @@ export function googleMapsActive() {
 }
 
 export async function renderGoogleStationMap(container, opts) {
-  const { stations = [], userPos = null, onFallback } = opts || {};
+  const { stations = [], userPos = null, radiusM = 0, onFallback } = opts || {};
   if (!container) return;
 
   let maps;
@@ -50,7 +50,7 @@ export async function renderGoogleStationMap(container, opts) {
   };
 
   // ── Récupère les classes via importLibrary (officiel, loading=async) ──
-  let Map, LatLngBounds, Size, Point, eventNs, Marker, AdvancedMarkerElement;
+  let Map, Circle, LatLngBounds, Size, Point, eventNs, Marker, AdvancedMarkerElement;
   try {
     if (typeof maps.importLibrary === 'function') {
       const [mapsLib, coreLib, markerLib] = await Promise.all([
@@ -59,12 +59,14 @@ export async function renderGoogleStationMap(container, opts) {
         maps.importLibrary('marker'),
       ]);
       Map = mapsLib.Map;
+      Circle = mapsLib.Circle;
       ({ LatLngBounds, Size, Point, event: eventNs } = coreLib);
       ({ Marker, AdvancedMarkerElement } = markerLib);
     }
   } catch { /* repli sur l'accès direct au namespace ci-dessous */ }
   // Repli : namespace peuplé par importLibrary ou par un chargement legacy.
   Map = Map || maps.Map;
+  Circle = Circle || maps.Circle;
   LatLngBounds = LatLngBounds || maps.LatLngBounds;
   Size = Size || maps.Size;
   Point = Point || maps.Point;
@@ -85,7 +87,7 @@ export async function renderGoogleStationMap(container, opts) {
         zoomControl: opts.zoomControl !== false, clickableIcons: false, gestureHandling: 'greedy',
       };
       if (GOOGLE_MAPS_MAP_ID) o.mapId = GOOGLE_MAPS_MAP_ID;
-      it = { map: new Map(container, o), cluster: null, markers: [], userMarker: null };
+      it = { map: new Map(container, o), cluster: null, markers: [], userMarker: null, radiusCircle: null };
       _inst.set(container, it);
     }
 
@@ -94,6 +96,7 @@ export async function renderGoogleStationMap(container, opts) {
     it.markers.forEach(m => _attach(m, null));
     it.markers = [];
     if (it.userMarker) { _attach(it.userMarker, null); it.userMarker = null; }
+    if (it.radiusCircle) { it.radiusCircle.setMap(null); it.radiusCircle = null; }
 
     const highlight = idx => it.markers.forEach((m, i) => {
       if (typeof m.__setSel === 'function') m.__setSel(i === idx);
@@ -133,6 +136,18 @@ export async function renderGoogleStationMap(container, opts) {
       }
       _attach(it.userMarker, it.map);
       bounds.extend(upos);
+
+      // Cercle du rayon de recherche autour du point sélectionné (vert charte).
+      // Étend le cadrage pour que tout le périmètre soit visible.
+      if (radiusM > 0 && Circle) {
+        it.radiusCircle = new Circle({
+          map: it.map, center: upos, radius: radiusM,
+          strokeColor: '#1D9E75', strokeOpacity: 0.95, strokeWeight: 2.5,
+          fillColor: '#1D9E75', fillOpacity: 0.12, clickable: false, zIndex: 5,
+        });
+        const cb = it.radiusCircle.getBounds();
+        if (cb) bounds.union(cb);
+      }
     }
 
     // Regroupement des marqueurs proches (optionnel : repli pose directe).

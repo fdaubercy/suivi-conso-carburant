@@ -163,6 +163,8 @@ export function renderWrapped() {
   if (!box) return;
 
   const scope = getScope();
+  const shareBtn = document.getElementById('wrappedShareBtn');
+  if (shareBtn) shareBtn.hidden = true;          // réaffiché seulement si une carte est rendue (W57)
   const scopeBtn = document.getElementById('wrappedScopeBtn');
   if (scopeBtn) {
     // Ne mettre à jour que l'icône — le libellé « Véhicule / tous » reste visible.
@@ -235,16 +237,156 @@ export function renderWrapped() {
       <div class="stat">${moisCell}</div>
     </div>
     <div class="stats-sub">Bilan ${year} · ${escapeHtml(scopeLabel)}${w.nbE85 ? ' · surconso +' + Math.round(w.surconso * 100) + '%' : ''}</div>`;
+
+  if (shareBtn) shareBtn.hidden = false;         // carte rendue → partage disponible (W57)
 }
 
-/** Câble le sélecteur d'année et le bouton de bascule de périmètre. */
+/** Câble le sélecteur d'année, la bascule de périmètre et le partage image (W57). */
 export function initWrapped() {
   document.getElementById('wrappedYear')?.addEventListener('change', () => renderWrapped());
   document.getElementById('wrappedScopeBtn')?.addEventListener('click', () => {
     setScope(getScope() === 'all' ? 'vehicule' : 'all');
     renderWrapped();
   });
+  document.getElementById('wrappedShareBtn')?.addEventListener('click', () => shareWrapped());
   renderWrapped();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   W57 — Partage image du bilan « Wrapped »
+   Carte rendue sur un <canvas> (sans dépendance) → toBlob() → Web Share API
+   (navigator.share avec fichiers) ; repli téléchargement PNG si indisponible.
+═══════════════════════════════════════════════════════════════════════ */
+
+/** Génère l'image du bilan affiché et la partage (ou la télécharge en repli). */
+export async function shareWrapped() {
+  const scope = getScope();
+  const sel   = document.getElementById('wrappedYear');
+  const years = getAvailableYears(scope);
+  const year  = (sel && Number(sel.value)) || years[0];
+  if (!year) return;
+
+  const w = buildWrapped(year, scope);
+  if (!w.nbPleins) return;
+
+  const scopeLabel = scope === 'all'
+    ? 'tous véhicules'
+    : (state.currentVehiculeNom || 'tous véhicules');
+
+  const canvas = drawWrappedCard(w, scopeLabel);
+  const blob = await new Promise(res => { try { canvas.toBlob(res, 'image/png'); } catch { res(null); } });
+  if (!blob) return;
+
+  const fileName = `bilan-carburant-${year}.png`;
+  const file = new File([blob], fileName, { type: 'image/png' });
+
+  // Partage natif si l'appareil sait partager des fichiers ; sinon téléchargement.
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: `Bilan carburant ${year}`, text: `Mon bilan carburant ${year} — ${scopeLabel}` });
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;       // annulé par l'utilisateur
+      /* échec du partage → repli téléchargement ci-dessous */
+    }
+  }
+  _downloadBlob(blob, fileName);
+}
+
+/** Déclenche le téléchargement d'un Blob sous le nom donné. */
+function _downloadBlob(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Dessine la carte de partage (1080×1350, charte) à partir du bilan `w`. */
+function drawWrappedCard(w, scopeLabel) {
+  const W = 1080, H = 1350;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+
+  // Fond dégradé charte : bleu nuit → vert E85.
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#15324c'); g.addColorStop(1, '#1d9e75');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+  const pad = 80;
+
+  // En-tête : libellé, année en grand, périmètre.
+  ctx.fillStyle = 'rgba(255,255,255,.78)';
+  ctx.font = '600 34px Arial, Helvetica, sans-serif';
+  ctx.fillText('BILAN CARBURANT', pad, 148);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 150px Arial, Helvetica, sans-serif';
+  ctx.fillText(String(w.year), pad, 286);
+
+  ctx.fillStyle = 'rgba(255,255,255,.9)';
+  ctx.font = '500 40px Arial, Helvetica, sans-serif';
+  ctx.fillText(truncate(scopeLabel, 30), pad, 348);
+
+  // 6 tuiles (2 colonnes × 3 lignes).
+  const econTxt = w.nbE85 ? (w.econE85 > 0 ? '+' : '') + w.econE85.toFixed(0) + ' €' : '—';
+  const cells = [
+    [w.totalLitres.toFixed(0) + ' L',                 w.nbPleins + ' plein(s)'],
+    [w.totalCout.toFixed(0) + ' €',              'dépensés'],
+    [w.kmParcourus.toLocaleString('fr-FR'),           'km parcourus'],
+    [econTxt,                                          w.nbE85 ? 'éco. E85 vs SP98' : 'aucun plein E85'],
+    [w.stationPref ? truncate(w.stationPref, 16) : '—', w.stationPref ? 'station préférée · ' + w.stationPrefN + '×' : 'station préférée'],
+    [w.moisCher != null ? MOIS_FR[w.moisCher] : '—',    w.moisCher != null ? 'mois le + cher · ' + w.moisCherCout.toFixed(0) + ' €' : 'mois le + cher'],
+  ];
+  const gx = pad, gy = 430, gw = W - pad * 2, gap = 28;
+  const cw = (gw - gap) / 2, ch = 232;
+  cells.forEach((c, i) => {
+    const x = gx + (i % 2) * (cw + gap);
+    const y = gy + ((i / 2) | 0) * (ch + gap);
+    _roundRect(ctx, x, y, cw, ch, 28);
+    ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    _fitFont(ctx, c[0], cw - 56, 62, '800');
+    ctx.fillText(c[0], x + 30, y + 122);
+    ctx.fillStyle = 'rgba(255,255,255,.82)';
+    ctx.font = '500 29px Arial, Helvetica, sans-serif';
+    ctx.fillText(truncate(c[1], 28), x + 30, y + 178);
+  });
+
+  // Pied de carte : signature + surconso.
+  ctx.fillStyle = 'rgba(255,255,255,.88)';
+  ctx.font = '700 34px Arial, Helvetica, sans-serif';
+  ctx.fillText('Suivi Conso Carburant', pad, H - 66);
+  if (w.nbE85) {
+    ctx.fillStyle = 'rgba(255,255,255,.62)';
+    ctx.font = '500 28px Arial, Helvetica, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('surconso +' + Math.round(w.surconso * 100) + '%', W - pad, H - 66);
+    ctx.textAlign = 'left';
+  }
+  return cv;
+}
+
+/** Réduit la taille de police jusqu'à ce que `text` tienne dans `maxW`. */
+function _fitFont(ctx, text, maxW, basePx, weight) {
+  let px = basePx;
+  ctx.font = `${weight} ${px}px Arial, Helvetica, sans-serif`;
+  while (px > 26 && ctx.measureText(text).width > maxW) {
+    px -= 4;
+    ctx.font = `${weight} ${px}px Arial, Helvetica, sans-serif`;
+  }
+}
+
+/** Trace un rectangle à coins arrondis (chemin courant, sans remplir). */
+function _roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
 }
 
 function truncate(s, n) { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }

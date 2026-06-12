@@ -17,7 +17,7 @@ const TILE_SZ = 256;
    Point d'entrée commun
 ═══════════════════════════════════════════════════════════════════════ */
 
-export function showMap(uLat, uLon, stations) {
+export function showMap(uLat, uLon, stations, radiusM = null) {
   state._mapStations = stations.filter(s => s.lat && s.lon);
   if (!state._mapStations.length) return;
   const wrap = document.getElementById('stationMapWrap');
@@ -25,8 +25,8 @@ export function showMap(uLat, uLon, stations) {
   wrap.classList.remove('hidden');
 
   const render = googleMapsActive()
-    ? () => _renderGoogleMap(uLat, uLon)
-    : () => _renderMap(uLat, uLon);
+    ? () => _renderGoogleMap(uLat, uLon, radiusM)
+    : () => _renderMap(uLat, uLon, radiusM);
 
   // Conteneur rendu visible à l'instant : laisser le layout se faire (offsetWidth).
   wasHidden ? setTimeout(render, 0) : render();
@@ -40,7 +40,7 @@ export function hideMap() {
    Moteur 1 — Google Maps interactif (délégué à gmaprender.js)
 ═══════════════════════════════════════════════════════════════════════ */
 
-function _renderGoogleMap(uLat, uLon) {
+function _renderGoogleMap(uLat, uLon, radiusM) {
   const container = document.getElementById('stationMap');
   if (!container) return;
   const cfg = FUEL_CONFIG[state.currentType] || {};
@@ -55,7 +55,7 @@ function _renderGoogleMap(uLat, uLon) {
     };
   });
   const userPos = (uLat != null && uLon != null) ? { lat: uLat, lon: uLon, title: 'Point de recherche' } : null;
-  renderGoogleStationMap(container, { stations, userPos, onFallback: () => _renderMap(uLat, uLon) });
+  renderGoogleStationMap(container, { stations, userPos, radiusM, onFallback: () => _renderMap(uLat, uLon, radiusM) });
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -91,7 +91,7 @@ function bestZoom(allLats, allLons, maxW, maxH) {
   return 10;
 }
 
-export function _renderMap(uLat, uLon) {
+export function _renderMap(uLat, uLon, radiusM = null) {
   const container = document.getElementById('stationMap');
   const rect = container.getBoundingClientRect();
   const W = rect.width || container.offsetWidth || 360;
@@ -100,6 +100,13 @@ export function _renderMap(uLat, uLon) {
   const allLats = state._mapStations.map(s => s.lat);
   const allLons = state._mapStations.map(s => s.lon);
   if (uLat) { allLats.push(uLat); allLons.push(uLon); }
+  // Étend le cadrage à tout le périmètre du rayon (cercle visible en entier).
+  if (uLat && radiusM > 0) {
+    const dLat = radiusM / 111320;
+    const dLon = radiusM / (111320 * Math.cos(uLat * Math.PI / 180));
+    allLats.push(uLat + dLat, uLat - dLat);
+    allLons.push(uLon + dLon, uLon - dLon);
+  }
   const z  = bestZoom([Math.min(...allLats)-mg, Math.max(...allLats)+mg], [Math.min(...allLons)-mg, Math.max(...allLons)+mg], W, H);
   const nw = tileXY(Math.max(...allLats)+mg, Math.min(...allLons)-mg, z);
   const se = tileXY(Math.min(...allLats)-mg, Math.max(...allLons)+mg, z);
@@ -127,6 +134,13 @@ export function _renderMap(uLat, uLon) {
       <div class="map-pin" id="mapPinDot${i}" style="background:#2E75B6"><span style="transform:rotate(45deg)">⛽</span></div>
       <div class="map-pin-label" id="mapPinLbl${i}">${escHtml(s.name)}</div></div>`;
   });
+  // Cercle du rayon de recherche (repli OSM) — sous les marqueurs (z-index 9).
+  if (uLat && uLon && radiusM > 0) {
+    const mPerPx = 156543.03392 * Math.cos(uLat * Math.PI / 180) / (1 << z);
+    const rPx = radiusM / mPerPx;
+    const pc = latLonToPx(uLat, uLon, z, nw.x, nw.y);
+    html += `<div style="position:absolute;left:${pc.x-rPx}px;top:${pc.y-rPx}px;width:${2*rPx}px;height:${2*rPx}px;border-radius:50%;background:rgba(29,158,117,.12);border:2.5px solid rgba(29,158,117,.92);box-sizing:border-box;z-index:9;pointer-events:none"></div>`;
+  }
   if (uLat && uLon) {
     const p = latLonToPx(uLat, uLon, z, nw.x, nw.y);
     html += `<div style="position:absolute;left:${p.x-8}px;top:${p.y-8}px;z-index:11;pointer-events:none">
