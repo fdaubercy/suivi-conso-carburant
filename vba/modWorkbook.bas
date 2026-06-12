@@ -26,7 +26,7 @@
 ' ============================================================
 Option Explicit
 
-Public Const WB_VERSION  As String = "5.13.0.0"
+Public Const WB_VERSION  As String = "5.13.0.1"
 
 Private Const WS_ACCUEIL As String = "Accueil"
 Private Const WS_STATS   As String = "Tableau de bord"   ' cree par modGraphiques (CreerGraphiquesWeb)

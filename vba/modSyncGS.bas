@@ -406,17 +406,12 @@ Public Sub EnsureSyncButtonGSPleins()
     On Error GoTo 0
     If ws Is Nothing Then Exit Sub
 
-    ' position : a droite de l'en-tete de la table (repli : coin haut-gauche)
+    ' position FIXE en haut a gauche : GS_Pleins est une table pleine largeur
+    '  (~1700 pt, 19 colonnes) sans marge -> tout placement relatif a la table
+    '  finit hors ecran. Le bouton flotte sur le coin haut-gauche (au-dessus de
+    '  l'en-tete "Date"), toujours visible a l'ouverture de la feuille.
     Dim l As Single, t As Single
-    l = 6: t = 4
-    Dim lo As ListObject
-    On Error Resume Next
-    Set lo = ws.ListObjects(GS)
-    On Error GoTo 0
-    If Not lo Is Nothing Then
-        l = lo.Range.Left + lo.Range.Width + 12
-        t = lo.Range.top
-    End If
+    l = 5: t = 5
 
     On Error Resume Next
     ws.Shapes(BTN).Delete
@@ -426,6 +421,7 @@ Public Sub EnsureSyncButtonGSPleins()
     Set Sh = ws.Shapes.AddShape(msoShapeRoundedRectangle, l, t, 120, 30)
     Sh.name = BTN
     Sh.Placement = xlFreeFloating
+    Sh.ZOrder msoBringToFront
     On Error Resume Next
     Sh.fill.ForeColor.RGB = RGB(29, 158, 117)      ' vert charte (#1D9E75)
     Sh.Line.visible = msoFalse

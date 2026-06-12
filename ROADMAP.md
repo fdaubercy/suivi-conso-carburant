@@ -42,27 +42,16 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi | Effort |
 |---|---|---|---|
-| ~~C8~~ | ~~**Sync GAS → GitHub via clasp**~~ — ✅ `scripts/sync-gas.sh` créé (v5.8.0.0) | — | — |
 | C9 | **Service account Google** — remplacer le token OAuth Playground (1h, lié au compte perso) par un compte de service JSON credentials | Authentification stable sans renouvellement manuel | ~2h |
 
 ---
 
 ## 📊 Excel
 
-### 🔥 Quick wins
-
-| # | Idée | Pourquoi |
-|---|---|---|
-| ~~X1~~ | ~~**Bouton "Synchroniser"** sur la feuille `GS_Pleins` qui appelle `SyncManuel`~~ — ✅ `EnsureSyncButtonGSPleins` (v5.13.0.0) | — |
-
 ### 🎯 Onglet "Tableau de bord"
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| ~~X9~~ | ~~**Économies cumulées E85 vs SP98**~~ — ✅ graphique `gEcoDate` (v5.8.0.0) | — |
-| ~~X15~~ | ~~**Graphique scatter Prix E85/L vs L/100 km**~~ — ✅ graphique `gScatterE85` (v5.8.0.0) | — |
-| ~~X20~~ | ~~**Interrupteur « graphiques auto »**~~ — ✅ cellule B7 « Tableau de bord » (v5.8.0.0) | — |
-| ~~X21~~ | ~~**Horodatage de dernière génération**~~ — ✅ cellule B8 « Tableau de bord » (v5.8.0.0) | — |
 | X39 | **Accumulation journalière des prix marché** : le trigger GAS `RefreshPrix` écrase `Prix par Station` (Tableau12) à chaque relevé au lieu d'accumuler. Créer une table `_PrixHistoriqueJournalier` (Date, Station, Carburant, Prix) alimentée par append quotidien → `gPrice` afficherait l'évolution réelle tous les jours, pas seulement aux jours de plein. Actuellement SP95 = 1 pt et GAZOLE = 2 pts (seules les stations Carrefour-Flers enregistrent les prix multi-carburants) | Séries SP95/GAZOLE quasi vides dans `gPrice` ; avec un historique continu, toutes les 4 courbes deviendraient exploitables |
 
 ### ⚡ Performance
@@ -127,11 +116,11 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Rang | Item | Effort | Bénéfice |
 |---|---|---|---|
-| 1 | ~~**X1**~~ — Bouton "Synchroniser" sur la feuille GS_Pleins | ✅ v5.13.0.0 | — |
-| 2 | ~~**X9**~~ | ✅ v5.8.0.0 | — |
-| 3 | ~~**X15**~~ | ✅ v5.8.0.0 | — |
-| 4 | ~~**X20**~~ | ✅ v5.8.0.0 | — |
-| 5 | ~~**X11**~~ | ✅ v5.11.0.0 | — |
+| 1 | **X39** — Accumulation journalière des prix marché | ~2-3 h | Débloque les séries SP95/GAZOLE quasi vides de `gPrice` |
+| 2 | **X43c** — Rebuild dashboard incrémental | ~1 j | Réduit encore l'attente après filtrage (au-delà du debounce v5.13.0.0) |
+| 3 | **W78** — Lazy-load carte / Google Maps | ~1-2 h | Démarrage de l'app plus rapide |
+| 4 | **C9** — Service account Google | ~2 h | Auth stable sans renouvellement manuel du token |
+| 5 | **W57** — Partage image du bilan « Wrapped » | <2 h | Partage en 1 tap |
 
 > ✅ S3/S4/S5 (suppression bidir., force resync, conflits par timestamp) implémentés en v4.8.0.0 — voir le tableau ci-dessous.
 

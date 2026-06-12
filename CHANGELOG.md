@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.13.0.1] — 2026-06-12
+
+### Fixed
+- **Excel — Bouton « Synchroniser » (X1) hors écran** : `EnsureSyncButtonGSPleins` plaçait le bouton **à droite** de l'en-tête de la table `GS_Pleins` (≈ 1720 pt de large, 19 colonnes) → invisible sans défilement horizontal. Repositionné en **haut à gauche fixe** (coin A1, `ZOrder` premier plan), indépendant de la largeur de la table → toujours visible à l'ouverture de la feuille. `vba/modSyncGS.bas`.
+- **Excel/JS — `WB_VERSION` / `APP_VERSION`** 5.13.0.0 → 5.13.0.1.
+
+### Changed
+- **ROADMAP** — items terminés **retirés** des tableaux « à faire » (fin des lignes barrées : X1, X9, X15, X20, X21, C8) ; le « Top 5 » est rafraîchi avec les priorités courantes (X39, X43c, W78, C9, W57). L'historique des versions reste la seule trace des items livrés.
+
 ## [5.13.0.0] — 2026-06-11
 
 ### Added
