@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.16.0.0] — 2026-06-13
+
+### Changed
+- **Excel — Sidebar refonte : colonne d'icônes + aperçu titre par icône** (`modSidebar.bas`) : état par défaut **seul ☰** visible sur chaque onglet ; clic ☰ → dépli progressif de la **colonne d'icônes** (sans libellés) ; clic icône → shape s'étend vers la droite révélant le titre aligné à gauche, **icône immobile** (snapshot géométrie exacte) ; repli progressif automatique après ~2 s avec **restauration pixel-perfect** (snapshot/restauration, jamais recalcul depuis le zoom — corrige le décalage de taille). `vba/modSidebar.bas` (variables `g_Snap*`, `ExpandSidebar`/`CollapseSidebar`/`HideIconColumn`/`ExpandIcon`/`CollapseIcon`/`SiblingWidth`/`RestoreSnap`).
+
+### Removed
+- **Excel — Module mort `modNavMenu` supprimé** : `modNavMenu.bas` (module VBA + miroir disque) et le bloc appel orphelin `Application.Run "modNavMenu.PoserBoutonsNavMenu"` dans `Affichage.bas` retirés. Aucun `OnAction`/`Call` orphelin — compilation propre.
+
 ## [5.15.0.0] — 2026-06-13
 
 ### Added

@@ -205,7 +205,6 @@ Private Function ZoomColsForSheet(ByVal shName As String) As Long
 End Function
 
 ' Pose le bouton sur tous les onglets du dashboard miroir presents.
-' Pose egalement le bouton hamburger de navigation (modNavMenu).
 Public Sub PoserBoutonsPleinEcran()
     Dim noms As Variant, i As Long, ws As Worksheet, n As Long
     noms = Array("Accueil", "R" & ChrW(233) & "glages", "Hist. Carburant", "Carte", "Tableau de bord", _
@@ -221,9 +220,4 @@ Public Sub PoserBoutonsPleinEcran()
         End If
     Next i
     Application.StatusBar = "[Affichage] " & ChrW(10003&) & " Bouton 'Quitter le plein ecran' pose sur " & n & " onglet(s)."
-
-    ' Boutons hamburger ☰ de navigation (modNavMenu, tolerant si module absent)
-    On Error Resume Next
-    Application.Run "modNavMenu.PoserBoutonsNavMenu"
-    On Error GoTo 0
 End Sub

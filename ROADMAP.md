@@ -114,7 +114,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | 2 | **X43c** — Rebuild dashboard incrémental | ~1 j | Réduit encore l'attente après filtrage (au-delà du debounce v5.13.0.0) |
 | 3 | **W78** — Lazy-load carte / Google Maps | ~1-2 h | Démarrage de l'app plus rapide |
 | 4 | **C9** — Service account Google | ~2 h | Auth stable sans renouvellement manuel du token |
-| 5 | **X42** — Nettoyer les orphelins VBA (`synchroniseGoogleForm.bas`, `Module1`) | <1 h | Cohérence disque ↔ classeur |
+| 5 | **X42** — Nettoyer les orphelins VBA (`synchroniseGoogleForm.bas`, `Module1`) | <1 h | Cohérence disque ↔ classeur (modNavMenu déjà retiré en v5.16.0.0) |
 
 > ✅ S3/S4/S5 (suppression bidir., force resync, conflits par timestamp) implémentés en v4.8.0.0 — voir le tableau ci-dessous.
 
@@ -124,6 +124,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.16.0.0 | **Excel — Sidebar : colonne d'icônes + aperçu titre par icône** — refonte de `modSidebar.bas` : seul ☰ visible par défaut ; clic ☰ → colonne d'icônes en dépli progressif ; clic icône → titre révélé à droite (icône immobile, snapshot géométrie), repli progressif + restauration exacte de la taille (corrige le décalage zoom). Module mort `modNavMenu` supprimé (VBA + miroir disque + appel `Affichage.bas`). Vérifié COM : état par défaut OK + taille restaurée à 0.000 pt de delta. `vba/modSidebar.bas`, `vba/Affichage.bas`. |
 | v5.15.0.0 | **Excel — Vignette du ticket dans « Hist. Carburant »** — colonne « Ticket » du tableau `tblHistorique` affichant la photo via `IMAGE()` (M365) : l'URL Drive (col P de `GS_Pleins`, W9) est convertie en URL vignette `thumbnail?id={id}&sz=w800` (vraie image). Lignes rehaussées seulement s'il existe au moins un ticket (sinon tableau compact). `vba/modHistorique.bas` (`TicketImageFormula` / `DriveFileId`). Complète W9 (capture/stockage Drive) + v4.3.0.5 (import Power Query) par l'**affichage** local. |
 | v5.14.2.0 | **Fix — Import des prix carburants & `#VALEUR!` dernière ligne du dashboard** — à la soumission, si `state._stationPrices` n'était pas chargé pour la station, seul l'E85 de repli partait → 5 prix station manquants côté Sheet/Excel → formules `M`/`N` (économie SP98) cassées en `#VALEUR!`. Repli `fetchStationPricesSilent` (6 prix par cercles croissants, sans effet de bord UI) injecté avant envoi (`js/prix.js`, `js/formulaire.js`) + formules Excel `M`/`N` rendues robustes contre un prix SP98 vide (**0 erreur** vérifiée sur la feuille). |
 | v5.14.1.0 | **Fix — Contraste du bouton de rayon sélectionné (thème sombre)** — l'état actif `.radius-btn.active` passait un texte sombre sur un fond `--blue-dark` sombre (contraste 1.06:1, label invisible). Fond aligné sur `--blue-mid` (bleu vif), comme `.submit-btn` → contraste 7.02:1 (AA). `css/style.css`. |
