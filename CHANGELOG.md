@@ -4,6 +4,24 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.15.0.0] — 2026-06-13
+
+### Added
+- **Excel — Vignette du ticket de caisse dans l'onglet « Hist. Carburant »** : nouvelle colonne **« Ticket »** du tableau `tblHistorique` affichant la photo du ticket via la fonction **`IMAGE()`** (Microsoft 365). L'URL Drive stockée en colonne P de `GS_Pleins` (forme `.../file/d/{id}/view`, alimentée par W9 : app → GAS → Drive) est convertie en URL **vignette** (`https://drive.google.com/thumbnail?id={id}&sz=w800`, une vraie image affichable, contrairement à l'URL `/view` qui renvoie une page). Les lignes ne sont rehaussées (60 px) que si **au moins un** plein possède une photo — tableau compact sinon. `vba/modHistorique.bas` (helpers `TicketImageFormula` / `DriveFileId`, colonne J). Le pipeline de capture/stockage (W9) et l'import Power Query de la col P (v4.3.0.5) étaient déjà en place ; cette version ajoute l'**affichage** dans le classeur local.
+
+### Changed
+- **Versions** — `APP_VERSION` / `package.json` 5.14.2.0 → 5.15.0.0.
+
+## [5.14.2.0] — 2026-06-13
+
+### Fixed
+- **App — Prix des autres carburants non importés lors d'un plein (cause racine du `#VALEUR!` sur la dernière ligne du dashboard)** : à la soumission, si la liste multi-carburants de la station n'avait pas eu le temps de se charger (`state._stationPrices` vide), seul l'**E85 de repli** partait → les 5 autres prix station (SP98 / SP95 / E10 / Gazole / GPLc) manquaient côté Sheet / Excel. Nouveau repli `fetchStationPricesSilent(lat, lon)` (`js/prix.js`) : recharge **silencieusement** (sans effet de bord UI) les 6 prix station par cercles croissants (500 m → 5 km) et les injecte dans le payload avant envoi (`js/formulaire.js`). Le chemin nominal (prix déjà chargés) est **inchangé** — aucun appel réseau supplémentaire.
+- **Excel — `#VALEUR!` sur la dernière ligne du dashboard (« Suivi Carburant »)** : faute de prix SP98 station, `K` (« Prix S98 jour ») = "" → `L` (« Coût équiv. S98 ») = "" → les formules `M` (« Economie sur le plein ») et `N` (« Économie cumulée ») faisaient `("" − coût) / ""` sans protéger contre un `L` non numérique. Formules `M` / `N` rendues robustes (renvoient vide / reportent le cumul quand le prix SP98 manque). Vérifié : **0 cellule en erreur** sur toute la feuille, cumuls et pourcentages historiques **inchangés**.
+
+### Changed
+- **Tests** — `tests/formulaire.test.js` : 2 cas ajoutés (rechargement silencieux des 6 prix station à la soumission ; non-appel quand les prix sont déjà chargés).
+- **Versions** — `APP_VERSION` / `package.json` 5.14.1.0 → 5.14.2.0.
+
 ## [5.14.1.0] — 2026-06-12
 
 ### Fixed

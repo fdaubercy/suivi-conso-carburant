@@ -3,7 +3,7 @@ import { FUEL_CONFIG, FUEL_KEYS, GAS_URL, APP_TOKEN, DRAFT_KEY, CLIENT_ID_KEY } 
 import { state } from './state.js';
 import { setAutreStatus, hideCpSearch, setSubmitState, showFeedback, computeTriplet } from './ui.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
-import { fetchPricesNearUser, fetchPricesAtCoords, fetchNearestE85Price, evalRentabiliteE85 } from './prix.js';
+import { fetchPricesNearUser, fetchPricesAtCoords, fetchNearestE85Price, fetchStationPricesSilent, evalRentabiliteE85 } from './prix.js';
 import { cancelOsmEnrich } from './osm.js';
 import { getStationCoords } from './stationsmap.js';
 import { syncStationSiNouvelle } from './stations.js';
@@ -226,12 +226,23 @@ export async function submitForm() {
 
   setSubmitState(true);
 
-  // Prix station pour tous les carburants disponibles lors du plein
-  const stationPrices = Object.keys(state._stationPrices).length > 0
-    ? Object.fromEntries(FUEL_KEYS.map(k => [k, state._stationPrices[k] || '']))
+  // Prix station pour tous les carburants disponibles lors du plein.
+  // Cause racine du bug d'import (#VALEUR! dernière ligne du dashboard) : si la
+  // liste multi-carburants n'a pas eu le temps de se charger pour la station,
+  // `state._stationPrices` est vide et seul l'E85 de repli partait → les 5 autres
+  // prix station manquaient côté Sheet/Excel. Correctif : recharger silencieusement
+  // les 6 prix station à la soumission (sans effet de bord UI) avant de bâtir le payload.
+  let sp = state._stationPrices;
+  if (Object.keys(sp).length === 0) {
+    const lat = state._selectedLat || state.userLat;
+    const lon = state._selectedLon || state.userLon;
+    if (lat && lon) sp = await fetchStationPricesSilent(lat, lon);
+  }
+  const stationPrices = Object.keys(sp).length > 0
+    ? Object.fromEntries(FUEL_KEYS.map(k => [k, sp[k] || '']))
     : {};
 
-  // Garantir le prix E85 même pour les pleins non-E85
+  // Garantir le prix E85 même pour les pleins non-E85 (ou station sans coords)
   if (!stationPrices.E85) {
     const lat = state._selectedLat || state.userLat;
     const lon = state._selectedLon || state.userLon;

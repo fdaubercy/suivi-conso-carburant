@@ -18,7 +18,8 @@ vi.mock('../js/ui.js', () => ({
 vi.mock('../js/carburant.js', () => ({ _buildTypeToggle: vi.fn(), _updateHeaderBadges: vi.fn() }));
 vi.mock('../js/prix.js', () => ({
   fetchPricesNearUser: vi.fn(), fetchPricesAtCoords: vi.fn(),
-  fetchNearestE85Price: vi.fn(() => Promise.resolve(null)), evalRentabiliteE85: vi.fn(),
+  fetchNearestE85Price: vi.fn(() => Promise.resolve(null)),
+  fetchStationPricesSilent: vi.fn(() => Promise.resolve({})), evalRentabiliteE85: vi.fn(),
 }));
 vi.mock('../js/osm.js', () => ({ cancelOsmEnrich: vi.fn() }));
 vi.mock('../js/stationsmap.js', () => ({ getStationCoords: vi.fn(() => null) }));
@@ -40,6 +41,7 @@ import {
 import { state } from '../js/state.js';
 import { DRAFT_KEY } from '../js/config.js';
 import { showFeedback, setSubmitState } from '../js/ui.js';
+import { fetchStationPricesSilent } from '../js/prix.js';
 import { queuePlein, updateOfflineBadge } from '../js/offline.js';
 import { syncStationSiNouvelle } from '../js/stations.js';
 import { chargerHistorique } from '../js/historique.js';
@@ -204,5 +206,32 @@ describe('submitForm', () => {
     expect(queuePlein).toHaveBeenCalledTimes(1);
     expect(showFeedback).toHaveBeenCalledWith('info', expect.stringContaining('hors-ligne'), expect.any(String));
     expect(updateOfflineBadge).toHaveBeenCalled();
+  });
+
+  it('recharge les 6 prix station à la soumission si la liste n’était pas chargée (fix import dernière ligne)', async () => {
+    // Cause racine du bug E85 : prix station non chargés au moment du submit.
+    state._stationPrices = {};
+    state._selectedLat = 50.52; state._selectedLon = 2.65;
+    fetchStationPricesSilent.mockResolvedValueOnce({ E85: '0.799', SP98: '1.979', GAZOLE: '1.759' });
+    let sentBody = null;
+    global.fetch = vi.fn((_url, opts) => {
+      sentBody = JSON.parse(opts.body);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true }) });
+    });
+    fillValidPlein();
+    await submitForm();
+    expect(fetchStationPricesSilent).toHaveBeenCalledWith(50.52, 2.65);
+    expect(sentBody.stationPrices.E85).toBe('0.799');
+    expect(sentBody.stationPrices.SP98).toBe('1.979');
+    expect(sentBody.stationPrices.GAZOLE).toBe('1.759');
+  });
+
+  it('n’appelle pas le rechargement silencieux quand les prix sont déjà chargés', async () => {
+    state._stationPrices = { E85: '0.789', SP98: '1.969' };
+    state._selectedLat = 50.52; state._selectedLon = 2.65;
+    global.fetch = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true }) }));
+    fillValidPlein();
+    await submitForm();
+    expect(fetchStationPricesSilent).not.toHaveBeenCalled();
   });
 });

@@ -133,6 +133,11 @@ et transmise avec le plein lors de l'enregistrement. Le GAS la stocke dans un do
 **"Suivi E85 - Tickets"**, la rend publique en lecture et enregistre l'URL dans la colonne P du Sheet.
 Un badge **📷 Photo jointe** confirme visuellement que l'image sera envoyée.
 
+La vignette du ticket s'affiche aussi **dans le classeur Excel** : l'onglet **« Hist. Carburant »** comporte une
+colonne **« Ticket »** qui rend la photo via la fonction `IMAGE()` (Microsoft 365), en convertissant l'URL Drive
+(col P) en URL vignette (`https://drive.google.com/thumbnail?id={id}&sz=w800`). Les lignes ne sont rehaussées que
+si au moins un plein possède une photo (v5.15.0.0).
+
 > 💡 **Premier scan** : Tesseract.js télécharge ~4 Mo de données linguistiques françaises (CDN jsDelivr)
 > puis les met en cache (IndexedDB). Les scans suivants sont instantanés.
 

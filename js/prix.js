@@ -140,6 +140,39 @@ export async function fetchPricesNearUser() {
   }
 }
 
+/** Récupère silencieusement (sans aucun effet de bord UI) tous les prix
+ *  carburants d'une station à (lat, lon), par cercles croissants (500 m → 5 km).
+ *  Retourne { E85:'0.799', SP98:'1.979', … } (une clé par carburant de prix > 0)
+ *  ou {} si rien trouvé.
+ *
+ *  Utilisé à la SOUMISSION du plein : si la liste multi-carburants n'a pas eu le
+ *  temps de se charger pour la station (`state._stationPrices` vide), seul l'E85
+ *  de repli partait → les 5 autres prix station manquaient côté Sheet/Excel, ce
+ *  qui cassait les colonnes calculées (économie SP98) — cause racine du #VALEUR!
+ *  sur la dernière ligne du dashboard. Ce repli capte les 6 prix d'un coup. */
+export async function fetchStationPricesSilent(lat, lon) {
+  for (const r of [500, 2000, 5000]) {
+    try {
+      const resp = await fetch(odsUrl({
+        where:  `${FUEL_ANY} and distance(geom, geom'POINT(${lon} ${lat})', ${r}m)`,
+        select: FUEL_SELECT,
+        limit:  1
+      }));
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      if (data.results?.length) {
+        const row = data.results[0], out = {};
+        FUEL_KEYS.forEach(k => {
+          const v = row[FUEL_CONFIG[k].apiField];
+          if (v != null && parseFloat(v) > 0) out[k] = v;
+        });
+        if (Object.keys(out).length) return out;
+      }
+    } catch { /* essai au rayon suivant */ }
+  }
+  return {};
+}
+
 /** Cherche le prix E85 le plus proche d'un point (fallback pour pleins non-E85). */
 export async function fetchNearestE85Price(lat, lon) {
   for (const r of [1000, 5000, 15000]) {

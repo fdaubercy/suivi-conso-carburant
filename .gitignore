@@ -29,6 +29,7 @@ vba-backup-*/
 # Sauvegardes locales path-spécifiques + fichiers temp VBA (non versionnés)
 vba/backup/
 vba/backup_*/
+excel/backup/
 excel/backup_*/
 temp_*.bas
 

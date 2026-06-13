@@ -1,7 +1,13 @@
 Attribute VB_Name = "modHistorique"
 ' ============================================================
-'  SUIVI E85 - Feuille HISTORIQUE (vue filtrable + export CSV)  v1.0.0.0
+'  SUIVI E85 - Feuille HISTORIQUE (vue filtrable + export CSV)  v1.1.0.0
 '  Etape 1/3 du dashboard miroir de l'app PWA (onglet Historique).
+'
+'  v1.1.0.0 : colonne "Ticket" (J) = vignette du ticket de caisse via la
+'  fonction IMAGE() (Microsoft 365). L'URL Drive stockee en col P de GS_Pleins
+'  (forme .../file/d/{id}/view) est convertie en URL vignette
+'  (https://drive.google.com/thumbnail?id={id}&sz=w800), une vraie image. Les
+'  lignes sont rehaussees uniquement si au moins un plein a une photo.
 '
 '  - Vue de GS_Pleins triee par date (recent -> ancien) sous forme
 '    de tableau Excel (ListObject "tblHistorique") : le FILTRE AUTO
@@ -36,6 +42,7 @@ Private Const COL_LITRES     As Long = 5
 Private Const COL_PRIX       As Long = 6
 Private Const COL_STATION    As Long = 7
 Private Const COL_VEHICULE   As Long = 8
+Private Const COL_PHOTO      As Long = 16   ' col P : URL Drive de la photo du ticket (W9)
 Private Const COL_COUT       As Long = 20   ' col T : Cout EUR exact (W71/W73, fallback litres*prix)
 
 
@@ -66,6 +73,7 @@ Public Sub CreerFeuilleHistorique()
     ws.Columns("G").ColumnWidth = 11
     ws.Columns("H").ColumnWidth = 28
     ws.Columns("I").ColumnWidth = 18
+    ws.Columns("J").ColumnWidth = 16
 
     With ws.Range("B1")
         .value = Emo(&H1F4DC) & " Historique"
@@ -133,8 +141,8 @@ Public Sub RafraichirHistorique()
 
     ' -- En-tete du tableau complet (B12:I12) --
     Dim hdr As Variant
-    hdr = Array("Date", "Type", "Km", "Litres", "Prix EUR/L", "Cout EUR", "Station", "Vehicule")
-    For i = 0 To 7
+    hdr = Array("Date", "Type", "Km", "Litres", "Prix EUR/L", "Cout EUR", "Station", "Vehicule", "Ticket")
+    For i = 0 To 8
         ws.Cells(HDR_ROW, 2 + i).value = hdr(i)
     Next i
     ws.Cells(11, 2).value = "Tous les pleins (" & n & ")"
@@ -159,14 +167,36 @@ Public Sub RafraichirHistorique()
     Next i
     ws.Range(ws.Cells(HDR_ROW + 1, 2), ws.Cells(HDR_ROW + n, 9)).value = outArr
 
+    ' -- Colonne J "Ticket" : vignette IMAGE() depuis l'URL Drive (col P de GS_Pleins).
+    '    Ecrite separement en .Formula (evite toute ambiguite formule/texte du
+    '    write par tableau). Vide si le plein n'a pas de photo.
+    Dim hasPhoto As Boolean, fImg As String
+    For i = 1 To n
+        fImg = ""
+        If UBound(data, 2) >= COL_PHOTO Then fImg = TicketImageFormula(data(idx(i), COL_PHOTO))
+        If Len(fImg) > 0 Then
+            ws.Cells(HDR_ROW + i, 10).Formula = fImg
+            hasPhoto = True
+        End If
+    Next i
+
     ' -- Cree le ListObject + mise en forme --
     Set lo = ws.ListObjects.Add(xlSrcRange, _
-        ws.Range(ws.Cells(HDR_ROW, 2), ws.Cells(HDR_ROW + n, 9)), , xlYes)
+        ws.Range(ws.Cells(HDR_ROW, 2), ws.Cells(HDR_ROW + n, 10)), , xlYes)
     lo.name = TBL_NAME
     On Error Resume Next
     lo.TableStyle = "TableStyleMedium2"
     On Error GoTo 0
     FormatColonnes lo
+
+    ' -- Vignettes ticket : colonne J large + lignes hautes UNIQUEMENT si au
+    '    moins un ticket (sinon table compacte). IMAGE() s'ajuste a la cellule. --
+    ws.Columns("J").ColumnWidth = 16
+    If hasPhoto Then
+        On Error Resume Next
+        ws.Range(ws.Cells(HDR_ROW + 1, 10), ws.Cells(HDR_ROW + n, 10)).EntireRow.RowHeight = 60
+        On Error GoTo 0
+    End If
 
     ' -- Carte "5 derniers pleins" --
     RenderRecents ws, outArr, n
@@ -313,6 +343,41 @@ Private Function CoutPlein(litres As Variant, prix As Variant, Optional cout As 
     End If
 End Function
 
+' Construit la formule =IMAGE(...) de la vignette du ticket a partir de l'URL
+' Drive stockee (col P). Renvoie "" si pas d'URL exploitable. La VIGNETTE Drive
+' (endpoint /thumbnail) renvoie une vraie image, contrairement a l'URL /view qui
+' renvoie une page HTML (non affichable par IMAGE()).
+Private Function TicketImageFormula(ByVal url As Variant) As String
+    Dim id As String
+    id = DriveFileId(url)
+    If Len(id) = 0 Then Exit Function
+    TicketImageFormula = "=IMAGE(""https://drive.google.com/thumbnail?id=" & id & "&sz=w800"",""Ticket"")"
+End Function
+
+' Extrait l'identifiant de fichier Drive d'une URL.
+' Formes gerees : .../file/d/{id}/view   et   ...?id={id}&...
+Private Function DriveFileId(ByVal url As Variant) As String
+    Dim s As String, p As Long, q As Long
+    If IsError(url) Then Exit Function
+    s = Trim$(CStr(url))
+    If Len(s) = 0 Then Exit Function
+    p = InStr(1, s, "/d/", vbTextCompare)
+    If p > 0 Then
+        s = Mid$(s, p + 3)
+        q = InStr(s, "/")
+        If q > 0 Then s = Left$(s, q - 1)
+        DriveFileId = s
+        Exit Function
+    End If
+    p = InStr(1, s, "id=", vbTextCompare)
+    If p > 0 Then
+        s = Mid$(s, p + 3)
+        q = InStr(s, "&")
+        If q > 0 Then s = Left$(s, q - 1)
+        DriveFileId = s
+    End If
+End Function
+
 
 ' ------------------------------------------------------------
 '  HELPERS - MISE EN FORME
@@ -327,6 +392,9 @@ Private Sub FormatColonnes(lo As ListObject)
     lo.ListColumns(6).DataBodyRange.NumberFormat = "0.00"
     lo.Range.Columns.HorizontalAlignment = xlCenter
     lo.ListColumns(7).Range.HorizontalAlignment = xlLeft
+    ' Colonne Ticket (9) : vignette centree h/v
+    lo.ListColumns(9).DataBodyRange.HorizontalAlignment = xlCenter
+    lo.ListColumns(9).DataBodyRange.VerticalAlignment = xlCenter
     On Error GoTo 0
 End Sub
 
