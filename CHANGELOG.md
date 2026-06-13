@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.16.2.1] — 2026-06-14
+
+### Fixed
+- **Excel — Sidebar hover : zones toujours décalées après calibration** (`modSidebar.bas`) : la calibration `PointsToScreenPixelsX` précédente était mathématiquement équivalente à l'approche directe et donc identiquement fausse (les deux mélangent pixels physiques/logiques). Nouvelle approche : `Window.RangeFromPoint(pt.x, pt.y)` prend directement les coordonnées de `GetCursorPos` et retourne l'objet sous le curseur — aucune conversion DPI/zoom, 100 % fiable. Détection par `TypeName(v) = "Shape"` + préfixe `sb_ico_`/`sb_lbl_`.
+
 ## [5.16.2.0] — 2026-06-14
 
 ### Fixed

@@ -143,61 +143,45 @@ Public Sub HoverTimerProc(ByVal hWnd As Long, ByVal uMsg As Long, _
     g_InHoverCheck = False
 End Sub
 
-' Calibration : convertit la position curseur (pixels physiques ecran)
-' en points document, puis compare avec ico.Left/Top (aussi en points document).
-' Cela elimine toute ambiguite zoom / DPI.
+' RangeFromPoint prend les coordonnees physiques de GetCursorPos et retourne
+' directement l'objet sous le curseur — aucune conversion DPI/zoom necessaire.
 Private Sub DoHoverCheck()
     Dim pt As POINTAPI
     If GetCursorPos(pt) = 0 Then Exit Sub
+
     Dim ws As Worksheet
     On Error Resume Next: Set ws = ActiveSheet: On Error GoTo 0
     If ws Is Nothing Then Exit Sub
 
     Dim win As Window: Set win = Application.ActiveWindow
-    ' Origine et echelle : 72 points = 1 pouce ; on calibre sur 72 pts
-    Dim ox  As Long: ox  = win.PointsToScreenPixelsX(0)
-    Dim oy  As Long: oy  = win.PointsToScreenPixelsY(0)
-    Dim ppx As Single: ppx = (win.PointsToScreenPixelsX(72) - ox) / 72!
-    Dim ppy As Single: ppy = (win.PointsToScreenPixelsY(72) - oy) / 72!
-    If ppx = 0 Or ppy = 0 Then Exit Sub
-    ' Curseur en points document (meme repere que ico.Left / ico.Top)
-    Dim docX As Single: docX = (pt.x - ox) / ppx
-    Dim docY As Single: docY = (pt.y - oy) / ppy
-
     Dim hotIdx As Integer: hotIdx = -1
-    Dim k As Integer
-    For k = 0 To NAV_COUNT - 1
-        Dim ico As Shape: Set ico = GetShape(ws, "sb_ico_" & k)
-        If Not ico Is Nothing Then
-            If ico.Visible = msoTrue Then
-                Dim icoR As Single: icoR = ico.Left + ico.Width
-                Dim icoB As Single: icoB = ico.Top + ico.Height
-                ' Etendre la zone chaude au label quand il est visible
-                Dim lbl As Shape: Set lbl = GetShape(ws, "sb_lbl_" & k)
-                If Not lbl Is Nothing Then
-                    If lbl.Visible = msoTrue Then
-                        icoR = lbl.Left + lbl.Width
-                    End If
-                End If
-                If docX >= ico.Left And docX <= icoR And _
-                   docY >= ico.Top  And docY <= icoB Then
-                    hotIdx = k: Exit For
+
+    Dim v As Variant
+    On Error Resume Next
+    v = win.RangeFromPoint(pt.x, pt.y)
+    On Error GoTo 0
+
+    If IsObject(v) Then
+        If Not v Is Nothing Then
+            If TypeName(v) = "Shape" Then
+                Dim nm As String: nm = v.Name
+                Dim k As Integer
+                If Left$(nm, 7) = "sb_ico_" Then
+                    k = Val(Mid$(nm, 8))
+                    If k >= 0 And k < NAV_COUNT Then hotIdx = k
+                ElseIf Left$(nm, 7) = "sb_lbl_" Then
+                    k = Val(Mid$(nm, 8))
+                    If k >= 0 And k < NAV_COUNT Then hotIdx = k
                 End If
             End If
         End If
-    Next k
+    End If
 
-    If hotIdx = g_HoverIdx Then Exit Sub  ' pas de changement
-
-    ' Repli de l'icone precedente
+    If hotIdx = g_HoverIdx Then Exit Sub
     If g_HoverIdx >= 0 Then CollapseIconHover g_HoverIdx
-
     g_HoverIdx = hotIdx
-
-    ' Extension de la nouvelle icone
     If hotIdx >= 0 Then
-        CancelTimer
-        SetCollapseTimer
+        CancelTimer: SetCollapseTimer
         ExpandIconHover hotIdx
     End If
 End Sub
