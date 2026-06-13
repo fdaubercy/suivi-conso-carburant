@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.16.1.0] — 2026-06-13
+
+### Fixed
+- **Excel — Sidebar hover Win32 (Option C)** (`modSidebar.bas`) : le label ne s'affichait pas au survol des icônes. Implémentation complète via `GetCursorPos` + `SetTimer` 200 ms (`HoverTimerProc`/`DoHoverCheck`/`ExpandIconHover`/`CollapseIconHover`). Survol d'une icône → label glisse instantanément à droite (texte aligné gauche, fond icône élargi à 220 pt) ; sortie de zone → repli instantané. Clic icône ou label → navigation directe (`NavSidebar_N`). Suppression du code preview-click (`PreviewSidebar_N`, `ExpandIcon`, `CollapseIcon`, `g_Snap*`) remplacé par le timer Win32.
+
 ## [5.16.0.0] — 2026-06-13
 
 ### Changed
