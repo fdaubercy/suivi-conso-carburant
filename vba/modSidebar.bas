@@ -52,7 +52,6 @@ Private g_TimerSet  As Boolean
     Private g_HoverTimerID As Long
 #End If
 Private g_HoverIdx     As Integer      ' -1 = aucun survol actif
-Private g_IcoOrigW(5)  As Single       ' largeurs originales des icones (snapshot ExpandSidebar)
 Private g_InHoverCheck As Boolean      ' anti re-entree SetTimer callback
 
 ' =========================================================================
@@ -144,6 +143,9 @@ Public Sub HoverTimerProc(ByVal hWnd As Long, ByVal uMsg As Long, _
     g_InHoverCheck = False
 End Sub
 
+' Calibration : convertit la position curseur (pixels physiques ecran)
+' en points document, puis compare avec ico.Left/Top (aussi en points document).
+' Cela elimine toute ambiguite zoom / DPI.
 Private Sub DoHoverCheck()
     Dim pt As POINTAPI
     If GetCursorPos(pt) = 0 Then Exit Sub
@@ -152,24 +154,33 @@ Private Sub DoHoverCheck()
     If ws Is Nothing Then Exit Sub
 
     Dim win As Window: Set win = Application.ActiveWindow
+    ' Origine et echelle : 72 points = 1 pouce ; on calibre sur 72 pts
+    Dim ox  As Long: ox  = win.PointsToScreenPixelsX(0)
+    Dim oy  As Long: oy  = win.PointsToScreenPixelsY(0)
+    Dim ppx As Single: ppx = (win.PointsToScreenPixelsX(72) - ox) / 72!
+    Dim ppy As Single: ppy = (win.PointsToScreenPixelsY(72) - oy) / 72!
+    If ppx = 0 Or ppy = 0 Then Exit Sub
+    ' Curseur en points document (meme repere que ico.Left / ico.Top)
+    Dim docX As Single: docX = (pt.x - ox) / ppx
+    Dim docY As Single: docY = (pt.y - oy) / ppy
+
     Dim hotIdx As Integer: hotIdx = -1
     Dim k As Integer
     For k = 0 To NAV_COUNT - 1
         Dim ico As Shape: Set ico = GetShape(ws, "sb_ico_" & k)
         If Not ico Is Nothing Then
             If ico.Visible = msoTrue Then
-                Dim sx  As Long: sx  = win.PointsToScreenPixelsX(ico.Left)
-                Dim sy  As Long: sy  = win.PointsToScreenPixelsY(ico.Top)
-                Dim srx As Long: srx = win.PointsToScreenPixelsX(ico.Left + ico.Width)
-                Dim sby As Long: sby = win.PointsToScreenPixelsY(ico.Top + ico.Height)
+                Dim icoR As Single: icoR = ico.Left + ico.Width
+                Dim icoB As Single: icoB = ico.Top + ico.Height
                 ' Etendre la zone chaude au label quand il est visible
                 Dim lbl As Shape: Set lbl = GetShape(ws, "sb_lbl_" & k)
                 If Not lbl Is Nothing Then
                     If lbl.Visible = msoTrue Then
-                        srx = win.PointsToScreenPixelsX(lbl.Left + lbl.Width)
+                        icoR = lbl.Left + lbl.Width
                     End If
                 End If
-                If pt.x >= sx And pt.x <= srx And pt.y >= sy And pt.y <= sby Then
+                If docX >= ico.Left And docX <= icoR And _
+                   docY >= ico.Top  And docY <= icoB Then
                     hotIdx = k: Exit For
                 End If
             End If
@@ -198,23 +209,22 @@ Private Sub ExpandIconHover(idx As Integer)
     Dim lbl As Shape: Set lbl = GetShape(ws, "sb_lbl_" & idx)
     If ico Is Nothing Then Exit Sub
     Dim z As Single: z = ZoomFactor()
+    Dim origW As Single: origW = (W_COLLAPSED - 4) / z
     ico.Width = W_EXPANDED / z
     If Not lbl Is Nothing Then
-        lbl.Left  = ico.Left + g_IcoOrigW(idx) + 2 / z
-        lbl.Width = W_EXPANDED / z - g_IcoOrigW(idx) - 6 / z
+        lbl.Left  = ico.Left + origW + 2 / z
+        lbl.Width = W_EXPANDED / z - origW - 6 / z
         lbl.Visible = msoTrue
     End If
 End Sub
 
-' Repli instantane : icone revient a sa largeur d'origine, label masque
+' Repli instantane : icone revient a sa largeur initiale, label masque
 Private Sub CollapseIconHover(idx As Integer)
     On Error Resume Next
     Dim ws As Worksheet: Set ws = ActiveSheet
     Dim ico As Shape: Set ico = GetShape(ws, "sb_ico_" & idx)
     Dim lbl As Shape: Set lbl = GetShape(ws, "sb_lbl_" & idx)
-    If Not ico Is Nothing Then
-        If g_IcoOrigW(idx) > 0 Then ico.Width = g_IcoOrigW(idx)
-    End If
+    If Not ico Is Nothing Then ico.Width = (W_COLLAPSED - 4) / ZoomFactor()
     If Not lbl Is Nothing Then lbl.Visible = msoFalse
     On Error GoTo 0
 End Sub
@@ -287,10 +297,7 @@ Public Sub ExpandSidebar()
     For k = 0 To NAV_COUNT - 1
         Dim ico As Shape: Set ico = GetShape(ws, "sb_ico_" & k)
         Dim sep As Shape: Set sep = GetShape(ws, "sb_sep_" & k)
-        If Not ico Is Nothing Then
-            ico.Visible = msoTrue
-            g_IcoOrigW(k) = ico.Width  ' snapshot avant tout hover
-        End If
+        If Not ico Is Nothing Then ico.Visible = msoTrue
         If Not sep Is Nothing Then sep.Visible = msoTrue
         DoEvents
     Next k
@@ -473,7 +480,6 @@ Public Sub PoserSidebarSurFeuille(ws As Worksheet, Optional zOverride As Single 
             .HorizontalAnchor = 1: .VerticalAnchor = 3: .MarginLeft = 7 / z
         End With
         ico.Visible = msoFalse
-        g_IcoOrigW(k) = ico.Width  ' init par defaut (sera re-snapshoté a ExpandSidebar)
 
         ' Label (masque) — survol = visible, clic = navigation, texte aligne gauche
         Dim lbl As Shape

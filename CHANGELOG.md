@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.16.2.0] — 2026-06-14
+
+### Fixed
+- **Excel — Sidebar hover : zones de détection décalées corrigées** (`modSidebar.bas`) : le survol de l'icône « Prix/Stations » déclenchait le label de « Paramètres » (et autres décalages similaires). Cause : `PointsToScreenPixelsX/Y` renvoie des pixels logiques, `GetCursorPos` des pixels physiques — l'écart est amplifié par le zoom. Correction par **calibration** : `ox = PointsToScreenPixelsX(0)`, `ppx = (PointsToScreenPixelsX(72) − ox) / 72` → curseur converti en points document (`docX = (pt.x − ox) / ppx`) puis comparé directement avec `ico.Left`/`ico.Top` (aussi en points document, invariants par rapport au zoom). Suppression de `g_IcoOrigW(5)` (snapshot stale) : `ExpandIconHover`/`CollapseIconHover` recalculent la largeur initiale à la volée depuis `(W_COLLAPSED − 4) / ZoomFactor()`.
+
 ## [5.16.1.0] — 2026-06-13
 
 ### Fixed
