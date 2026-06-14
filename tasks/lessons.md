@@ -3,6 +3,7 @@
 | Date | Problème | Règle
 |---|---|---|
 | 2026-06-08 | Modules dupliqués après import .bas | Toujours vérifier VB_Name dans .bas avant import, utiliser set-module plutôt qu'import |
+| 2026-06-14 | Erreur compilation VBAProject sur ligne Attribute VB_Name | Avant set-module, filtrer les lignes `^Attribute VB_Name` du .bas (métadata export uniquement, invalide comme code VBE) |
 | 2026-06-08 | Ghost references dans le binaire VBA | Après suppression de module, sauvegarder et rouvrir le classeur avant toute exécution |
 | 2026-06-08 | UTF-8 corruption dans commentaires VBA | Les fichiers .bas doivent être encodés en CP1252 (Windows-1252) pour Excel VBA |
 | 2026-06-08 | 0x800ADF09 après modifications COM | Fermer/rouvrir Excel pour forcer la recompilation du p-code VBA |

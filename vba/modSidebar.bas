@@ -156,23 +156,21 @@ Private Sub DoHoverCheck()
     Dim win As Window: Set win = Application.ActiveWindow
     Dim hotIdx As Integer: hotIdx = -1
 
-    Dim v As Variant
+    Dim v As Object
     On Error Resume Next
-    v = win.RangeFromPoint(pt.x, pt.y)
+    Set v = win.RangeFromPoint(pt.x, pt.y)
     On Error GoTo 0
 
-    If IsObject(v) Then
-        If Not v Is Nothing Then
-            If TypeName(v) = "Shape" Then
-                Dim nm As String: nm = v.Name
-                Dim k As Integer
-                If Left$(nm, 7) = "sb_ico_" Then
-                    k = Val(Mid$(nm, 8))
-                    If k >= 0 And k < NAV_COUNT Then hotIdx = k
-                ElseIf Left$(nm, 7) = "sb_lbl_" Then
-                    k = Val(Mid$(nm, 8))
-                    If k >= 0 And k < NAV_COUNT Then hotIdx = k
-                End If
+    If Not v Is Nothing Then
+        If TypeName(v) = "Shape" Then
+            Dim nm As String: nm = v.Name
+            Dim k As Integer
+            If Left$(nm, 7) = "sb_ico_" Then
+                k = Val(Mid$(nm, 8))
+                If k >= 0 And k < NAV_COUNT Then hotIdx = k
+            ElseIf Left$(nm, 7) = "sb_lbl_" Then
+                k = Val(Mid$(nm, 8))
+                If k >= 0 And k < NAV_COUNT Then hotIdx = k
             End If
         End If
     End If

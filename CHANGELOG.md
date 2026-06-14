@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.16.2.2] — 2026-06-14
+
+### Fixed
+- **Excel — Sidebar hover : `RangeFromPoint` toujours silencieux** (`modSidebar.bas`) : `v = win.RangeFromPoint(...)` sans `Set` sur une variable `Variant` fait appeler la propriété par défaut de l'objet retourné — échoue silencieusement pour Shape, `hotIdx` reste -1. Corrigé : `Dim v As Object` + `Set v = win.RangeFromPoint(...)`.
+
 ## [5.16.2.1] — 2026-06-14
 
 ### Fixed
