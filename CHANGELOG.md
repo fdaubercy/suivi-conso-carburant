@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.16.3.0] — 2026-06-14
+
+### Changed
+- **Excel — Sidebar : refonte en bandeau horizontal** (`modSidebar.bas`) : abandon de la sidebar mobile avec survol (bugs DPI/zoom insolubles). Nouvelle navigation = barre horizontale fixe en haut de chaque feuille (#1B3A5C), 6 items cliquables (icône + label, 108 × 30 pts visuels), onglet actif en vert (#1D9E75) + texte blanc gras, autres en bleu sombre + texte grisé. Zéro timer, zéro Win32 API, zéro hover. Suppression de toutes les déclarations `Declare` et du code `SetTimer`/`GetCursorPos`/`g_IcoOrigW`. Zoom corrigé par feuille (`ws.Activate` + `ZoomFactor()` dans `PoserSidebarSurTousLesOnglets`). Shapes parasites (`sb_bg`, `sb_ham`, `sb_ico_*`, etc.) nettoyées à chaque appel.
+
 ## [5.16.2.3] — 2026-06-14
 
 ### Fixed
