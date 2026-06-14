@@ -143,8 +143,9 @@ Public Sub HoverTimerProc(ByVal hWnd As Long, ByVal uMsg As Long, _
     g_InHoverCheck = False
 End Sub
 
-' RangeFromPoint prend les coordonnees physiques de GetCursorPos et retourne
-' directement l'objet sous le curseur — aucune conversion DPI/zoom necessaire.
+' Detection en deux passes :
+'   1. RangeFromPoint — zero conversion, retourne le Shape sous le curseur
+'   2. Fallback coordonnees — calibration px->pts si RangeFromPoint renvoie Nothing
 Private Sub DoHoverCheck()
     Dim pt As POINTAPI
     If GetCursorPos(pt) = 0 Then Exit Sub
@@ -155,16 +156,14 @@ Private Sub DoHoverCheck()
 
     Dim win As Window: Set win = Application.ActiveWindow
     Dim hotIdx As Integer: hotIdx = -1
+    Dim k As Integer
 
+    ' -- Passe 1 : RangeFromPoint
     Dim v As Object
-    On Error Resume Next
-    Set v = win.RangeFromPoint(pt.x, pt.y)
-    On Error GoTo 0
-
+    On Error Resume Next: Set v = win.RangeFromPoint(pt.x, pt.y): On Error GoTo 0
     If Not v Is Nothing Then
         If TypeName(v) = "Shape" Then
             Dim nm As String: nm = v.Name
-            Dim k As Integer
             If Left$(nm, 7) = "sb_ico_" Then
                 k = Val(Mid$(nm, 8))
                 If k >= 0 And k < NAV_COUNT Then hotIdx = k
@@ -172,6 +171,35 @@ Private Sub DoHoverCheck()
                 k = Val(Mid$(nm, 8))
                 If k >= 0 And k < NAV_COUNT Then hotIdx = k
             End If
+        End If
+    End If
+
+    ' -- Passe 2 : fallback comparaison de coordonnees
+    If hotIdx = -1 Then
+        Dim ox  As Long: ox  = win.PointsToScreenPixelsX(0)
+        Dim oy  As Long: oy  = win.PointsToScreenPixelsY(0)
+        Dim ppx As Single: ppx = CSng(win.PointsToScreenPixelsX(72) - ox) / 72!
+        Dim ppy As Single: ppy = CSng(win.PointsToScreenPixelsY(72) - oy) / 72!
+        If ppx > 0 And ppy > 0 Then
+            Dim docX As Single: docX = (pt.x - ox) / ppx
+            Dim docY As Single: docY = (pt.y - oy) / ppy
+            For k = 0 To NAV_COUNT - 1
+                Dim ico As Shape: Set ico = GetShape(ws, "sb_ico_" & k)
+                If Not ico Is Nothing Then
+                    If ico.Visible = msoTrue Then
+                        Dim icoR As Single: icoR = ico.Left + ico.Width
+                        Dim icoB As Single: icoB = ico.Top + ico.Height
+                        Dim lbl As Shape: Set lbl = GetShape(ws, "sb_lbl_" & k)
+                        If Not lbl Is Nothing Then
+                            If lbl.Visible = msoTrue Then icoR = lbl.Left + lbl.Width
+                        End If
+                        If docX >= ico.Left And docX <= icoR And _
+                           docY >= ico.Top  And docY <= icoB Then
+                            hotIdx = k: Exit For
+                        End If
+                    End If
+                End If
+            Next k
         End If
     End If
 
@@ -352,16 +380,28 @@ Public Sub PoserSidebarSurTousLesOnglets()
     Dim noms As Variant
     noms = Array("Accueil", "Tableau de bord", "Carte", WS_REGLAGES(), _
                  "Suivi Carburant", "Prix par Station", "Hist. Carburant")
+    ' Activer chaque feuille pour lire son zoom reel (evite d'utiliser le zoom
+    ' de l'onglet courant pour tous les onglets, ce qui genere des shapes trop
+    ' grandes ou trop petites sur les feuilles a zoom different).
+    Dim origWs As Worksheet
+    On Error Resume Next: Set origWs = ActiveSheet: On Error GoTo 0
+    Application.ScreenUpdating = False
     Dim i As Long, ws As Worksheet
     For i = LBound(noms) To UBound(noms)
         Set ws = Nothing
         On Error Resume Next: Set ws = ThisWorkbook.Worksheets(CStr(noms(i))): On Error GoTo 0
         If Not ws Is Nothing Then
+            ws.Activate
+            Dim z As Single: z = ZoomFactor()
             On Error Resume Next
-            PoserSidebarSurFeuille ws, ZoomForSheet(CStr(noms(i)))
+            PoserSidebarSurFeuille ws, z
             On Error GoTo 0
         End If
     Next i
+    If Not origWs Is Nothing Then
+        On Error Resume Next: origWs.Activate: On Error GoTo 0
+    End If
+    Application.ScreenUpdating = True
 End Sub
 
 Public Sub PoserSidebarSurFeuille(ws As Worksheet, Optional zOverride As Single = 0)

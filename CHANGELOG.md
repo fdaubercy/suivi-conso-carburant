@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.16.2.3] — 2026-06-14
+
+### Fixed
+- **Excel — Sidebar hover : double stratégie de détection** (`modSidebar.bas`) : passe 1 = `RangeFromPoint` (zéro conversion) ; passe 2 = fallback comparaison de coordonnées calibrée (si passe 1 retourne Nothing). Les deux sont désormais actives.
+- **Excel — Sidebar icônes trop grandes sur certains onglets** (`modSidebar.bas`, `PoserSidebarSurTousLesOnglets`) : le zoom de l'onglet **actif** était appliqué à **tous** les onglets. `PoserSidebarSurTousLesOnglets` active maintenant chaque feuille (`ws.Activate` + `ScreenUpdating = False`) pour lire son zoom réel avant de placer les shapes, puis restaure l'onglet d'origine.
+
 ## [5.16.2.2] — 2026-06-14
 
 ### Fixed
