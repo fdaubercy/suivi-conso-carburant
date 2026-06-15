@@ -327,3 +327,13 @@ Pilotage de Google Apps Script et Google Sheets via leurs API REST. Config dans 
 ## ⚠️ Secrets — ne jamais committer
 
 `SYNC_SECRET`, tokens OAuth Google, clés API privées. `GOOGLE_CLIENT_ID`, `APP_TOKEN` et clés Maps JS sont publics par nature (la protection est la restriction par domaine côté Google).
+
+## Reprise de session
+
+Commande dédiée : `/reprise-session [chemin-export]`
+
+- TOUJOURS utiliser cette commande pour reprendre le travail à partir de l'export d'une session précédente.
+- Pour chaque demande utilisateur de l'export, déterminer le statut (✅ finalisée / 🔶 partielle / ❌ à faire) et le justifier par une PREUVE vérifiable (commit, fichier, sortie). INTERDICTION de classer "finalisée" sans preuve.
+- TOUJOURS reprendre les actions interrompues en milieu d'exécution.
+- TOUJOURS présenter le plan de reprise (tableau récapitulatif) et attendre validation avant d'exécuter les actions 🔶/❌, sauf en mode Auto.
+- En fin de reprise : consigner les leçons dans `tasks/lessons.md` et générer un mini-export de fin de session.

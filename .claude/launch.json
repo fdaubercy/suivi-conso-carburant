@@ -7,13 +7,6 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173
-    },
-    {
-      "name": "suivi-e85",
-      "cwd": "C:/Users/fdaub/Documents/Github/suivi-conso-carburant",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 5173
     }
   ]
 }
