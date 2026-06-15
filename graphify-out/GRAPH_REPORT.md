@@ -1,10 +1,11 @@
-# Graph Report - C:\Users\fdaub\Documents\Github\suivi-conso-carburant  (2026-06-15)
+# Graph Report - suivi-conso-carburant  (2026-06-15)
 
 ## Corpus Check
-- cluster-only mode — file stats not available
+- 115 files · ~642,990 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1092 nodes · 2180 edges · 132 communities (54 shown, 78 thin omitted)
+- 2033 nodes · 3132 edges · 303 communities (209 shown, 94 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 52 edges (avg confidence: 0.84)
 - Token cost: 0 input · 0 output
 
@@ -76,7 +77,6 @@
 - [[_COMMUNITY_Dashboard graphiques & leçons|Dashboard graphiques & leçons]]
 - [[_COMMUNITY_Service Worker & icône PWA|Service Worker & icône PWA]]
 - [[_COMMUNITY_Qualité (CIlinttests)|Qualité (CI/lint/tests)]]
-- [[_COMMUNITY_Fonds d'écran SVG|Fonds d'écran SVG]]
 - [[_COMMUNITY_Images Z900 (vert)|Images Z900 (vert)]]
 - [[_COMMUNITY_Modules VBA Excel|Modules VBA Excel]]
 - [[_COMMUNITY_Hooks settings.json|Hooks settings.json]]
@@ -136,30 +136,201 @@
 - [[_COMMUNITY_Badges notification|Badges notification]]
 - [[_COMMUNITY_Pull-to-refresh (doc)|Pull-to-refresh (doc)]]
 - [[_COMMUNITY_Gestes swipe|Gestes swipe]]
+- [[_COMMUNITY_C9 Service account Google|C9 Service account Google]]
+- [[_COMMUNITY_GAS Manager  gas-api|GAS Manager / gas-api]]
+- [[_COMMUNITY_S13 Rapport mensuel illustré|S13 Rapport mensuel illustré]]
+- [[_COMMUNITY_X12 Backup Google Drive|X12 Backup Google Drive]]
+- [[_COMMUNITY_X17 Garde-fou version classeur|X17 Garde-fou version classeur]]
+- [[_COMMUNITY_X18 check-vba-drift CI|X18 check-vba-drift CI]]
+- [[_COMMUNITY_rotateControl supprimé|rotateControl supprimé]]
+- [[_COMMUNITY_Leçon buffer VBE set-module|Leçon buffer VBE set-module]]
+- [[_COMMUNITY_Tests a11y boutons|Tests a11y boutons]]
+- [[_COMMUNITY_Config spellright FR|Config spellright FR]]
+- [[_COMMUNITY_Community 142|Community 142]]
+- [[_COMMUNITY_Community 143|Community 143]]
+- [[_COMMUNITY_Community 144|Community 144]]
+- [[_COMMUNITY_Community 145|Community 145]]
+- [[_COMMUNITY_Community 146|Community 146]]
+- [[_COMMUNITY_Community 147|Community 147]]
+- [[_COMMUNITY_Community 148|Community 148]]
+- [[_COMMUNITY_Community 149|Community 149]]
+- [[_COMMUNITY_Community 150|Community 150]]
+- [[_COMMUNITY_Community 151|Community 151]]
+- [[_COMMUNITY_Community 152|Community 152]]
+- [[_COMMUNITY_Community 153|Community 153]]
+- [[_COMMUNITY_Community 154|Community 154]]
+- [[_COMMUNITY_Community 155|Community 155]]
+- [[_COMMUNITY_Community 156|Community 156]]
+- [[_COMMUNITY_Community 157|Community 157]]
+- [[_COMMUNITY_Community 158|Community 158]]
+- [[_COMMUNITY_Community 159|Community 159]]
+- [[_COMMUNITY_Community 160|Community 160]]
+- [[_COMMUNITY_Community 161|Community 161]]
+- [[_COMMUNITY_Community 162|Community 162]]
+- [[_COMMUNITY_Community 163|Community 163]]
+- [[_COMMUNITY_Community 164|Community 164]]
+- [[_COMMUNITY_Community 165|Community 165]]
+- [[_COMMUNITY_Community 166|Community 166]]
+- [[_COMMUNITY_Community 167|Community 167]]
+- [[_COMMUNITY_Community 168|Community 168]]
+- [[_COMMUNITY_Community 169|Community 169]]
+- [[_COMMUNITY_Community 170|Community 170]]
+- [[_COMMUNITY_Community 171|Community 171]]
+- [[_COMMUNITY_Community 172|Community 172]]
+- [[_COMMUNITY_Community 173|Community 173]]
+- [[_COMMUNITY_Community 174|Community 174]]
+- [[_COMMUNITY_Community 175|Community 175]]
+- [[_COMMUNITY_Community 176|Community 176]]
+- [[_COMMUNITY_Community 177|Community 177]]
+- [[_COMMUNITY_Community 178|Community 178]]
+- [[_COMMUNITY_Community 179|Community 179]]
+- [[_COMMUNITY_Community 180|Community 180]]
+- [[_COMMUNITY_Community 181|Community 181]]
+- [[_COMMUNITY_Community 182|Community 182]]
+- [[_COMMUNITY_Community 183|Community 183]]
+- [[_COMMUNITY_Community 184|Community 184]]
+- [[_COMMUNITY_Community 185|Community 185]]
+- [[_COMMUNITY_Community 186|Community 186]]
+- [[_COMMUNITY_Community 187|Community 187]]
+- [[_COMMUNITY_Community 188|Community 188]]
+- [[_COMMUNITY_Community 189|Community 189]]
+- [[_COMMUNITY_Community 190|Community 190]]
+- [[_COMMUNITY_Community 191|Community 191]]
+- [[_COMMUNITY_Community 192|Community 192]]
+- [[_COMMUNITY_Community 193|Community 193]]
+- [[_COMMUNITY_Community 194|Community 194]]
+- [[_COMMUNITY_Community 195|Community 195]]
+- [[_COMMUNITY_Community 196|Community 196]]
+- [[_COMMUNITY_Community 197|Community 197]]
+- [[_COMMUNITY_Community 198|Community 198]]
+- [[_COMMUNITY_Community 199|Community 199]]
+- [[_COMMUNITY_Community 200|Community 200]]
+- [[_COMMUNITY_Community 201|Community 201]]
+- [[_COMMUNITY_Community 202|Community 202]]
+- [[_COMMUNITY_Community 203|Community 203]]
+- [[_COMMUNITY_Community 204|Community 204]]
+- [[_COMMUNITY_Community 205|Community 205]]
+- [[_COMMUNITY_Community 206|Community 206]]
+- [[_COMMUNITY_Community 207|Community 207]]
+- [[_COMMUNITY_Community 208|Community 208]]
+- [[_COMMUNITY_Community 209|Community 209]]
+- [[_COMMUNITY_Community 210|Community 210]]
+- [[_COMMUNITY_Community 211|Community 211]]
+- [[_COMMUNITY_Community 212|Community 212]]
+- [[_COMMUNITY_Community 213|Community 213]]
+- [[_COMMUNITY_Community 214|Community 214]]
+- [[_COMMUNITY_Community 215|Community 215]]
+- [[_COMMUNITY_Community 216|Community 216]]
+- [[_COMMUNITY_Community 217|Community 217]]
+- [[_COMMUNITY_Community 218|Community 218]]
+- [[_COMMUNITY_Community 219|Community 219]]
+- [[_COMMUNITY_Community 220|Community 220]]
+- [[_COMMUNITY_Community 221|Community 221]]
+- [[_COMMUNITY_Community 222|Community 222]]
+- [[_COMMUNITY_Community 223|Community 223]]
+- [[_COMMUNITY_Community 224|Community 224]]
+- [[_COMMUNITY_Community 225|Community 225]]
+- [[_COMMUNITY_Community 226|Community 226]]
+- [[_COMMUNITY_Community 227|Community 227]]
+- [[_COMMUNITY_Community 228|Community 228]]
+- [[_COMMUNITY_Community 229|Community 229]]
+- [[_COMMUNITY_Community 230|Community 230]]
+- [[_COMMUNITY_Community 231|Community 231]]
+- [[_COMMUNITY_Community 232|Community 232]]
+- [[_COMMUNITY_Community 233|Community 233]]
+- [[_COMMUNITY_Community 234|Community 234]]
+- [[_COMMUNITY_Community 235|Community 235]]
+- [[_COMMUNITY_Community 236|Community 236]]
+- [[_COMMUNITY_Community 237|Community 237]]
+- [[_COMMUNITY_Community 238|Community 238]]
+- [[_COMMUNITY_Community 239|Community 239]]
+- [[_COMMUNITY_Community 240|Community 240]]
+- [[_COMMUNITY_Community 241|Community 241]]
+- [[_COMMUNITY_Community 242|Community 242]]
+- [[_COMMUNITY_Community 243|Community 243]]
+- [[_COMMUNITY_Community 244|Community 244]]
+- [[_COMMUNITY_Community 245|Community 245]]
+- [[_COMMUNITY_Community 246|Community 246]]
+- [[_COMMUNITY_Community 247|Community 247]]
+- [[_COMMUNITY_Community 248|Community 248]]
+- [[_COMMUNITY_Community 249|Community 249]]
+- [[_COMMUNITY_Community 250|Community 250]]
+- [[_COMMUNITY_Community 251|Community 251]]
+- [[_COMMUNITY_Community 252|Community 252]]
+- [[_COMMUNITY_Community 253|Community 253]]
+- [[_COMMUNITY_Community 254|Community 254]]
+- [[_COMMUNITY_Community 255|Community 255]]
+- [[_COMMUNITY_Community 256|Community 256]]
+- [[_COMMUNITY_Community 257|Community 257]]
+- [[_COMMUNITY_Community 258|Community 258]]
+- [[_COMMUNITY_Community 259|Community 259]]
+- [[_COMMUNITY_Community 260|Community 260]]
+- [[_COMMUNITY_Community 261|Community 261]]
+- [[_COMMUNITY_Community 262|Community 262]]
+- [[_COMMUNITY_Community 263|Community 263]]
+- [[_COMMUNITY_Community 264|Community 264]]
+- [[_COMMUNITY_Community 265|Community 265]]
+- [[_COMMUNITY_Community 266|Community 266]]
+- [[_COMMUNITY_Community 267|Community 267]]
+- [[_COMMUNITY_Community 268|Community 268]]
+- [[_COMMUNITY_Community 269|Community 269]]
+- [[_COMMUNITY_Community 270|Community 270]]
+- [[_COMMUNITY_Community 271|Community 271]]
+- [[_COMMUNITY_Community 272|Community 272]]
+- [[_COMMUNITY_Community 273|Community 273]]
+- [[_COMMUNITY_Community 274|Community 274]]
+- [[_COMMUNITY_Community 275|Community 275]]
+- [[_COMMUNITY_Community 276|Community 276]]
+- [[_COMMUNITY_Community 277|Community 277]]
+- [[_COMMUNITY_Community 278|Community 278]]
+- [[_COMMUNITY_Community 279|Community 279]]
+- [[_COMMUNITY_Community 280|Community 280]]
+- [[_COMMUNITY_Community 281|Community 281]]
+- [[_COMMUNITY_Community 282|Community 282]]
+- [[_COMMUNITY_Community 283|Community 283]]
+- [[_COMMUNITY_Community 284|Community 284]]
+- [[_COMMUNITY_Community 285|Community 285]]
+- [[_COMMUNITY_Community 286|Community 286]]
+- [[_COMMUNITY_Community 287|Community 287]]
+- [[_COMMUNITY_Community 288|Community 288]]
+- [[_COMMUNITY_Community 289|Community 289]]
+- [[_COMMUNITY_Community 290|Community 290]]
+- [[_COMMUNITY_Community 291|Community 291]]
+- [[_COMMUNITY_Community 292|Community 292]]
+- [[_COMMUNITY_Community 293|Community 293]]
+- [[_COMMUNITY_Community 294|Community 294]]
+- [[_COMMUNITY_Community 295|Community 295]]
+- [[_COMMUNITY_Community 296|Community 296]]
+- [[_COMMUNITY_Community 297|Community 297]]
+- [[_COMMUNITY_Community 298|Community 298]]
+- [[_COMMUNITY_Community 299|Community 299]]
+- [[_COMMUNITY_Community 300|Community 300]]
+- [[_COMMUNITY_Community 301|Community 301]]
+- [[_COMMUNITY_Community 302|Community 302]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `js/ticket.js` - 38 edges
-2. `js/ui.js` - 36 edges
-3. `js/utils.js` - 33 edges
-4. `state — shared reactive singleton (currentType, userLat/Lon, prices, stations)` - 29 edges
-5. `getAllRecords()` - 24 edges
+1. `Changelog` - 111 edges
+2. `Changelog` - 71 edges
+3. `✨ Fonctionnalités` - 35 edges
+4. `state` - 29 edges
+5. `getAllRecords()` - 25 edges
 6. `fetchPricesAtCoords()` - 24 edges
-7. `authEnabled() — détecte si un vrai Client ID OAuth est configuré` - 19 edges
-8. `js/statsApi.js` - 19 edges
-9. `showFeedback — toast notification (success/error/info)` - 19 edges
-10. `isAuthed() — vrai si session non expirée présente` - 18 edges
+7. `CLAUDE.md — Suivi Conso Carburants` - 22 edges
+8. `authEnabled()` - 20 edges
+9. `showFeedback()` - 20 edges
+10. `isAuthed()` - 19 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `Overpass API nearby E85 station search` --semantically_similar_to--> `js/brand.js BRANDS registry + getUnknownBrands()`  [INFERRED] [semantically similar]
+  Google Drive/Sauvegarde & Geolocalisation - Suivi conso SuperEthanol/Google Apps Script/index.html → public/icons/brands/README.md
 - `APP_VERSION 5.17.0.0` --conceptually_related_to--> `Bannière dashboard largeur dynamique (WTOT)`  [INFERRED]
   js/config.js → CHANGELOG.md
-- `authEnabled() — détecte si un vrai Client ID OAuth est configuré` --calls--> `_gateActive()`  [EXTRACTED]
-  C:/Users/fdaub/Documents/Github/suivi-conso-carburant/js/auth.js → js/router.js
-- `authEnabled() — détecte si un vrai Client ID OAuth est configuré` --calls--> `chargerVehicules()`  [EXTRACTED]
-  C:/Users/fdaub/Documents/Github/suivi-conso-carburant/js/auth.js → js/vehicules.js
-- `_clearSession()` --calls--> `signOut() — purge la session, coupe la reconnexion auto, notifie l'app`  [EXTRACTED]
-  js/auth.js → C:/Users/fdaub/Documents/Github/suivi-conso-carburant/js/auth.js
-- `isAuthed() — vrai si session non expirée présente` --calls--> `_gateActive()`  [EXTRACTED]
-  C:/Users/fdaub/Documents/Github/suivi-conso-carburant/js/auth.js → js/router.js
+- `_ImportGS sheet (15-col plein store, sync_id)` --shares_data_with--> `RapportMensuel.gs / WrappedAnnuel.gs email triggers`  [INFERRED]
+  Google Drive/Sauvegarde & Geolocalisation - Suivi conso SuperEthanol/Google Apps Script/GAS_UPDATE.md → INSTALL.md
+- `pickStation()` --conceptually_related_to--> `showStationPopup()`  [INFERRED]
+  js/geo.js → js/itineraire.js
+- `setFsButtonState()` --references--> `mapfullscreen-fsstate.test.js — setFsButtonState tests`  [EXTRACTED]
+  js/mapfullscreen.js → tests/mapfullscreen-fsstate.test.js
 
 ## Import Cycles
 - None detected.
@@ -167,71 +338,71 @@
 ## Hyperedges (group relationships)
 - **Release v5.17.0.0 — Dashboard largeur dynamique + navbar Excel** — release_5170_dashboard_largeur_dynamique, release_5170_zoomcolsforsheet_public, release_5170_libelles_navbar, vba_moddashboardgraphiques, vba_affichage_module [EXTRACTED 0.90]
 
-## Communities (132 total, 78 thin omitted)
+## Communities (303 total, 94 thin omitted)
 
 ### Community 0 - "Prix secteur & historique"
-Cohesion: 0.06
-Nodes (75): DOM helper functions, submitForm, _buildTypeToggle() — reconstruit le toggle UI des types de carburant, _fetchPricesNearUser(), initTypeToggle() — délégation d'événements sur #typeToggle, registerPriceCallback() — casse la dépendance circulaire carburant↔prix, setType() — change le carburant courant, met à jour UI + stats, _updateHeaderBadges() (+67 more)
+Cohesion: 0.22
+Nodes (26): DOM helper functions, _buildTypeToggle(), _updateHeaderBadges(), FUEL_KEYS, clearDraft(), onStationChange(), resetForm(), applyPricesResult() (+18 more)
 
 ### Community 1 - "Statistiques & KPIs"
-Cohesion: 0.05
-Nodes (72): Stats cache TTL & freshness, _getNum(), initBadges() — branche le rafraîchissement sur viewchange event, _markSeen(), refreshBadges() — recalcule et applique les 3 pastilles (params, historique, carte), SECTOR_FUELS, _setBadge(), _todayIso() (+64 more)
+Cohesion: 0.06
+Nodes (61): Stats cache TTL & freshness, buildComparatifCSV(), CMP_COLS, computeVehicleComparison(), exportComparatifCSV(), initComparatifExport(), renderComparatif(), buildBudgetBar() (+53 more)
 
 ### Community 2 - "Historique & véhicules"
-Cohesion: 0.06
-Nodes (62): _allRecords, buildHistoriqueCSV(), chargerHistorique() — charge l'historique (cache + sync différentielle GAS), CSV_COLS, _csvSep(), _downloadCSV(), dupliquerDernier(), escapeHtml() (+54 more)
+Cohesion: 0.07
+Nodes (37): _allRecords, buildHistoriqueCSV(), chargerHistorique(), CSV_COLS, _csvSep(), _downloadCSV(), dupliquerDernier(), escapeHtml() (+29 more)
 
 ### Community 3 - "Auth Google & paramètres"
-Cohesion: 0.06
-Nodes (47): brandIconUrl() — URL icône SVG d'enseigne (public/icons/brands/<slug>.svg), brandInfo() — infos complètes enseigne (label, couleur, slug, URL icône), BRANDS, GENERIC_BRAND_ICON, _logUnknownBrand(), _unknownSeen, _renderGoogleMap(), FUEL_KEYS (+39 more)
+Cohesion: 0.11
+Nodes (26): CARTE_FUELS, computeStationAverages(), _defaultFuelForVehicle(), _ensureUserPos(), FUEL_TOKENS, _geocodeMissing(), _geocodeTried, getStationCoords() (+18 more)
 
 ### Community 4 - "Déploiement GAS (API)"
-Cohesion: 0.10
-Nodes (45): Flux d'authentification Google — GIS One-Tap → JWT → session localStorage, LWW parameters sync — last-write-wins reconciliation across app/Excel/GAS, Offline sync queue — localStorage queue for failed GAS POSTs, auth-changed CustomEvent — émis à chaque (dé)connexion Google, authEnabled() — détecte si un vrai Client ID OAuth est configuré, _avatarHtml(), _b64urlToJson(), _clearSession() (+37 more)
+Cohesion: 0.13
+Nodes (30): Flux d'authentification Google — GIS One-Tap → JWT → session localStorage, auth-changed CustomEvent — émis à chaque (dé)connexion Google, authEnabled(), _avatarHtml(), _b64urlToJson(), _clearSession(), _dispatch(), ensureGis() (+22 more)
 
 ### Community 5 - "VBA Agent (COM Python)"
 Cohesion: 0.05
-Nodes (44): .claude/gas-config.example.json, _comment, deployHistory, deployId, _doc, endpoints, createVersion, readScript (+36 more)
+Nodes (42): _comment, deployHistory, deployId, _doc, endpoints, createVersion, readScript, readSheet (+34 more)
 
 ### Community 6 - "Build & dépendances npm"
 Cohesion: 0.05
-Nodes (40): dependencies, tesseract.js, description, devDependencies, eslint, @eslint/js, husky, jsdom (+32 more)
+Nodes (41): dependencies, tesseract.js, description, devDependencies, eslint, @eslint/js, husky, jsdom (+33 more)
 
 ### Community 7 - "Bilan annuel Wrapped"
 Cohesion: 0.09
-Nodes (32): Historical price resolution — nearest-prior sector/station price for past fills, applyHistPriceToForm(), _cacheKey(), escapeHtml(), _frDate(), getSectorMinForDate — sector minimum price for a given date, getSectorToday(), HIST_FUELS (+24 more)
+Nodes (30): Historical price resolution — nearest-prior sector/station price for past fills, applyHistPriceToForm(), _cacheKey(), escapeHtml(), _frDate(), getSectorMinForDate(), getSectorToday(), HIST_FUELS (+22 more)
 
 ### Community 8 - "Carte stations habituelles"
 Cohesion: 0.17
 Nodes (31): build_parser(), cmd_backup(), cmd_build_form(), cmd_import(), cmd_inspect(), cmd_list(), cmd_remove(), cmd_run() (+23 more)
 
 ### Community 9 - "Notifications push"
-Cohesion: 0.11
-Nodes (22): CHANGELOG v5.14.0.0, buildWrapped(), computeSurconso(), _downloadBlob(), drawWrappedCard(), escapeHtml(), getAvailableYears(), getScope() (+14 more)
+Cohesion: 0.12
+Nodes (23): CHANGELOG v5.14.0.0, buildWrapped(), computeSurconso(), _downloadBlob(), drawWrappedCard(), escapeHtml(), getAvailableYears(), getScope() (+15 more)
 
 ### Community 10 - "Backend & archi U7"
-Cohesion: 0.16
-Nodes (25): ALERT_FUELS, buildFuelRows(), checkPrixAlert(), checkPrixE85Alert(), _defOf(), ensurePermission(), getPermission(), getSeuil() (+17 more)
+Cohesion: 0.15
+Nodes (26): LWW parameters sync — last-write-wins reconciliation across app/Excel/GAS, ALERT_FUELS, buildFuelRows(), checkPrixAlert(), checkPrixE85Alert(), _defOf(), ensurePermission(), getPermission() (+18 more)
 
 ### Community 11 - "Routeur & préférences UI"
 Cohesion: 0.12
 Nodes (24): CHANGELOG v5.16.0.0, Lesson: always override background in dark theme active states, Lesson: Call to deleted module = compile error, Lesson: shapes must use xlFreeFloating, Lesson: deploy .bas as UTF-8 not CP1252, Lesson: VB_Name attribute causes macro failure, Plan sidebar icônes+titre (2026-06-13), find_wb() (+16 more)
 
 ### Community 12 - "Carte Google/OSM (résultats)"
-Cohesion: 0.18
-Nodes (20): Geolocation localStorage cache TTL 1h (W31), OSM brand enrichment — single Overpass grouped query to name stations, OSM enrichment (enrichStationsBulk) — background station name resolution, Geo localStorage cache (GEO_CACHE_KEY, 1h TTL), geolocate(), highlightNearbyItem(), initNearbyList(), loadGeoCache() (+12 more)
+Cohesion: 0.22
+Nodes (18): Geolocation localStorage cache TTL 1h (W31), OSM enrichment (enrichStationsBulk) — background station name resolution, Geo localStorage cache (GEO_CACHE_KEY, 1h TTL), geolocate(), highlightNearbyItem(), initNearbyList(), loadGeoCache(), pickStation() (+10 more)
 
 ### Community 13 - "Dashboard graphiques Excel"
 Cohesion: 0.14
 Nodes (22): Feuil3 (Tableau de bord), modDashboardGraphiques, modFiltres, modGraphiques, ModuleImportGS, ThisWorkbook, ApplyDefaultPeriodOnce, ApplyFiltersFromControls (+14 more)
 
 ### Community 14 - "Utilitaires & enseignes"
-Cohesion: 0.15
-Nodes (21): Pure utility functions, detectBrand() — détecte l'enseigne d'une station par regex sur son nom, applyTicketStation(), _findStationInCommune(), js/utils.js, brandFromAddress(), composeStationName — 'Brand - Ville' label builder, formatVille() (+13 more)
+Cohesion: 0.17
+Nodes (16): Pure utility functions, detectBrand(), brandFromAddress(), composeStationName(), formatVille(), resolveEnseigne(), stationSubLabel(), describe: composeStationName (+8 more)
 
 ### Community 15 - "Scan ticket OCR"
-Cohesion: 0.12
-Nodes (17): OCR ticket parsing logic, js/ticket.js, fillFormFromTicket — inject parsed ticket data into form fields, FRENCH_MONTHS, FUEL_LABEL_MAP, initScanner — Gemini Vision + Tesseract.js OCR fallback (W17), normalizeNumericText(), parseOCRText — multi-pattern ticket text extraction (date/km/litres/prix) (+9 more)
+Cohesion: 0.11
+Nodes (21): OCR ticket parsing logic, cacheStationCoords(), applyTicketStation(), fillFormFromTicket(), _findStationInCommune(), FRENCH_MONTHS, FUEL_LABEL_MAP, initScanner() (+13 more)
 
 ### Community 16 - "VBA Agent CLI & UserForms"
 Cohesion: 0.13
@@ -242,24 +413,24 @@ Cohesion: 0.12
 Nodes (17): js/brand.js BRANDS registry + getUnknownBrands(), Fuel brand icon catalogue (public/icons/brands), GAS backend Code.gs (doGet/doPost web app), doGet endpoints (export / stats / sectorPrices / lowprices / getParametres), doPost actions (plein / addStation / bulkAdd / bulkUpdate / scanTicket / setParametres), Parametres sheet (shared business params app<->Excel, P1), RefreshPrix.gs daily price releve (6 fuels, _PrixHistory), scanTicket endpoint (Gemini OCR, W17) (+9 more)
 
 ### Community 18 - "Géoloc & OSM"
-Cohesion: 0.14
-Nodes (17): Historique complet + filtres (#histoireFullCard), Barre véhicule globale (#vehBar / #vehiculeSelGlobal), Bilan annuel Wrapped card (#wrappedCard), Wrapped scope toggle (#wrappedScopeBtn véhicule / tous), Wrapped share button (#wrappedShareBtn), Plan d'implémentation — Découvrabilité boutons-icônes, Tâche 1 — Groupe A clusters en-tête (boutons 4-10), Tâche 2 — Groupe B boutons de champ (1-2) (+9 more)
+Cohesion: 0.07
+Nodes (29): Historique complet + filtres (#histoireFullCard), Barre véhicule globale (#vehBar / #vehiculeSelGlobal), Bilan annuel Wrapped card (#wrappedCard), Wrapped scope toggle (#wrappedScopeBtn véhicule / tous), Wrapped share button (#wrappedShareBtn), Plan d'implémentation — Découvrabilité boutons-icônes, Tâche 1 — Groupe A clusters en-tête (boutons 4-10), Tâche 2 — Groupe B boutons de champ (1-2) (+21 more)
 
 ### Community 19 - "Recherche manuelle (BAN)"
 Cohesion: 0.17
 Nodes (12): Playwright E2E tests (Chromium, mock GAS via page.route), swVersionPlugin (Vite plugin injecting APP_VERSION into SW), Vitest unit tests + v8 coverage (235+ tests, 22 files), Path, extract_from_xlsm(), load_bas_files(), main(), normalize() (+4 more)
 
 ### Community 20 - "Géocodage & marqueurs carte"
-Cohesion: 0.25
-Nodes (12): _priceBadge(), _close(), GMAPS_URL(), _onKey(), showStationPopup() — popup infos station + itinéraire Waze/GMaps (S11), WAZE_URL(), state — shared reactive singleton (currentType, userLat/Lon, prices, stations), escHtml() (+4 more)
+Cohesion: 0.26
+Nodes (9): _priceBadge(), _close(), GMAPS_URL(), _onKey(), showStationPopup(), WAZE_URL(), state, escHtml() (+1 more)
 
 ### Community 21 - "ROADMAP priorités & releases"
 Cohesion: 0.16
 Nodes (14): hideMap, initMapInteractions, carte.js, showMap, showPinLabel, tileXY, GOOGLE_MAPS_MAP_ID, googleMapsActive (+6 more)
 
 ### Community 22 - "Endpoints GAS (doPost/doGet)"
-Cohesion: 0.44
-Nodes (12): showMap(), renderNearby(), buildSearchClause(), buildStations(), geocodeAddress(), onAutreInput(), searchStationsCityOnly(), searchStationSuggestions() (+4 more)
+Cohesion: 0.30
+Nodes (13): OSM brand enrichment — single Overpass grouped query to name stations, showMap(), enrichStationsBulk(), buildSearchClause(), buildStations(), geocodeAddress(), onAutreInput(), searchStationsCityOnly() (+5 more)
 
 ### Community 23 - "Releases & carte Google W63"
 Cohesion: 0.17
@@ -287,7 +458,7 @@ Nodes (8): CSS Fullscreen Pattern (position:fixed, no Fullscreen API), _ensureCa
 
 ### Community 29 - "Avancement X39 (dashboard VBA)"
 Cohesion: 0.33
-Nodes (10): atTop(), buildIndicator(), initPullRefresh — touch pull-to-refresh gesture (W46), innerCanScrollUp(), onEnd(), onMove(), onStart(), reset() (+2 more)
+Nodes (10): atTop(), buildIndicator(), initPullRefresh(), innerCanScrollUp(), onEnd(), onMove(), onStart(), reset() (+2 more)
 
 ### Community 30 - "Filtres VBA & chronologie"
 Cohesion: 0.18
@@ -315,7 +486,7 @@ Nodes (7): bestZoom(), hideMap(), initMapInteractions(), latLonToPx(), _renderMa
 
 ### Community 36 - "Règles projet & versioning"
 Cohesion: 0.39
-Nodes (6): dismiss(), _hide(), initPWA — SW registration + install prompt + update banner (W4/W23), _showUpdateBanner — SKIP_WAITING update banner (W23), triggerInstall(), pwa.test.js — PWA install banner tests
+Nodes (4): dismiss(), _hide(), initPWA(), triggerInstall()
 
 ### Community 37 - "Carte plein écran"
 Cohesion: 0.40
@@ -353,37 +524,653 @@ Nodes (4): CHANGELOG v5.13.0.0, Lesson: never CStr() a real date for re-parsing,
 Cohesion: 0.50
 Nodes (3): hooks, PostToolUse, Stop
 
-### Community 47 - "Tests prix historique"
-Cohesion: 0.67
-Nodes (3): command: commitMe, commit.sh gate (lint + vitest + rebase + push), ESLint Config
-
 ### Community 48 - "Constantes config & CO2"
 Cohesion: 0.50
-Nodes (4): command: excel-vba-expert, VBA Agent COM injection via pywin32 (set-module, build-form, run), skill: vba-agent, vba-agent exemple-form.json
+Nodes (3): VBA Agent COM injection via pywin32 (set-module, build-form, run), skill: vba-agent, vba-agent exemple-form.json
 
 ### Community 50 - "Config carburants & stations"
 Cohesion: 0.67
 Nodes (3): Z900 Kawasaki — filigrane moyen N&B (opacité ~16%, flou Gaussien r=5), Z900 Kawasaki — filigrane couleur léger (opacité ~13%, flou r=3), z900_preview.html — galerie HTML des 6 variantes de filigrane Kawasaki Z900
 
+### Community 132 - "C9 Service account Google"
+Cohesion: 0.03
+Nodes (70): [2.10.0.1] — 2026-05-27, [2.10.0.2] — 2026-05-27, [2.10.0.3] — 2026-05-27, [2.10.0.4] — 2026-05-27, [2.10.0.5] — 2026-05-27, [2.15.0.1] — 2026-05-28, [2.4.5.1] — 2026-05-25, [2.7.0.1] — 2026-05-25 (+62 more)
+
+### Community 133 - "GAS Manager / gas-api"
+Cohesion: 0.05
+Nodes (40): [4.10.0.1] — 2026-05-31, [4.10.0.2] — 2026-05-31, [4.11.0.1] — 2026-06-01, [4.11.0.3] — 2026-06-01, [4.13.1.1] — 2026-06-02, [4.13.2.0] — 2026-06-02, [4.14.0.1] — 2026-06-03, [4.14.0.3] — 2026-06-03 (+32 more)
+
+### Community 134 - "S13 Rapport mensuel illustré"
+Cohesion: 0.06
+Nodes (34): 🏗️ Architecture, Backend GAS (`Google Drive/.../Google Apps Script/`), Cas d'usage validés sur ce projet, 🎨 Charte & Workflow UI (design → code), CLAUDE.md — Suivi Conso Carburants, 🧰 Commandes, 🤝 Commandes déjà validées, 📚 Documentation obligatoire (+26 more)
+
+### Community 135 - "X12 Backup Google Drive"
+Cohesion: 0.06
+Nodes (35): 🔔 Alertes prix par carburant (W11 → W49), 📝 Auto-save brouillon (W15), 🔴 Badges de notification sur les onglets (W45), 🔄 Bannière "Mise à jour disponible" (W23), 🎉 Bilan annuel « Wrapped » (W37), Carte interactive des résultats (W63 — Google Maps, repli OpenStreetMap), ⛽ Carte multi-carburant (W47 + W48), 🔁 CI — GitHub Actions (W13 + S9 + W72) (+27 more)
+
+### Community 136 - "X17 Garde-fou version classeur"
+Cohesion: 0.06
+Nodes (33): 1. Structure d'un projet Apps Script, 2.1 Créer ou modifier un script, 2.2 Configurer les scopes OAuth, 2.3 Activer les services avancés, 2.4 Configurer les déclencheurs (Triggers), 2.5 Associer un projet Cloud, 2. Éditeur web — script.google.com, 3.1 Créer un déploiement (Web App ou API Executable) (+25 more)
+
+### Community 137 - "X18 check-vba-drift CI"
+Cohesion: 0.06
+Nodes (32): Actions `doGet`, Actions `doPost`, `addStation`, `addVehicule`, `bulkAdd`, `bulkUpdate` _(v2.9.0.0 — sync bidirectionnel)_, Clé Gemini (optionnel — scan ticket), Configuration requise (+24 more)
+
+### Community 138 - "rotateControl supprimé"
+Cohesion: 0.16
+Nodes (24): initCollapsibles(), initHomeResume(), initPreferences(), initStartViewSetting(), renderHomeResume(), VIEW_META, currentView(), dirBetween() (+16 more)
+
+### Community 139 - "Leçon buffer VBE set-module"
+Cohesion: 0.12
+Nodes (23): submitForm, _getClientId(), _parseSpeechToNumber(), saveDraft(), submitForm(), getMaxKmForVehicule(), fetchNearestE85Price(), chargerStations() (+15 more)
+
+### Community 140 - "Tests a11y boutons"
+Cohesion: 0.16
+Nodes (20): _getNum(), initBadges(), _markSeen(), refreshBadges(), SECTOR_FUELS, _setBadge(), _todayIso(), checkDuplicate() (+12 more)
+
+### Community 141 - "Config spellright FR"
+Cohesion: 0.14
+Nodes (18): brandIconUrl(), brandInfo(), BRANDS, GENERIC_BRAND_ICON, _logUnknownBrand(), _unknownSeen, _renderGoogleMap(), googleMapsEnabled() (+10 more)
+
+### Community 142 - "Community 142"
+Cohesion: 0.10
+Nodes (19): 1. Authentification OAuth, 2. Apps Script API — Endpoints, 3. Sheets API — Endpoints, 4. Paramètres du projet — gas-config.json, 5. Erreurs fréquentes, 6. Pattern complet — modifier et redéployer, 7. Artifact GAS Manager, Créer une version (snapshot) (+11 more)
+
+### Community 143 - "Community 143"
+Cohesion: 0.10
+Nodes (19): 🎯 Améliorations significatives, 🎯 Backend (GAS), 🛠️ Dev / Outillage Claude, 📊 Excel, ☁️ Google Apps Script / Google Sheets, ✅ Idées déjà implémentées, 📊 Observabilité, 🎯 Onglet "Tableau de bord" (+11 more)
+
+### Community 144 - "Community 144"
+Cohesion: 0.11
+Nodes (17): Couverture, PHASE 1 — Moteur filtrable (fondation, sans UI segments), PHASE 2 — UI Segments + Chronologie (hybride) — REMPLACE l'ancienne « Task 3 cases à cocher », PHASE 3 — Documentation + commit, Tableau de bord — Filtres natifs (Segments + Chronologie), gConso/gPrice réactifs, légendes survol, Task 0 : Pré-vol, Task 1 : gPrice respecte la multi-sélection carburant (B6 CSV), Task 1c : Filtre PÉRIODE dans le moteur (+9 more)
+
+### Community 145 - "Community 145"
+Cohesion: 0.13
+Nodes (14): 0. 🚀 GO ! — Installation en un clic, 1.1 Prérequis (une seule fois), 1.2 Modules standards à (ré)importer, 1.3 Module de feuille, 1.4 Formulaire personnalisé `frmNouveauPlein`, 1.5 Activer / rafraîchir, 1.6 Feuilles / tableaux attendus, 1. Excel — modules VBA (`Suivi Conso Carburants.xlsm`) (+6 more)
+
+### Community 146 - "Community 146"
+Cohesion: 0.14
+Nodes (13): 🌐 Accès, 🗺️ Carte interactive, 👤 Comptes utilisateurs — connexion Google (U7, v5.0.0.0), 🔧 Dépannage GAS, ⏰ Erreur déclencheur rapport mensuel — *« Specified permissions are not sufficient to call ScriptApp.getProjectTriggers »*, 🏷️ Identification des stations — Architecture, ⚙️ Mise en place (propriétaire) — créer l'OAuth Client ID, 📧 Rapport mensuel automatique (X16) (+5 more)
+
+### Community 147 - "Community 147"
+Cohesion: 0.42
+Nodes (11): Offline sync queue — localStorage queue for failed GAS POSTs, clearFromQueue(), getPendingCount(), getQueue(), initOffline(), queuePlein(), syncQueue(), updateOfflineBadge() (+3 more)
+
+### Community 148 - "Community 148"
+Cohesion: 0.19
+Nodes (10): calcTriplet(), emptyResp(), makeResp(), priceResp(), describe: computeTriplet — wiring DOM, describe: showCpSearch / hideCpSearch, describe: setFieldPrice, describe: showFeedback (+2 more)
+
+### Community 149 - "Community 149"
+Cohesion: 0.15
+Nodes (12): File Structure, Self-Review, Sidebar icônes + aperçu titre — Implementation Plan, Task 1 : Sauvegarde du projet VBA, Task 2 : Vérifier l'absence de références à modNavMenu, Task 3 : Réécrire `vba/modSidebar.bas`, Task 4 : Retirer le module mort `modNavMenu`, Task 5 : Redéploiement + sauvegarde (+4 more)
+
+### Community 150 - "Community 150"
+Cohesion: 0.17
+Nodes (12): 10. Checklist UserForm — Qualité et ergonomie, 1. Création d'un UserForm par code VBA, 2. Paramétrage visuel du formulaire, 4. Événements du UserForm lui-même, 5. Validation avancée et retours visuels, 6. Mode Édition vs Mode Création (formulaire réutilisable), 7. Navigation multi-pages (MultiPage & TabStrip), 8. Formulation avancée : formulaire avec barre de progression (+4 more)
+
+### Community 151 - "Community 151"
+Cohesion: 0.17
+Nodes (12): Boutons de navigation stylisés, Calcul de statistiques de salle, Checklist qualité avant livraison, Excel VBA Expert, Impression et export PDF, Mise en forme conditionnelle via VBA, Navigation entre feuilles, Patterns courants en milieu hospitalier/médical (+4 more)
+
+### Community 152 - "Community 152"
+Cohesion: 0.18
+Nodes (10): 1. Contexte et état actuel (inspection COM du classeur ouvert), 2. Bug à corriger (cause racine), 3. Exigences, 4. Comportement retenu (choix utilisateur), 5. Conception technique (modSidebar.bas), 6. Contraintes / leçons applicables, 7. Hors-périmètre, 8. Versioning & livraison (+2 more)
+
+### Community 153 - "Community 153"
+Cohesion: 0.22
+Nodes (9): 1. Logger VBA — Traçabilité complète des exécutions, 2. Assertions — Vérifier les invariants du code, 3. Tests Unitaires — Cadre de test maison, 4. Profilage — Mesurer les performances, 5. Gestion d'erreurs structurée — Au-delà du simple On Error, 6. Inspecteur de classeur — Diagnostic automatique, 7. Techniques de débogage interactif dans l'IDE, 8. Checklist débogage — Réflexes en cas de bug (+1 more)
+
+### Community 154 - "Community 154"
+Cohesion: 0.22
+Nodes (8): Auto-revue (writing-plans), Convention de commit (intermédiaire), Découvrabilité des boutons-icônes — Plan d'implémentation, Structure des fichiers, Tâche 1 : Groupe A — clusters d'en-tête (boutons 4, 5, 6, 7, 8, 9, 10), Tâche 2 : Groupe B — boutons de champ (1 🎤 Dicter, 2 📍 Ma position), Tâche 3 : Groupe C — superposition carte (bouton 3 ⛶ Plein écran), Tâche 4 : Vérification complète + docs + version + push
+
+### Community 155 - "Community 155"
+Cohesion: 0.22
+Nodes (9): Architecture technique, Col Q (Excel) — dirty flag · cols Q/R (GS) — S3/S5, Fonctions VBA exposées, Installation, P1 — Paramètres métier partagés (onglet `Parametres`), Principe, Requête Power Query `GS_Pleins` (`powerquery/GS_Pleins.m`), 🔄 Synchronisation bidirectionnelle Excel ↔ Google Sheets (+1 more)
+
+### Community 156 - "Community 156"
+Cohesion: 0.22
+Nodes (8): 1. Dépendances, 2. Autoriser l'accès au projet VBA (obligatoire, une seule fois), 3. Format du classeur, 4. Modèle d'attache, 5. Erreurs fréquentes, 6. Bonnes pratiques d'intégration Claude Code, Installation & dépannage — vba-agent, Instances multiples
+
+### Community 157 - "Community 157"
+Cohesion: 0.25
+Nodes (8): 3. Tous les contrôles — Création et événements complets, CheckBox & OptionButton, ComboBox, Frame (groupe de contrôles), Image, ListBox, SpinButton & ScrollBar, TextBox
+
+### Community 158 - "Community 158"
+Cohesion: 0.25
+Nodes (7): Reprise de session, Étape 1 — Chargement, Étape 2 — Analyse des demandes utilisateur, Étape 3 — Actions en cours, Étape 4 — Plan de reprise, Étape 5 — Exécution, Étape 6 — Clôture
+
+### Community 159 - "Community 159"
+Cohesion: 0.50
+Nodes (5): _fetchPricesNearUser(), initTypeToggle(), registerPriceCallback(), setType(), FUEL_CONFIG
+
+### Community 160 - "Community 160"
+Cohesion: 0.25
+Nodes (7): Environnement et prérequis, Outil, Quand combiner avec excel-vba-expert, Règles de sécurité, Références, VBA Agent — injection directe de code VBA dans Excel, Workflow standard (à suivre)
+
+### Community 161 - "Community 161"
+Cohesion: 0.33
+Nodes (6): [2.5.0.0] — 2026-05-25, Added, Changed, 🔁 W13 — GitHub Actions CI, 🧾 W17 — Scan ticket de caisse → auto-complétion du formulaire, 📈 X7 + X8 — Graphiques Excel (`modDashboard.bas`)
+
+### Community 162 - "Community 162"
+Cohesion: 0.33
+Nodes (6): [4.3.0.4] — 2026-05-31, ⚠️ Action requise dans le classeur (snippets fournis, binaire non modifié), Added, Audit — alignement du classeur Excel local ↔ GAS / Google Sheet, Changed, Fixed
+
+### Community 163 - "Community 163"
+Cohesion: 0.33
+Nodes (5): AVANCEMENT — X39 · Filtres natifs (Segments + Chronologie), gConso/gPrice, survol — v5.12.0.0, Journal (1 ligne par étape testée), Notes de reprise, Prochaine étape, État global
+
+### Community 164 - "Community 164"
+Cohesion: 0.33
+Nodes (6): Côté Excel — prix marché (X30/X31/X34), Modules / onglets devenus inutiles (à supprimer après validation), Procédure de renommage (à faire dans Excel, dans cet ordre), 🔄 Refresh quotidien des prix + Web Push (S8 + S10), Sélecteurs & KPI dynamiques de l'onglet « Graphiques » (X32/X33), X36/X37 — « Graphiques » devient le « Tableau de bord » + réactivité totale (v4.11.0.0)
+
+### Community 165 - "Community 165"
+Cohesion: 0.33
+Nodes (5): Bilan dashboard, Demandes de l'export & statut (avec preuve), Décision ouverte (non demandée dans l'export), Mini-export de fin de session — Reprise 2026-06-14, Points de reprise
+
+### Community 166 - "Community 166"
+Cohesion: 0.33
+Nodes (5): Action interrompue reprise, Demandes de l'export & statut (avec preuve), Découpage des commits (hygiène — leçon #36), Mini-export de fin de session — Reprise 2026-06-15, Points de reprise (action en attente)
+
+### Community 167 - "Community 167"
+Cohesion: 0.33
+Nodes (5): Champs d'un contrôle, Notes, Schéma d'un UserForm — `build-form`, Structure du JSON, Types de `kind` supportés
+
+### Community 168 - "Community 168"
+Cohesion: 0.40
+Nodes (5): [2.7.0.0] — 2026-05-25, Added — Vite bundler (W12) + Tests unitaires Vitest (W14), Changed, ⚡ W12 — Vite bundler, 🧪 W14 — Tests unitaires Vitest
+
+### Community 169 - "Community 169"
+Cohesion: 0.40
+Nodes (5): [3.4.0.0] — 2026-05-30, Added, Changed, Fixed, Note
+
+### Community 170 - "Community 170"
+Cohesion: 0.40
+Nodes (5): [4.18.0.0] — 2026-06-04, Added, Changed, Déploiement, Fixed
+
+### Community 171 - "Community 171"
+Cohesion: 0.40
+Nodes (5): 1. Envoi simple et robuste, 2. Email avec corps HTML professionnel, 3. Envois groupés et rapports automatiques, 4. Brouillons et suivi des envois, Envoi automatique d'emails via Outlook
+
+### Community 172 - "Community 172"
+Cohesion: 0.40
+Nodes (5): 1. Import de fichiers CSV / TXT / XML, 2. Requêtes SQL vers Access ou SQL Server, 3. Appels à des APIs REST (WinHTTP), 4. Connexion SharePoint / OneDrive, Connexions à des données externes
+
+### Community 173 - "Community 173"
+Cohesion: 0.40
+Nodes (5): 1. Opérations de base sur les fichiers, 2. Lister et filtrer le contenu d'un dossier, 3. Archivage automatique, 4. Surveillance de dossier — traitement automatique à l'arrivée d'un fichier, Gestion des fichiers et dossiers
+
+### Community 174 - "Community 174"
+Cohesion: 0.40
+Nodes (5): 1. Google Apps Script (backend), 2. Connecter le formulaire, 3. Google Sheet cible, Carte Google Maps (optionnel — W63), ⚙️ Configuration
+
+### Community 175 - "Community 175"
+Cohesion: 0.50
+Nodes (3): Ajouter une nouvelle enseigne, Convention (badge monogramme de repli), Icônes d'enseignes (stations-service)
+
+### Community 176 - "Community 176"
+Cohesion: 0.50
+Nodes (4): [2.10.0.0] — 2026-05-27, Added, Changed, Removed
+
+### Community 177 - "Community 177"
+Cohesion: 0.50
+Nodes (4): [2.8.0.0] — 2026-05-26, Added, 🗺️ Carte statique Stations habituelles + prix moyens, ⚠️ Détection de doublons dans le formulaire
+
+### Community 178 - "Community 178"
+Cohesion: 0.50
+Nodes (4): [2.9.0.0] — 2026-05-26, Added, Changed, 🔄 Sync bidirectionnel Excel ↔ Google Sheets — complet
+
+### Community 179 - "Community 179"
+Cohesion: 0.50
+Nodes (4): [3.0.1.0] — 2026-05-28, Added, Changed, Fixed
+
+### Community 180 - "Community 180"
+Cohesion: 0.50
+Nodes (4): [3.10.0.0] — 2026-05-30, Added, Changed, Migration
+
+### Community 181 - "Community 181"
+Cohesion: 0.50
+Nodes (4): [3.12.2.0] — 2026-05-30, Added, Changed, Fixed
+
+### Community 182 - "Community 182"
+Cohesion: 0.50
+Nodes (4): [3.1.0.12] — 2026-05-29, Added, Changed, Fixed
+
+### Community 183 - "Community 183"
+Cohesion: 0.50
+Nodes (4): [3.1.0.13] — 2026-05-29, Added, Changed, Fixed
+
+### Community 184 - "Community 184"
+Cohesion: 0.50
+Nodes (4): [3.1.0.7] — 2026-05-29, Added, Changed, Fixed
+
+### Community 185 - "Community 185"
+Cohesion: 0.50
+Nodes (4): [3.1.0.9] — 2026-05-29, Added, Changed, Fixed
+
+### Community 186 - "Community 186"
+Cohesion: 0.50
+Nodes (4): [3.2.0.0] — 2026-05-29, Added, Changed, Fixed
+
+### Community 187 - "Community 187"
+Cohesion: 0.50
+Nodes (4): [4.14.0.0] — 2026-06-03, Added, Changed, Fixed
+
+### Community 188 - "Community 188"
+Cohesion: 0.50
+Nodes (4): [4.5.0.0] — 2026-05-31, Added, Changed, ⚠️ Installation dans le classeur
+
+### Community 189 - "Community 189"
+Cohesion: 0.50
+Nodes (4): [4.6.0.0] — 2026-05-31, Added, Changed, ⚠️ Installation dans le classeur
+
+### Community 190 - "Community 190"
+Cohesion: 0.50
+Nodes (4): [4.7.0.0] — 2026-05-31, Added, Changed, ⚠️ Installation
+
+### Community 191 - "Community 191"
+Cohesion: 0.50
+Nodes (4): [4.8.0.0] — 2026-05-31, Added, Changed, ⚠️ Installation
+
+### Community 192 - "Community 192"
+Cohesion: 0.50
+Nodes (4): [5.0.0.0] — 2026-06-04, Added, Changed, Déploiement / Activation (séquence)
+
+### Community 193 - "Community 193"
+Cohesion: 0.50
+Nodes (4): [5.0.0.1] — 2026-06-04, Added, Changed, Fixed
+
+### Community 194 - "Community 194"
+Cohesion: 0.50
+Nodes (4): [5.11.1.0] — 2026-06-09, Changed, Fixed, Removed
+
+### Community 195 - "Community 195"
+Cohesion: 0.50
+Nodes (4): [5.11.2.0] — 2026-06-09, Changed, Fixed, Removed
+
+### Community 196 - "Community 196"
+Cohesion: 0.50
+Nodes (4): [5.12.0.0] — 2026-06-11, Added, Changed, Fixed
+
+### Community 197 - "Community 197"
+Cohesion: 0.50
+Nodes (4): [5.17.0.0] — 2026-06-14, Added, Changed, Fixed
+
+### Community 198 - "Community 198"
+Cohesion: 0.50
+Nodes (4): [5.1.0.0] — 2026-06-04, Added, Changed, Note
+
+### Community 199 - "Community 199"
+Cohesion: 0.50
+Nodes (4): [5.1.0.5] — 2026-06-04, Added, Changed, Fixed
+
+### Community 200 - "Community 200"
+Cohesion: 0.50
+Nodes (4): [5.1.1.0] — 2026-06-04, Added, Changed, Fixed
+
+### Community 201 - "Community 201"
+Cohesion: 0.50
+Nodes (4): [5.2.1.2] — 2026-06-04, Changed, Fixed, Fixed
+
+### Community 202 - "Community 202"
+Cohesion: 0.50
+Nodes (4): [5.7.0.0] — 2026-06-07, Added, Changed, Fixed
+
+### Community 203 - "Community 203"
+Cohesion: 0.50
+Nodes (4): [5.9.0.0] — 2026-06-07, Added, Changed, Fixed
+
+### Community 204 - "Community 204"
+Cohesion: 0.50
+Nodes (4): Créer un graphique professionnel, Graphiques et Dashboards, Palette de couleurs professionnelle (santé/hôpital), Structure type d'un Dashboard
+
+### Community 205 - "Community 205"
+Cohesion: 0.50
+Nodes (4): Manipulation de cellules et plages, Manipulation des feuilles, Tableaux (Arrays), VBA — Fondamentaux
+
+### Community 206 - "Community 206"
+Cohesion: 0.50
+Nodes (4): 📊 Analyse Excel — MFC, vue dérivée & saisie (v3.3.0.0), Formulaire de saisie d'un plein, X14 — Onglet « Suivi (auto) » (vue dérivée), X4 — Mise en forme conditionnelle « Prix €/L »
+
+### Community 207 - "Community 207"
+Cohesion: 0.50
+Nodes (3): Installation, Test rapide (classeur .xlsm ouvert), vba-agent
+
+### Community 208 - "Community 208"
+Cohesion: 0.67
+Nodes (3): [2.11.0.0] — 2026-05-27, Added, Changed
+
+### Community 209 - "Community 209"
+Cohesion: 0.67
+Nodes (3): [2.12.0.0] — 2026-05-27, Added, Changed
+
+### Community 210 - "Community 210"
+Cohesion: 0.67
+Nodes (3): [2.12.1.0] — 2026-05-27, Added, Changed
+
+### Community 211 - "Community 211"
+Cohesion: 0.67
+Nodes (3): [2.12.2.0] — 2026-05-27, Changed, Fixed
+
+### Community 212 - "Community 212"
+Cohesion: 0.67
+Nodes (3): [2.12.3.0] — 2026-05-27, Changed, Fixed
+
+### Community 213 - "Community 213"
+Cohesion: 0.67
+Nodes (3): [2.13.0.0] — 2026-05-27, Added, Changed
+
+### Community 214 - "Community 214"
+Cohesion: 0.67
+Nodes (3): [2.14.0.0] — 2026-05-28, Added, Changed
+
+### Community 215 - "Community 215"
+Cohesion: 0.67
+Nodes (3): [2.15.0.0] — 2026-05-28, Added, Changed
+
+### Community 216 - "Community 216"
+Cohesion: 0.67
+Nodes (3): [2.16.0.0] — 2026-05-28, Added, Changed
+
+### Community 217 - "Community 217"
+Cohesion: 0.67
+Nodes (3): [2.17.0.0] — 2026-05-28, Added, Changed
+
+### Community 218 - "Community 218"
+Cohesion: 0.67
+Nodes (3): [2.4.3.0] — 2026-05-25, Added — 🌿 Badge rentabilité E85 (ROADMAP W5), Changed
+
+### Community 219 - "Community 219"
+Cohesion: 0.67
+Nodes (3): [2.4.4.0] — 2026-05-25, Added — 📈 Stats live (ROADMAP W7), Changed
+
+### Community 220 - "Community 220"
+Cohesion: 0.67
+Nodes (3): [2.4.5.0] — 2026-05-25, Added, Changed
+
+### Community 221 - "Community 221"
+Cohesion: 0.67
+Nodes (3): [2.5.0.3] — 2026-05-25, Changed, Fixed
+
+### Community 222 - "Community 222"
+Cohesion: 0.67
+Nodes (3): [2.6.0.0] — 2026-05-25, Added — PWA (W4), Changed
+
+### Community 223 - "Community 223"
+Cohesion: 0.67
+Nodes (3): [3.0.0.0] — 2026-05-28, Added, Changed
+
+### Community 224 - "Community 224"
+Cohesion: 0.67
+Nodes (3): [3.0.0.1] — 2026-05-28, Changed, Fixed
+
+### Community 225 - "Community 225"
+Cohesion: 0.67
+Nodes (3): [3.0.0.4] — 2026-05-28, Changed, Fixed
+
+### Community 226 - "Community 226"
+Cohesion: 0.67
+Nodes (3): [3.11.0.0] — 2026-05-30, Added, Changed
+
+### Community 227 - "Community 227"
+Cohesion: 0.67
+Nodes (3): [3.11.0.1] — 2026-05-30, Changed, Fixed
+
+### Community 228 - "Community 228"
+Cohesion: 0.67
+Nodes (3): [3.12.0.0] — 2026-05-30, Added, Changed
+
+### Community 229 - "Community 229"
+Cohesion: 0.67
+Nodes (3): [3.12.1.0] — 2026-05-30, Added, Fixed
+
+### Community 230 - "Community 230"
+Cohesion: 0.67
+Nodes (3): [3.1.0.0] — 2026-05-29, Added, Changed
+
+### Community 231 - "Community 231"
+Cohesion: 0.67
+Nodes (3): [3.1.0.10] — 2026-05-29, Changed, Fixed
+
+### Community 232 - "Community 232"
+Cohesion: 0.67
+Nodes (3): [3.1.0.11] — 2026-05-29, Changed, Fixed
+
+### Community 233 - "Community 233"
+Cohesion: 0.67
+Nodes (3): [3.1.0.3] — 2026-05-29, Added, Changed
+
+### Community 234 - "Community 234"
+Cohesion: 0.67
+Nodes (3): [3.1.0.4] — 2026-05-29, Added, Changed
+
+### Community 235 - "Community 235"
+Cohesion: 0.67
+Nodes (3): [3.1.0.5] — 2026-05-29, Added, Changed
+
+### Community 236 - "Community 236"
+Cohesion: 0.67
+Nodes (3): [3.1.0.8] — 2026-05-29, Changed, Fixed
+
+### Community 237 - "Community 237"
+Cohesion: 0.67
+Nodes (3): [3.2.0.1] — 2026-05-29, Added, Fixed
+
+### Community 238 - "Community 238"
+Cohesion: 0.67
+Nodes (3): [3.3.0.0] — 2026-05-30, Added, Changed
+
+### Community 239 - "Community 239"
+Cohesion: 0.67
+Nodes (3): [3.3.0.10] — 2026-05-30, Changed, Fixed
+
+### Community 240 - "Community 240"
+Cohesion: 0.67
+Nodes (3): [3.3.0.11] — 2026-05-30, Changed, Fixed
+
+### Community 241 - "Community 241"
+Cohesion: 0.67
+Nodes (3): [3.3.0.1] — 2026-05-30, Changed, Fixed
+
+### Community 242 - "Community 242"
+Cohesion: 0.67
+Nodes (3): [3.3.0.2] — 2026-05-30, Changed, Fixed
+
+### Community 243 - "Community 243"
+Cohesion: 0.67
+Nodes (3): [3.3.0.5] — 2026-05-30, Changed, Fixed
+
+### Community 244 - "Community 244"
+Cohesion: 0.67
+Nodes (3): [3.3.0.6] — 2026-05-30, Changed, Fixed
+
+### Community 245 - "Community 245"
+Cohesion: 0.67
+Nodes (3): [3.3.0.7] — 2026-05-30, Added, Changed
+
+### Community 246 - "Community 246"
+Cohesion: 0.67
+Nodes (3): [3.3.0.8] — 2026-05-30, Added, Changed
+
+### Community 247 - "Community 247"
+Cohesion: 0.67
+Nodes (3): [3.3.0.9] — 2026-05-30, Added, Changed
+
+### Community 248 - "Community 248"
+Cohesion: 0.67
+Nodes (3): [3.4.0.1] — 2026-05-30, Changed, Fixed
+
+### Community 249 - "Community 249"
+Cohesion: 0.67
+Nodes (3): [3.4.0.2] — 2026-05-30, Changed, Fixed
+
+### Community 250 - "Community 250"
+Cohesion: 0.67
+Nodes (3): [3.4.0.3] — 2026-05-30, Changed, Changed
+
+### Community 251 - "Community 251"
+Cohesion: 0.67
+Nodes (3): [3.4.0.4] — 2026-05-30, Added, Changed
+
+### Community 252 - "Community 252"
+Cohesion: 0.67
+Nodes (3): [3.4.0.5] — 2026-05-30, Changed, Fixed
+
+### Community 253 - "Community 253"
+Cohesion: 0.67
+Nodes (3): [3.5.0.0] — 2026-05-30, Added, Changed
+
+### Community 254 - "Community 254"
+Cohesion: 0.67
+Nodes (3): [3.5.0.1] — 2026-05-30, Changed, Fixed
+
+### Community 255 - "Community 255"
+Cohesion: 0.67
+Nodes (3): [3.6.0.0] — 2026-05-30, Added, Changed
+
+### Community 256 - "Community 256"
+Cohesion: 0.67
+Nodes (3): [3.7.0.0] — 2026-05-30, Added, Changed
+
+### Community 257 - "Community 257"
+Cohesion: 0.67
+Nodes (3): [3.8.0.0] — 2026-05-30, Added, Changed
+
+### Community 258 - "Community 258"
+Cohesion: 0.67
+Nodes (3): [4.0.0.0] — 2026-05-30, Added, Changed
+
+### Community 259 - "Community 259"
+Cohesion: 0.67
+Nodes (3): [4.10.0.3] — 2026-05-31, Added, Changed
+
+### Community 260 - "Community 260"
+Cohesion: 0.67
+Nodes (3): [4.11.0.0] — 2026-06-01, Changed, Removed
+
+### Community 261 - "Community 261"
+Cohesion: 0.67
+Nodes (3): [4.12.0.0] — 2026-06-02, Added, Fixed
+
+### Community 262 - "Community 262"
+Cohesion: 0.67
+Nodes (3): [4.13.1.0] — 2026-06-02, Added, Changed
+
+### Community 263 - "Community 263"
+Cohesion: 0.67
+Nodes (3): [4.14.0.4] — 2026-06-03, Changed, Fixed
+
+### Community 264 - "Community 264"
+Cohesion: 0.67
+Nodes (3): [4.15.0.0] — 2026-06-03, Added, Changed
+
+### Community 265 - "Community 265"
+Cohesion: 0.67
+Nodes (3): [4.1.0.0] — 2026-05-30, Added, Changed
+
+### Community 266 - "Community 266"
+Cohesion: 0.67
+Nodes (3): [4.2.0.0] — 2026-05-30, Added, Changed
+
+### Community 267 - "Community 267"
+Cohesion: 0.67
+Nodes (3): [4.3.0.5] — 2026-05-31, Added, ⚠️ Application dans le classeur (snippets fournis)
+
+### Community 268 - "Community 268"
+Cohesion: 0.67
+Nodes (3): [4.3.0.6] — 2026-05-31, Changed, Fixed
+
+### Community 269 - "Community 269"
+Cohesion: 0.67
+Nodes (3): [4.4.0.0] — 2026-05-31, Added, ⚠️ Installation dans le classeur
+
+### Community 270 - "Community 270"
+Cohesion: 0.67
+Nodes (3): [4.9.0.0] — 2026-05-31, Ajouté, Modifié
+
+### Community 271 - "Community 271"
+Cohesion: 0.67
+Nodes (3): [5.0.0.3] — 2026-06-04, Fixed, Note
+
+### Community 272 - "Community 272"
+Cohesion: 0.67
+Nodes (3): [5.10.0.0] — 2026-06-07, Added, Changed
+
+### Community 273 - "Community 273"
+Cohesion: 0.67
+Nodes (3): [5.11.0.0] — 2026-06-07, Added, Changed
+
+### Community 274 - "Community 274"
+Cohesion: 0.67
+Nodes (3): [5.13.0.0] — 2026-06-11, Added, Changed
+
+### Community 275 - "Community 275"
+Cohesion: 0.67
+Nodes (3): [5.13.0.1] — 2026-06-12, Changed, Fixed
+
+### Community 276 - "Community 276"
+Cohesion: 0.67
+Nodes (3): [5.14.0.0] — 2026-06-12, Added, Changed
+
+### Community 277 - "Community 277"
+Cohesion: 0.67
+Nodes (3): [5.14.2.0] — 2026-06-13, Changed, Fixed
+
+### Community 278 - "Community 278"
+Cohesion: 0.67
+Nodes (3): [5.15.0.0] — 2026-06-13, Added, Changed
+
+### Community 279 - "Community 279"
+Cohesion: 0.67
+Nodes (3): [5.16.0.0] — 2026-06-13, Changed, Removed
+
+### Community 280 - "Community 280"
+Cohesion: 0.67
+Nodes (3): [5.1.0.3] — 2026-06-04, Fixed, Note
+
+### Community 281 - "Community 281"
+Cohesion: 0.67
+Nodes (3): [5.1.0.4] — 2026-06-04, Changed, Note
+
+### Community 282 - "Community 282"
+Cohesion: 0.67
+Nodes (3): [5.2.0.0] — 2026-06-04, Added, Fixed
+
+### Community 283 - "Community 283"
+Cohesion: 0.67
+Nodes (3): [5.3.0.0] — 2026-06-05, Added, Fixed
+
+### Community 284 - "Community 284"
+Cohesion: 0.67
+Nodes (3): [5.5.1.0] — 2026-06-05, Added, Changed
+
+### Community 285 - "Community 285"
+Cohesion: 0.67
+Nodes (3): [5.5.2.0] — 2026-06-05, Changed, Fixed
+
+### Community 286 - "Community 286"
+Cohesion: 0.67
+Nodes (3): [5.8.0.0] — 2026-06-07, Added, Changed
+
 ## Knowledge Gaps
-- **270 isolated node(s):** `_comment`, `_doc`, `_scopes`, `scriptId`, `sheetId` (+265 more)
+- **921 isolated node(s):** `_comment`, `_doc`, `_scopes`, `scriptId`, `sheetId` (+916 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **78 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **94 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `js/ui.js` connect `Prix secteur & historique` to `Statistiques & KPIs`, `Historique & véhicules`, `Déploiement GAS (API)`, `Bilan annuel Wrapped`, `Carte Google/OSM (résultats)`, `Scan ticket OCR`, `Endpoints GAS (doPost/doGet)`, `Câblage app & véhicule courant`?**
-  _High betweenness centrality (0.037) - this node is a cross-community bridge._
-- **Why does `getAllRecords()` connect `Statistiques & KPIs` to `Prix secteur & historique`, `Notifications push`, `Historique & véhicules`, `Auth Google & paramètres`?**
+- **Why does `Changelog` connect `C9 Service account Google` to `GAS Manager / gas-api`, `Community 161`, `Community 162`, `Community 168`, `Community 169`, `Community 176`, `Community 177`, `Community 178`, `Community 179`, `Community 180`, `Community 181`, `Community 182`, `Community 183`, `Community 184`, `Community 185`, `Community 186`, `Community 188`, `Community 189`, `Community 190`, `Community 191`, `Community 208`, `Community 209`, `Community 210`, `Community 211`, `Community 212`, `Community 213`, `Community 214`, `Community 215`, `Community 216`, `Community 217`, `Community 218`, `Community 219`, `Community 220`, `Community 221`, `Community 222`, `Community 223`, `Community 224`, `Community 225`, `Community 226`, `Community 227`, `Community 228`, `Community 229`, `Community 230`, `Community 231`, `Community 232`, `Community 233`, `Community 234`, `Community 235`, `Community 236`, `Community 237`, `Community 238`, `Community 239`, `Community 240`, `Community 241`, `Community 242`, `Community 243`, `Community 244`, `Community 245`, `Community 246`, `Community 247`, `Community 248`, `Community 249`, `Community 250`, `Community 251`, `Community 252`, `Community 253`, `Community 254`, `Community 255`, `Community 256`, `Community 257`, `Community 258`, `Community 265`, `Community 266`, `Community 267`, `Community 268`, `Community 269`, `Community 270`, `Community 287`?**
+  _High betweenness centrality (0.049) - this node is a cross-community bridge._
+- **Why does `Changelog` connect `GAS Manager / gas-api` to `Community 259`, `Community 260`, `Community 261`, `Community 262`, `Community 263`, `Community 264`, `Community 271`, `Community 272`, `Community 273`, `Community 274`, `Community 275`, `Community 276`, `Community 277`, `Community 278`, `Community 279`, `Community 280`, `Community 281`, `Community 282`, `Community 283`, `Community 284`, `Community 285`, `Community 286`, `Community 288`, `Community 289`, `Community 290`, `Community 291`, `Community 292`, `Community 293`, `Community 294`, `Community 295`, `Community 296`, `Community 297`, `Community 170`, `Community 298`, `Community 299`, `Community 300`, `Community 301`, `Community 187`, `Community 192`, `Community 193`, `Community 194`, `Community 195`, `Community 196`, `Community 197`, `Community 198`, `Community 199`, `Community 200`, `Community 201`, `Community 202`, `Community 203`?**
   _High betweenness centrality (0.026) - this node is a cross-community bridge._
-- **Why does `js/ticket.js` connect `Scan ticket OCR` to `Prix secteur & historique`, `Historique & véhicules`, `Auth Google & paramètres`, `Utilitaires & enseignes`, `Géocodage & marqueurs carte`?**
-  _High betweenness centrality (0.026) - this node is a cross-community bridge._
+- **Why does `getAllRecords()` connect `Tests a11y boutons` to `Prix secteur & historique`, `Statistiques & KPIs`, `Historique & véhicules`, `Auth Google & paramètres`, `Notifications push`, `Leçon buffer VBE set-module`?**
+  _High betweenness centrality (0.009) - this node is a cross-community bridge._
 - **What connects `_comment`, `_doc`, `_scopes` to the rest of the system?**
-  _289 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Prix secteur & historique` be split into smaller, more focused modules?**
-  _Cohesion score 0.06253585771658061 - nodes in this community are weakly interconnected._
+  _940 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Statistiques & KPIs` be split into smaller, more focused modules?**
-  _Cohesion score 0.05154320987654321 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05516431924882629 - nodes in this community are weakly interconnected._
 - **Should `Historique & véhicules` be split into smaller, more focused modules?**
-  _Cohesion score 0.061815336463223784 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07272727272727272 - nodes in this community are weakly interconnected._
+- **Should `Auth Google & paramètres` be split into smaller, more focused modules?**
+  _Cohesion score 0.10804597701149425 - nodes in this community are weakly interconnected._
