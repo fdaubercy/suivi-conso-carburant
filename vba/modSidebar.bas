@@ -190,20 +190,36 @@ Public Sub PoserSidebarSurFeuille(ws As Worksheet, Optional zOverride As Single 
         Dim nav As Shape
         Set nav = ws.Shapes.AddShape(msoShapeRoundedRectangle, x, iTop, iW, iH)
         nav.Name = NAV_PFX & k: nav.Placement = xlFreeFloating
-        nav.Adjustments(1) = 0.25
         nav.Fill.ForeColor.RGB = IIf(isAct, C_GRN(), C_ITEM())
         nav.Line.Visible = msoFalse
         nav.OnAction = "modSidebar.NavSidebar_" & k
         With nav.TextFrame2
+            ' Pas de retour a la ligne : le libelle reste sur UNE ligne et reste
+            ' integralement visible (sinon "Tableau de bord"/"Reglages" se coupaient).
+            .WordWrap = msoFalse
             .TextRange.Text = labels(k)
             .TextRange.Font.Fill.ForeColor.RGB = IIf(isAct, C_WHT(), C_DIM())
             .TextRange.Font.Size = 10
-            .TextRange.Font.Bold = IIf(isAct, msoTrue, msoFalse)
-            .TextRange.ParagraphFormat.Alignment = msoAlignLeft
-            .HorizontalAnchor = 1: .VerticalAnchor = 3
-            .MarginLeft = 8 / z: .MarginRight = 4 / z
+            ' Mesurer en GRAS (cas le plus large) : ainsi le surlignage de l'onglet
+            ' actif (qui met le texte en gras) ne deborde jamais de son bouton.
+            .TextRange.Font.Bold = msoTrue
+            .TextRange.ParagraphFormat.Alignment = msoAlignCenter
+            .HorizontalAnchor = 2: .VerticalAnchor = 3
+            .MarginLeft = 10 / z: .MarginRight = 10 / z
             .MarginTop = 0: .MarginBottom = 0
+            ' Largeur du bouton = largeur du texte (une ligne) + marges.
+            .AutoSize = msoAutoSizeShapeToFitText
         End With
-        x = x + iW + gap
+        ' +24 pt visuels de securite : certains emojis (maison, carte...) s'affichent
+        ' plus larges qu'Excel ne les MESURE -> sans cette marge, le libelle se tronque.
+        Dim wReal As Single: wReal = nav.Width + 24 / z
+        nav.TextFrame2.AutoSize = msoAutoSizeNone
+        nav.Height = iH                              ' hauteur uniforme conservee
+        nav.Width = wReal
+        nav.Top = iTop
+        nav.Adjustments(1) = 0.25
+        ' Retablir l'etat gras reel (mesure faite en gras pour tous).
+        nav.TextFrame2.TextRange.Font.Bold = IIf(isAct, msoTrue, msoFalse)
+        x = x + wReal + gap                          ' avancer selon largeur reelle
     Next k
 End Sub

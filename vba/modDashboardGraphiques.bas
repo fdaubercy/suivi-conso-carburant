@@ -44,9 +44,39 @@ Private Function cWhite() As Long:     cWhite = RGB(255, 255, 255):    End Funct
 
 '---- Geometrie de la planche (en points) ----
 Private Function L0() As Single:      L0 = 10:           End Function   ' marge gauche
-Private Function WTOT() As Single:    WTOT = 1160:       End Function   ' largeur utile
+Private Function WTOT() As Single
+    ' Lit le nb de colonnes de l'onglet WS_DASH dans Reglages et calcule la largeur utile.
+    ' Repli sur 1160 si la table Zoom n'est pas configuree.
+    On Error Resume Next
+    Dim ws As Worksheet: Set ws = ThisWorkbook.Worksheets(WS_DASH)
+    If ws Is Nothing Then WTOT = 1160: Exit Function
+    Dim nCols As Long: nCols = Affichage.ZoomColsForSheet(WS_DASH)
+    If nCols = 0 Then WTOT = 1160: Exit Function
+    Dim w As Double: w = 0
+    Dim c As Long
+    For c = 1 To nCols
+        w = w + ws.Columns(c).Width
+    Next c
+    WTOT = CSng(w) - L0
+    On Error GoTo 0
+End Function
 Private Function gap() As Single:     gap = 12:          End Function
 Private Function FONT_UI() As String: FONT_UI = "Segoe UI": End Function
+
+' Retourne le bas de la barre de navigation horizontale (sb_bg) en points
+' document. Sert à poser le bandeau titre juste en dessous.
+Public Function NavbarBottom(ws As Worksheet) As Single
+    Dim sh As Shape
+    On Error Resume Next
+    For Each sh In ws.Shapes
+        If sh.Name = "sb_bg" Then
+            NavbarBottom = sh.Top + sh.Height
+            Exit Function
+        End If
+    Next sh
+    On Error GoTo 0
+    NavbarBottom = 2    ' repli : pas de navbar trouvée
+End Function
 
 '---------------------------------------------------------------------------
 '  POINT D'ENTRÉE
@@ -295,20 +325,19 @@ Private Function BuildHeaderAndKPIs(ws As Worksheet) As Single
     vLitres = ds.litres
     vPctE85 = ds.pctE85
 
-    ' -- Bandeau d'en-tête (à droite du panneau Paramètres) --
+    ' -- Bandeau d'en-tête (pleine largeur, juste sous la navbar horizontale) --
     Dim rowsBottom As Single: rowsBottom = ws.Range("A7").top
-    Dim ht As Single: ht = 2
+    Dim ht As Single: ht = NavbarBottom(ws)
     Dim hH As Single: hH = rowsBottom - ht - 2
-    Dim bnLeft As Single: bnLeft = SidebarRailRight(ws) + 6   ' X39 : bandeau pleine largeur, juste apres le rail d'icones
-    Dim bnW As Single: bnW = (L0 + WTOT) - bnLeft
+    Dim bnLeft As Single: bnLeft = 0      ' aligné sur le bord gauche de la navbar
+    Dim bnW As Single: bnW = L0 + WTOT   ' même largeur que le contenu de la page
     AddBanner ws, bnLeft, ht, bnW, hH
-    ' Bouton « Actualiser » en haut à droite du bandeau
-    ' Actualiser : icone carree 28x28, a gauche du trio (Recreer 131 / Export 201)
-    AddButton ws, 61, 82, 28, 28
+    ' Bouton « Actualiser » — décalé sous la navbar (ht + 80 pts depuis son bord haut)
+    AddButton ws, 61, ht + 80, 28, 28
     ' Infos B7/B8 en bas à droite du bandeau (petite police)
     AddBannerParamsInfo ws, bnLeft, ht, bnW, hH, ws.Range("B7").value, ws.Range("B8").value
     ' X39 : mini-titres (role) sous les 3 boutons d'action
-    AddButtonLabels ws
+    AddButtonLabels ws, ht
 
     ' -- Cartes KPI --
     Dim bandH As Single: bandH = SEG_BAND
@@ -396,10 +425,11 @@ Private Function SidebarRailRight(ws As Worksheet) As Single
 End Function
 
 ' X39 : mini-titres (role) sous les 3 boutons d'action — police mini blanche centree.
-Private Sub AddButtonLabels(ws As Worksheet)
-    AddBtnLabel ws, "dash_btnlbl_0", "Actualiser", 40, 111, 70
-    AddBtnLabel ws, "dash_btnlbl_1", "Recr" & ChrW(233) & "er", 110, 111, 70
-    AddBtnLabel ws, "dash_btnlbl_2", "Export", 180, 111, 70
+Private Sub AddButtonLabels(ws As Worksheet, ht As Single)
+    Dim yLbl As Single: yLbl = ht + 109  ' même offset relatif que les boutons (80) + 29 pts
+    AddBtnLabel ws, "dash_btnlbl_0", "Actualiser", 40, yLbl, 70
+    AddBtnLabel ws, "dash_btnlbl_1", "Recr" & ChrW(233) & "er", 110, yLbl, 70
+    AddBtnLabel ws, "dash_btnlbl_2", "Export", 180, yLbl, 70
 End Sub
 Private Sub AddBtnLabel(ws As Worksheet, nm As String, txt As String, x As Single, y As Single, w As Single)
     Dim s As Shape

@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.17.0.0] — 2026-06-14
+
+### Changed
+- **Excel — `btnPleinEcran` déplacé sur l'onglet Réglages** (`Affichage.bas`) : le bouton « Quitter le plein écran » n'est plus posé sur tous les onglets (col K ligne 1, masqué par la navbar). Il est désormais affiché uniquement sur l'onglet `Réglages`, aligné sous `btnReg2` (même Left = col F, Top = btnReg2.Top + hauteur + 8 pts). `.Placement = xlFreeFloating` ajouté. Les autres onglets ont leur `btnPleinEcran` nettoyé à l'exécution de `PoserBoutonsPleinEcran`.
+- **Excel — Bannière du tableau de bord en largeur dynamique** (`modDashboardGraphiques.bas`) : `WTOT()` ne renvoie plus une constante 1160 pts mais lit le nombre de colonnes configuré pour `Tableau de bord` dans la table Zoom de l'onglet `Réglages` (via `Affichage.ZoomColsForSheet`), puis somme les largeurs réelles des N premières colonnes. La bannière, les cartes KPI, les bandeaux méta et la grille de graphiques s'adaptent ainsi automatiquement à la mise en page zoom de chaque onglet.
+- **Excel — `ZoomColsForSheet` rendu public** (`Affichage.bas`) : la fonction (précédemment `Private`) est maintenant `Public` pour être appelée depuis `modDashboardGraphiques`.
+
+### Added
+- **Excel — Barre de progression à l'ouverture** (`ThisWorkbook.cls`, architecture classeur v2.8) : `Workbook_Open` affiche 6 étapes en barre d'état (`Application.StatusBar` + `DoEvents`) ; les opérations lourdes restent différées (import des pleins +2 s, synchro Google Sheets +5 s) pour rendre le classeur visible et interactif immédiatement.
+- **Excel — Libellés des boutons de navigation** (`modDashboardGraphiques.bas`, `modSidebar.bas`) : `NavbarBottom()` + `AddButtonLabels()` posent les étiquettes texte sous les icônes de la barre de navigation ; placement raffiné dans `PoserSidebarSurFeuille`.
+
+### Fixed
+- **Excel — Erreur de compilation `-2146788248` au clic sélecteur véhicule** (`modGraphiques.bas`, `EnsureHeaderBand`) : `hdrTop`/`btnTop` (issus de `NavbarBottom() As Single`) étaient passés `ByRef` à des paramètres `As Double` → « Type argument ByRef incompatible » (compile-on-demand). Types alignés en `Double` (leçon #33).
+
 ## [5.16.3.0] — 2026-06-14
 
 ### Changed

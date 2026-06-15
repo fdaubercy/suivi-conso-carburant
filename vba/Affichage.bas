@@ -86,21 +86,38 @@ End Sub
 '  Le raccourci Ctrl+F11 reste disponible en complement.
 ' ============================================================
 
-' Pose (ou rafraichit) le bouton sur UNE feuille. Idempotent.
+' Pose (ou rafraichit) le bouton sur UNE feuille.
+' Uniquement sur l'onglet Reglages, positionne sous btnReg2.
+' Sur tous les autres onglets : supprime le bouton s'il existe.
 Public Sub AjouterBoutonPleinEcran(ws As Worksheet)
-    Dim sh As Shape, L As Single
+    Dim sh As Shape
     On Error Resume Next
-    ' Retire un eventuel bouton precedent (evite les doublons apres rebuild).
     For Each sh In ws.Shapes
         If sh.Name = "btnPleinEcran" Then sh.Delete
     Next sh
-    ' Haut-droite, ligne 1 : a droite des titres, au-dessus des boutons de feuille.
-    L = ws.Cells(1, 11).Left      ' colonne K
-    Set sh = ws.Shapes.AddShape(msoShapeRoundedRectangle, L, 3, 150, 22)
+    On Error GoTo 0
+
+    Dim wsRegNm As String: wsRegNm = "R" & ChrW(233) & "glages"
+    If StrComp(ws.Name, wsRegNm, vbTextCompare) <> 0 Then Exit Sub
+
+    ' Positionner sous btnReg2 (meme alignement gauche)
+    Dim L As Single: L = -1
+    Dim T As Single: T = -1
+    For Each sh In ws.Shapes
+        If sh.Name = "btnReg2" Then
+            L = sh.Left
+            T = sh.Top + sh.Height + 8
+            Exit For
+        End If
+    Next sh
+    If L < 0 Then Exit Sub   ' btnReg2 introuvable
+
+    Set sh = ws.Shapes.AddShape(msoShapeRoundedRectangle, L, T, 190, 26)
     sh.Name = "btnPleinEcran"
     With sh
-        .Fill.ForeColor.RGB = RGB(27, 58, 92)        ' bleu charte
+        .Fill.ForeColor.RGB = RGB(27, 58, 92)
         .Line.Visible = msoFalse
+        .Placement = xlFreeFloating
         With .TextFrame2
             .TextRange.Text = ChrW(&H2196&) & " Quitter le plein ecran"
             .TextRange.Font.Fill.ForeColor.RGB = RGB(255, 255, 255)
@@ -175,7 +192,7 @@ Public Sub AutoZoomFitCols()
     On Error GoTo 0
 End Sub
 
-Private Function ZoomColsForSheet(ByVal shName As String) As Long
+Public Function ZoomColsForSheet(ByVal shName As String) As Long
     ZoomColsForSheet = 0
     On Error Resume Next
     Dim nm As Name: Set nm = ThisWorkbook.Names("Zoom_TableStart")
@@ -219,5 +236,5 @@ Public Sub PoserBoutonsPleinEcran()
             n = n + 1
         End If
     Next i
-    Application.StatusBar = "[Affichage] " & ChrW(10003&) & " Bouton 'Quitter le plein ecran' pose sur " & n & " onglet(s)."
+    Application.StatusBar = "[Affichage] " & ChrW(10003&) & " Bouton 'Quitter le plein ecran' pose sur Reglages (nettoye sur " & n & " onglet(s))."
 End Sub
