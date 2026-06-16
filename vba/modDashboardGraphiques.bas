@@ -1,3 +1,4 @@
+Attribute VB_Name = "modDashboardGraphiques"
 '---------------------------------------------------------------------------
 '  modDashboardGraphiques  —  Suivi Conso Carburants
 '  Met en page la feuille « Graphiques » en tableau de bord et applique la
@@ -69,8 +70,8 @@ Public Function NavbarBottom(ws As Worksheet) As Single
     Dim sh As Shape
     On Error Resume Next
     For Each sh In ws.Shapes
-        If sh.Name = "sb_bg" Then
-            NavbarBottom = sh.Top + sh.Height
+        If sh.name = "sb_bg" Then
+            NavbarBottom = sh.top + sh.Height
             Exit Function
         End If
     Next sh
@@ -135,13 +136,13 @@ End Sub
 '  1. Nettoyage des formes générées (idempotence)
 '---------------------------------------------------------------------------
 Private Sub CleanupDashShapes(ws As Worksheet)
-    Dim Sh As Shape, i As Long
+    Dim sh As Shape, i As Long
     For i = ws.Shapes.count To 1 Step -1
-        Set Sh = ws.Shapes(i)
+        Set sh = ws.Shapes(i)
         ' "dash_*" = formes de CE module ; "kpi*" = ancien bloc "Bilan annuel"
         ' (BuildKPICards de modGraphiques, retiré X36) à purger s'il subsiste.
-        If Left$(Sh.name, 5) = "dash_" Or Left$(Sh.name, 3) = "kpi" _
-           Or Left$(Sh.name, 4) = "fup_" Then Sh.Delete   ' X39 P6 : purge ancien panneau carburant
+        If Left$(sh.name, 5) = "dash_" Or Left$(sh.name, 3) = "kpi" _
+           Or Left$(sh.name, 4) = "fup_" Then sh.Delete   ' X39 P6 : purge ancien panneau carburant
     Next i
 End Sub
 
@@ -327,17 +328,17 @@ Private Function BuildHeaderAndKPIs(ws As Worksheet) As Single
 
     ' -- Bandeau d'en-tête (pleine largeur, juste sous la navbar horizontale) --
     Dim rowsBottom As Single: rowsBottom = ws.Range("A7").top
-    Dim ht As Single: ht = NavbarBottom(ws)
+    Dim ht As Single: ht = NavbarBottom(ws) + 3   ' +10px ecart blanc sous navbar
     Dim hH As Single: hH = rowsBottom - ht - 2
     Dim bnLeft As Single: bnLeft = 0      ' aligné sur le bord gauche de la navbar
     Dim bnW As Single: bnW = L0 + WTOT   ' même largeur que le contenu de la page
-    AddBanner ws, bnLeft, ht, bnW, hH
+    AddBanner ws, bnLeft + 6, ht, bnW - 12, hH
     ' Bouton « Actualiser » — décalé sous la navbar (ht + 80 pts depuis son bord haut)
-    AddButton ws, 61, ht + 80, 28, 28
+    AddButton ws, 16, ht + hH - 40, 26, 26
     ' Infos B7/B8 en bas à droite du bandeau (petite police)
     AddBannerParamsInfo ws, bnLeft, ht, bnW, hH, ws.Range("B7").value, ws.Range("B8").value
     ' X39 : mini-titres (role) sous les 3 boutons d'action
-    AddButtonLabels ws, ht
+    AddButtonLabels ws, ht + hH
 
     ' -- Cartes KPI --
     Dim bandH As Single: bandH = SEG_BAND
@@ -399,10 +400,10 @@ Private Sub AddBanner(ws As Worksheet, x As Single, y As Single, w As Single, h 
     bg.Shadow.visible = msoFalse
 
     ' Titre — GRAND, GRAS, CENTRE dans toute la largeur du bandeau
-    Dim t As Shape
-    Set t = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x, y + h / 2 - 26, w, 30)
-    t.name = "dash_title"
-    SetText t, "Suivi Consommation Carburant", FONT_UI, 22, True, cWhite, msoAlignCenter
+    Dim T As Shape
+    Set T = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x, y + h / 2 - 26, w, 30)
+    T.name = "dash_title"
+    SetText T, "Suivi Consommation Carburant", FONT_UI, 22, True, cWhite, msoAlignCenter
     ' Sous-titre — centre sous le titre
     Dim st As Shape
     Set st = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x, y + h / 2 + 7, w, 16)
@@ -426,10 +427,10 @@ End Function
 
 ' X39 : mini-titres (role) sous les 3 boutons d'action — police mini blanche centree.
 Private Sub AddButtonLabels(ws As Worksheet, ht As Single)
-    Dim yLbl As Single: yLbl = ht + 109  ' même offset relatif que les boutons (80) + 29 pts
-    AddBtnLabel ws, "dash_btnlbl_0", "Actualiser", 40, yLbl, 70
-    AddBtnLabel ws, "dash_btnlbl_1", "Recr" & ChrW(233) & "er", 110, yLbl, 70
-    AddBtnLabel ws, "dash_btnlbl_2", "Export", 180, yLbl, 70
+    Dim yLbl As Single: yLbl = ht - 13  ' même offset relatif que les boutons (80) + 29 pts
+    AddBtnLabel ws, "dash_btnlbl_0", "Actualiser", 7, yLbl, 44
+    AddBtnLabel ws, "dash_btnlbl_1", "Recr" & ChrW(233) & "er", 57, yLbl, 44
+    AddBtnLabel ws, "dash_btnlbl_2", "Export", 107, yLbl, 44
 End Sub
 Private Sub AddBtnLabel(ws As Worksheet, nm As String, txt As String, x As Single, y As Single, w As Single)
     Dim s As Shape
@@ -655,7 +656,7 @@ End Sub
 
 '---- Infos parametres (B7/B8) dans le bandeau — bas droite, petite police ---
 Private Sub AddBannerParamsInfo(ws As Worksheet, bx As Single, by As Single, _
-                                bw As Single, bh As Single, _
+                                bw As Single, bH As Single, _
                                 graphAuto As Variant, lastGen As Variant)
     Dim sAuto As String
     sAuto = Trim$(CStr(graphAuto))
@@ -670,11 +671,11 @@ Private Sub AddBannerParamsInfo(ws As Worksheet, bx As Single, by As Single, _
     On Error GoTo 0
     Dim txt As Shape
     Set txt = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, _
-        bx + bw - 220, by + bh - 20, 215, 16)
+        bx + bw - 220, by + bH - 20, 215, 16)
     txt.name = "dash_meta_params"
     On Error Resume Next
     With txt.TextFrame2
-        .TextRange.text = "Auto: " & sAuto & "   Mise " & ChrW(224) & " jour: " & sGen
+        .TextRange.text = "Mise " & ChrW(224) & " jour: " & sGen
         .TextRange.Font.name = FONT_UI
         .TextRange.Font.Size = 8
         .TextRange.Font.fill.ForeColor.RGB = RGB(140, 170, 200)
@@ -693,10 +694,10 @@ Private Sub AddMetaStrip(ws As Worksheet, x As Single, y As Single, w As Single,
     Set bg = ws.Shapes.AddShape(msoShapeRoundedRectangle, x, y, w, h)
     bg.name = "dash_meta"
     StyleRect bg, cBlueLight, -1, 5
-    Dim t As Shape
-    Set t = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x + 16, y + 4, w - 32, h - 8)
-    t.name = "dash_metatxt"
-    SetText t, txt, FONT_UI, 10.5, False, cBlueDark, msoAlignLeft
+    Dim T As Shape
+    Set T = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x + 16, y + 4, w - 32, h - 8)
+    T.name = "dash_metatxt"
+    SetText T, txt, FONT_UI, 10.5, False, cBlueDark, msoAlignLeft
 End Sub
 
 '---------------------------------------------------------------------------
@@ -767,29 +768,29 @@ End Function
 '---------------------------------------------------------------------------
 '  Helpers de mise en forme des formes
 '---------------------------------------------------------------------------
-Private Sub StyleRect(Sh As Shape, fillColor As Long, lineColor As Long, radius As Single)
+Private Sub StyleRect(sh As Shape, fillColor As Long, lineColor As Long, radius As Single)
     On Error Resume Next
-    Sh.fill.ForeColor.RGB = fillColor
-    Sh.fill.Solid
+    sh.fill.ForeColor.RGB = fillColor
+    sh.fill.Solid
     If lineColor = -1 Then
-        Sh.Line.visible = msoFalse
+        sh.Line.visible = msoFalse
     Else
-        Sh.Line.visible = msoTrue
-        Sh.Line.ForeColor.RGB = lineColor
-        Sh.Line.Weight = 1
+        sh.Line.visible = msoTrue
+        sh.Line.ForeColor.RGB = lineColor
+        sh.Line.Weight = 1
     End If
     ' Rayon des coins arrondis (0..0.5)
-    If Sh.AutoShapeType = msoShapeRoundedRectangle And radius > 0 Then
-        Sh.Adjustments(1) = radius / (Application.Min(Sh.Width, Sh.Height))
+    If sh.AutoShapeType = msoShapeRoundedRectangle And radius > 0 Then
+        sh.Adjustments(1) = radius / (Application.Min(sh.Width, sh.Height))
     End If
-    Sh.Shadow.visible = msoFalse
+    sh.Shadow.visible = msoFalse
     On Error GoTo 0
 End Sub
 
-Private Sub SetText(Sh As Shape, txt As String, fontName As String, sz As Single, _
+Private Sub SetText(sh As Shape, txt As String, fontName As String, sz As Single, _
                     bold As Boolean, color As Long, align As Long)
     On Error Resume Next
-    With Sh.TextFrame2
+    With sh.TextFrame2
         .TextRange.text = txt
         .TextRange.Font.name = fontName
         .TextRange.Font.Size = sz
@@ -801,8 +802,14 @@ Private Sub SetText(Sh As Shape, txt As String, fontName As String, sz As Single
         .WordWrap = msoTrue
         .AutoSize = msoAutoSizeNone
     End With
-    Sh.Line.visible = msoFalse
-    Sh.fill.visible = msoFalse
+    sh.Line.visible = msoFalse
+    sh.fill.visible = msoFalse
     On Error GoTo 0
 End Sub
+
+
+
+
+
+
 

@@ -4,6 +4,24 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.18.0.0] — 2026-06-16
+
+### Fixed
+- **Excel — KPI du Tableau de bord figés à 0 (cause racine : en-têtes `GS_Pleins` corrompus)** : la table `GS_Pleins` avait sa ligne d'en-tête (ligne 2) écrasée (`Date`→`01/01/1970`, `Km`→`0`, `Litres`→`2`, `PrixL`→`3`, prix station→`Colonne1..6`). `ComputeDashboardStats` faisait `ColIdx("Km") = 0` → `Exit Sub` → tous les KPI à 0. En-têtes restaurés (données intactes) → KPI réels (6,4 L/100 km, 14 pleins, 192 €, 80 % E85).
+- **Excel — Récidive de la corruption d'en-tête** (`Feuil4.cls`, `Worksheet_Change`) : le garde-fou `Intersect(…, Rows("2:…"))` excluait la ligne 1, mais la table a son en-tête en **ligne 2** → toute écriture sur l'en-tête y estampillait `Modifie_local = Now()`. Corrigé : exclusion de la vraie ligne d'en-tête de la table (`ListObjects(1).HeaderRowRange.Row + 1`).
+- **Excel — B7 « Graphiques auto » corrompu** (`modGraphiques.bas`) : la cellule contenait une liste de carburants au lieu de `Oui/Non` → `GraphAutoActif() = Faux`. Réinitialisation forcée à `Oui` si la valeur n'est ni `Oui` ni `Non` (auparavant : seulement si vide).
+- **Excel — Boutons de navigation superposés** (`modSidebar.bas`, `PoserSidebarSurFeuille`) : 2ᵉ passe de distribution qui repositionne les 6 items selon leur largeur finale réelle (gaps égaux ~4 pt, zéro chevauchement).
+- **Excel — Boutons Actualiser/Recréer/Export débordant sur le segment Véhicule** (`modDashboardGraphiques.bas`, `modGraphiques.bas`) : réalignés en rangée horizontale propre en bas à gauche du bandeau (x = 16/66/116, 26 pt, libellés sous les icônes), entièrement contenus dans le bandeau.
+
+### Changed
+- **Excel — `hdrBand` supprimé** (`modGraphiques.bas`, `EnsureHeaderBand`) : le bandeau-titre « TABLEAU DE BORD · Suivi Conso Carburants » (doublon visuel masqué derrière `dash_banner`) n'est plus créé ; `EnsureHeaderBand` le supprime désormais s'il existe.
+- **Excel — Bandeau du Tableau de bord remonté, écart réduit** (`modDashboardGraphiques.bas`, `BuildHeaderAndKPIs`) : `ht = NavbarBottom(ws) + 3` (écart blanc ~3 px sous la barre de navigation, au lieu de 10).
+- **Excel — `dash_banner` et `slcPeriode` rentrés dans le cadre** : largeur du bandeau réduite (`bnLeft + 6`, `bnW − 12`) et largeur du segment Période réduite de 8 pt (`modFiltres.bas`, `PlaceSlicers`) → leurs bords droits ne sont plus posés sur la ligne de la colonne (impression « tient dans le cadre »).
+- **Excel — `dash_meta_params` : « Auto: … » masqué** (`modDashboardGraphiques.bas`, `AddBannerParamsInfo`) : affiche uniquement « Mise à jour: … ».
+
+### Added
+- **Excel — Reconstruction du Tableau de bord à l'ouverture** (`ThisWorkbook.cls`, `modFiltres.bas`) : `Workbook_Open` planifie `SyncFiltersAndRebuildOnOpen` (+3 s, après l'import) qui recale `B5/B6` sur les segments véhicule/carburant restaurés par Excel puis reconstruit le tableau → KPI à jour et dernier véhicule/carburant restitués dès l'ouverture.
+
 ## [5.17.0.0] — 2026-06-14
 
 ### Changed

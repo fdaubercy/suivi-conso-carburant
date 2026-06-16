@@ -1,3 +1,4 @@
+Attribute VB_Name = "modFiltres"
 Option Explicit
 ' ============================================================
 '  modFiltres — Filtres natifs du Tableau de bord (X39 / v5.12.0.0)
@@ -26,6 +27,22 @@ Private g_Applying As Boolean                  ' X39 P5 : anti-reentrance du rec
 Private g_PeriodDefaultDone As Boolean         ' X39 : calage chronologie min<->max applique 1x/session
 Private g_RebuildAt As Double                  ' X43 : echeance OnTime du rebuild debounce (0 = aucun planifie)
 Private Const REBUILD_DELAY As Long = 1        ' X43 : secondes de coalescence (plancher fiable d'Application.OnTime)
+
+' Ouverture : recale B5/B6 sur les segments restaures par Excel puis reconstruit
+' le tableau -> KPI synchronises sur le dernier vehicule/carburant selectionne.
+Public Sub SyncFiltersAndRebuildOnOpen()
+    On Error Resume Next
+    Dim wsd As Worksheet: Set wsd = SheetByName(WS_DASH)
+    If wsd Is Nothing Then Exit Sub
+    Application.EnableEvents = False
+    wsd.Range("B5").value = SlicerCsv("Vehicule")
+    wsd.Range("B6").value = SlicerCsv("Carburant")
+    WritePeriodFromTimeline wsd
+    Application.EnableEvents = True
+    modDashboardGraphiques.RecreerDashboardComplet
+    On Error GoTo 0
+End Sub
+
 
 ' --------------------------------------------------------------------------
 '  POINT D'ENTREE : (re)construit toute la chaine de filtres
@@ -80,7 +97,7 @@ End Sub
 Private Sub ScheduleRebuild()
     On Error Resume Next
     CancelPendingRebuild
-    g_RebuildAt = Now + TimeSerial(0, 0, REBUILD_DELAY)
+    g_RebuildAt = now + TimeSerial(0, 0, REBUILD_DELAY)
     Application.OnTime g_RebuildAt, "DebouncedRebuild"
     Application.StatusBar = "Filtre pris en compte - mise a jour du tableau de bord..."
     On Error GoTo 0
@@ -507,26 +524,26 @@ Public Sub PlaceSlicers(ws As Worksheet, ByVal topY As Single, ByVal leftX As Si
     '  existants conservaient sinon l'ancien style orange cree a l'origine).
     StyleSlicerCache "Vehicule", SLC_STYLE
     StyleSlicerCache "Carburant", SLC_STYLE
-    Dim Sh As Shape
-    Set Sh = ws.Shapes(SLC_VEH)
-    If Not Sh Is Nothing Then ApplySlicerBox Sh, leftX, topY, wEach, hU
-    Set Sh = Nothing
-    Set Sh = ws.Shapes(SLC_FUEL)
-    If Not Sh Is Nothing Then ApplySlicerBox Sh, leftX + wEach + gap, topY, wEach, hU
+    Dim sh As Shape
+    Set sh = ws.Shapes(SLC_VEH)
+    If Not sh Is Nothing Then ApplySlicerBox sh, leftX, topY, wEach, hU
+    Set sh = Nothing
+    Set sh = ws.Shapes(SLC_FUEL)
+    If Not sh Is Nothing Then ApplySlicerBox sh, leftX + wEach + gap, topY, wEach, hU
     ' X39 : Chronologie sur la MEME rangee (3e tiers), alignee avec les 2 segments
-    Set Sh = Nothing
-    Set Sh = ws.Shapes(SLC_PER)
-    If Not Sh Is Nothing Then
-        ApplySlicerBox Sh, leftX + 2 * (wEach + gap), topY, wEach, hU
+    Set sh = Nothing
+    Set sh = ws.Shapes(SLC_PER)
+    If Not sh Is Nothing Then
+        ApplySlicerBox sh, leftX + 2 * (wEach + gap), topY, wEach - 8, hU
         StyleTimelineBlue
     End If
     On Error GoTo 0
 End Sub
 
-Private Sub ApplySlicerBox(Sh As Shape, ByVal l As Single, ByVal t As Single, ByVal wd As Single, ByVal ht As Single)
+Private Sub ApplySlicerBox(sh As Shape, ByVal L As Single, ByVal T As Single, ByVal wd As Single, ByVal ht As Single)
     On Error Resume Next
-    Sh.Left = l: Sh.top = t: Sh.Width = wd: Sh.Height = ht
-    Sh.Placement = xlFreeFloating: Sh.ZOrder msoBringToFront
+    sh.Left = L: sh.top = T: sh.Width = wd: sh.Height = ht
+    sh.Placement = xlFreeFloating: sh.ZOrder msoBringToFront
     On Error GoTo 0
 End Sub
 
@@ -557,26 +574,26 @@ End Function
 
 Private Function SidebarRight(ws As Worksheet) As Single
     Dim r As Single: r = 0
-    Dim Sh As Shape
+    Dim sh As Shape
     On Error Resume Next
-    For Each Sh In ws.Shapes
-        If Left$(Sh.name, 3) = "sb_" Then
-            If Sh.visible Then
-                If Sh.Left + Sh.Width > r Then r = Sh.Left + Sh.Width
+    For Each sh In ws.Shapes
+        If Left$(sh.name, 3) = "sb_" Then
+            If sh.visible Then
+                If sh.Left + sh.Width > r Then r = sh.Left + sh.Width
             End If
         End If
-    Next Sh
+    Next sh
     On Error GoTo 0
     SidebarRight = r
 End Function
 
 ' Cree les filtres si absents (1x) puis positionne au 1er plan. Appele par MAJ.
 Public Sub EnsureFilterUI(ws As Worksheet, ByVal topY As Single, ByVal leftX As Single, ByVal bandW As Single)
-    Dim Sh As Shape
+    Dim sh As Shape
     On Error Resume Next
-    Set Sh = ws.Shapes(SLC_VEH)
+    Set sh = ws.Shapes(SLC_VEH)
     On Error GoTo 0
-    If Sh Is Nothing Then SetupFilterControls
+    If sh Is Nothing Then SetupFilterControls
     PlaceSlicers ws, topY, leftX, bandW
 End Sub
 
@@ -614,12 +631,12 @@ End Function
 
 Private Function KpiBottom(ws As Worksheet) As Single
     Dim mb As Single: mb = 118
-    Dim Sh As Shape
-    For Each Sh In ws.Shapes
-        If Sh.name = "dash_kpi" Then
-            If Sh.top + Sh.Height > mb Then mb = Sh.top + Sh.Height
+    Dim sh As Shape
+    For Each sh In ws.Shapes
+        If sh.name = "dash_kpi" Then
+            If sh.top + sh.Height > mb Then mb = sh.top + sh.Height
         End If
-    Next Sh
+    Next sh
     KpiBottom = mb
 End Function
 
@@ -636,8 +653,8 @@ Private Function LCIdxF(lo As ListObject, nm As String) As Long
     Next c
 End Function
 
-Private Function FuelKeyF(t As String) As String
-    Dim s As String: s = LCase$(Trim$(t))
+Private Function FuelKeyF(T As String) As String
+    Dim s As String: s = LCase$(Trim$(T))
     If InStr(s, "e85") > 0 Then FuelKeyF = "E85": Exit Function
     If InStr(s, "gazole") > 0 Or InStr(s, "diesel") > 0 Then FuelKeyF = "GAZOLE": Exit Function
     If InStr(s, "sp98") > 0 Or InStr(s, "s98") > 0 Or InStr(s, "98") > 0 Then FuelKeyF = "SP98": Exit Function
@@ -646,3 +663,4 @@ Private Function FuelKeyF(t As String) As String
     If InStr(s, "gpl") > 0 Then FuelKeyF = "GPLc": Exit Function
     FuelKeyF = UCase$(s)
 End Function
+

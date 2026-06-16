@@ -33,11 +33,11 @@ Private Function WS_REGLAGES() As String
     WS_REGLAGES = "R" & ChrW(233) & "glages"
 End Function
 
-Private Function C_BG()   As Long: C_BG   = RGB(27, 58, 92):   End Function
-Private Function C_ITEM() As Long: C_ITEM  = RGB(15, 34, 55):   End Function
-Private Function C_GRN()  As Long: C_GRN  = RGB(29, 158, 117):  End Function
-Private Function C_WHT()  As Long: C_WHT  = RGB(255, 255, 255): End Function
-Private Function C_DIM()  As Long: C_DIM  = RGB(150, 180, 210): End Function
+Private Function C_BG() As Long: C_BG = RGB(27, 58, 92):       End Function
+Private Function C_ITEM() As Long: C_ITEM = RGB(15, 34, 55):    End Function
+Private Function C_GRN() As Long: C_GRN = RGB(29, 158, 117):    End Function
+Private Function C_WHT() As Long: C_WHT = RGB(255, 255, 255): End Function
+Private Function C_DIM() As Long: C_DIM = RGB(150, 180, 210): End Function
 
 Private Function GetShape(ws As Worksheet, nm As String) As Shape
     On Error Resume Next: Set GetShape = ws.Shapes(nm): On Error GoTo 0
@@ -64,8 +64,8 @@ End Sub
 Public Sub HideSidebar()
     Dim ws As Worksheet, j As Long
     For Each ws In ThisWorkbook.Worksheets
-        For j = ws.Shapes.Count To 1 Step -1
-            If Left$(ws.Shapes(j).Name, 3) = "sb_" Then ws.Shapes(j).Delete
+        For j = ws.Shapes.count To 1 Step -1
+            If Left$(ws.Shapes(j).name, 3) = "sb_" Then ws.Shapes(j).Delete
         Next j
     Next ws
 End Sub
@@ -80,9 +80,9 @@ Public Sub RepositionSidebar()
     MarquerOngletActif
 End Sub
 
-Public Sub NavToFromSidebar(ByVal target As String)
+Public Sub NavToFromSidebar(ByVal Target As String)
     On Error Resume Next
-    ThisWorkbook.Sheets(target).Activate
+    ThisWorkbook.Sheets(Target).Activate
     On Error GoTo 0
 End Sub
 
@@ -96,7 +96,7 @@ Public Sub NavSidebar_5(): NavToFromSidebar WS_REGLAGES():      End Sub
 ' Met a jour la surbrillance de l'onglet actif sur toutes les feuilles
 Public Sub MarquerOngletActif()
     Dim actName As String
-    On Error Resume Next: actName = ActiveSheet.Name: On Error GoTo 0
+    On Error Resume Next: actName = ActiveSheet.name: On Error GoTo 0
     Dim tgts(5) As String
     tgts(0) = "Accueil":          tgts(1) = "Tableau de bord"
     tgts(2) = "Carte":            tgts(3) = "Suivi Carburant"
@@ -108,10 +108,10 @@ Public Sub MarquerOngletActif()
             Dim nav As Shape: Set nav = GetShape(ws, NAV_PFX & k)
             If Not nav Is Nothing Then
                 Dim isAct As Boolean: isAct = (tgts(k) = actName)
-                nav.Fill.ForeColor.RGB = IIf(isAct, C_GRN(), C_ITEM())
+                nav.fill.ForeColor.RGB = IIf(isAct, C_GRN(), C_ITEM())
                 With nav.TextFrame2.TextRange
-                    .Font.Fill.ForeColor.RGB = IIf(isAct, C_WHT(), C_DIM())
-                    .Font.Bold = IIf(isAct, msoTrue, msoFalse)
+                    .Font.fill.ForeColor.RGB = IIf(isAct, C_WHT(), C_DIM())
+                    .Font.bold = IIf(isAct, msoTrue, msoFalse)
                 End With
             End If
         Next k
@@ -147,8 +147,8 @@ Public Sub PoserSidebarSurFeuille(ws As Worksheet, Optional zOverride As Single 
     ' Supprimer tous les anciens shapes sb_ (ancienne sidebar + nouveau)
     On Error Resume Next
     Dim j As Long
-    For j = ws.Shapes.Count To 1 Step -1
-        If Left$(ws.Shapes(j).Name, 3) = "sb_" Then ws.Shapes(j).Delete
+    For j = ws.Shapes.count To 1 Step -1
+        If Left$(ws.Shapes(j).name, 3) = "sb_" Then ws.Shapes(j).Delete
     Next j
     On Error GoTo 0
 
@@ -156,32 +156,32 @@ Public Sub PoserSidebarSurFeuille(ws As Worksheet, Optional zOverride As Single 
 
     ' Dimensions en points document (/ z pour compenser le zoom et rester
     ' visuellement constant quelle que soit la valeur de zoom de la feuille)
-    Dim bH   As Single: bH   = BAR_H    / z
-    Dim iW   As Single: iW   = ITEM_W   / z
-    Dim iH   As Single: iH   = ITEM_H   / z
-    Dim bT   As Single: bT   = BAR_TOP  / z
-    Dim bWd  As Single: bWd  = BAR_W    / z
-    Dim padL As Single: padL = BAR_PAD  / z
-    Dim gap  As Single: gap  = ITEM_GAP / z
+    Dim bH   As Single: bH = BAR_H / z
+    Dim iW   As Single: iW = ITEM_W / z
+    Dim iH   As Single: iH = ITEM_H / z
+    Dim bT   As Single: bT = BAR_TOP / z
+    Dim bWd  As Single: bWd = BAR_W / z
+    Dim padL As Single: padL = BAR_PAD / z
+    Dim gap  As Single: gap = ITEM_GAP / z
     Dim iTop As Single: iTop = bT + (bH - iH) / 2   ' centrage vertical
 
     ' -- Fond de barre
     Dim bg As Shape
     Set bg = ws.Shapes.AddShape(msoShapeRectangle, 0, bT, bWd, bH)
-    bg.Name = SB_BG: bg.Placement = xlFreeFloating
-    bg.Fill.ForeColor.RGB = C_BG(): bg.Line.Visible = msoFalse
+    bg.name = SB_BG: bg.Placement = xlFreeFloating
+    bg.fill.ForeColor.RGB = C_BG(): bg.Line.visible = msoFalse
 
     ' -- Labels et cibles de navigation
     Dim labels(5) As String, tgts(5) As String
     labels(0) = Emo(&H1F3E0) & " Accueil":          tgts(0) = "Accueil"
     labels(1) = Emo(&H1F4CA) & " Tableau de bord":  tgts(1) = "Tableau de bord"
     labels(2) = Emo(&H1F5FA) & " Carte":            tgts(2) = "Carte"
-    labels(3) = Emo(&H26FD)  & " Suivi Carburant":  tgts(3) = "Suivi Carburant"
+    labels(3) = Emo(&H26FD) & " Suivi Carburant":   tgts(3) = "Suivi Carburant"
     labels(4) = Emo(&H1F4B6) & " Prix / Station":   tgts(4) = "Prix par Station"
-    labels(5) = Emo(&H2699)  & " R" & ChrW(233) & "glages": tgts(5) = WS_REGLAGES()
+    labels(5) = Emo(&H2699) & " R" & ChrW(233) & "glages": tgts(5) = WS_REGLAGES()
 
     Dim actName As String
-    On Error Resume Next: actName = ActiveSheet.Name: On Error GoTo 0
+    On Error Resume Next: actName = ActiveSheet.name: On Error GoTo 0
 
     Dim x As Single: x = padL
     Dim k As Integer
@@ -189,20 +189,20 @@ Public Sub PoserSidebarSurFeuille(ws As Worksheet, Optional zOverride As Single 
         Dim isAct As Boolean: isAct = (tgts(k) = actName)
         Dim nav As Shape
         Set nav = ws.Shapes.AddShape(msoShapeRoundedRectangle, x, iTop, iW, iH)
-        nav.Name = NAV_PFX & k: nav.Placement = xlFreeFloating
-        nav.Fill.ForeColor.RGB = IIf(isAct, C_GRN(), C_ITEM())
-        nav.Line.Visible = msoFalse
+        nav.name = NAV_PFX & k: nav.Placement = xlFreeFloating
+        nav.fill.ForeColor.RGB = IIf(isAct, C_GRN(), C_ITEM())
+        nav.Line.visible = msoFalse
         nav.OnAction = "modSidebar.NavSidebar_" & k
         With nav.TextFrame2
             ' Pas de retour a la ligne : le libelle reste sur UNE ligne et reste
             ' integralement visible (sinon "Tableau de bord"/"Reglages" se coupaient).
             .WordWrap = msoFalse
-            .TextRange.Text = labels(k)
-            .TextRange.Font.Fill.ForeColor.RGB = IIf(isAct, C_WHT(), C_DIM())
+            .TextRange.text = labels(k)
+            .TextRange.Font.fill.ForeColor.RGB = IIf(isAct, C_WHT(), C_DIM())
             .TextRange.Font.Size = 10
             ' Mesurer en GRAS (cas le plus large) : ainsi le surlignage de l'onglet
             ' actif (qui met le texte en gras) ne deborde jamais de son bouton.
-            .TextRange.Font.Bold = msoTrue
+            .TextRange.Font.bold = msoTrue
             .TextRange.ParagraphFormat.Alignment = msoAlignCenter
             .HorizontalAnchor = 2: .VerticalAnchor = 3
             .MarginLeft = 10 / z: .MarginRight = 10 / z
@@ -216,10 +216,23 @@ Public Sub PoserSidebarSurFeuille(ws As Worksheet, Optional zOverride As Single 
         nav.TextFrame2.AutoSize = msoAutoSizeNone
         nav.Height = iH                              ' hauteur uniforme conservee
         nav.Width = wReal
-        nav.Top = iTop
+        nav.top = iTop
         nav.Adjustments(1) = 0.25
         ' Retablir l'etat gras reel (mesure faite en gras pour tous).
-        nav.TextFrame2.TextRange.Font.Bold = IIf(isAct, msoTrue, msoFalse)
+        nav.TextFrame2.TextRange.Font.bold = IIf(isAct, msoTrue, msoFalse)
         x = x + wReal + gap                          ' avancer selon largeur reelle
     Next k
+    ' Pass 2 : re-distribuer SANS chevauchement (largeurs finales reelles)
+    Dim xx As Single: xx = padL
+    Dim kk As Integer
+    For kk = 0 To NAV_COUNT - 1
+        Dim nv As Shape: Set nv = GetShape(ws, NAV_PFX & kk)
+        If Not nv Is Nothing Then
+            nv.Left = xx
+            xx = xx + nv.Width + gap
+        End If
+    Next kk
 End Sub
+
+
+

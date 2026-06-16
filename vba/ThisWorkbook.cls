@@ -60,6 +60,7 @@ Private Sub Workbook_Open()
     modSidebar.ShowSidebar
     On Error GoTo 0
 
+    Application.OnTime now + TimeValue("00:00:03"), "SyncFiltersAndRebuildOnOpen"
     Application.StatusBar = "Classeur pret. (Import +2s, synchro Google Sheets +5s en arriere-plan.)"
 End Sub
 
@@ -84,3 +85,6 @@ Private Sub Workbook_SheetPivotTableUpdate(ByVal sh As Object, ByVal Target As P
     If Target.name = "ptFiltres" Then modFiltres.ApplyFiltersFromControls
     On Error GoTo 0
 End Sub
+
+
+
