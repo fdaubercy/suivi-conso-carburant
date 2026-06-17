@@ -1,13 +1,18 @@
-# Graph Report - suivi-conso-carburant  (2026-06-15)
+# Graph Report - suivi-conso-carburant  (2026-06-18)
 
 ## Corpus Check
-- 115 files · ~642,990 words
+- 122 files · ~650,657 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2033 nodes · 3132 edges · 303 communities (209 shown, 94 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 52 edges (avg confidence: 0.84)
+- 2394 nodes · 3625 edges · 307 communities (228 shown, 79 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 54 edges (avg confidence: 0.84)
 - Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `a4bbb7b3`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - [[_COMMUNITY_Prix secteur & historique|Prix secteur & historique]]
@@ -307,18 +312,22 @@
 - [[_COMMUNITY_Community 300|Community 300]]
 - [[_COMMUNITY_Community 301|Community 301]]
 - [[_COMMUNITY_Community 302|Community 302]]
+- [[_COMMUNITY_Community 303|Community 303]]
+- [[_COMMUNITY_Community 304|Community 304]]
+- [[_COMMUNITY_Community 305|Community 305]]
+- [[_COMMUNITY_Community 306|Community 306]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `Changelog` - 111 edges
-2. `Changelog` - 71 edges
-3. `✨ Fonctionnalités` - 35 edges
-4. `state` - 29 edges
-5. `getAllRecords()` - 25 edges
-6. `fetchPricesAtCoords()` - 24 edges
-7. `CLAUDE.md — Suivi Conso Carburants` - 22 edges
-8. `authEnabled()` - 20 edges
-9. `showFeedback()` - 20 edges
-10. `isAuthed()` - 19 edges
+2. `Changelog` - 111 edges
+3. `Changelog` - 73 edges
+4. `✨ Fonctionnalités` - 35 edges
+5. `state` - 29 edges
+6. `getAllRecords()` - 25 edges
+7. `fetchPricesAtCoords()` - 24 edges
+8. `CLAUDE.md — Suivi Conso Carburants` - 22 edges
+9. `authEnabled()` - 20 edges
+10. `showFeedback()` - 20 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Overpass API nearby E85 station search` --semantically_similar_to--> `js/brand.js BRANDS registry + getUnknownBrands()`  [INFERRED] [semantically similar]
@@ -338,11 +347,11 @@
 ## Hyperedges (group relationships)
 - **Release v5.17.0.0 — Dashboard largeur dynamique + navbar Excel** — release_5170_dashboard_largeur_dynamique, release_5170_zoomcolsforsheet_public, release_5170_libelles_navbar, vba_moddashboardgraphiques, vba_affichage_module [EXTRACTED 0.90]
 
-## Communities (303 total, 94 thin omitted)
+## Communities (307 total, 79 thin omitted)
 
 ### Community 0 - "Prix secteur & historique"
-Cohesion: 0.22
-Nodes (26): DOM helper functions, _buildTypeToggle(), _updateHeaderBadges(), FUEL_KEYS, clearDraft(), onStationChange(), resetForm(), applyPricesResult() (+18 more)
+Cohesion: 0.19
+Nodes (27): DOM helper functions, _buildTypeToggle(), _fetchPricesNearUser(), initTypeToggle(), registerPriceCallback(), setType(), _updateHeaderBadges(), onStationChange() (+19 more)
 
 ### Community 1 - "Statistiques & KPIs"
 Cohesion: 0.06
@@ -350,15 +359,15 @@ Nodes (61): Stats cache TTL & freshness, buildComparatifCSV(), CMP_COLS, compute
 
 ### Community 2 - "Historique & véhicules"
 Cohesion: 0.07
-Nodes (37): _allRecords, buildHistoriqueCSV(), chargerHistorique(), CSV_COLS, _csvSep(), _downloadCSV(), dupliquerDernier(), escapeHtml() (+29 more)
+Nodes (36): _allRecords, buildHistoriqueCSV(), chargerHistorique(), CSV_COLS, _csvSep(), _downloadCSV(), dupliquerDernier(), escapeHtml() (+28 more)
 
 ### Community 3 - "Auth Google & paramètres"
 Cohesion: 0.11
-Nodes (26): CARTE_FUELS, computeStationAverages(), _defaultFuelForVehicle(), _ensureUserPos(), FUEL_TOKENS, _geocodeMissing(), _geocodeTried, getStationCoords() (+18 more)
+Nodes (27): googleMapsActive(), CARTE_FUELS, computeStationAverages(), _defaultFuelForVehicle(), _ensureUserPos(), FUEL_TOKENS, _geocodeMissing(), _geocodeTried (+19 more)
 
 ### Community 4 - "Déploiement GAS (API)"
-Cohesion: 0.13
-Nodes (30): Flux d'authentification Google — GIS One-Tap → JWT → session localStorage, auth-changed CustomEvent — émis à chaque (dé)connexion Google, authEnabled(), _avatarHtml(), _b64urlToJson(), _clearSession(), _dispatch(), ensureGis() (+22 more)
+Cohesion: 0.06
+Nodes (69): Flux d'authentification Google — GIS One-Tap → JWT → session localStorage, LWW parameters sync — last-write-wins reconciliation across app/Excel/GAS, auth-changed CustomEvent — émis à chaque (dé)connexion Google, authEnabled(), _avatarHtml(), _b64urlToJson(), _clearSession(), _dispatch() (+61 more)
 
 ### Community 5 - "VBA Agent (COM Python)"
 Cohesion: 0.05
@@ -369,8 +378,8 @@ Cohesion: 0.05
 Nodes (41): dependencies, tesseract.js, description, devDependencies, eslint, @eslint/js, husky, jsdom (+33 more)
 
 ### Community 7 - "Bilan annuel Wrapped"
-Cohesion: 0.09
-Nodes (30): Historical price resolution — nearest-prior sector/station price for past fills, applyHistPriceToForm(), _cacheKey(), escapeHtml(), _frDate(), getSectorMinForDate(), getSectorToday(), HIST_FUELS (+22 more)
+Cohesion: 0.12
+Nodes (13): D_OLD, D_RECENT, dMinus(), iso(), SECTOR_CACHE, TODAY, D_MID, D_OLD (+5 more)
 
 ### Community 8 - "Carte stations habituelles"
 Cohesion: 0.17
@@ -381,28 +390,28 @@ Cohesion: 0.12
 Nodes (23): CHANGELOG v5.14.0.0, buildWrapped(), computeSurconso(), _downloadBlob(), drawWrappedCard(), escapeHtml(), getAvailableYears(), getScope() (+15 more)
 
 ### Community 10 - "Backend & archi U7"
-Cohesion: 0.15
-Nodes (26): LWW parameters sync — last-write-wins reconciliation across app/Excel/GAS, ALERT_FUELS, buildFuelRows(), checkPrixAlert(), checkPrixE85Alert(), _defOf(), ensurePermission(), getPermission() (+18 more)
+Cohesion: 0.12
+Nodes (31): _getNum(), initBadges(), _markSeen(), refreshBadges(), SECTOR_FUELS, _setBadge(), _todayIso(), ALERT_FUELS (+23 more)
 
 ### Community 11 - "Routeur & préférences UI"
 Cohesion: 0.12
 Nodes (24): CHANGELOG v5.16.0.0, Lesson: always override background in dark theme active states, Lesson: Call to deleted module = compile error, Lesson: shapes must use xlFreeFloating, Lesson: deploy .bas as UTF-8 not CP1252, Lesson: VB_Name attribute causes macro failure, Plan sidebar icônes+titre (2026-06-13), find_wb() (+16 more)
 
 ### Community 12 - "Carte Google/OSM (résultats)"
-Cohesion: 0.22
-Nodes (18): Geolocation localStorage cache TTL 1h (W31), OSM enrichment (enrichStationsBulk) — background station name resolution, Geo localStorage cache (GEO_CACHE_KEY, 1h TTL), geolocate(), highlightNearbyItem(), initNearbyList(), loadGeoCache(), pickStation() (+10 more)
+Cohesion: 0.17
+Nodes (21): Geolocation localStorage cache TTL 1h (W31), OSM brand enrichment — single Overpass grouped query to name stations, OSM enrichment (enrichStationsBulk) — background station name resolution, FUEL_CONFIG, Geo localStorage cache (GEO_CACHE_KEY, 1h TTL), geolocate(), highlightNearbyItem(), initNearbyList() (+13 more)
 
 ### Community 13 - "Dashboard graphiques Excel"
 Cohesion: 0.14
 Nodes (22): Feuil3 (Tableau de bord), modDashboardGraphiques, modFiltres, modGraphiques, ModuleImportGS, ThisWorkbook, ApplyDefaultPeriodOnce, ApplyFiltersFromControls (+14 more)
 
 ### Community 14 - "Utilitaires & enseignes"
-Cohesion: 0.17
-Nodes (16): Pure utility functions, detectBrand(), brandFromAddress(), composeStationName(), formatVille(), resolveEnseigne(), stationSubLabel(), describe: composeStationName (+8 more)
+Cohesion: 0.16
+Nodes (17): Pure utility functions, detectBrand(), _renderGoogleMap(), brandFromAddress(), composeStationName(), formatVille(), resolveEnseigne(), stationSubLabel() (+9 more)
 
 ### Community 15 - "Scan ticket OCR"
-Cohesion: 0.11
-Nodes (21): OCR ticket parsing logic, cacheStationCoords(), applyTicketStation(), fillFormFromTicket(), _findStationInCommune(), FRENCH_MONTHS, FUEL_LABEL_MAP, initScanner() (+13 more)
+Cohesion: 0.12
+Nodes (20): OCR ticket parsing logic, cacheStationCoords(), applyTicketStation(), fillFormFromTicket(), _findStationInCommune(), FRENCH_MONTHS, FUEL_LABEL_MAP, initScanner() (+12 more)
 
 ### Community 16 - "VBA Agent CLI & UserForms"
 Cohesion: 0.13
@@ -417,20 +426,20 @@ Cohesion: 0.07
 Nodes (29): Historique complet + filtres (#histoireFullCard), Barre véhicule globale (#vehBar / #vehiculeSelGlobal), Bilan annuel Wrapped card (#wrappedCard), Wrapped scope toggle (#wrappedScopeBtn véhicule / tous), Wrapped share button (#wrappedShareBtn), Plan d'implémentation — Découvrabilité boutons-icônes, Tâche 1 — Groupe A clusters en-tête (boutons 4-10), Tâche 2 — Groupe B boutons de champ (1-2) (+21 more)
 
 ### Community 19 - "Recherche manuelle (BAN)"
-Cohesion: 0.17
-Nodes (12): Playwright E2E tests (Chromium, mock GAS via page.route), swVersionPlugin (Vite plugin injecting APP_VERSION into SW), Vitest unit tests + v8 coverage (235+ tests, 22 files), Path, extract_from_xlsm(), load_bas_files(), main(), normalize() (+4 more)
+Cohesion: 0.11
+Nodes (21): Playwright E2E tests (Chromium, mock GAS via page.route), swVersionPlugin (Vite plugin injecting APP_VERSION into SW), Vitest unit tests + v8 coverage (235+ tests, 22 files), Path, extract_from_xlsm(), load_bas_files(), main(), normalize() (+13 more)
 
 ### Community 20 - "Géocodage & marqueurs carte"
-Cohesion: 0.26
-Nodes (9): _priceBadge(), _close(), GMAPS_URL(), _onKey(), showStationPopup(), WAZE_URL(), state, escHtml() (+1 more)
+Cohesion: 0.35
+Nodes (7): _close(), GMAPS_URL(), _onKey(), showStationPopup(), WAZE_URL(), state, BASE
 
 ### Community 21 - "ROADMAP priorités & releases"
 Cohesion: 0.16
 Nodes (14): hideMap, initMapInteractions, carte.js, showMap, showPinLabel, tileXY, GOOGLE_MAPS_MAP_ID, googleMapsActive (+6 more)
 
 ### Community 22 - "Endpoints GAS (doPost/doGet)"
-Cohesion: 0.30
-Nodes (13): OSM brand enrichment — single Overpass grouped query to name stations, showMap(), enrichStationsBulk(), buildSearchClause(), buildStations(), geocodeAddress(), onAutreInput(), searchStationsCityOnly() (+5 more)
+Cohesion: 0.40
+Nodes (12): showMap(), renderNearby(), buildSearchClause(), buildStations(), geocodeAddress(), onAutreInput(), searchStationsCityOnly(), searchStationSuggestions() (+4 more)
 
 ### Community 23 - "Releases & carte Google W63"
 Cohesion: 0.17
@@ -441,8 +450,8 @@ Cohesion: 0.18
 Nodes (12): APP_VERSION 5.17.0.0, Leçon #33: ByRef exige correspondance de type exacte, Plan: Sidebar icônes + aperçu titre, btnPleinEcran déplacé sur onglet Réglages, Bannière dashboard largeur dynamique (WTOT), Fix erreur compilation -2146788248 sélecteur véhicule (ByRef Single/Double), Libellés boutons de navigation (NavbarBottom/AddButtonLabels), ZoomColsForSheet rendu Public (+4 more)
 
 ### Community 25 - "Câblage app & véhicule courant"
-Cohesion: 0.45
-Nodes (11): setVehiculeStatus(), _autoSelectLastVehicule(), chargerVehicules(), confirmerAjoutVehicule(), getVehicules(), onVehiculeChange(), _populateGlobalVehiculeSelect(), _populateVehiculeSelect() (+3 more)
+Cohesion: 0.23
+Nodes (17): Historical price resolution — nearest-prior sector/station price for past fills, applyHistPriceToForm(), _cacheKey(), escapeHtml(), _frDate(), getSectorMinForDate(), getSectorToday(), HIST_FUELS (+9 more)
 
 ### Community 26 - "Filtres natifs dashboard Excel"
 Cohesion: 0.17
@@ -481,8 +490,8 @@ Cohesion: 0.22
 Nodes (9): onStationChange, fetchPricesAtCoords, fetchPricesNearUser, ODS Cache, cacheStationCoords, computeStationAverages, COORD_CACHE_KEY, getStationCoords (+1 more)
 
 ### Community 35 - "Pont Excel ↔ GAS ↔ Sheets"
-Cohesion: 0.44
-Nodes (7): bestZoom(), hideMap(), initMapInteractions(), latLonToPx(), _renderMap(), showPinLabel(), tileXY()
+Cohesion: 0.54
+Nodes (6): bestZoom(), hideMap(), latLonToPx(), _renderMap(), showPinLabel(), tileXY()
 
 ### Community 36 - "Règles projet & versioning"
 Cohesion: 0.39
@@ -533,12 +542,12 @@ Cohesion: 0.67
 Nodes (3): Z900 Kawasaki — filigrane moyen N&B (opacité ~16%, flou Gaussien r=5), Z900 Kawasaki — filigrane couleur léger (opacité ~13%, flou r=3), z900_preview.html — galerie HTML des 6 variantes de filigrane Kawasaki Z900
 
 ### Community 132 - "C9 Service account Google"
-Cohesion: 0.03
-Nodes (70): [2.10.0.1] — 2026-05-27, [2.10.0.2] — 2026-05-27, [2.10.0.3] — 2026-05-27, [2.10.0.4] — 2026-05-27, [2.10.0.5] — 2026-05-27, [2.15.0.1] — 2026-05-28, [2.4.5.1] — 2026-05-25, [2.7.0.1] — 2026-05-25 (+62 more)
+Cohesion: 0.04
+Nodes (46): [2.10.0.1] — 2026-05-27, [2.10.0.2] — 2026-05-27, [2.10.0.3] — 2026-05-27, [2.10.0.4] — 2026-05-27, [2.10.0.5] — 2026-05-27, [2.15.0.1] — 2026-05-28, [2.4.5.1] — 2026-05-25, [2.7.0.4] — 2026-05-26 (+38 more)
 
 ### Community 133 - "GAS Manager / gas-api"
-Cohesion: 0.05
-Nodes (40): [4.10.0.1] — 2026-05-31, [4.10.0.2] — 2026-05-31, [4.11.0.1] — 2026-06-01, [4.11.0.3] — 2026-06-01, [4.13.1.1] — 2026-06-02, [4.13.2.0] — 2026-06-02, [4.14.0.1] — 2026-06-03, [4.14.0.3] — 2026-06-03 (+32 more)
+Cohesion: 0.06
+Nodes (34): [4.10.0.1] — 2026-05-31, [4.11.0.2] — 2026-06-01, [4.13.1.1] — 2026-06-02, [4.14.0.1] — 2026-06-03, [4.14.0.7] — 2026-06-03, [4.16.0.0] — 2026-06-03, [4.17.0.1] — 2026-06-03, [5.16.1.0] — 2026-06-13 (+26 more)
 
 ### Community 134 - "S13 Rapport mensuel illustré"
 Cohesion: 0.06
@@ -557,20 +566,20 @@ Cohesion: 0.06
 Nodes (32): Actions `doGet`, Actions `doPost`, `addStation`, `addVehicule`, `bulkAdd`, `bulkUpdate` _(v2.9.0.0 — sync bidirectionnel)_, Clé Gemini (optionnel — scan ticket), Configuration requise (+24 more)
 
 ### Community 138 - "rotateControl supprimé"
-Cohesion: 0.16
-Nodes (24): initCollapsibles(), initHomeResume(), initPreferences(), initStartViewSetting(), renderHomeResume(), VIEW_META, currentView(), dirBetween() (+16 more)
+Cohesion: 0.13
+Nodes (14): 1. Problème (preuves), 2. Objectif & critères de succès, 3. Non-objectifs, 4.1 Drapeau d'ouverture silencieuse, 4.2 Wrappers + capture/restauration de la feuille active, 4.3 Garde du tail cosmétique de `MAJ_Dashboard_Graphiques` (l.121-123), 4.4 Replanification dans `ThisWorkbook.Workbook_Open`, 4. Conception (approche A) (+6 more)
 
 ### Community 139 - "Leçon buffer VBE set-module"
-Cohesion: 0.12
-Nodes (23): submitForm, _getClientId(), _parseSpeechToNumber(), saveDraft(), submitForm(), getMaxKmForVehicule(), fetchNearestE85Price(), chargerStations() (+15 more)
+Cohesion: 0.15
+Nodes (27): submitForm, checkDuplicate(), clearDraft(), _getClientId(), onKmInput(), _parseSpeechToNumber(), restoreDraft(), saveDraft() (+19 more)
 
 ### Community 140 - "Tests a11y boutons"
-Cohesion: 0.16
-Nodes (20): _getNum(), initBadges(), _markSeen(), refreshBadges(), SECTOR_FUELS, _setBadge(), _todayIso(), checkDuplicate() (+12 more)
+Cohesion: 0.21
+Nodes (11): initMapInteractions(), initVoiceKm(), t, chargerStations(), _gsStations, _historyStations, mergeHistoryStations(), _renderStationOptions() (+3 more)
 
 ### Community 141 - "Config spellright FR"
-Cohesion: 0.14
-Nodes (18): brandIconUrl(), brandInfo(), BRANDS, GENERIC_BRAND_ICON, _logUnknownBrand(), _unknownSeen, _renderGoogleMap(), googleMapsEnabled() (+10 more)
+Cohesion: 0.13
+Nodes (19): brandIconUrl(), brandInfo(), BRANDS, GENERIC_BRAND_ICON, _logUnknownBrand(), _unknownSeen, FUEL_KEYS, googleMapsEnabled() (+11 more)
 
 ### Community 142 - "Community 142"
 Cohesion: 0.10
@@ -641,20 +650,20 @@ Cohesion: 0.25
 Nodes (7): Reprise de session, Étape 1 — Chargement, Étape 2 — Analyse des demandes utilisateur, Étape 3 — Actions en cours, Étape 4 — Plan de reprise, Étape 5 — Exécution, Étape 6 — Clôture
 
 ### Community 159 - "Community 159"
-Cohesion: 0.50
-Nodes (5): _fetchPricesNearUser(), initTypeToggle(), registerPriceCallback(), setType(), FUEL_CONFIG
+Cohesion: 0.18
+Nodes (10): File Structure, MAJ d'ouverture en arrière-plan (« Accueil » figé) — Implementation Plan, Notes de risque, Task 0: Pré-vol — vérifier l'état & sauvegarder, Task 1: modWorkbook — drapeau + wrappers (live), Task 2: modDashboardGraphiques — garde du tail cosmétique (live), Task 3: ThisWorkbook — planifier les wrappers (live), Task 4: Sauvegarde, recompilation propre & vérification visuelle (+2 more)
 
 ### Community 160 - "Community 160"
 Cohesion: 0.25
 Nodes (7): Environnement et prérequis, Outil, Quand combiner avec excel-vba-expert, Règles de sécurité, Références, VBA Agent — injection directe de code VBA dans Excel, Workflow standard (à suivre)
 
 ### Community 161 - "Community 161"
-Cohesion: 0.33
-Nodes (6): [2.5.0.0] — 2026-05-25, Added, Changed, 🔁 W13 — GitHub Actions CI, 🧾 W17 — Scan ticket de caisse → auto-complétion du formulaire, 📈 X7 + X8 — Graphiques Excel (`modDashboard.bas`)
+Cohesion: 0.36
+Nodes (8): [2.5.0.0] — 2026-05-25, Added, Added, Changed, Changed, 🔁 W13 — GitHub Actions CI, 🧾 W17 — Scan ticket de caisse → auto-complétion du formulaire, 📈 X7 + X8 — Graphiques Excel (`modDashboard.bas`)
 
 ### Community 162 - "Community 162"
-Cohesion: 0.33
-Nodes (6): [4.3.0.4] — 2026-05-31, ⚠️ Action requise dans le classeur (snippets fournis, binaire non modifié), Added, Audit — alignement du classeur Excel local ↔ GAS / Google Sheet, Changed, Fixed
+Cohesion: 0.22
+Nodes (9): [4.3.0.4] — 2026-05-31, ⚠️ Action requise dans le classeur (snippets fournis, binaire non modifié), Added, Added, Audit — alignement du classeur Excel local ↔ GAS / Google Sheet, Changed, Changed, Fixed (+1 more)
 
 ### Community 163 - "Community 163"
 Cohesion: 0.33
@@ -677,16 +686,16 @@ Cohesion: 0.33
 Nodes (5): Champs d'un contrôle, Notes, Schéma d'un UserForm — `build-form`, Structure du JSON, Types de `kind` supportés
 
 ### Community 168 - "Community 168"
-Cohesion: 0.40
-Nodes (5): [2.7.0.0] — 2026-05-25, Added — Vite bundler (W12) + Tests unitaires Vitest (W14), Changed, ⚡ W12 — Vite bundler, 🧪 W14 — Tests unitaires Vitest
+Cohesion: 0.33
+Nodes (6): [2.7.0.0] — 2026-05-25, Added — Vite bundler (W12) + Tests unitaires Vitest (W14), Changed, Changed, ⚡ W12 — Vite bundler, 🧪 W14 — Tests unitaires Vitest
 
 ### Community 169 - "Community 169"
-Cohesion: 0.40
-Nodes (5): [3.4.0.0] — 2026-05-30, Added, Changed, Fixed, Note
+Cohesion: 0.22
+Nodes (9): [3.4.0.0] — 2026-05-30, Added, Added, Changed, Changed, Fixed, Fixed, Note (+1 more)
 
 ### Community 170 - "Community 170"
-Cohesion: 0.40
-Nodes (5): [4.18.0.0] — 2026-06-04, Added, Changed, Déploiement, Fixed
+Cohesion: 0.14
+Nodes (14): [4.15.0.0] — 2026-06-03, [4.17.0.0] — 2026-06-03, [4.18.0.0] — 2026-06-04, Added, Added, Added, Added, Changed (+6 more)
 
 ### Community 171 - "Community 171"
 Cohesion: 0.40
@@ -709,116 +718,116 @@ Cohesion: 0.50
 Nodes (3): Ajouter une nouvelle enseigne, Convention (badge monogramme de repli), Icônes d'enseignes (stations-service)
 
 ### Community 176 - "Community 176"
-Cohesion: 0.50
-Nodes (4): [2.10.0.0] — 2026-05-27, Added, Changed, Removed
+Cohesion: 0.29
+Nodes (7): [2.10.0.0] — 2026-05-27, Added, Added, Changed, Changed, Removed, Removed
 
 ### Community 177 - "Community 177"
-Cohesion: 0.50
-Nodes (4): [2.8.0.0] — 2026-05-26, Added, 🗺️ Carte statique Stations habituelles + prix moyens, ⚠️ Détection de doublons dans le formulaire
+Cohesion: 0.60
+Nodes (5): [2.8.0.0] — 2026-05-26, Added, Added, 🗺️ Carte statique Stations habituelles + prix moyens, ⚠️ Détection de doublons dans le formulaire
 
 ### Community 178 - "Community 178"
-Cohesion: 0.50
-Nodes (4): [2.9.0.0] — 2026-05-26, Added, Changed, 🔄 Sync bidirectionnel Excel ↔ Google Sheets — complet
+Cohesion: 0.40
+Nodes (6): [2.9.0.0] — 2026-05-26, Added, Added, Changed, Changed, 🔄 Sync bidirectionnel Excel ↔ Google Sheets — complet
 
 ### Community 179 - "Community 179"
-Cohesion: 0.50
-Nodes (4): [3.0.1.0] — 2026-05-28, Added, Changed, Fixed
+Cohesion: 0.29
+Nodes (7): [3.0.1.0] — 2026-05-28, Added, Added, Changed, Changed, Fixed, Fixed
 
 ### Community 180 - "Community 180"
-Cohesion: 0.50
-Nodes (4): [3.10.0.0] — 2026-05-30, Added, Changed, Migration
+Cohesion: 0.33
+Nodes (6): [3.10.0.0] — 2026-05-30, Added, Added, Changed, Changed, Migration
 
 ### Community 181 - "Community 181"
-Cohesion: 0.50
-Nodes (4): [3.12.2.0] — 2026-05-30, Added, Changed, Fixed
+Cohesion: 0.29
+Nodes (7): [3.12.2.0] — 2026-05-30, Added, Added, Changed, Changed, Fixed, Fixed
 
 ### Community 182 - "Community 182"
-Cohesion: 0.50
-Nodes (4): [3.1.0.12] — 2026-05-29, Added, Changed, Fixed
+Cohesion: 0.15
+Nodes (13): [3.1.0.12] — 2026-05-29, [3.2.0.0] — 2026-05-29, Added, Added, Added, Added, Changed, Changed (+5 more)
 
 ### Community 183 - "Community 183"
-Cohesion: 0.50
-Nodes (4): [3.1.0.13] — 2026-05-29, Added, Changed, Fixed
+Cohesion: 0.18
+Nodes (11): [3.1.0.11] — 2026-05-29, [3.1.0.13] — 2026-05-29, Added, Added, Changed, Changed, Changed, Fixed (+3 more)
 
 ### Community 184 - "Community 184"
-Cohesion: 0.50
-Nodes (4): [3.1.0.7] — 2026-05-29, Added, Changed, Fixed
+Cohesion: 0.29
+Nodes (7): [3.1.0.7] — 2026-05-29, Added, Added, Changed, Changed, Fixed, Fixed
 
 ### Community 185 - "Community 185"
-Cohesion: 0.50
-Nodes (4): [3.1.0.9] — 2026-05-29, Added, Changed, Fixed
+Cohesion: 0.29
+Nodes (7): [3.1.0.9] — 2026-05-29, Added, Added, Changed, Changed, Fixed, Fixed
 
 ### Community 186 - "Community 186"
-Cohesion: 0.50
-Nodes (4): [3.2.0.0] — 2026-05-29, Added, Changed, Fixed
+Cohesion: 0.29
+Nodes (7): [4.3.0.0] — 2026-05-30, [4.3.0.2] — 2026-05-30, Added, Added, Changed, Changed, Changed
 
 ### Community 187 - "Community 187"
-Cohesion: 0.50
-Nodes (4): [4.14.0.0] — 2026-06-03, Added, Changed, Fixed
+Cohesion: 0.29
+Nodes (7): [4.14.0.0] — 2026-06-03, Added, Added, Changed, Changed, Fixed, Fixed
 
 ### Community 188 - "Community 188"
-Cohesion: 0.50
-Nodes (4): [4.5.0.0] — 2026-05-31, Added, Changed, ⚠️ Installation dans le classeur
+Cohesion: 0.29
+Nodes (7): [4.5.0.0] — 2026-05-31, Added, Added, Changed, Changed, ⚠️ Installation dans le classeur, ⚠️ Installation dans le classeur
 
 ### Community 189 - "Community 189"
-Cohesion: 0.50
-Nodes (4): [4.6.0.0] — 2026-05-31, Added, Changed, ⚠️ Installation dans le classeur
+Cohesion: 0.33
+Nodes (6): [4.6.0.0] — 2026-05-31, Added, Added, Changed, Changed, ⚠️ Installation dans le classeur
 
 ### Community 190 - "Community 190"
-Cohesion: 0.50
-Nodes (4): [4.7.0.0] — 2026-05-31, Added, Changed, ⚠️ Installation
+Cohesion: 0.29
+Nodes (7): [4.7.0.0] — 2026-05-31, Added, Added, Changed, Changed, ⚠️ Installation, ⚠️ Installation
 
 ### Community 191 - "Community 191"
-Cohesion: 0.50
-Nodes (4): [4.8.0.0] — 2026-05-31, Added, Changed, ⚠️ Installation
+Cohesion: 0.33
+Nodes (6): [4.8.0.0] — 2026-05-31, Added, Added, Changed, Changed, ⚠️ Installation
 
 ### Community 192 - "Community 192"
-Cohesion: 0.50
-Nodes (4): [5.0.0.0] — 2026-06-04, Added, Changed, Déploiement / Activation (séquence)
+Cohesion: 0.33
+Nodes (6): [5.0.0.0] — 2026-06-04, Added, Added, Changed, Changed, Déploiement / Activation (séquence)
 
 ### Community 193 - "Community 193"
-Cohesion: 0.50
-Nodes (4): [5.0.0.1] — 2026-06-04, Added, Changed, Fixed
+Cohesion: 0.29
+Nodes (7): [5.0.0.1] — 2026-06-04, Added, Added, Changed, Changed, Fixed, Fixed
 
 ### Community 194 - "Community 194"
-Cohesion: 0.50
-Nodes (4): [5.11.1.0] — 2026-06-09, Changed, Fixed, Removed
+Cohesion: 0.29
+Nodes (7): [5.11.1.0] — 2026-06-09, Changed, Changed, Fixed, Fixed, Removed, Removed
 
 ### Community 195 - "Community 195"
-Cohesion: 0.50
-Nodes (4): [5.11.2.0] — 2026-06-09, Changed, Fixed, Removed
+Cohesion: 0.29
+Nodes (7): [5.11.2.0] — 2026-06-09, Changed, Changed, Fixed, Fixed, Removed, Removed
 
 ### Community 196 - "Community 196"
-Cohesion: 0.50
-Nodes (4): [5.12.0.0] — 2026-06-11, Added, Changed, Fixed
+Cohesion: 0.29
+Nodes (7): [5.12.0.0] — 2026-06-11, Added, Added, Changed, Changed, Fixed, Fixed
 
 ### Community 197 - "Community 197"
-Cohesion: 0.50
-Nodes (4): [5.17.0.0] — 2026-06-14, Added, Changed, Fixed
+Cohesion: 0.22
+Nodes (10): [5.17.0.0] — 2026-06-14, [5.18.0.0] — 2026-06-16, [5.19.0.0] — 2026-06-17, Added, Added, Changed, Changed, Changed (+2 more)
 
 ### Community 198 - "Community 198"
-Cohesion: 0.50
-Nodes (4): [5.1.0.0] — 2026-06-04, Added, Changed, Note
+Cohesion: 0.18
+Nodes (11): [5.1.0.0] — 2026-06-04, [5.1.0.3] — 2026-06-04, Added, Added, Changed, Changed, Fixed, Fixed (+3 more)
 
 ### Community 199 - "Community 199"
-Cohesion: 0.50
-Nodes (4): [5.1.0.5] — 2026-06-04, Added, Changed, Fixed
+Cohesion: 0.29
+Nodes (7): [5.1.0.5] — 2026-06-04, Added, Added, Changed, Changed, Fixed, Fixed
 
 ### Community 200 - "Community 200"
-Cohesion: 0.50
-Nodes (4): [5.1.1.0] — 2026-06-04, Added, Changed, Fixed
+Cohesion: 0.29
+Nodes (7): [5.1.1.0] — 2026-06-04, Added, Added, Changed, Changed, Fixed, Fixed
 
 ### Community 201 - "Community 201"
-Cohesion: 0.50
-Nodes (4): [5.2.1.2] — 2026-06-04, Changed, Fixed, Fixed
+Cohesion: 0.29
+Nodes (7): [5.2.1.2] — 2026-06-04, Changed, Changed, Fixed, Fixed, Fixed, Fixed
 
 ### Community 202 - "Community 202"
-Cohesion: 0.50
-Nodes (4): [5.7.0.0] — 2026-06-07, Added, Changed, Fixed
+Cohesion: 0.29
+Nodes (7): [5.7.0.0] — 2026-06-07, Added, Added, Changed, Changed, Fixed, Fixed
 
 ### Community 203 - "Community 203"
-Cohesion: 0.50
-Nodes (4): [5.9.0.0] — 2026-06-07, Added, Changed, Fixed
+Cohesion: 0.18
+Nodes (11): [5.11.0.0] — 2026-06-07, [5.9.0.0] — 2026-06-07, Added, Added, Added, Changed, Changed, Changed (+3 more)
 
 ### Community 204 - "Community 204"
 Cohesion: 0.50
@@ -837,340 +846,416 @@ Cohesion: 0.50
 Nodes (3): Installation, Test rapide (classeur .xlsm ouvert), vba-agent
 
 ### Community 208 - "Community 208"
-Cohesion: 0.67
-Nodes (3): [2.11.0.0] — 2026-05-27, Added, Changed
+Cohesion: 0.40
+Nodes (5): [2.11.0.0] — 2026-05-27, Added, Added, Changed, Changed
 
 ### Community 209 - "Community 209"
-Cohesion: 0.67
-Nodes (3): [2.12.0.0] — 2026-05-27, Added, Changed
+Cohesion: 0.40
+Nodes (5): [2.12.0.0] — 2026-05-27, Added, Added, Changed, Changed
 
 ### Community 210 - "Community 210"
-Cohesion: 0.67
-Nodes (3): [2.12.1.0] — 2026-05-27, Added, Changed
+Cohesion: 0.40
+Nodes (5): [2.12.1.0] — 2026-05-27, Added, Added, Changed, Changed
 
 ### Community 211 - "Community 211"
-Cohesion: 0.67
-Nodes (3): [2.12.2.0] — 2026-05-27, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [2.12.2.0] — 2026-05-27, Changed, Changed, Fixed, Fixed
 
 ### Community 212 - "Community 212"
-Cohesion: 0.67
-Nodes (3): [2.12.3.0] — 2026-05-27, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [2.12.3.0] — 2026-05-27, Changed, Changed, Fixed, Fixed
 
 ### Community 213 - "Community 213"
-Cohesion: 0.67
-Nodes (3): [2.13.0.0] — 2026-05-27, Added, Changed
+Cohesion: 0.40
+Nodes (5): [2.13.0.0] — 2026-05-27, Added, Added, Changed, Changed
 
 ### Community 214 - "Community 214"
-Cohesion: 0.67
-Nodes (3): [2.14.0.0] — 2026-05-28, Added, Changed
+Cohesion: 0.40
+Nodes (5): [2.14.0.0] — 2026-05-28, Added, Added, Changed, Changed
 
 ### Community 215 - "Community 215"
-Cohesion: 0.67
-Nodes (3): [2.15.0.0] — 2026-05-28, Added, Changed
+Cohesion: 0.40
+Nodes (5): [2.15.0.0] — 2026-05-28, Added, Added, Changed, Changed
 
 ### Community 216 - "Community 216"
-Cohesion: 0.67
-Nodes (3): [2.16.0.0] — 2026-05-28, Added, Changed
+Cohesion: 0.40
+Nodes (5): [2.16.0.0] — 2026-05-28, Added, Added, Changed, Changed
 
 ### Community 217 - "Community 217"
-Cohesion: 0.67
-Nodes (3): [2.17.0.0] — 2026-05-28, Added, Changed
+Cohesion: 0.40
+Nodes (5): [2.17.0.0] — 2026-05-28, Added, Added, Changed, Changed
 
 ### Community 218 - "Community 218"
-Cohesion: 0.67
-Nodes (3): [2.4.3.0] — 2026-05-25, Added — 🌿 Badge rentabilité E85 (ROADMAP W5), Changed
+Cohesion: 0.50
+Nodes (4): [2.4.3.0] — 2026-05-25, Added — 🌿 Badge rentabilité E85 (ROADMAP W5), Changed, Changed
 
 ### Community 219 - "Community 219"
-Cohesion: 0.67
-Nodes (3): [2.4.4.0] — 2026-05-25, Added — 📈 Stats live (ROADMAP W7), Changed
+Cohesion: 0.50
+Nodes (4): [2.4.4.0] — 2026-05-25, Added — 📈 Stats live (ROADMAP W7), Changed, Changed
 
 ### Community 220 - "Community 220"
-Cohesion: 0.67
-Nodes (3): [2.4.5.0] — 2026-05-25, Added, Changed
+Cohesion: 0.40
+Nodes (5): [2.4.5.0] — 2026-05-25, Added, Added, Changed, Changed
 
 ### Community 221 - "Community 221"
-Cohesion: 0.67
-Nodes (3): [2.5.0.3] — 2026-05-25, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [2.5.0.3] — 2026-05-25, Changed, Changed, Fixed, Fixed
 
 ### Community 222 - "Community 222"
-Cohesion: 0.67
-Nodes (3): [2.6.0.0] — 2026-05-25, Added — PWA (W4), Changed
+Cohesion: 0.04
+Nodes (48): [2.6.0.0] — 2026-05-25, [2.7.0.1] — 2026-05-25, [2.7.0.2] — 2026-05-26, [2.7.0.3] — 2026-05-26, [2.8.0.1] — 2026-05-26, [2.9.0.1] — 2026-05-26, [2.9.0.2] — 2026-05-27, [3.0.0.2] — 2026-05-28 (+40 more)
 
 ### Community 223 - "Community 223"
-Cohesion: 0.67
-Nodes (3): [3.0.0.0] — 2026-05-28, Added, Changed
+Cohesion: 0.40
+Nodes (5): [3.0.0.0] — 2026-05-28, Added, Added, Changed, Changed
 
 ### Community 224 - "Community 224"
-Cohesion: 0.67
-Nodes (3): [3.0.0.1] — 2026-05-28, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [3.0.0.1] — 2026-05-28, Changed, Changed, Fixed, Fixed
 
 ### Community 225 - "Community 225"
-Cohesion: 0.67
-Nodes (3): [3.0.0.4] — 2026-05-28, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [3.0.0.4] — 2026-05-28, Changed, Changed, Fixed, Fixed
 
 ### Community 226 - "Community 226"
-Cohesion: 0.67
-Nodes (3): [3.11.0.0] — 2026-05-30, Added, Changed
+Cohesion: 0.40
+Nodes (5): [3.11.0.0] — 2026-05-30, Added, Added, Changed, Changed
 
 ### Community 227 - "Community 227"
-Cohesion: 0.67
-Nodes (3): [3.11.0.1] — 2026-05-30, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [3.11.0.1] — 2026-05-30, Changed, Changed, Fixed, Fixed
 
 ### Community 228 - "Community 228"
-Cohesion: 0.67
-Nodes (3): [3.12.0.0] — 2026-05-30, Added, Changed
+Cohesion: 0.40
+Nodes (5): [3.12.0.0] — 2026-05-30, Added, Added, Changed, Changed
 
 ### Community 229 - "Community 229"
-Cohesion: 0.67
-Nodes (3): [3.12.1.0] — 2026-05-30, Added, Fixed
+Cohesion: 0.40
+Nodes (5): [3.12.1.0] — 2026-05-30, Added, Added, Fixed, Fixed
 
 ### Community 230 - "Community 230"
-Cohesion: 0.67
-Nodes (3): [3.1.0.0] — 2026-05-29, Added, Changed
+Cohesion: 0.40
+Nodes (5): [3.1.0.0] — 2026-05-29, Added, Added, Changed, Changed
 
 ### Community 231 - "Community 231"
-Cohesion: 0.67
-Nodes (3): [3.1.0.10] — 2026-05-29, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [3.1.0.10] — 2026-05-29, Changed, Changed, Fixed, Fixed
 
 ### Community 232 - "Community 232"
-Cohesion: 0.67
-Nodes (3): [3.1.0.11] — 2026-05-29, Changed, Fixed
+Cohesion: 0.33
+Nodes (5): AVANCEMENT — #6 MAJ d'ouverture en arrière-plan (v5.19.0.0), INCIDENT (résolu, sans perte), Reprise si coupure, Tests programmatiques passés (preuves), État des tâches
 
 ### Community 233 - "Community 233"
-Cohesion: 0.67
-Nodes (3): [3.1.0.3] — 2026-05-29, Added, Changed
+Cohesion: 0.29
+Nodes (8): [3.1.0.3] — 2026-05-29, [3.1.0.5] — 2026-05-29, Added, Added, Added, Changed, Changed, Changed
 
 ### Community 234 - "Community 234"
-Cohesion: 0.67
-Nodes (3): [3.1.0.4] — 2026-05-29, Added, Changed
+Cohesion: 0.40
+Nodes (5): [3.1.0.4] — 2026-05-29, Added, Added, Changed, Changed
 
 ### Community 235 - "Community 235"
-Cohesion: 0.67
-Nodes (3): [3.1.0.5] — 2026-05-29, Added, Changed
+Cohesion: 0.33
+Nodes (5): Backups créés, Demandes de l'export & statut final (avec preuve), Mini-export de fin de session — Reprise 2026-06-16 (suivi-essence), Modules VBA modifiés (LIVE, classeur sauvegardé), Points de reprise / à faire
 
 ### Community 236 - "Community 236"
-Cohesion: 0.67
-Nodes (3): [3.1.0.8] — 2026-05-29, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [3.1.0.8] — 2026-05-29, Changed, Changed, Fixed, Fixed
 
 ### Community 237 - "Community 237"
-Cohesion: 0.67
-Nodes (3): [3.2.0.1] — 2026-05-29, Added, Fixed
+Cohesion: 0.40
+Nodes (5): [3.2.0.1] — 2026-05-29, Added, Added, Fixed, Fixed
 
 ### Community 238 - "Community 238"
-Cohesion: 0.67
-Nodes (3): [3.3.0.0] — 2026-05-30, Added, Changed
+Cohesion: 0.40
+Nodes (5): [3.3.0.0] — 2026-05-30, Added, Added, Changed, Changed
 
 ### Community 239 - "Community 239"
-Cohesion: 0.67
-Nodes (3): [3.3.0.10] — 2026-05-30, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [3.3.0.10] — 2026-05-30, Changed, Changed, Fixed, Fixed
 
 ### Community 240 - "Community 240"
-Cohesion: 0.67
-Nodes (3): [3.3.0.11] — 2026-05-30, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [3.3.0.11] — 2026-05-30, Changed, Changed, Fixed, Fixed
 
 ### Community 241 - "Community 241"
-Cohesion: 0.67
-Nodes (3): [3.3.0.1] — 2026-05-30, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [3.3.0.1] — 2026-05-30, Changed, Changed, Fixed, Fixed
 
 ### Community 242 - "Community 242"
-Cohesion: 0.67
-Nodes (3): [3.3.0.2] — 2026-05-30, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [3.3.0.2] — 2026-05-30, Changed, Changed, Fixed, Fixed
 
 ### Community 243 - "Community 243"
-Cohesion: 0.67
-Nodes (3): [3.3.0.5] — 2026-05-30, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [3.3.0.5] — 2026-05-30, Changed, Changed, Fixed, Fixed
 
 ### Community 244 - "Community 244"
-Cohesion: 0.67
-Nodes (3): [3.3.0.6] — 2026-05-30, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [3.3.0.6] — 2026-05-30, Changed, Changed, Fixed, Fixed
 
 ### Community 245 - "Community 245"
-Cohesion: 0.67
-Nodes (3): [3.3.0.7] — 2026-05-30, Added, Changed
+Cohesion: 0.29
+Nodes (7): [3.3.0.4] — 2026-05-30, [3.3.0.7] — 2026-05-30, Added, Added, Changed, Changed, Changed
 
 ### Community 246 - "Community 246"
-Cohesion: 0.67
-Nodes (3): [3.3.0.8] — 2026-05-30, Added, Changed
+Cohesion: 0.40
+Nodes (5): [3.3.0.8] — 2026-05-30, Added, Added, Changed, Changed
 
 ### Community 247 - "Community 247"
-Cohesion: 0.67
-Nodes (3): [3.3.0.9] — 2026-05-30, Added, Changed
+Cohesion: 0.40
+Nodes (5): [3.3.0.9] — 2026-05-30, Added, Added, Changed, Changed
 
 ### Community 248 - "Community 248"
-Cohesion: 0.67
-Nodes (3): [3.4.0.1] — 2026-05-30, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [3.4.0.1] — 2026-05-30, Changed, Changed, Fixed, Fixed
 
 ### Community 249 - "Community 249"
-Cohesion: 0.67
-Nodes (3): [3.4.0.2] — 2026-05-30, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [3.4.0.2] — 2026-05-30, Changed, Changed, Fixed, Fixed
 
 ### Community 250 - "Community 250"
-Cohesion: 0.67
-Nodes (3): [3.4.0.3] — 2026-05-30, Changed, Changed
+Cohesion: 0.40
+Nodes (5): [3.4.0.3] — 2026-05-30, Changed, Changed, Changed, Changed
 
 ### Community 251 - "Community 251"
-Cohesion: 0.67
-Nodes (3): [3.4.0.4] — 2026-05-30, Added, Changed
+Cohesion: 0.40
+Nodes (5): [3.4.0.4] — 2026-05-30, Added, Added, Changed, Changed
 
 ### Community 252 - "Community 252"
-Cohesion: 0.67
-Nodes (3): [3.4.0.5] — 2026-05-30, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [3.4.0.5] — 2026-05-30, Changed, Changed, Fixed, Fixed
 
 ### Community 253 - "Community 253"
-Cohesion: 0.67
-Nodes (3): [3.5.0.0] — 2026-05-30, Added, Changed
+Cohesion: 0.40
+Nodes (5): [3.5.0.0] — 2026-05-30, Added, Added, Changed, Changed
 
 ### Community 254 - "Community 254"
-Cohesion: 0.67
-Nodes (3): [3.5.0.1] — 2026-05-30, Changed, Fixed
+Cohesion: 0.33
+Nodes (5): #6 — réalisé (Approche A : drapeau `gSilentOpen`), Demandes — statut final (avec preuve), Incident (résolu, sans perte), Mini-export de reprise — 2026-06-17 (carburants), Reste à faire (prochaine reprise)
 
 ### Community 255 - "Community 255"
-Cohesion: 0.67
-Nodes (3): [3.6.0.0] — 2026-05-30, Added, Changed
+Cohesion: 0.40
+Nodes (5): [3.6.0.0] — 2026-05-30, Added, Added, Changed, Changed
 
 ### Community 256 - "Community 256"
-Cohesion: 0.67
-Nodes (3): [3.7.0.0] — 2026-05-30, Added, Changed
+Cohesion: 0.40
+Nodes (5): [3.7.0.0] — 2026-05-30, Added, Added, Changed, Changed
 
 ### Community 257 - "Community 257"
-Cohesion: 0.67
-Nodes (3): [3.8.0.0] — 2026-05-30, Added, Changed
+Cohesion: 0.33
+Nodes (5): Blocages (pourquoi pas d'auto-exécution malgré le mode auto), Demandes utilisateur — statut (avec preuve), Mini-export de reprise — 2026-06-17 (suivi-essence), Points de reprise (actions restantes), État réel vérifié (17/06, début de matinée)
 
 ### Community 258 - "Community 258"
-Cohesion: 0.67
-Nodes (3): [4.0.0.0] — 2026-05-30, Added, Changed
+Cohesion: 0.40
+Nodes (5): [4.0.0.0] — 2026-05-30, Added, Added, Changed, Changed
 
 ### Community 259 - "Community 259"
-Cohesion: 0.67
-Nodes (3): [4.10.0.3] — 2026-05-31, Added, Changed
+Cohesion: 0.40
+Nodes (5): [4.10.0.3] — 2026-05-31, Added, Added, Changed, Changed
 
 ### Community 260 - "Community 260"
-Cohesion: 0.67
-Nodes (3): [4.11.0.0] — 2026-06-01, Changed, Removed
+Cohesion: 0.40
+Nodes (5): [4.11.0.0] — 2026-06-01, Changed, Changed, Removed, Removed
 
 ### Community 261 - "Community 261"
-Cohesion: 0.67
-Nodes (3): [4.12.0.0] — 2026-06-02, Added, Fixed
+Cohesion: 0.40
+Nodes (5): [4.12.0.0] — 2026-06-02, Added, Added, Fixed, Fixed
 
 ### Community 262 - "Community 262"
-Cohesion: 0.67
-Nodes (3): [4.13.1.0] — 2026-06-02, Added, Changed
+Cohesion: 0.40
+Nodes (5): [4.13.1.0] — 2026-06-02, Added, Added, Changed, Changed
 
 ### Community 263 - "Community 263"
-Cohesion: 0.67
-Nodes (3): [4.14.0.4] — 2026-06-03, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [4.14.0.4] — 2026-06-03, Changed, Changed, Fixed, Fixed
 
 ### Community 264 - "Community 264"
-Cohesion: 0.67
-Nodes (3): [4.15.0.0] — 2026-06-03, Added, Changed
+Cohesion: 0.40
+Nodes (5): [3.0.0.3] — 2026-05-28, Changed, Changed, Fixed, Fixed
 
 ### Community 265 - "Community 265"
-Cohesion: 0.67
-Nodes (3): [4.1.0.0] — 2026-05-30, Added, Changed
+Cohesion: 0.40
+Nodes (5): [4.1.0.0] — 2026-05-30, Added, Added, Changed, Changed
 
 ### Community 266 - "Community 266"
-Cohesion: 0.67
-Nodes (3): [4.2.0.0] — 2026-05-30, Added, Changed
+Cohesion: 0.40
+Nodes (5): [4.2.0.0] — 2026-05-30, Added, Added, Changed, Changed
 
 ### Community 267 - "Community 267"
-Cohesion: 0.67
-Nodes (3): [4.3.0.5] — 2026-05-31, Added, ⚠️ Application dans le classeur (snippets fournis)
+Cohesion: 0.50
+Nodes (4): [4.3.0.5] — 2026-05-31, Added, Added, ⚠️ Application dans le classeur (snippets fournis)
 
 ### Community 268 - "Community 268"
-Cohesion: 0.67
-Nodes (3): [4.3.0.6] — 2026-05-31, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [4.3.0.6] — 2026-05-31, Changed, Changed, Fixed, Fixed
 
 ### Community 269 - "Community 269"
-Cohesion: 0.67
-Nodes (3): [4.4.0.0] — 2026-05-31, Added, ⚠️ Installation dans le classeur
+Cohesion: 0.40
+Nodes (5): [4.4.0.0] — 2026-05-31, Added, Added, ⚠️ Installation dans le classeur, ⚠️ Installation dans le classeur
 
 ### Community 270 - "Community 270"
-Cohesion: 0.67
-Nodes (3): [4.9.0.0] — 2026-05-31, Ajouté, Modifié
+Cohesion: 0.50
+Nodes (4): [4.9.0.0] — 2026-05-31, Ajouté, Ajouté, Modifié
 
 ### Community 271 - "Community 271"
-Cohesion: 0.67
-Nodes (3): [5.0.0.3] — 2026-06-04, Fixed, Note
+Cohesion: 0.29
+Nodes (7): [5.0.0.3] — 2026-06-04, [5.1.0.2] — 2026-06-04, Fixed, Fixed, Fixed, Note, Note
 
 ### Community 272 - "Community 272"
-Cohesion: 0.67
-Nodes (3): [5.10.0.0] — 2026-06-07, Added, Changed
+Cohesion: 0.40
+Nodes (5): [5.10.0.0] — 2026-06-07, Added, Added, Changed, Changed
 
 ### Community 273 - "Community 273"
-Cohesion: 0.67
-Nodes (3): [5.11.0.0] — 2026-06-07, Added, Changed
+Cohesion: 0.40
+Nodes (5): [3.0.1.1] — 2026-05-28, [3.1.0.2] — 2026-05-29, Fixed, Fixed, Fixed
 
 ### Community 274 - "Community 274"
-Cohesion: 0.67
-Nodes (3): [5.13.0.0] — 2026-06-11, Added, Changed
+Cohesion: 0.40
+Nodes (5): [5.13.0.0] — 2026-06-11, Added, Added, Changed, Changed
 
 ### Community 275 - "Community 275"
-Cohesion: 0.67
-Nodes (3): [5.13.0.1] — 2026-06-12, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [5.13.0.1] — 2026-06-12, Changed, Changed, Fixed, Fixed
 
 ### Community 276 - "Community 276"
-Cohesion: 0.67
-Nodes (3): [5.14.0.0] — 2026-06-12, Added, Changed
+Cohesion: 0.40
+Nodes (5): [5.14.0.0] — 2026-06-12, Added, Added, Changed, Changed
 
 ### Community 277 - "Community 277"
-Cohesion: 0.67
-Nodes (3): [5.14.2.0] — 2026-06-13, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [5.14.2.0] — 2026-06-13, Changed, Changed, Fixed, Fixed
 
 ### Community 278 - "Community 278"
-Cohesion: 0.67
-Nodes (3): [5.15.0.0] — 2026-06-13, Added, Changed
+Cohesion: 0.40
+Nodes (5): [5.15.0.0] — 2026-06-13, Added, Added, Changed, Changed
 
 ### Community 279 - "Community 279"
-Cohesion: 0.67
-Nodes (3): [5.16.0.0] — 2026-06-13, Changed, Removed
+Cohesion: 0.50
+Nodes (4): [5.16.0.0] — 2026-06-13, Changed, Changed, Removed
 
 ### Community 280 - "Community 280"
-Cohesion: 0.67
-Nodes (3): [5.1.0.3] — 2026-06-04, Fixed, Note
+Cohesion: 0.40
+Nodes (5): [3.9.0.0] — 2026-05-30, Added, Added, Changed, Changed
 
 ### Community 281 - "Community 281"
-Cohesion: 0.67
-Nodes (3): [5.1.0.4] — 2026-06-04, Changed, Note
+Cohesion: 0.50
+Nodes (4): [5.1.0.4] — 2026-06-04, Changed, Changed, Note
 
 ### Community 282 - "Community 282"
-Cohesion: 0.67
-Nodes (3): [5.2.0.0] — 2026-06-04, Added, Fixed
+Cohesion: 0.40
+Nodes (5): [5.2.0.0] — 2026-06-04, Added, Added, Fixed, Fixed
 
 ### Community 283 - "Community 283"
-Cohesion: 0.67
-Nodes (3): [5.3.0.0] — 2026-06-05, Added, Fixed
+Cohesion: 0.22
+Nodes (9): [5.3.0.0] — 2026-06-05, [5.5.1.0] — 2026-06-05, Added, Added, Added, Changed, Changed, Fixed (+1 more)
 
 ### Community 284 - "Community 284"
 Cohesion: 0.67
-Nodes (3): [5.5.1.0] — 2026-06-05, Added, Changed
+Nodes (3): [3.3.0.3] — 2026-05-30, Changed, Changed
 
 ### Community 285 - "Community 285"
-Cohesion: 0.67
-Nodes (3): [5.5.2.0] — 2026-06-05, Changed, Fixed
+Cohesion: 0.40
+Nodes (5): [5.5.2.0] — 2026-06-05, Changed, Changed, Fixed, Fixed
 
 ### Community 286 - "Community 286"
+Cohesion: 0.40
+Nodes (5): [5.8.0.0] — 2026-06-07, Added, Added, Changed, Changed
+
+### Community 287 - "Community 287"
 Cohesion: 0.67
-Nodes (3): [5.8.0.0] — 2026-06-07, Added, Changed
+Nodes (3): [4.10.0.2] — 2026-05-31, Added, Added
+
+### Community 288 - "Community 288"
+Cohesion: 0.67
+Nodes (3): [4.11.0.1] — 2026-06-01, Fixed, Fixed
+
+### Community 289 - "Community 289"
+Cohesion: 0.67
+Nodes (3): [4.13.0.0] — 2026-06-02, Added, Added
+
+### Community 290 - "Community 290"
+Cohesion: 0.67
+Nodes (3): [4.14.0.2] — 2026-06-03, Added, Added
+
+### Community 291 - "Community 291"
+Cohesion: 0.67
+Nodes (3): [4.14.0.5] — 2026-06-03, Fixed, Fixed
+
+### Community 292 - "Community 292"
+Cohesion: 0.40
+Nodes (5): [4.14.0.6] — 2026-06-03, [4.15.1.0] — 2026-06-03, Added, Added, Added
+
+### Community 293 - "Community 293"
+Cohesion: 0.67
+Nodes (3): [4.11.0.3] — 2026-06-01, Added, Added
+
+### Community 294 - "Community 294"
+Cohesion: 0.67
+Nodes (3): [5.0.0.2] — 2026-06-04, Fixed, Fixed
+
+### Community 295 - "Community 295"
+Cohesion: 0.67
+Nodes (3): [5.14.1.0] — 2026-06-12, Fixed, Fixed
+
+### Community 296 - "Community 296"
+Cohesion: 0.67
+Nodes (3): [4.13.2.0] — 2026-06-02, Added, Added
+
+### Community 297 - "Community 297"
+Cohesion: 0.67
+Nodes (3): [5.16.2.2] — 2026-06-14, Fixed, Fixed
+
+### Community 298 - "Community 298"
+Cohesion: 0.67
+Nodes (3): [5.16.2.3] — 2026-06-14, Fixed, Fixed
+
+### Community 299 - "Community 299"
+Cohesion: 0.67
+Nodes (3): [4.14.0.3] — 2026-06-03, Added, Added
+
+### Community 300 - "Community 300"
+Cohesion: 0.67
+Nodes (3): [4.19.0.0] — 2026-06-04, Added, Added
+
+### Community 301 - "Community 301"
+Cohesion: 0.67
+Nodes (3): [5.16.2.0] — 2026-06-14, Fixed, Fixed
+
+### Community 303 - "Community 303"
+Cohesion: 0.67
+Nodes (3): [5.16.2.1] — 2026-06-14, Fixed, Fixed
+
+### Community 304 - "Community 304"
+Cohesion: 0.67
+Nodes (3): [5.16.3.0] — 2026-06-14, Changed, Changed
+
+### Community 305 - "Community 305"
+Cohesion: 0.67
+Nodes (3): [5.1.0.1] — 2026-06-04, Changed, Changed
+
+### Community 306 - "Community 306"
+Cohesion: 0.67
+Nodes (3): [5.4.0.0] — 2026-06-05, Added, Added
 
 ## Knowledge Gaps
-- **921 isolated node(s):** `_comment`, `_doc`, `_scopes`, `scriptId`, `sheetId` (+916 more)
+- **1228 isolated node(s):** `_comment`, `_doc`, `_scopes`, `scriptId`, `sheetId` (+1223 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **94 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **79 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Changelog` connect `C9 Service account Google` to `GAS Manager / gas-api`, `Community 161`, `Community 162`, `Community 168`, `Community 169`, `Community 176`, `Community 177`, `Community 178`, `Community 179`, `Community 180`, `Community 181`, `Community 182`, `Community 183`, `Community 184`, `Community 185`, `Community 186`, `Community 188`, `Community 189`, `Community 190`, `Community 191`, `Community 208`, `Community 209`, `Community 210`, `Community 211`, `Community 212`, `Community 213`, `Community 214`, `Community 215`, `Community 216`, `Community 217`, `Community 218`, `Community 219`, `Community 220`, `Community 221`, `Community 222`, `Community 223`, `Community 224`, `Community 225`, `Community 226`, `Community 227`, `Community 228`, `Community 229`, `Community 230`, `Community 231`, `Community 232`, `Community 233`, `Community 234`, `Community 235`, `Community 236`, `Community 237`, `Community 238`, `Community 239`, `Community 240`, `Community 241`, `Community 242`, `Community 243`, `Community 244`, `Community 245`, `Community 246`, `Community 247`, `Community 248`, `Community 249`, `Community 250`, `Community 251`, `Community 252`, `Community 253`, `Community 254`, `Community 255`, `Community 256`, `Community 257`, `Community 258`, `Community 265`, `Community 266`, `Community 267`, `Community 268`, `Community 269`, `Community 270`, `Community 287`?**
-  _High betweenness centrality (0.049) - this node is a cross-community bridge._
-- **Why does `Changelog` connect `GAS Manager / gas-api` to `Community 259`, `Community 260`, `Community 261`, `Community 262`, `Community 263`, `Community 264`, `Community 271`, `Community 272`, `Community 273`, `Community 274`, `Community 275`, `Community 276`, `Community 277`, `Community 278`, `Community 279`, `Community 280`, `Community 281`, `Community 282`, `Community 283`, `Community 284`, `Community 285`, `Community 286`, `Community 288`, `Community 289`, `Community 290`, `Community 291`, `Community 292`, `Community 293`, `Community 294`, `Community 295`, `Community 296`, `Community 297`, `Community 170`, `Community 298`, `Community 299`, `Community 300`, `Community 301`, `Community 187`, `Community 192`, `Community 193`, `Community 194`, `Community 195`, `Community 196`, `Community 197`, `Community 198`, `Community 199`, `Community 200`, `Community 201`, `Community 202`, `Community 203`?**
-  _High betweenness centrality (0.026) - this node is a cross-community bridge._
-- **Why does `getAllRecords()` connect `Tests a11y boutons` to `Prix secteur & historique`, `Statistiques & KPIs`, `Historique & véhicules`, `Auth Google & paramètres`, `Notifications push`, `Leçon buffer VBE set-module`?**
-  _High betweenness centrality (0.009) - this node is a cross-community bridge._
+- **Why does `Changelog` connect `GAS Manager / gas-api` to `Community 259`, `Community 260`, `Community 261`, `Community 262`, `Community 263`, `Community 271`, `Community 272`, `Community 274`, `Community 275`, `Community 276`, `Community 277`, `Community 278`, `Community 279`, `Community 281`, `Community 282`, `Community 283`, `Community 285`, `Community 286`, `Community 287`, `Community 288`, `Community 289`, `Community 290`, `Community 291`, `Community 292`, `Community 293`, `Community 294`, `Community 295`, `Community 296`, `Community 297`, `Community 170`, `Community 299`, `Community 300`, `Community 301`, `Community 298`, `Community 303`, `Community 304`, `Community 305`, `Community 306`, `Community 187`, `Community 192`, `Community 193`, `Community 194`, `Community 195`, `Community 196`, `Community 197`, `Community 198`, `Community 199`, `Community 200`, `Community 201`, `Community 202`, `Community 203`?**
+  _High betweenness centrality (0.079) - this node is a cross-community bridge._
+- **Why does `Changelog` connect `Community 222` to `C9 Service account Google`, `GAS Manager / gas-api`, `Community 161`, `Community 162`, `Community 168`, `Community 169`, `Community 176`, `Community 177`, `Community 178`, `Community 179`, `Community 180`, `Community 181`, `Community 182`, `Community 183`, `Community 184`, `Community 185`, `Community 186`, `Community 188`, `Community 189`, `Community 190`, `Community 191`, `Community 208`, `Community 209`, `Community 210`, `Community 211`, `Community 212`, `Community 213`, `Community 214`, `Community 215`, `Community 216`, `Community 217`, `Community 218`, `Community 219`, `Community 220`, `Community 221`, `Community 223`, `Community 224`, `Community 225`, `Community 226`, `Community 227`, `Community 228`, `Community 229`, `Community 230`, `Community 231`, `Community 233`, `Community 234`, `Community 236`, `Community 237`, `Community 238`, `Community 239`, `Community 240`, `Community 241`, `Community 242`, `Community 243`, `Community 244`, `Community 245`, `Community 246`, `Community 247`, `Community 248`, `Community 249`, `Community 250`, `Community 251`, `Community 252`, `Community 253`, `Community 255`, `Community 256`, `Community 258`, `Community 264`, `Community 265`, `Community 266`, `Community 267`, `Community 268`, `Community 269`, `Community 270`, `Community 273`, `Community 280`, `Community 284`?**
+  _High betweenness centrality (0.054) - this node is a cross-community bridge._
+- **Why does `Changelog` connect `C9 Service account Google` to `GAS Manager / gas-api`, `Community 161`, `Community 162`, `Community 168`, `Community 169`, `Community 176`, `Community 177`, `Community 178`, `Community 179`, `Community 180`, `Community 181`, `Community 182`, `Community 183`, `Community 184`, `Community 185`, `Community 186`, `Community 188`, `Community 189`, `Community 190`, `Community 191`, `Community 208`, `Community 209`, `Community 210`, `Community 211`, `Community 212`, `Community 213`, `Community 214`, `Community 215`, `Community 216`, `Community 217`, `Community 218`, `Community 219`, `Community 220`, `Community 221`, `Community 222`, `Community 223`, `Community 224`, `Community 225`, `Community 226`, `Community 227`, `Community 228`, `Community 229`, `Community 230`, `Community 231`, `Community 233`, `Community 234`, `Community 236`, `Community 237`, `Community 238`, `Community 239`, `Community 240`, `Community 241`, `Community 242`, `Community 243`, `Community 244`, `Community 245`, `Community 246`, `Community 247`, `Community 248`, `Community 249`, `Community 250`, `Community 251`, `Community 252`, `Community 253`, `Community 255`, `Community 256`, `Community 258`, `Community 264`, `Community 265`, `Community 266`, `Community 267`, `Community 268`, `Community 269`, `Community 270`, `Community 273`, `Community 280`, `Community 284`?**
+  _High betweenness centrality (0.048) - this node is a cross-community bridge._
 - **What connects `_comment`, `_doc`, `_scopes` to the rest of the system?**
-  _940 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1250 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Statistiques & KPIs` be split into smaller, more focused modules?**
   _Cohesion score 0.05516431924882629 - nodes in this community are weakly interconnected._
 - **Should `Historique & véhicules` be split into smaller, more focused modules?**
-  _Cohesion score 0.07272727272727272 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07293868921775898 - nodes in this community are weakly interconnected._
 - **Should `Auth Google & paramètres` be split into smaller, more focused modules?**
-  _Cohesion score 0.10804597701149425 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.1053763440860215 - nodes in this community are weakly interconnected._
