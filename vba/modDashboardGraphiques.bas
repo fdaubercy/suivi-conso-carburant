@@ -118,9 +118,11 @@ Public Sub MAJ_Dashboard_Graphiques()
         End If
     Next sBtns
 
-    Application.ScreenUpdating = True
-    ws.Activate
-    ws.Range("A1").Select
+    If Not gSilentOpen Then
+        Application.ScreenUpdating = True
+        ws.Activate
+        ws.Range("A1").Select
+    End If
     Application.StatusBar = "Dashboard « Graphiques » mis à jour."
 End Sub
 

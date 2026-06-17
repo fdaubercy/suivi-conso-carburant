@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.19.0.0] — 2026-06-17
+
+### Changed
+- **Excel — MAJ d'ouverture en arrière-plan (« Accueil » figé au 1er plan)** : à l'ouverture, les tâches différées (import +2 s, rebuild +3 s, synchro +5 s) s'exécutent écran gelé via des wrappers `OpenTask_Import/Rebuild/Sync` (drapeau `gSilentOpen`, helper `RunSilentTask`). La feuille active (« Accueil » par défaut, ou celle sur laquelle on navigue pendant les MAJ) reste au 1er plan — fin de la bascule visible vers « Tableau de bord »/log. L'activation cosmétique de `MAJ_Dashboard_Graphiques` est neutralisée quand `gSilentOpen=True` (l'activation porteuse de `PrepareSheet` reste, invisible car écran gelé). `vba/modWorkbook.bas`, `vba/modDashboardGraphiques.bas`, `vba/ThisWorkbook.cls`.
+
 ## [5.18.0.0] — 2026-06-16
 
 ### Fixed

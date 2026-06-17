@@ -28,6 +28,9 @@ Option Explicit
 
 Public Const WB_VERSION  As String = "5.13.0.1"
 
+' #6 (v5.19) : drapeau d'ouverture silencieuse -- voir RunSilentTask / OpenTask_*
+Public gSilentOpen As Boolean
+
 Private Const WS_ACCUEIL As String = "Accueil"
 Private Const WS_STATS   As String = "Tableau de bord"   ' cree par modGraphiques (CreerGraphiquesWeb)
 Private Const WS_CARTE   As String = "Carte"             ' cree par modCarte (etape 3)
@@ -294,6 +297,43 @@ Public Sub AfficherVueDeDepart()
             GoSheet WS_ACCUEIL, "Accueil"
     End Select
     On Error GoTo 0
+End Sub
+
+' ============================================================
+'  #6 (v5.19) : MAJ d'ouverture en arriere-plan
+'  Chaque tache differee (import / rebuild / sync) tourne ecran gele
+'  et RESTAURE la feuille active memorisee a son debut -> Accueil (ou
+'  la feuille choisie par l'utilisateur) reste au 1er plan, aucune
+'  feuille de fond ne flashe. gSilentOpen neutralise l'activation
+'  cosmetique de MAJ_Dashboard_Graphiques (l.121-123).
+' ============================================================
+Private Sub RunSilentTask(ByVal taskName As String)
+    Dim homeSheet As String
+    On Error Resume Next
+    homeSheet = ActiveSheet.name
+    On Error GoTo 0
+
+    gSilentOpen = True
+    Application.ScreenUpdating = False
+    On Error Resume Next
+    Application.Run taskName
+    Application.ScreenUpdating = False               ' re-gele : la tache a pu remettre True (ex. SyncCore)
+    If Len(homeSheet) > 0 Then ThisWorkbook.Sheets(homeSheet).Activate
+    On Error GoTo 0
+    gSilentOpen = False
+    Application.ScreenUpdating = True
+End Sub
+
+Public Sub OpenTask_Import()
+    RunSilentTask "ImporterNouveauxPleinsAuto"
+End Sub
+
+Public Sub OpenTask_Rebuild()
+    RunSilentTask "SyncFiltersAndRebuildOnOpen"
+End Sub
+
+Public Sub OpenTask_Sync()
+    RunSilentTask "SyncOnOpen"
 End Sub
 
 

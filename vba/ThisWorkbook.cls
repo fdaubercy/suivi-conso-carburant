@@ -27,7 +27,7 @@ Private Sub Workbook_Open()
     ' Import rapide des nouveaux pleins (~2s) : donnees fraiches visibles vite.
     Application.StatusBar = "Ouverture 2/6 : import des nouveaux pleins programme (+2s)..."
     DoEvents
-    Application.OnTime now + TimeValue("00:00:02"), "ImporterNouveauxPleinsAuto"
+    Application.OnTime now + TimeValue("00:00:02"), "OpenTask_Import"
 
     Application.StatusBar = "Ouverture 3/6 : formatage des dates..."
     DoEvents
@@ -38,7 +38,7 @@ Private Sub Workbook_Open()
     ' (~30s, bidirectionnelle + refresh Power Query) est repoussee a +5s.
     Application.StatusBar = "Ouverture 4/6 : synchro Google Sheets programmee (+5s)..."
     DoEvents
-    Application.OnTime now + TimeValue("00:00:05"), "SyncOnOpen"
+    Application.OnTime now + TimeValue("00:00:05"), "OpenTask_Sync"
 
     Application.StatusBar = "Ouverture 5/6 : protection de la feuille..."
     DoEvents
@@ -60,7 +60,7 @@ Private Sub Workbook_Open()
     modSidebar.ShowSidebar
     On Error GoTo 0
 
-    Application.OnTime now + TimeValue("00:00:03"), "SyncFiltersAndRebuildOnOpen"
+    Application.OnTime now + TimeValue("00:00:03"), "OpenTask_Rebuild"
     Application.StatusBar = "Classeur pret. (Import +2s, synchro Google Sheets +5s en arriere-plan.)"
 End Sub
 
