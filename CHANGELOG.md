@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.20.1.0] — 2026-06-18
+
+### Fixed
+- **Excel — X39 : le graphe « Prix » (`gPrice`) ne traçait pas le relevé marché quotidien** (`vba/modGraphiques.bas`, `BuildPriceBlockMerged` SOURCE 2). La table Power Query `PrixHistory` (miroir de l'onglet `_PrixHistory` du Google Sheet, relevé ~7h des 6 carburants déjà **accumulé** par `RefreshPrix.gs`) est en **format long** `Station | Date | Type | Prix`. SOURCE 2 cherchait à tort des colonnes **larges** `"E85 station"`, `"SP98 station"`, … **inexistantes** dans cette table → `phFuelCols` tous nuls → SOURCE 2 n'écrivait rien → `gPrice` ne traçait que SOURCE 1 (les pleins), d'où SP95/GAZOLE quasi vides. Désormais SOURCE 2 lit `Date`/`Type`/`Prix`, mappe via `FuelKey(Type)` et agrège par jour+carburant (moyenne, cohérent avec SOURCE 1) → le relevé marché quotidien (6 carburants, continu) alimente le graphe ; SP95/E10/GPLc/GAZOLE deviennent des courbes exploitables. Déployé dans le classeur live via `vba-agent set-module` (miroir disque + COM). Aucune modif GAS ni Power Query (déjà corrects). Le volet « accumulation journalière » du X39 d'origine (ROADMAP) était déjà résolu côté backend.
+
 ## [5.20.0.0] — 2026-06-18
 
 ### Added

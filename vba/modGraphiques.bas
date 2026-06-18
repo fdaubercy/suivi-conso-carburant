@@ -1398,15 +1398,16 @@ NextP2:
     Dim lo As ListObject: Set lo = FindListObject(PH_TABLE)
     If Not lo Is Nothing Then
         If Not lo.DataBodyRange Is Nothing Then
+            ' X39 (fix) : PrixHistory (PQ, miroir de _PrixHistory) est en format
+            ' LONG -> Station | Date | Type | Prix. L'ancienne lecture cherchait
+            ' des colonnes LARGES "E85 station"/... INEXISTANTES ici -> SOURCE 2
+            ' n'ecrivait rien (gPrice ne tracait que les pleins, d'ou SP95/GAZOLE
+            ' quasi vides). On lit Date/Type/Prix et on agrege par jour+carburant
+            ' (moyenne) -> le releve marche quotidien (6 carburants) alimente gPrice.
             Dim ciDH As Long: ciDH = LCIdx(lo, "Date")
-            If ciDH > 0 Then
-                Dim phFuelCols(5) As Long, phFuelKeys(5) As String
-                phFuelCols(0) = LCIdx(lo, "E85 station"):    phFuelKeys(0) = "E85"
-                phFuelCols(1) = LCIdx(lo, "SP98 station"):   phFuelKeys(1) = "SP98"
-                phFuelCols(2) = LCIdx(lo, "SP95 station"):   phFuelKeys(2) = "SP95"
-                phFuelCols(3) = LCIdx(lo, "E10 station"):    phFuelKeys(3) = "E10"
-                phFuelCols(4) = LCIdx(lo, "Gazole station"): phFuelKeys(4) = "GAZOLE"
-                phFuelCols(5) = LCIdx(lo, "GPLc station"):   phFuelKeys(5) = "GPLc"
+            Dim ciTH As Long: ciTH = LCIdx(lo, "Type")
+            Dim ciPH As Long: ciPH = LCIdx(lo, "Prix")
+            If ciDH > 0 And ciTH > 0 And ciPH > 0 Then
                 Dim aH As Variant: aH = lo.DataBodyRange.value
                 Dim iH As Long
                 For iH = 1 To UBound(aH, 1)
@@ -1414,25 +1415,22 @@ NextP2:
                         Dim dkH As String: dkH = Format(CDate(aH(iH, ciDH)), "yyyy-mm-dd")
                         If mPerDeb > 0 Then If CDbl(CDate(aH(iH, ciDH))) < mPerDeb Then GoTo NextH
                         If mPerFin > 0 Then If CDbl(CDate(aH(iH, ciDH))) > mPerFin Then GoTo NextH
-                        Dim fc As Long
-                        For fc = 0 To 5
-                            If phFuelCols(fc) > 0 Then
-                                Dim fkH As String: fkH = phFuelKeys(fc)
-                                Dim wantFuel As Boolean
-                                If filtF Then
-                                    wantFuel = wantSet.Exists(fkH)
-                                Else
-                                    wantFuel = fuelSet.Exists(fkH)
-                                End If
-                                If wantFuel Then
-                                    Dim pH As Double: pH = NumOr0(aH(iH, phFuelCols(fc)))
-                                    If pH > 0 Then
-                                        AddToSum prixSum, prixCnt, dkH & "|" & fkH, pH
-                                        If Not ordDates.Exists(dkH) Then ordDates(dkH) = 1
-                                    End If
+                        Dim fkH As String: fkH = FuelKey(CStr(aH(iH, ciTH)))
+                        If Len(fkH) > 0 Then
+                            Dim wantFuelH As Boolean
+                            If filtF Then
+                                wantFuelH = wantSet.Exists(fkH)
+                            Else
+                                wantFuelH = fuelSet.Exists(fkH)
+                            End If
+                            If wantFuelH Then
+                                Dim pH As Double: pH = NumOr0(aH(iH, ciPH))
+                                If pH > 0 Then
+                                    AddToSum prixSum, prixCnt, dkH & "|" & fkH, pH
+                                    If Not ordDates.Exists(dkH) Then ordDates(dkH) = 1
                                 End If
                             End If
-                        Next fc
+                        End If
                     End If
 NextH:
                 Next iH

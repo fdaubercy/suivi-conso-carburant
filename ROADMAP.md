@@ -42,12 +42,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 ## 📊 Excel
 
-### 🎯 Onglet "Tableau de bord"
-
-| # | Idée | Pourquoi |
-|---|---|---|
-| X39 | **Accumulation journalière des prix marché** : le trigger GAS `RefreshPrix` écrase `Prix par Station` (Tableau12) à chaque relevé au lieu d'accumuler. Créer une table `_PrixHistoriqueJournalier` (Date, Station, Carburant, Prix) alimentée par append quotidien → `gPrice` afficherait l'évolution réelle tous les jours, pas seulement aux jours de plein. Actuellement SP95 = 1 pt et GAZOLE = 2 pts (seules les stations Carrefour-Flers enregistrent les prix multi-carburants) | Séries SP95/GAZOLE quasi vides dans `gPrice` ; avec un historique continu, toutes les 4 courbes deviendraient exploitables |
-
 ### ⚡ Performance
 
 | # | Idée | Pourquoi | Effort |
@@ -126,6 +120,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.20.1.0 | **Excel — X39 : prix marché quotidien dans le graphe `gPrice`** — correctif de `BuildPriceBlockMerged` SOURCE 2 (`vba/modGraphiques.bas`). La table Power Query `PrixHistory` (miroir de `_PrixHistory`, relevé quotidien 6 carburants déjà accumulé par `RefreshPrix.gs`) est en **format long** `Station/Date/Type/Prix` ; l'ancienne lecture cherchait des colonnes **larges** `"E85 station"`/… inexistantes → SOURCE 2 n'alimentait rien → `gPrice` ne traçait que les pleins (SP95/GAZOLE quasi vides). Désormais lecture `Date/Type/Prix` + agrégation moyenne par jour+carburant → le relevé marché quotidien alimente le graphe, SP95/E10/GPLc/GAZOLE deviennent des courbes continues. (Le volet « accumulation » du X39 d'origine était déjà résolu côté GAS/Power Query.) |
 | v5.20.0.0 | **App — Carte des stations les moins chères autour de moi (D3, onglet Carte)** — nouvelle carte en haut de l'onglet Carte (au-dessus des habituelles) : géoloc → API live `data.economie.gouv.fr` → stations dans un rayon réglable (sélecteur **10/15/20 km**, défaut 15, persistant) triées par prix du carburant courant ; **top‑3 mises en valeur** (marqueurs verts + médailles sur la carte, liste triée dessous). Module `js/cartealentour.js` + renderer générique `renderMiniMap()` (`js/carte.js`, indépendant de la carte Saisie). `index.html`, `js/main.js`, `css/style.css`. |
 | v5.20.0.0 | **App — Graphique « Prix carburants » marché + mes pleins (D2, onglet Stats)** — la sparkline superpose, par carburant, le **relevé quotidien du marché** (le moins cher du secteur, `_PrixHistory` via `?action=sectorPrices`, tirets) et le **prix payé à mes pleins** (plein trait) ; légende + pied enrichi. Aucun changement backend (données déjà collectées par `RefreshPrix.gs`). `js/stats.js`, `js/secteur.js` (`getSectorSeries`, `loadSectorPricesFor`). |
 | v5.20.0.0 | **App — MAJ globale après un nouveau plein (D1)** — hub `refreshAfterPlein()` (déclenché par l'événement `plein-added`) : à l'enregistrement d'un plein, rafraîchit KPIs, sparkline prix, CO₂/budget, prédiction, Wrapped, badges, accueil + recharge historique + invalide le cache des agrégats serveur (périmé ≤ 1 h). Fin des graphiques figés jusqu'au rechargement. `js/main.js`, `js/formulaire.js`. |
