@@ -11,6 +11,7 @@ import { chargerVehicules, onVehiculeChange, confirmerAjoutVehicule, setCurrentV
 import { showPinLabel, hideMap, initMapInteractions } from './carte.js';
 import { initMapFullscreen } from './mapfullscreen.js';
 import { initStationsMapInteractions, renderStationsCard } from './stationsmap.js';
+import { initAlentour, renderAlentour } from './cartealentour.js';
 import { _buildTypeToggle, setType, registerPriceCallback, initTypeToggle } from './carburant.js';
 import { fetchPricesNearUser, fetchPricesByCP } from './prix.js';
 import { geolocate, pickStation, highlightNearbyItem, initNearbyList } from './geo.js';
@@ -21,7 +22,7 @@ import { initTheme, toggleTheme } from './theme.js';
 import { chargerHistorique, dupliquerDernier, voirTout, exportHistoriqueCSV, exportHistoriqueAllCSV, initCsvSepSetting, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords, rerenderHistorique, renderFullHistory } from './historique.js';
 import { renderStats, initSparkToggles, getNextKmPrediction, initKitSetting, initBudgetSetting, initCo2ObjectifSetting, initRapport } from './stats.js';
 import { initComparatifExport } from './comparatif.js';
-import { prewarmServerStats } from './statsApi.js';
+import { prewarmServerStats, getServerStats } from './statsApi.js';
 import { loadSectorPrices, renderSectorBestCard, applyHistPriceToForm } from './secteur.js';
 import { initWrapped, renderWrapped } from './wrapped.js';
 import { initScanner }       from './ticket.js';
@@ -261,6 +262,7 @@ initNearbyList();      // geo.js — délégation sur #nearbyList
 initMapInteractions(); // carte.js — délégation sur #stationMap
 initMapFullscreen();   // mapfullscreen.js — W63 bouton ⛶ plein écran des cartes
 initStationsMapInteractions(); // stationsmap.js — clic marqueur favori → popup itinéraire (S11)
+initAlentour();        // cartealentour.js — D3 sélecteur de rayon (stations alentour)
 initHistoireFilters(); // historique.js — filtres historique complet (W32)
 initCsvSepSetting();   // historique.js — W54 choix du séparateur CSV (persisté)
 initHistoireShare();   // historique.js — W26 Web Share API
@@ -292,7 +294,7 @@ function _refreshVehBar() {
 }
 window.addEventListener('viewchange', e => {
   _curView = e.detail?.view || _curView;
-  if (_curView === 'carte') renderStationsCard();
+  if (_curView === 'carte') { renderStationsCard(); renderAlentour(); }   // D3 — stations alentour
   _refreshVehBar();
 });
 
@@ -303,6 +305,7 @@ window.addEventListener('vehicule-changed', () => {
   renderStats();          // KPIs / prédiction / CO₂ / bilan
   renderWrapped();        // bilan annuel (périmètre véhicule)
   renderStationsCard();   // carte stations (carburant par défaut du véhicule)
+  if (_curView === 'carte') renderAlentour();   // D3 — re-trie l'alentour sur le carburant du véhicule
   // Historique complet : suit le véhicule global (source = state, pas le select masqué
   // dont les options ne sont peuplées qu'à l'ouverture de l'historique complet).
   renderFullHistory(
@@ -311,6 +314,34 @@ window.addEventListener('vehicule-changed', () => {
   );
   _refreshVehBar();       // U9 — réévalue la barre (ex. 1er véhicule ajouté → la barre peut apparaître)
 });
+
+/* ─── W64 — Hub de mise à jour après un nouveau plein ───────────────────────
+   Émis par formulaire.js (événement 'plein-added') sur succès d'enregistrement.
+   Point UNIQUE de refresh : recharge l'historique puis rafraîchit l'ensemble des
+   parties dédiées (5 derniers, KPIs, sparkline prix, CO₂/budget, prédiction,
+   Wrapped, badges, tuile accueil) + invalide le cache des agrégats serveur
+   (périmé ≤ 1 h) pour que les KPIs annuels reflètent le plein à l'instant.
+   Réplique la séquence de chargement initial (cohérence) ; idempotent. */
+function refreshAfterPlein() {
+  const veh = state.currentVehiculeNom || '';
+  // Invalide + recalcule les agrégats serveur (force), puis re-rend les KPIs annuels.
+  getServerStats(veh, 0, { force: true }).then(() => renderStats()).catch(() => { /* hors-ligne : calcul local */ });
+  chargerHistorique().then(() => {
+    mergeHistoryStations(getAllRecords().map(r => r['Station essence']));
+    initWrapped();
+    refreshBadges();
+    renderHomeResume();
+    renderStats();
+    // Prix secteur : ré-enrichit l'historique (écart payé/secteur) et la sparkline.
+    loadSectorPrices().then(() => {
+      renderSectorBestCard();
+      rerenderHistorique();
+      renderStats();
+      refreshBadges();
+    });
+  });
+}
+window.addEventListener('plein-added', refreshAfterPlein);
 
 /* ─── Exposition globale minimale (requise par modules non-importants) ─── */
 Object.assign(window, {

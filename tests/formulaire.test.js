@@ -44,7 +44,6 @@ import { showFeedback, setSubmitState } from '../js/ui.js';
 import { fetchStationPricesSilent } from '../js/prix.js';
 import { queuePlein, updateOfflineBadge } from '../js/offline.js';
 import { syncStationSiNouvelle } from '../js/stations.js';
-import { chargerHistorique } from '../js/historique.js';
 import { promptLogin } from '../js/auth.js';
 
 function buildForm() {
@@ -190,13 +189,17 @@ describe('submitForm', () => {
   it('envoie le plein et confirme en cas de succès serveur', async () => {
     global.fetch = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true, message: 'ok' }) }));
     fillValidPlein();
+    const onAdded = vi.fn();
+    window.addEventListener('plein-added', onAdded);
     await submitForm();
+    window.removeEventListener('plein-added', onAdded);
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(setSubmitState).toHaveBeenCalledWith(true);
     expect(setSubmitState).toHaveBeenCalledWith(false);
     expect(showFeedback).toHaveBeenCalledWith('success', expect.stringContaining('enregistré'), expect.any(String));
     expect(syncStationSiNouvelle).toHaveBeenCalledWith('Total - Lyon');
-    expect(chargerHistorique).toHaveBeenCalled();
+    // W64 — la MAJ globale est déléguée au hub (main.js) via l'événement 'plein-added'.
+    expect(onAdded).toHaveBeenCalled();
   });
 
   it('met le plein en file d’attente hors-ligne si le réseau échoue (TypeError)', async () => {

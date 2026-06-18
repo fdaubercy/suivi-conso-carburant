@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.20.0.0] — 2026-06-18
+
+### Added
+- **App — Carte des stations essence les moins chères autour de moi (D3, onglet Carte)** : nouvelle carte EN HAUT de l'onglet Carte (au-dessus des stations habituelles), alimentée par l'API live `data.economie.gouv.fr`. Géolocalisation → stations dans un rayon réglable (**sélecteur 10 / 15 / 20 km**, défaut 15, persistant) → tri par prix du carburant courant → **top‑3 mises en valeur** (marqueurs verts + médailles 🥇🥈🥉 sur la carte, liste triée du - cher au + cher dessous). Repli propre si géoloc refusée. Nouveau module `js/cartealentour.js` + renderer générique `renderMiniMap()` dans `js/carte.js` (indépendant de la carte Saisie). `index.html` (carte `#alentourCard`), `js/main.js` (déclenchement à l'ouverture de l'onglet + au changement de véhicule), `css/style.css`.
+- **App — Graphique « Prix carburants » : superposition marché + mes pleins (D2, onglet Stats)** : la sparkline trace désormais, par carburant, **2 courbes** — le **relevé quotidien du marché** (le moins cher du secteur, `_PrixHistory` via `?action=sectorPrices`, déjà collecté par `RefreshPrix.gs` ~7h, en tirets) **et** le **prix payé à mes pleins** (plein trait). Légende + pied enrichi (payé / marché). Aucun changement backend. `js/stats.js`, `js/secteur.js` (exports `getSectorSeries`, `loadSectorPricesFor`), `css/style.css`.
+
+### Changed
+- **App — Mise à jour globale après un nouveau plein (D1)** : à l'enregistrement d'un plein, l'app rafraîchit désormais **l'ensemble des parties dédiées** (5 derniers, KPIs, sparkline prix, CO₂/budget, prédiction, Wrapped, badges, tuile accueil) et **invalide le cache des agrégats serveur** (périmé ≤ 1 h) — fin des graphiques figés jusqu'au rechargement. Hub central `refreshAfterPlein()` (main.js) déclenché par un événement `plein-added` émis par `js/formulaire.js`. `js/main.js`, `js/formulaire.js`, `tests/formulaire.test.js`.
+
 ## [5.19.0.0] — 2026-06-17
 
 ### Changed

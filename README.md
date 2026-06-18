@@ -60,7 +60,7 @@ L'application est organisée en **5 vues** (pages) accessibles via une **barre d
 |---|---|
 | ⛽ **Saisie** | Formulaire, véhicule, carburant, scan ticket, station, comparateur, secteur, « Enregistrer » |
 | 📊 **Stats** | Statistiques live, **budget mensuel** (W39) + **tendance 6 mois** (W50) + **alerte de dépassement anticipée** (W56), **CO₂ évité** (W40) + **objectif CO₂ annuel** (W51) + **cumul mensuel** (W55), **comparatif véhicules** (W41) + **export CSV** (W52), rapport mensuel, bilan annuel « Wrapped » |
-| 🗺️ **Carte** | Carte des stations habituelles + prix moyens, **sélecteur E85/Gazole/SP98** (W47), **épinglage manuel 📌** (W53) |
+| 🗺️ **Carte** | **Stations les moins chères autour de moi** (W64/D3 — rayon réglable 10/15/20 km, top‑3 mises en valeur, liste triée), puis carte des stations habituelles + prix moyens, **sélecteur E85/Gazole/SP98** (W47), **épinglage manuel 📌** (W53) |
 | 📜 **Historique** | 5 derniers pleins + historique complet filtrable + **export CSV filtré / global, séparateur `;` ou `,`** (W25 + W54) |
 | ⚙️ **Réglages** | Réglages **regroupés par bloc repliable** (v4.1/v4.2) : **🚀 démarrage** (vue d'ouverture), alertes prix par carburant (alerte + seuil groupés), **conversion E85** (prix du kit), **budget mensuel**, **objectif CO₂ annuel** |
 
@@ -393,11 +393,12 @@ suivi-conso-carburant/
 │   ├── stations.js                  # Chargement liste stations Google Sheets
 │   ├── theme.js                     # Dark mode (toggle + persist localStorage)
 │   ├── historique.js                # 5 derniers pleins + W32 historique complet + filtres + W26 Web Share
-│   ├── stats.js                     # Stats live 4 KPIs + sparkline multi-carburant W28+W34 + prédiction W33 + getNextKmPrediction W35
+│   ├── stats.js                     # Stats live 4 KPIs + sparkline multi-carburant W28+W34 (W64/D2 superpose marché + mes pleins) + prédiction W33 + getNextKmPrediction W35
 │   ├── statsApi.js                  # W59/S12 client agrégats serveur (cache 1 h) + résumé annuel ⚡
 │   ├── theme.js                     # U8 thème clair/sombre (prefers-color-scheme + persistance)
 │   ├── stationsmap.js               # Carte statique stations habituelles + prix moyens
-│   ├── secteur.js                   # W38 prix mini secteur (relevé quotidien) + carte « moins cher du secteur »
+│   ├── cartealentour.js             # W64/D3 carte stations essence les moins chères autour de moi (rayon 10/15/20 km, top‑3)
+│   ├── secteur.js                   # W38 prix mini secteur (relevé quotidien) + carte « moins cher du secteur » + W64/D2 série marché sparkline
 │   ├── wrapped.js                   # W37 bilan annuel « Wrapped » (litres/€/km/éco/station/mois, véhicule↔tous)
 │   ├── pwa.js                       # Installation PWA Android/iOS + bannière update W23 (W4)
 │   └── ticket.js                    # Scan ticket OCR Tesseract.js + photo base64 W9 (W17)

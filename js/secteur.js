@@ -79,6 +79,30 @@ export function getSectorToday(fuel = 'E85') {
   return _slot(fuel).today;
 }
 
+/**
+ * W64/D2 — Série marché (relevé quotidien) d'un carburant pour la sparkline Stats.
+ * Renvoie [{ date:Date, price:Number }] triée chronologiquement, 20 derniers points,
+ * depuis le store en mémoire (cache localStorage chargé au démarrage). Vide si le
+ * carburant n'a pas encore été chargé (appeler loadSectorPricesFor au préalable).
+ */
+export function getSectorSeries(fuel = 'E85') {
+  const byDate = _slot(fuel).byDate || {};
+  const pts = [];
+  for (const d in byDate) {
+    const price = Number(byDate[d]);
+    const date  = new Date(d + 'T00:00:00');
+    if (isFinite(price) && price > 0 && !isNaN(date.getTime())) pts.push({ date, price });
+  }
+  pts.sort((a, b) => a.date - b.date);
+  return pts.slice(-20);
+}
+
+/** W64/D2 — Charge (réseau, best-effort) les prix secteur de plusieurs carburants. */
+export async function loadSectorPricesFor(fuels = []) {
+  const uniq = [...new Set(fuels)].filter(f => HIST_FUELS.includes(f));
+  await Promise.all(uniq.map(f => loadSectorPrices(f)));
+}
+
 /** Charge (réseau) les prix secteur d'un carburant et met à jour cache + module.
  *  Best-effort : en cas d'échec on garde le cache existant. */
 export async function loadSectorPrices(fuel = 'E85') {

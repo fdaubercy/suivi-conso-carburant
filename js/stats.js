@@ -8,6 +8,7 @@ import { pushParam } from './parametres.js';
 import { getAllRecords, forceRefreshHistorique } from './historique.js';
 import { renderComparatif } from './comparatif.js';
 import { getCachedServerStats, getServerStats } from './statsApi.js';
+import { getSectorSeries, loadSectorPricesFor } from './secteur.js';
 
 /* ─── Prix du kit de conversion (localStorage, défaut = cellule B5 Excel) ─── */
 export function getKitPrix() {
@@ -124,6 +125,18 @@ function _saveSparkFuels(fuels) {
   try { localStorage.setItem(SPARK_KEY, JSON.stringify(fuels)); } catch { /* quota / navigation privée */ }
 }
 
+/* ─── D2 — Relevé marché : chargé une fois par session pour superposer la courbe
+   « marché » (relevé quotidien) aux prix payés. Les points proviennent ensuite
+   du cache en mémoire (secteur.js) ; un re-render affiche la superposition. ─── */
+let _marketLoadDone = false;
+function _ensureMarketData(fuels) {
+  if (_marketLoadDone) return;
+  _marketLoadDone = true;
+  loadSectorPricesFor(fuels)
+    .then(() => { if (typeof window !== 'undefined' && typeof window.renderStats === 'function') window.renderStats(); })
+    .catch(() => { /* best-effort : on garde les pleins seuls */ });
+}
+
 /* ─── Construction des séries de prix par carburant ─── */
 function buildFuelSeries(records, veh) {
   const filtered = veh
@@ -189,20 +202,22 @@ function buildSparklineSVG(activeSeries) {
   const toX = t => padX + ((t  - minT) / timeRange)  * (W - 2 * padX);
   const toY = p => H - padY - ((p - minP) / priceRange) * (H - 2 * padY);
 
-  const elements = activeSeries.map(({ points, color }) => {
+  const elements = activeSeries.map(({ points, color, dashed }) => {
     if (!points.length) return '';
+    const dash = dashed ? ' stroke-dasharray="3 2"' : '';
+    const op   = dashed ? ' opacity="0.7"' : '';
     if (points.length === 1) {
       const x = toX(points[0].date.getTime()).toFixed(1);
       const y = toY(points[0].price).toFixed(1);
-      return `<circle cx="${x}" cy="${y}" r="3" fill="${color}"/>`;
+      return `<circle cx="${x}" cy="${y}" r="3" fill="${color}"${op}/>`;
     }
     const pts = points.map(pt =>
       `${toX(pt.date.getTime()).toFixed(1)},${toY(pt.price).toFixed(1)}`
     ).join(' ');
     const lx = toX(points[points.length - 1].date.getTime()).toFixed(1);
     const ly = toY(points[points.length - 1].price).toFixed(1);
-    return `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>`
-         + `<circle cx="${lx}" cy="${ly}" r="2.5" fill="${color}"/>`;
+    return `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"${dash}${op}/>`
+         + `<circle cx="${lx}" cy="${ly}" r="2.5" fill="${color}"${op}/>`;
   }).join('');
 
   return `<svg class="spark-svg" viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">${elements}</svg>`;
@@ -221,6 +236,10 @@ function buildPrixSparkline() {
 
   if (!availFuels.length) return '';
 
+  // D2 — charge en tâche de fond (1×/session) les relevés marché des carburants suivis,
+  // puis re-render pour superposer la courbe « marché » (relevé quotidien) aux pleins.
+  _ensureMarketData(availFuels);
+
   const activeFuels = _loadSparkFuels(availFuels);
 
   const togglesHtml = availFuels.map(k => {
@@ -230,22 +249,37 @@ function buildPrixSparkline() {
     return `<button class="spark-toggle${isActive ? ' active' : ''}" data-spark-fuel="${k}" style="--spark-color:${color}" title="${cfg.label}">${cfg.icon} ${cfg.short}</button>`;
   }).join('');
 
-  const activeSeries = activeFuels
-    .filter(k => series[k]?.length >= 1)
-    .map(k => ({ key: k, points: series[k], color: SPARK_COLORS[k] }));
+  // Par carburant actif : courbe « marché » (relevé quotidien, tirets) + courbe « payé »
+  // (mes pleins, plein trait). L'axe est partagé (domaine calculé sur tous les points).
+  const activeSeries = [];
+  let hasMarket = false;
+  activeFuels.forEach(k => {
+    const market = getSectorSeries(k);
+    if (market.length) { activeSeries.push({ key: k, points: market, color: SPARK_COLORS[k], dashed: true }); hasMarket = true; }
+    const pleins = series[k] || [];
+    if (pleins.length) activeSeries.push({ key: k, points: pleins, color: SPARK_COLORS[k], dashed: false });
+  });
 
   const svgHtml = activeSeries.length
     ? buildSparklineSVG(activeSeries)
     : '<div class="spark-empty">Sélectionnez un carburant ci-dessus</div>';
 
-  const footerParts = activeSeries
-    .filter(s => s.points.length)
-    .map(({ key, points, color }) => {
-      const last = points[points.length - 1].price;
-      return `<span class="spark-price-tag" style="color:${color}">${FUEL_CONFIG[key].icon} ${last.toFixed(3)} €/L</span>`;
-    });
+  // Pied : par carburant actif, dernier prix payé et/ou dernier relevé marché.
+  const footerParts = activeFuels.map(k => {
+    const pleins = series[k] || [];
+    const market = getSectorSeries(k);
+    const bits   = [];
+    if (pleins.length) bits.push(`payé ${pleins[pleins.length - 1].price.toFixed(3)}`);
+    if (market.length) bits.push(`marché ${market[market.length - 1].price.toFixed(3)}`);
+    if (!bits.length) return '';
+    return `<span class="spark-price-tag" style="color:${SPARK_COLORS[k]}">${FUEL_CONFIG[k].icon} ${bits.join(' · ')} €/L</span>`;
+  }).filter(Boolean);
   const footerHtml = footerParts.length
     ? `<div class="spark-footer">${footerParts.join('')}</div>`
+    : '';
+
+  const legendHtml = hasMarket
+    ? '<div class="spark-legend"><span class="spark-leg-solid"></span> payé (mes pleins)<span class="spark-leg-dash"></span> marché (relevé quotidien)</div>'
     : '';
 
   return `
@@ -256,6 +290,7 @@ function buildPrixSparkline() {
       </div>
       <div class="spark-toggles">${togglesHtml}</div>
       ${svgHtml}
+      ${legendHtml}
       ${footerHtml}
     </div>`;
 }

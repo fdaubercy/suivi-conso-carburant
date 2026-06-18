@@ -152,6 +152,78 @@ export function _renderMap(uLat, uLon, radiusM = null) {
   container.innerHTML = html;
 }
 
+/**
+ * W64/D3 — Mini-carte OSM autonome dans un conteneur arbitraire, indépendante de
+ * la carte Saisie (#stationMap / state._mapStations). Affiche une liste explicite
+ * de stations + la position utilisateur + le cercle de rayon. Les index de
+ * `highlightIdxs` (top‑3 moins chères) sont mis en valeur (marqueur vert + médaille).
+ * Display-only : l'interaction se fait via la liste sous la carte.
+ */
+export function renderMiniMap(containerId, uLat, uLon, stations, { radiusM = null, highlightIdxs = [] } = {}) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const pts = (stations || []).filter(s => s.lat && s.lon);
+  if (!pts.length) { container.innerHTML = ''; return; }
+
+  const rect = container.getBoundingClientRect();
+  const W = rect.width || container.offsetWidth || 360;
+  const H = rect.height || container.offsetHeight || 220;
+  const mg = 0.008;
+  const allLats = pts.map(s => s.lat);
+  const allLons = pts.map(s => s.lon);
+  if (uLat) { allLats.push(uLat); allLons.push(uLon); }
+  if (uLat && radiusM > 0) {
+    const dLat = radiusM / 111320;
+    const dLon = radiusM / (111320 * Math.cos(uLat * Math.PI / 180));
+    allLats.push(uLat + dLat, uLat - dLat);
+    allLons.push(uLon + dLon, uLon - dLon);
+  }
+  const z  = bestZoom([Math.min(...allLats)-mg, Math.max(...allLats)+mg], [Math.min(...allLons)-mg, Math.max(...allLons)+mg], W, H);
+  const nw = tileXY(Math.max(...allLats)+mg, Math.min(...allLons)-mg, z);
+  const se = tileXY(Math.min(...allLats)-mg, Math.max(...allLons)+mg, z);
+  const gridW = (se.x - nw.x + 1) * TILE_SZ, gridH = (se.y - nw.y + 1) * TILE_SZ;
+  const offX  = Math.round((W - gridW) / 2);
+  let   offY  = Math.round((H - gridH) / 2);
+  const PIN_H = 32;
+  const minPy = Math.min(...pts.map(s => latLonToPx(s.lat, s.lon, z, nw.x, nw.y).y));
+  offY = Math.max(offY, PIN_H - minPy);
+
+  const medals = ['🥇', '🥈', '🥉'];
+  let html = `<div style="position:absolute;left:${offX}px;top:${offY}px;width:${gridW}px;height:${gridH}px;overflow:hidden">`;
+  for (let ty = nw.y; ty <= se.y; ty++) for (let tx = nw.x; tx <= se.x; tx++) {
+    html += `<img src="https://tile.openstreetmap.org/${z}/${tx}/${ty}.png" `
+          + `style="position:absolute;left:${(tx-nw.x)*TILE_SZ}px;top:${(ty-nw.y)*TILE_SZ}px;width:${TILE_SZ}px;height:${TILE_SZ}px" `
+          + `loading="lazy" onerror="this.style.background='#ddd'">`;
+  }
+  // Cercle du rayon (sous les marqueurs).
+  if (uLat && uLon && radiusM > 0) {
+    const mPerPx = 156543.03392 * Math.cos(uLat * Math.PI / 180) / (1 << z);
+    const rPx = radiusM / mPerPx;
+    const pc = latLonToPx(uLat, uLon, z, nw.x, nw.y);
+    html += `<div style="position:absolute;left:${pc.x-rPx}px;top:${pc.y-rPx}px;width:${2*rPx}px;height:${2*rPx}px;border-radius:50%;background:rgba(29,158,117,.10);border:2.5px solid rgba(29,158,117,.85);box-sizing:border-box;z-index:9;pointer-events:none"></div>`;
+  }
+  // Marqueurs : top‑3 en vert + médaille, autres en bleu.
+  pts.forEach((s, i) => {
+    const p = latLonToPx(s.lat, s.lon, z, nw.x, nw.y);
+    const rank = highlightIdxs.indexOf(i);
+    const top  = rank >= 0;
+    const bg   = top ? '#1D9E75' : '#2E75B6';
+    const ic   = top ? (medals[rank] || '⛽') : '⛽';
+    html += `<div title="${escHtml(s.name)}" style="position:absolute;left:${p.x-12}px;top:${p.y-30}px;z-index:${top ? 12 : 10}">
+      <div class="map-pin" style="background:${bg}"><span style="transform:rotate(45deg)">${ic}</span></div></div>`;
+  });
+  // Position utilisateur.
+  if (uLat && uLon) {
+    const p = latLonToPx(uLat, uLon, z, nw.x, nw.y);
+    html += `<div style="position:absolute;left:${p.x-8}px;top:${p.y-8}px;z-index:13;pointer-events:none">
+      <div style="width:16px;height:16px;background:#1D9E75;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 3px rgba(29,158,117,.35),0 2px 6px rgba(0,0,0,.3)"></div></div>`;
+  }
+  html += '</div>';
+  html += `<a href="https://www.openstreetmap.org" target="_blank" rel="noopener"
+    style="position:absolute;bottom:3px;right:5px;background:rgba(255,255,255,.8);font-size:9px;padding:1px 5px;border-radius:3px;color:#555;text-decoration:none;z-index:20">© OSM</a>`;
+  container.innerHTML = html;
+}
+
 export function showPinLabel(idx) {
   const lbl = document.getElementById('mapPinLbl' + idx); if (!lbl) return;
   lbl.style.opacity = '1'; clearTimeout(lbl._hideTimer);

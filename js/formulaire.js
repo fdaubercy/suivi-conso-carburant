@@ -7,7 +7,7 @@ import { fetchPricesNearUser, fetchPricesAtCoords, fetchNearestE85Price, fetchSt
 import { cancelOsmEnrich } from './osm.js';
 import { getStationCoords } from './stationsmap.js';
 import { syncStationSiNouvelle } from './stations.js';
-import { chargerHistorique, getMaxKmForVehicule, getAllRecords } from './historique.js';
+import { getMaxKmForVehicule, getAllRecords } from './historique.js';
 import { updateRentabilite } from './rentabilite.js';
 import { queuePlein, updateOfflineBadge } from './offline.js';
 import { getIdToken, isAuthed, authEnabled, promptLogin } from './auth.js';
@@ -276,7 +276,10 @@ export async function submitForm() {
       showFeedback('success', 'Plein enregistré ✓', json.message || litres + ' L à ' + prix + ' €/L — ' + station);
       await syncStationSiNouvelle(station);
       resetForm();
-      chargerHistorique();
+      // W64 — MAJ globale après un plein : le hub refreshAfterPlein (main.js)
+      // recharge l'historique ET rafraîchit KPIs / sparkline prix / CO2 / budget /
+      // prédiction / Wrapped / badges / accueil + invalide le cache agrégats serveur.
+      window.dispatchEvent(new window.CustomEvent('plein-added'));
       window.scrollTo({ top: 0, behavior: 'smooth' }); // W24
     } else {
       showFeedback('error', 'Erreur serveur', json.error || 'Veuillez réessayer.');
