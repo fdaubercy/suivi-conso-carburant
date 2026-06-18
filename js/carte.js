@@ -188,7 +188,6 @@ export function renderMiniMap(containerId, uLat, uLon, stations, { radiusM = nul
   const minPy = Math.min(...pts.map(s => latLonToPx(s.lat, s.lon, z, nw.x, nw.y).y));
   offY = Math.max(offY, PIN_H - minPy);
 
-  const medals = ['🥇', '🥈', '🥉'];
   let html = `<div style="position:absolute;left:${offX}px;top:${offY}px;width:${gridW}px;height:${gridH}px;overflow:hidden">`;
   for (let ty = nw.y; ty <= se.y; ty++) for (let tx = nw.x; tx <= se.x; tx++) {
     html += `<img src="https://tile.openstreetmap.org/${z}/${tx}/${ty}.png" `
@@ -202,15 +201,16 @@ export function renderMiniMap(containerId, uLat, uLon, stations, { radiusM = nul
     const pc = latLonToPx(uLat, uLon, z, nw.x, nw.y);
     html += `<div style="position:absolute;left:${pc.x-rPx}px;top:${pc.y-rPx}px;width:${2*rPx}px;height:${2*rPx}px;border-radius:50%;background:rgba(29,158,117,.10);border:2.5px solid rgba(29,158,117,.85);box-sizing:border-box;z-index:9;pointer-events:none"></div>`;
   }
-  // Marqueurs : top‑3 en vert + médaille, autres en bleu.
+  // Marqueurs : badge prix (si fourni) + pin ⛽ ; top‑3 en vert, autres en bleu.
   pts.forEach((s, i) => {
     const p = latLonToPx(s.lat, s.lon, z, nw.x, nw.y);
-    const rank = highlightIdxs.indexOf(i);
-    const top  = rank >= 0;
-    const bg   = top ? '#1D9E75' : '#2E75B6';
-    const ic   = top ? (medals[rank] || '⛽') : '⛽';
-    html += `<div title="${escHtml(s.name)}" style="position:absolute;left:${p.x-12}px;top:${p.y-30}px;z-index:${top ? 12 : 10}">
-      <div class="map-pin" style="background:${bg}"><span style="transform:rotate(45deg)">${ic}</span></div></div>`;
+    const top = highlightIdxs.indexOf(i) >= 0;
+    const bg  = top ? '#1D9E75' : '#2E75B6';
+    const price = s.priceText != null
+      ? `<span style="display:block;background:#fff;color:#1B3A5C;font-size:9px;font-weight:700;line-height:1;padding:1px 4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.3);white-space:nowrap;margin-bottom:1px">${escHtml(String(s.priceText))}</span>`
+      : '';
+    html += `<div title="${escHtml(s.name)}" style="position:absolute;left:${p.x}px;top:${p.y-42}px;transform:translateX(-50%);z-index:${top ? 12 : 10};text-align:center">
+      ${price}<span class="map-pin" style="background:${bg};display:inline-flex"><span style="transform:rotate(45deg)">⛽</span></span></div>`;
   });
   // Position utilisateur.
   if (uLat && uLon) {

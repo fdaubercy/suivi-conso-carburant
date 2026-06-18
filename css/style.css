@@ -1584,20 +1584,24 @@ body.no-share .hist-share { display: none; }
 .spark-leg-dash { border-top-style: dashed; opacity: 0.7; }
 
 /* ─── D3 — Carte « stations les moins chères autour de moi » (onglet Carte) ─── */
-.al-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
-.al-radius { display: inline-flex; align-items: center; gap: 4px; }
+.al-top { margin-bottom: 4px; }
+.al-radius { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; }
 .al-radius-btn {
   border: 1px solid var(--border, #ccc); background: transparent; color: var(--text, #333);
   border-radius: 6px; padding: 2px 9px; font-size: 12px; font-weight: 600; cursor: pointer;
 }
 .al-radius-btn.active { background: var(--accent, #1D9E75); border-color: var(--accent, #1D9E75); color: #fff; }
 .al-radius-unit { font-size: 11px; color: var(--text-muted); }
-.al-map {
-  width: 100%; height: 220px; position: relative; overflow: hidden;
-  border-radius: 10px; margin: 8px 0; background: #e8eef3;
+/* Top 3 au-dessus de la carte */
+.al-top3 { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+#alentourMapFsWrap { margin: 8px 0; }
+.al-status { font-size: 11px; color: var(--text-muted); margin: 6px 0; min-height: 14px; }
+/* Reste des stations : fenêtre courte (~3 visibles) + ascenseur */
+.al-list {
+  display: flex; flex-direction: column; gap: 4px;
+  max-height: 172px; overflow-y: auto; padding-right: 2px;
 }
-.al-status { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; min-height: 14px; }
-.al-list { display: flex; flex-direction: column; gap: 4px; }
+.al-empty { font-size: 11px; color: var(--text-muted); font-style: italic; padding: 4px 0; }
 .al-item {
   display: grid; grid-template-columns: auto 1fr auto auto auto; align-items: center; gap: 8px;
   padding: 6px 8px; border-radius: 8px; background: var(--card-alt, rgba(0, 0, 0, .03));
@@ -1606,7 +1610,7 @@ body.no-share .hist-share { display: none; }
 .al-medal { font-size: 14px; width: 18px; text-align: center; }
 .al-name { display: flex; flex-direction: column; min-width: 0; }
 .al-name strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.al-sub { font-size: 10px; color: var(--text-muted); }
+.al-sub { font-size: 10px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .al-prix { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .al-dist { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
 .al-map-btn { text-decoration: none; font-size: 14px; }

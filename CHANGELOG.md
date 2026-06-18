@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.21.0.0] — 2026-06-18
+
+### Changed
+- **App — Carte « E85 les moins chers autour de moi » alignée sur « Stations habituelles »** (`js/cartealentour.js`, `js/carte.js`, `css/style.css`). La carte alentour (D3) adopte désormais toute l'ergonomie de la carte des stations habituelles : (1) **sélecteur de carburant** en tête de carte (🌿 E85 / ⚫ Gazole / 💧 SP98) qui re-trie sans re-géolocaliser ; (2) les **3 stations les moins chères** du carburant sélectionné affichées **au-dessus** de la carte (médailles 🥇🥈🥉) ; (3) le **reste des stations sous la carte** dans une liste défilante de hauteur réduite (~3 stations visibles, ascenseur) ; (4) toutes les stations **renommées « Enseigne - Ville »** via enrichissement OSM (`enrichStationsBulk`) ; (5) chaque **marqueur affiche l'icône d'enseigne + le prix** du carburant sélectionné (badge prix, top‑3 en vert) ; (6) ajout du **rayon 5 km** (5 / 10 / 15 / 20, défaut 15) ; (7) boutons **zoom +/− et plein écran** au même format que l'autre carte (`zoomGoogleMap`, `mapfullscreen.js`). `renderMiniMap()` rend désormais le badge prix et le pin ⛽ centré (top‑3 vert #1D9E75, autres bleu #2E75B6). Aucun changement backend.
+
 ## [5.20.1.0] — 2026-06-18
 
 ### Fixed
