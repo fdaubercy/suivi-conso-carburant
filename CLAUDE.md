@@ -13,7 +13,19 @@
 
 ---
 
-## 🚀 Démarrage de chaque session
+## 🖥️ Portée des règles strictes — session LOCALE uniquement
+
+Les règles marquées **OBLIGATOIRE** ci-dessous — *Démarrage de chaque session*, *Graphify*, *Déclenchement des skills*, et le *gate pré-commit `/graphify --update`* — s'appliquent **uniquement en session LOCALE** (Claude Code local sous Windows, avec Excel + skills `graphify`/`superpowers` disponibles).
+
+**En session remote/web** (claude.ai/code, environnement cloud) : ces règles deviennent **OPTIONNELLES**. Si une skill (`graphify`, `superpowers:*`) ou un outil (Excel/COM) n'est pas disponible, **continuer sans bloquer** — ne pas exiger `/graphify`, `brainstorming`, etc., et **ne pas bloquer le commit** sur `/graphify --update`.
+
+> Heuristique : si les skills `graphify`/`superpowers` ne sont pas disponibles dans l'environnement, considérer la session comme **remote/web** → mode optionnel. La section **« 🗣️ Langue de travail » s'applique TOUJOURS** (local ET remote/web).
+
+---
+
+## 🚀 Démarrage de chaque session *(session locale — voir § Portée)*
+
+> En remote/web : optionnel — ne pas bloquer si une skill/outil manque.
 
 À faire **dans cet ordre**, avant tout autre travail :
 
@@ -30,7 +42,7 @@
 
 ---
 
-## 🔎 Graphify — carte des connaissances
+## 🔎 Graphify — carte des connaissances *(obligatoire en local ; optionnel en remote/web — voir § Portée)*
 
 - Skill `graphify` (`~/.claude/skills/graphify/SKILL.md`) : transforme n'importe quelle entrée (code, docs, images, vidéos) en knowledge graph. Déclencheur : `/graphify` → invoquer la skill **avant toute autre action**.
 - **Mise à jour de la carte** : `/graphify --update`
@@ -41,7 +53,7 @@
 
 ---
 
-## 🎯 Déclenchement des skills (obligatoire)
+## 🎯 Déclenchement des skills (obligatoire en session locale ; optionnel en remote/web — voir § Portée)
 
 - **Travail créatif / non trivial** (nouvelle fonctionnalité, changement d'UI, modification de comportement, refonte) → invoquer **`superpowers:brainstorming` AVANT d'écrire du code**.
 - **Bug / test qui échoue / comportement inattendu** → **`superpowers:systematic-debugging`** d'abord.
@@ -217,10 +229,11 @@ Lors de l'exécution d'un **plan multi-étapes** :
 
 ## ⚙️ Git — commit en fin de réponse
 
-### Pré-commit — OBLIGATOIRE
-INTERDICTION de commiter sans avoir exécuté `/graphify --update` au préalable.
-Ordre d'exécution obligatoire avant tout commit :
-1. `/graphify --update`
+### Pré-commit — OBLIGATOIRE (session locale uniquement — voir § Portée)
+**En session locale** : INTERDICTION de commiter sans avoir exécuté `/graphify --update` au préalable.
+**En session remote/web** : `/graphify --update` est optionnel — si la skill est indisponible, **sauter sans bloquer** le commit.
+Ordre d'exécution avant tout commit :
+1. `/graphify --update` *(local : obligatoire ; remote/web : si disponible, sinon sauter)*
 2. MAJ README / CHANGELOG / ROADMAP
 3. `./commit.sh "type(scope): description [vX.Y.Z.W]"`
 
