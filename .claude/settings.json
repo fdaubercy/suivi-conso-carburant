@@ -11,34 +11,6 @@
           }
         ]
       }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "shell": "powershell",
-            "statusMessage": "Git push automatique…",
-            "command": "$raw = [Console]::In.ReadToEnd(); try { $j = $raw | ConvertFrom-Json; if ($j.tool_input.command -match 'git\\s+commit') { Push-Location 'C:\\Users\\fdaub\\Documents\\Github\\suivi-conso-carburant'; git push 2>&1; Pop-Location } } catch {}"
-          },
-          {
-            "type": "agent",
-            "statusMessage": "Mise à jour automatique de la documentation…",
-            "prompt": "Tu es le documentaliste du projet suivi-conso-carburant (C:/Users/fdaub/Documents/Github/suivi-conso-carburant).\n\nL'outil Bash vient de s'exécuter. Voici les données d'entrée/sortie : $ARGUMENTS\n\nRègle anti-boucle STRICTE : si tool_input.command contient 'docs(auto)', arrête immédiatement sans rien faire.\n\nSi tool_input.command contient 'git commit' (et pas 'docs(auto)') :\n\n1. Exécute : git -C \"C:/Users/fdaub/Documents/Github/suivi-conso-carburant\" log -1 --pretty=\"%H %s\"\n2. Exécute : git -C \"C:/Users/fdaub/Documents/Github/suivi-conso-carburant\" show HEAD --stat\n3. Exécute : git -C \"C:/Users/fdaub/Documents/Github/suivi-conso-carburant\" diff HEAD~1 HEAD\n4. Lis js/config.js pour obtenir APP_VERSION\n5. Lis CHANGELOG.md, README.md, ROADMAP.md\n\nPuis mets à jour :\n\nA) CHANGELOG.md\n   - Assure-toi que l'entrée [APP_VERSION] existe avec les bonnes sections Added/Changed/Fixed/Removed\n   - Ne modifie pas les entrées précédentes\n\nB) README.md\n   - Mets à jour la section '✨ Fonctionnalités' si de nouvelles features ont été ajoutées\n   - Mets à jour l'architecture si des fichiers JS ont été créés/supprimés\n   - Ne modifie pas les URLs, accès, ou informations de déploiement\n\nC) ROADMAP.md\n   - Déplace dans la table '✅ Idées déjà implémentées' toute idée qui vient d'être implémentée dans ce commit\n   - Ajoute la version (APP_VERSION) dans la colonne Version\n   - Retire l'idée du tableau d'origine (Quick wins, Features visibles, etc.)\n\nFinalement, si au moins un des trois fichiers a été modifié :\n   git -C \"C:/Users/fdaub/Documents/Github/suivi-conso-carburant\" add CHANGELOG.md README.md ROADMAP.md\n   git -C \"C:/Users/fdaub/Documents/Github/suivi-conso-carburant\" commit -m \"docs(auto): mise à jour README, CHANGELOG et ROADMAP [vAPP_VERSION]\"\n   (remplace APP_VERSION par la vraie valeur)\n\nSi aucun fichier doc n'a changé, ne crée pas de commit.\nSi tool_input.command n'est pas un git commit, ne fais rien."
-          }
-        ]
-      },
-      {
-        "matcher": "mcp__.*__navigate",
-        "hooks": [
-          {
-            "type": "agent",
-            "statusMessage": "Détection navigation GAS…",
-            "prompt": "Tu surveilles les actions du navigateur Chrome dans le projet suivi-conso-carburant.\n\nUne navigation vient de se produire. Voici les données : $ARGUMENTS\n\nRègle anti-boucle STRICTE : ne rien faire si tool_output contient 'docs(auto)'.\n\nSi tool_input.url contient 'script.google.com' ou 'script.googleapis.com' :\n1. Affiche en barre d'état : '🌐 Navigation GAS détectée — vérifier si une mise à jour de Code.gs a eu lieu'\n2. Lis .claude/gas-config.json pour vérifier si deployHistory est à jour\n3. Si l'URL contient 'deployments', suggère d'ajouter une entrée dans deployHistory de gas-config.json\n\nSi l'URL ne contient pas 'script.google.com', ne rien faire."
-          }
-        ]
-      }
     ]
   }
 }
