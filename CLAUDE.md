@@ -266,40 +266,6 @@ Avant tout commit :
 
 ---
 
-## 🤖 Ruflo — Orchestration multi-agents (MCP)
-
-Ruflo est actif sur ce projet via MCP (`claude mcp add ruflo -- npx ruflo@latest mcp start`).
-
-### Cas d'usage validés sur ce projet
-
-| Tâche | Agents Ruflo à utiliser |
-|---|---|
-| Refacto d'un module + tests associés | `coder` + `testgen` en parallèle |
-| Mise à jour doc (CHANGELOG, README, ROADMAP) | `docs` (détection drift incluse) |
-| Analyse batch des données de conso (CSV/Excel) | `researcher` + `coder` |
-| Audit sécurité du code GAS ou JS | `security-audit` |
-| Mémoire cross-session (complément `tasks/lessons.md`) | `memory_store` / `ruflo-rag-memory` |
-
-### Règles d'utilisation
-
-TOUJOURS utiliser Ruflo pour les tâches **clairement décomposables** avec sous-tâches indépendantes.
-INTERDICTION de spawner plusieurs agents pour une tâche holiste ou simple.
-Commencer avec 2–3 agents max ; scaler uniquement si nécessaire.
-Vérifier les suggestions `[INTELLIGENCE]` du system-reminder avant tout `swarm_init`.
-
-### Plugins installés (ou à installer)
-
-```bash
-/plugin marketplace add ruvnet/ruflo
-/plugin install ruflo-core@ruflo
-/plugin install ruflo-swarm@ruflo
-/plugin install ruflo-testgen@ruflo
-/plugin install ruflo-docs@ruflo
-/plugin install ruflo-rag-memory@ruflo
-```
-
----
-
 ## 🌐 Pouvoirs navigateur (Claude in Chrome)
 
 Extension Chrome connectée : navigation, clics & formulaires, screenshot (permission requise), lecture de page, exécution JS, enregistrement GIF.
