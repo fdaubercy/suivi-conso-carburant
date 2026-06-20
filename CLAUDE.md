@@ -8,40 +8,26 @@
 
 ## 🚀 Démarrage de chaque session
 
-À faire **dans cet ordre**, avant tout autre travail :
-
-1. **Lire `tasks/lessons.md`** (self-learning) et **résumer les règles actives** avant de commencer. S'il n'existe pas, le créer avec un en-tête vide.
-2. **Charger la carte des connaissances** si elle existe :
-   - `graphify-out/graph.json` → graphe principal (entités, relations, hyperedges)
-   - `graphify-out/GRAPH_REPORT.md` → rapport (god nodes, communautés, questions)
-   - `graphify-out/graph.html` → visualisation interactive
-   - **Avant de lire un fichier source, interroger le graphe** pour cibler les nœuds pertinents et ne lire que le strict nécessaire.
-   - Si la carte **n'existe pas**, la créer via la skill `graphify` dès que le projet est suffisamment exploré.
-3. **Appliquer chaque règle de `tasks/lessons.md`** avant de toucher au code.
-
-> ℹ️ Le bon chemin des artefacts Graphify est **`graphify-out/`** (et non `graphify/README.md`).
+1. **Lire `tasks/lessons.md`** si le fichier existe (ne pas bloquer s'il est absent).
+2. **Graphify** (`graphify-out/`) : consulter si disponible, sinon continuer sans.
+3. Passer directement à la demande de l'utilisateur.
 
 ---
 
-## 🔎 Graphify — carte des connaissances
+## 🔎 Graphify — carte des connaissances (optionnel)
 
-- Skill `graphify` (`~/.claude/skills/graphify/SKILL.md`) : transforme n'importe quelle entrée (code, docs, images, vidéos) en knowledge graph. Déclencheur : `/graphify` → invoquer la skill **avant toute autre action**.
-- **Mise à jour de la carte** : `/graphify --update`
-  - **en fin de chaque session de travail**, et
-  - après **chaque feature / fix significatif** touchant l'architecture (nouvelles entités, relations, décisions).
-  - **OBLIGATOIREMENT avant tout commit** (voir section Git ci-dessous).
-- **Visualisation** : `graph.html` (navigateur), `GRAPH_REPORT.md` (lecture rapide sans navigateur), options `--obsidian`, `--svg`, `--graphml`, `--neo4j`.
+- Skill `graphify` : knowledge graph du projet. Déclencheur : `/graphify`.
+- Mise à jour (`/graphify --update`) : recommandée après un changement architectural significatif, mais **non bloquante** pour les commits.
+- Si la skill n'est pas disponible (session remote/web), continuer sans.
 
 ---
 
-## 🎯 Déclenchement des skills (obligatoire)
+## 🎯 Déclenchement des skills (si disponibles)
 
-- **Travail créatif / non trivial** (nouvelle fonctionnalité, changement d'UI, modification de comportement, refonte) → invoquer **`superpowers:brainstorming` AVANT d'écrire du code**.
-- **Bug / test qui échoue / comportement inattendu** → **`superpowers:systematic-debugging`** d'abord.
-- **Avant d'implémenter un plan validé** → **`superpowers:writing-plans`**.
-- `/graphify` → skill `graphify` avant toute autre action.
-
-> « Complexe » est un jugement : ces déclenchements sont des **règles de comportement** (ce fichier), pas des hooks `settings.json` (qui ne peuvent être que déterministes).
+- **Travail créatif / non trivial** → `superpowers:brainstorming` avant d'écrire du code.
+- **Bug / comportement inattendu** → `superpowers:systematic-debugging` d'abord.
+- **Plan validé** → `superpowers:writing-plans`.
+- Si une skill n'est pas disponible dans l'environnement, continuer sans.
 
 ---
 
@@ -210,10 +196,9 @@ Lors de l'exécution d'un **plan multi-étapes** :
 
 ## ⚙️ Git — commit en fin de réponse
 
-### Pré-commit — OBLIGATOIRE
-INTERDICTION de commiter sans avoir exécuté `/graphify --update` au préalable.
-Ordre d'exécution obligatoire avant tout commit :
-1. `/graphify --update`
+### Pré-commit
+Avant tout commit :
+1. `/graphify --update` (si la skill est disponible, sinon sauter)
 2. MAJ README / CHANGELOG / ROADMAP
 3. `./commit.sh "type(scope): description [vX.Y.Z.W]"`
 
