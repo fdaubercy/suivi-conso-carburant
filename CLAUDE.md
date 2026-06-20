@@ -6,6 +6,13 @@
 
 ---
 
+## 🗣️ Langue de travail — OBLIGATOIRE
+
+- **Toujours communiquer en français** avec l'utilisateur : réponses, explications, points d'avancement, questions, diagnostics. **Ne jamais répondre en anglais**, même pour un point technique.
+- Les identifiants de code et la syntaxe restent en anglais selon les conventions ; le **message de commit** suit le format du projet. Mais **tout échange en langage naturel avec l'utilisateur se fait en français.**
+
+---
+
 ## 🚀 Démarrage de chaque session
 
 1. **Lire `tasks/lessons.md`** si le fichier existe (ne pas bloquer s'il est absent).

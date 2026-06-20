@@ -108,6 +108,7 @@ function _renderMap(sorted, fuel) {
       ? { lat: state.userLat, lon: state.userLon, title: 'Votre position' } : null;
     renderGoogleStationMap(container, {
       stations: gStations, userPos: uPos, radiusM: _radius, zoomControl: false,
+      fitStationsOnly: true,                 // zoom adapté à la zone des stations trouvées
       onFallback: () => _renderOsm(sorted, fuel, top3),
     });
   } else {
@@ -121,7 +122,7 @@ function _renderOsm(sorted, fuel, top3) {
     priceText: Number(s.prices[fuel]).toFixed(3),
   }));
   const hi = sorted.map((s, i) => top3.has(s) ? i : -1).filter(i => i >= 0);
-  renderMiniMap('alentourStationMap', state.userLat, state.userLon, pts, { radiusM: _radius, highlightIdxs: hi });
+  renderMiniMap('alentourStationMap', state.userLat, state.userLon, pts, { radiusM: _radius, highlightIdxs: hi, fitStationsOnly: true });
 }
 
 /** (Re)construit la carte alentour (squelette persistant : seul le contenu dynamique change). */

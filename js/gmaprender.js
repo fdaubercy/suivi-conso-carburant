@@ -32,7 +32,7 @@ export function googleMapsActive() {
 }
 
 export async function renderGoogleStationMap(container, opts) {
-  const { stations = [], userPos = null, radiusM = 0, onFallback } = opts || {};
+  const { stations = [], userPos = null, radiusM = 0, fitStationsOnly = false, onFallback } = opts || {};
   if (!container) return;
 
   let maps;
@@ -145,8 +145,11 @@ export async function renderGoogleStationMap(container, opts) {
           strokeColor: '#1D9E75', strokeOpacity: 0.95, strokeWeight: 2.5,
           fillColor: '#1D9E75', fillOpacity: 0.12, clickable: false, zIndex: 5,
         });
+        // fitStationsOnly (carte alentour) : on DESSINE le cercle mais on ne
+        // l'inclut PAS dans le cadrage → la carte zoome sur la zone des stations
+        // trouvées (selon le rayon) au lieu d'afficher tout le cercle.
         const cb = it.radiusCircle.getBounds();
-        if (cb) bounds.union(cb);
+        if (cb && !fitStationsOnly) bounds.union(cb);
       }
     }
 

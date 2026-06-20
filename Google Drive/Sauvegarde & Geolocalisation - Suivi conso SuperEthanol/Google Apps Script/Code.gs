@@ -255,7 +255,12 @@ function handleExport(e) {
   const headers = data[0].map(String);
   const horoIdx = headers.indexOf('Horodatage');
 
-  const rows = data.slice(1);
+  // Anti-corruption : ignore toute ligne « echo d'en-tete » (sync_id === libelle
+  // "sync_id"). Un vrai sync_id est un UUID ; cette valeur ne peut venir que d'une
+  // ligne fantome (cf. _ImportGS du 17/06 : Type="Type", Date=1970). On la retire
+  // ici pour ne JAMAIS la servir — ni a l'app, ni a Excel.
+  const rows = data.slice(1)
+    .filter(row => String(row[IDX_SYNC] || '').trim().toLowerCase() !== 'sync_id');
 
   // S3 — sync_id des lignes supprimées (tombstone col R). Filtré par since
   // sur la date de suppression si elle est parseable (sinon toujours inclus).

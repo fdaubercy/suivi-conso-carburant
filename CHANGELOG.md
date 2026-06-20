@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.21.1.0] — 2026-06-20
+
+### Fixed
+- **Prix marché bloqués au 16/06 / graphe `gPrice` incomplet (GAZOLE vide)** — la requête Power Query `PrixHistory` du classeur était en réalité **une copie de `GS_Pleins`** (elle lisait l'onglet `_ImportGS` des pleins, 16 colonnes) au lieu des relevés marché `_PrixHistory` (format long `Station/Date/Type/Prix`). `BuildPriceBlockMerged` (X39) ne trouvait donc pas la colonne `Prix` → SOURCE 2 vide → seuls les prix aux dates de pleins s'affichaient. Requête re-synchronisée sur `powerquery/PrixHistory.m` → **3922 relevés, dates jusqu'au jour courant, E85/SP98/GAZOLE… en courbes continues**. `excel/Suivi Conso Carburants.xlsm` (requête `PrixHistory`).
+- **`Suivi Carburant` / `Tableau2` col K « Prix S98 jour » vide (lignes récentes)** — formule résiduelle `=IF([@Type]="Super 98",…)` qui ne remplissait que les pleins SP98. Remplacée par une formule traçable : **`GS_Pleins[SP98 station]` du plein, sinon moyenne marché SP98 de la date** (`PrixHistory`, arrondie). `excel/Suivi Conso Carburants.xlsm`.
+- **En-têtes de la requête `GS_Pleins` corrompus** (`Date`→`01/01/1970`, `Km`→`0`, `SP98 station`→`Colonne2`…) par une ligne « fantôme » (echo d'en-tête, `sync_id="sync_id"`) entrée dans le Google Sheet `_ImportGS` le 17/06. Ligne fantôme **supprimée à la source** (Sheets API) + en-têtes réparés par refresh.
+- **Corruption de la synchronisation bidirectionnelle** — gardes `IsGarbageSid` ajoutées dans `vba/modSyncGS.bas` (import + re-push) et **filtre `handleExport`** côté GAS (déployé en v56) : la ligne « echo d'en-tête » ne peut plus se propager (Excel ↔ Google Sheet) ni être servie à l'app. `vba/modSyncGS.bas`, `Google Drive/.../Google Apps Script/Code.gs`.
+
+### Changed
+- **App — Carte « E85 les moins chers autour de moi » : zoom adapté aux stations** — le cadrage par défaut s'ajuste désormais à **la zone des stations trouvées** (selon le rayon choisi) au lieu d'afficher tout le cercle de rayon. Option opt-in `fitStationsOnly` (le cercle reste dessiné mais n'impose plus le zoom) — sans impact sur la carte Saisie ni la carte habituelles. `js/gmaprender.js`, `js/carte.js`, `js/cartealentour.js`.
+
+### Docs
+- **CLAUDE.md** — règle explicite « toujours communiquer en français » avec l'utilisateur.
+
 ## [5.21.0.0] — 2026-06-18
 
 ### Changed

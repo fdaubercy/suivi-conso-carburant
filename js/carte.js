@@ -159,7 +159,7 @@ export function _renderMap(uLat, uLon, radiusM = null) {
  * `highlightIdxs` (top‑3 moins chères) sont mis en valeur (marqueur vert + médaille).
  * Display-only : l'interaction se fait via la liste sous la carte.
  */
-export function renderMiniMap(containerId, uLat, uLon, stations, { radiusM = null, highlightIdxs = [] } = {}) {
+export function renderMiniMap(containerId, uLat, uLon, stations, { radiusM = null, highlightIdxs = [], fitStationsOnly = false } = {}) {
   const container = document.getElementById(containerId);
   if (!container) return;
   const pts = (stations || []).filter(s => s.lat && s.lon);
@@ -172,7 +172,9 @@ export function renderMiniMap(containerId, uLat, uLon, stations, { radiusM = nul
   const allLats = pts.map(s => s.lat);
   const allLons = pts.map(s => s.lon);
   if (uLat) { allLats.push(uLat); allLons.push(uLon); }
-  if (uLat && radiusM > 0) {
+  // fitStationsOnly (carte alentour) : ne pas étendre le cadrage au rayon complet
+  // → on zoome sur la zone réelle des stations trouvées (le cercle reste dessiné).
+  if (!fitStationsOnly && uLat && radiusM > 0) {
     const dLat = radiusM / 111320;
     const dLon = radiusM / (111320 * Math.cos(uLat * Math.PI / 180));
     allLats.push(uLat + dLat, uLat - dLat);

@@ -72,8 +72,8 @@ Private Const T_RECEIVE  As Long = 30000
 Private Function Euro() As String:   Euro = ChrW(8364): End Function
 Private Function eAcc() As String:   eAcc = ChrW(233):  End Function
 
-Private Function K(s As String) As String
-    K = Replace(Replace(s, "{E}", Euro()), "{e}", eAcc())
+Private Function k(s As String) As String
+    k = Replace(Replace(s, "{E}", Euro()), "{e}", eAcc())
 End Function
 
 ' ============================================================
@@ -122,13 +122,13 @@ End Sub
 ' ============================================================
 Private Sub SetStatus(msg As String)
     Application.StatusBar = "[Sync E85] " & msg
-    Debug.Print Format(Now(), "hh:mm:ss") & "  " & msg
+    Debug.Print Format(now(), "hh:mm:ss") & "  " & msg
 End Sub
 
 Private Sub SetStatusBlock(title As String, body As String)
     Application.StatusBar = "[Sync E85] " & title
     Debug.Print String(60, "-")
-    Debug.Print Format(Now(), "hh:mm:ss") & "  " & title
+    Debug.Print Format(now(), "hh:mm:ss") & "  " & title
     Debug.Print body
     Debug.Print String(60, "-")
 End Sub
@@ -164,7 +164,7 @@ Public Sub TestConnexion()
         If Err.Number = 0 Then
             driver = "MSXML2.XMLHTTP60"
             h.Open "GET", url, False
-            h.send
+            h.Send
             If Err.Number <> 0 Then errTxt = Err.Description: Err.Clear
         Else
             errTxt = "Aucun composant HTTP disponible."
@@ -173,7 +173,7 @@ Public Sub TestConnexion()
     End If
 
     If errTxt = "" And Not h Is Nothing Then
-        status = h.Status
+        status = h.status
         body = Left(h.ResponseText, 300)
     End If
     On Error GoTo 0
@@ -261,11 +261,11 @@ Public Sub SyncDiagnose()
     Set localIds = CreateObject("Scripting.Dictionary")
     localIds.CompareMode = vbTextCompare
 
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    lastRow = ws.Cells(ws.rows.count, 1).End(xlUp).row
     nLocalTotal = lastRow - 1
 
     For r = 2 To lastRow
-        sid = Trim(CStr(ws.Cells(r, COL_SYNC_ID).Value))
+        sid = Trim(CStr(ws.Cells(r, COL_SYNC_ID).value))
         If sid <> "" Then
             localIds(sid) = True
             nLocalWithSid = nLocalWithSid + 1
@@ -273,11 +273,11 @@ Public Sub SyncDiagnose()
             nLocalNoSid = nLocalNoSid + 1
         End If
         ' v2.9 : compter les lignes dirty (col P renseignee)
-        If ws.Cells(r, COL_MODIFIED).Value <> "" Then nDirty = nDirty + 1
+        If ws.Cells(r, COL_MODIFIED).value <> "" Then nDirty = nDirty + 1
     Next r
 
     Dim key As Variant
-    For Each key In gsIds.Keys
+    For Each key In gsIds.keys
         If localIds.Exists(CStr(key)) Then
             nMatching = nMatching + 1
         Else
@@ -285,7 +285,7 @@ Public Sub SyncDiagnose()
         End If
     Next key
 
-    For Each key In localIds.Keys
+    For Each key In localIds.keys
         If Not gsIds.Exists(CStr(key)) Then nOnlyLocal = nOnlyLocal + 1
     Next key
 
@@ -339,7 +339,7 @@ Public Sub ForceFormatDates()
     Set ws = ThisWorkbook.Sheets(WS_NAME)
     If ws Is Nothing Then Exit Sub
 
-    If ws.ListObjects.Count > 0 Then Set tbl = ws.ListObjects(1)
+    If ws.ListObjects.count > 0 Then Set tbl = ws.ListObjects(1)
 
     If Not tbl Is Nothing Then
         tbl.ListColumns(1).DataBodyRange.NumberFormat = "dd/mm/yyyy hh:mm:ss"
@@ -359,13 +359,13 @@ End Sub
 ' deja l'en-tete "Photo ticket" (col P) : le test "" evite tout ecrasement.
 Private Sub EnsureModifiedColHeader(ws As Worksheet)
     On Error Resume Next
-    If CStr(ws.Cells(1, COL_PHOTO).Value) = "" Then
-        ws.Cells(1, COL_PHOTO).Value = "Photo ticket"
+    If CStr(ws.Cells(1, COL_PHOTO).value) = "" Then
+        ws.Cells(1, COL_PHOTO).value = "Photo ticket"
     End If
-    If CStr(ws.Cells(1, COL_MODIFIED).Value) = "" Then
-        ws.Cells(1, COL_MODIFIED).Value = "Modifie_local"
+    If CStr(ws.Cells(1, COL_MODIFIED).value) = "" Then
+        ws.Cells(1, COL_MODIFIED).value = "Modifie_local"
         ws.Cells(1, COL_MODIFIED).Font.Italic = True
-        ws.Cells(1, COL_MODIFIED).Font.Color  = RGB(150, 150, 150)
+        ws.Cells(1, COL_MODIFIED).Font.color = RGB(150, 150, 150)
     End If
     ws.Columns(COL_MODIFIED).NumberFormat = "dd/mm/yyyy hh:mm:ss"
     On Error GoTo 0
@@ -410,22 +410,22 @@ Public Sub EnsureSyncButtonGSPleins()
     '  (~1700 pt, 19 colonnes) sans marge -> tout placement relatif a la table
     '  finit hors ecran. Le bouton flotte sur le coin haut-gauche (au-dessus de
     '  l'en-tete "Date"), toujours visible a l'ouverture de la feuille.
-    Dim l As Single, t As Single
-    l = 5: t = 5
+    Dim L As Single, T As Single
+    L = 5: T = 5
 
     On Error Resume Next
     ws.Shapes(BTN).Delete
     On Error GoTo 0
 
-    Dim Sh As Shape
-    Set Sh = ws.Shapes.AddShape(msoShapeRoundedRectangle, l, t, 120, 30)
-    Sh.name = BTN
-    Sh.Placement = xlFreeFloating
-    Sh.ZOrder msoBringToFront
+    Dim sh As Shape
+    Set sh = ws.Shapes.AddShape(msoShapeRoundedRectangle, L, T, 120, 30)
+    sh.name = BTN
+    sh.Placement = xlFreeFloating
+    sh.ZOrder msoBringToFront
     On Error Resume Next
-    Sh.fill.ForeColor.RGB = RGB(29, 158, 117)      ' vert charte (#1D9E75)
-    Sh.Line.visible = msoFalse
-    With Sh.TextFrame2
+    sh.fill.ForeColor.RGB = RGB(29, 158, 117)      ' vert charte (#1D9E75)
+    sh.Line.visible = msoFalse
+    With sh.TextFrame2
         .TextRange.text = "Synchroniser"
         .TextRange.Font.fill.ForeColor.RGB = RGB(255, 255, 255)
         .TextRange.Font.bold = msoTrue
@@ -434,7 +434,7 @@ Public Sub EnsureSyncButtonGSPleins()
         .HorizontalAnchor = msoAnchorCenter
         .VerticalAnchor = msoAnchorMiddle
     End With
-    Sh.OnAction = "SyncManuel"
+    sh.OnAction = "SyncManuel"
     On Error GoTo 0
 End Sub
 
@@ -449,7 +449,7 @@ End Sub
 '  a chaque SyncManuel) ; lancable seul (Alt+F8).
 ' ============================================================
 Public Sub RafraichirPrixHistory(Optional silent As Boolean = False)
-    Const PH As String = "PrixHistory"
+    Const pH As String = "PrixHistory"
     Dim ws As Worksheet, lo As ListObject, cn As WorkbookConnection
     Dim refreshed As Boolean
 
@@ -458,7 +458,7 @@ Public Sub RafraichirPrixHistory(Optional silent As Boolean = False)
     ' 1) Voie principale : la QueryTable de la table "PrixHistory".
     For Each ws In ThisWorkbook.Worksheets
         For Each lo In ws.ListObjects
-            If StrComp(lo.Name, PH, vbTextCompare) = 0 Then
+            If StrComp(lo.name, pH, vbTextCompare) = 0 Then
                 On Error Resume Next
                 If Not lo.QueryTable Is Nothing Then
                     lo.QueryTable.BackgroundQuery = False
@@ -475,7 +475,7 @@ Public Sub RafraichirPrixHistory(Optional silent As Boolean = False)
     If Not refreshed Then
         On Error Resume Next
         For Each cn In ThisWorkbook.Connections
-            If InStr(1, cn.Name, PH, vbTextCompare) > 0 Then
+            If InStr(1, cn.name, pH, vbTextCompare) > 0 Then
                 cn.OLEDBConnection.BackgroundQuery = False
                 cn.Refresh
                 If Err.Number = 0 Then refreshed = True
@@ -494,7 +494,7 @@ Public Sub RafraichirPrixHistory(Optional silent As Boolean = False)
 End Sub
 
 ' ============================================================
-'  S3 — Suppression d'un plein cote Excel + propagation a GS
+'  S3 � Suppression d'un plein cote Excel + propagation a GS
 '  A assigner a un bouton de la feuille GS_Pleins ou lancer
 '  apres avoir selectionne la ligne du plein a supprimer.
 ' ============================================================
@@ -503,23 +503,23 @@ Public Sub SupprimerPleinExcel()
     Set ws = ThisWorkbook.Sheets(WS_NAME)
 
     Dim r As Long
-    r = ActiveCell.Row
-    If ActiveSheet.Name <> WS_NAME Or r < 2 Then
+    r = ActiveCell.row
+    If ActiveSheet.name <> WS_NAME Or r < 2 Then
         MsgBox "Selectionnez d'abord une ligne de plein dans la feuille '" & WS_NAME & "'.", _
                vbExclamation, "Supprimer un plein"
         Exit Sub
     End If
-    If Trim(CStr(ws.Cells(r, 1).Value)) = "" Then
+    If Trim(CStr(ws.Cells(r, 1).value)) = "" Then
         MsgBox "Ligne vide : rien a supprimer.", vbExclamation, "Supprimer un plein"
         Exit Sub
     End If
 
-    Dim sid As String: sid = Trim(CStr(ws.Cells(r, COL_SYNC_ID).Value))
+    Dim sid As String: sid = Trim(CStr(ws.Cells(r, COL_SYNC_ID).value))
     Dim dStr As String: dStr = ""
-    If IsDate(ws.Cells(r, 2).Value) Then dStr = Format(ws.Cells(r, 2).Value, "dd/mm/yyyy") & " - "
+    If IsDate(ws.Cells(r, 2).value) Then dStr = Format(ws.Cells(r, 2).value, "dd/mm/yyyy") & " - "
 
     If MsgBox("Supprimer ce plein ?" & vbCrLf & vbCrLf & _
-              dStr & CStr(ws.Cells(r, 3).Value) & " - " & CStr(ws.Cells(r, 7).Value) & vbCrLf & vbCrLf & _
+              dStr & CStr(ws.Cells(r, 3).value) & " - " & CStr(ws.Cells(r, 7).value) & vbCrLf & vbCrLf & _
               "La suppression sera propagee a Google Sheets.", _
               vbYesNo + vbQuestion, "Supprimer un plein") <> vbYes Then Exit Sub
 
@@ -544,14 +544,14 @@ Public Sub SupprimerPleinExcel()
 
     ' Supprimer la ligne locale (retire aussi la ligne du tableau)
     Application.EnableEvents = False
-    ws.Rows(r).Delete
+    ws.rows(r).Delete
     Application.EnableEvents = True
 
     SetStatus "Plein supprime (local" & IIf(sid <> "", " + GS", "") & ")."
 End Sub
 
 ' ============================================================
-'  S4 — Force resync : vide la table GS_Pleins et re-importe TOUT
+'  S4 � Force resync : vide la table GS_Pleins et re-importe TOUT
 '  depuis Google Sheets. Reset en cas de desalignement.
 ' ============================================================
 Public Sub ForceResync()
@@ -584,13 +584,13 @@ Public Sub ForceResync()
     SetStatus "Force resync : vidage de la table locale..."
     Application.EnableEvents = False
     Dim tbl As ListObject
-    If ws.ListObjects.Count > 0 Then Set tbl = ws.ListObjects(1)
+    If ws.ListObjects.count > 0 Then Set tbl = ws.ListObjects(1)
     If Not tbl Is Nothing Then
         If Not tbl.DataBodyRange Is Nothing Then tbl.DataBodyRange.Delete
     Else
         Dim lastRow As Long
-        lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
-        If lastRow >= 2 Then ws.Rows("2:" & lastRow).Delete
+        lastRow = ws.Cells(ws.rows.count, 1).End(xlUp).row
+        If lastRow >= 2 Then ws.rows("2:" & lastRow).Delete
     End If
     Application.EnableEvents = True
 
@@ -653,7 +653,7 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     SetStatus "Connexion a Google Sheets..."
     Application.Cursor = xlWait
 
-    tStart = Now
+    tStart = now
     Set ws = ThisWorkbook.Sheets(WS_NAME)
 
     ' v2.9 : s'assurer que la col P est bien initialisee
@@ -722,8 +722,8 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     Dim msg As String
     msg = "OK :"
     msg = msg & " <-" & addedFromGS & " nouv."
-    If updFromGS   > 0 Then msg = msg & " +" & updFromGS   & " MAJ"
-    If delFromGS   > 0 Then msg = msg & " -" & delFromGS   & " suppr."
+    If updFromGS > 0 Then msg = msg & " +" & updFromGS & " MAJ"
+    If delFromGS > 0 Then msg = msg & " -" & delFromGS & " suppr."
     msg = msg & " / ->" & sentToGS & " nouv."
     If sentUpdToGS > 0 Then msg = msg & " +" & sentUpdToGS & " MAJ"
     If pushedStations >= 0 Then msg = msg & " / stations:" & pushedStations
@@ -732,7 +732,7 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
 
     ' X11 : journalise cette sync dans l'onglet _SyncLog
     On Error Resume Next
-    LogToSyncLog addedFromGS, sentToGS, DateDiff("s", tStart, Now)
+    LogToSyncLog addedFromGS, sentToGS, DateDiff("s", tStart, now)
     On Error GoTo ErrHandler
 
     ' Propage les lignes GS_Pleins -> vue derivee "Suivi Carburant" (Tableau2).
@@ -785,10 +785,10 @@ Private Function BuildLocalIndex(ws As Worksheet) As Object
 
     Set dict = CreateObject("Scripting.Dictionary")
     dict.CompareMode = vbTextCompare
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    lastRow = ws.Cells(ws.rows.count, 1).End(xlUp).row
 
     For i = 2 To lastRow
-        sid = Trim(CStr(ws.Cells(i, COL_SYNC_ID).Value))
+        sid = Trim(CStr(ws.Cells(i, COL_SYNC_ID).value))
         If sid <> "" Then dict(sid) = True
     Next i
 
@@ -804,14 +804,27 @@ Private Function BuildLocalRowMap(ws As Worksheet) As Object
 
     Set dict = CreateObject("Scripting.Dictionary")
     dict.CompareMode = vbTextCompare
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    lastRow = ws.Cells(ws.rows.count, 1).End(xlUp).row
 
     For i = 2 To lastRow
-        sid = Trim(CStr(ws.Cells(i, COL_SYNC_ID).Value))
+        sid = Trim(CStr(ws.Cells(i, COL_SYNC_ID).value))
         If sid <> "" Then dict(sid) = i
     Next i
 
     Set BuildLocalRowMap = dict
+End Function
+
+' ============================================================
+'  Garde anti-corruption : detecte une ligne "echo d'en-tete" par
+'  son sync_id. Un sync_id legitime est un UUID (ou l'ancien format) ;
+'  il ne peut JAMAIS valoir le libelle de colonne "sync_id".
+'  Origine : ligne fantome du 17/06 23:39 (Type="Type", Date=1970,
+'  Km=0 / Litres=2 / PrixL=3, sync_id="sync_id") presente dans l'onglet
+'  GS _ImportGS et importee/propagee car l'ancien garde ne testait que
+'  sid="" (or "sync_id" est non vide). On la bloque dans les DEUX sens.
+' ============================================================
+Private Function IsGarbageSid(ByVal sid As String) As Boolean
+    IsGarbageSid = (StrComp(Trim$(sid), "sync_id", vbTextCompare) = 0)
 End Function
 
 Private Function ImportGSToExcel(ws As Worksheet, gsRecs() As String, _
@@ -825,10 +838,10 @@ Private Function ImportGSToExcel(ws As Worksheet, gsRecs() As String, _
     Dim rng     As Range
     Dim lr      As Long
 
-    added     = 0
+    added = 0
     updFromGS = 0
 
-    If ws.ListObjects.Count > 0 Then Set tbl = ws.ListObjects(1)
+    If ws.ListObjects.count > 0 Then Set tbl = ws.ListObjects(1)
     ForceFormatDates
 
     ' v2.9 : carte sid -> numero de ligne pour les MAJ
@@ -841,39 +854,41 @@ Private Function ImportGSToExcel(ws As Worksheet, gsRecs() As String, _
 
         sid = JsonGet(rec, "sync_id")
         If sid = "" Then GoTo NextRec
+        ' Anti-corruption : ne jamais importer une ligne fantome (sync_id = "sync_id")
+        If IsGarbageSid(sid) Then GoTo NextRec
 
         If Not localIds.Exists(sid) Then
-            ' ── Nouvelle ligne depuis GS : ajout ──────────────────
+            ' -- Nouvelle ligne depuis GS : ajout ------------------
             If Not tbl Is Nothing Then
                 Set rng = tbl.ListRows.Add.Range
             Else
-                lr = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1
+                lr = ws.Cells(ws.rows.count, 1).End(xlUp).row + 1
                 Set rng = ws.Range(ws.Cells(lr, 1), ws.Cells(lr, COL_MODIFIED))
             End If
 
-            rng(1).Value  = ParseDt(JsonGet(rec, "Horodatage"))
-            rng(2).Value  = ParseDt(JsonGet(rec, "Date"))
-            rng(3).Value  = JsonGet(rec, "Type")
-            rng(4).Value  = ToNum(JsonGet(rec, "Km compteur"))
-            rng(5).Value  = ToNum(JsonGet(rec, "Nb. Litres"))
-            rng(6).Value  = ToNum(JsonGet(rec, K("Prix {E}/L")))
-            rng(7).Value  = JsonGet(rec, "Station essence")
-            rng(8).Value  = JsonGet(rec, K("V{e}hicule"))
-            rng(9).Value  = ToNum(JsonGet(rec, K("E85 station ({E}/L)")))
-            rng(10).Value = ToNum(JsonGet(rec, K("SP98 station ({E}/L)")))
-            rng(11).Value = ToNum(JsonGet(rec, K("SP95 station ({E}/L)")))
-            rng(12).Value = ToNum(JsonGet(rec, K("E10 station ({E}/L)")))
-            rng(13).Value = ToNum(JsonGet(rec, K("Gazole station ({E}/L)")))
-            rng(14).Value = ToNum(JsonGet(rec, K("GPLc station ({E}/L)")))
-            rng(15).Value = sid
-            rng(16).Value = JsonGet(rec, "Photo ticket")   ' P - URL photo importee de GS
+            rng(1).value = ParseDt(JsonGet(rec, "Horodatage"))
+            rng(2).value = ParseDt(JsonGet(rec, "Date"))
+            rng(3).value = JsonGet(rec, "Type")
+            rng(4).value = ToNum(JsonGet(rec, "Km compteur"))
+            rng(5).value = ToNum(JsonGet(rec, "Nb. Litres"))
+            rng(6).value = ToNum(JsonGet(rec, k("Prix {E}/L")))
+            rng(7).value = JsonGet(rec, "Station essence")
+            rng(8).value = JsonGet(rec, k("V{e}hicule"))
+            rng(9).value = ToNum(JsonGet(rec, k("E85 station ({E}/L)")))
+            rng(10).value = ToNum(JsonGet(rec, k("SP98 station ({E}/L)")))
+            rng(11).value = ToNum(JsonGet(rec, k("SP95 station ({E}/L)")))
+            rng(12).value = ToNum(JsonGet(rec, k("E10 station ({E}/L)")))
+            rng(13).value = ToNum(JsonGet(rec, k("Gazole station ({E}/L)")))
+            rng(14).value = ToNum(JsonGet(rec, k("GPLc station ({E}/L)")))
+            rng(15).value = sid
+            rng(16).value = JsonGet(rec, "Photo ticket")   ' P - URL photo importee de GS
             ' Col 17 (Modifie_local) laissee vide : nouvelle ligne, propre
 
             localIds(sid) = True
             added = added + 1
 
         Else
-            ' ── Ligne existante : MAJ GS->Excel si non dirty ──────
+            ' -- Ligne existante : MAJ GS->Excel si non dirty ------
             ' Col P vide = non modifie localement = GS peut ecraser
             ' Col P renseignee = Excel gagne (sera envoye en bulkUpdate)
             Dim rowNum As Long
@@ -884,12 +899,12 @@ Private Function ImportGSToExcel(ws As Worksheet, gsRecs() As String, _
             ' S5 : ligne locale "dirty" (col Q renseignee). On n'ignore plus
             ' systematiquement GS : on compare les horodatages et on garde le
             ' plus recent. Excel-wins seulement si GS n'est pas plus recent.
-            If CStr(ws.Cells(rowNum, COL_MODIFIED).Value) <> "" Then
+            If CStr(ws.Cells(rowNum, COL_MODIFIED).value) <> "" Then
                 Dim localTs As Date, gsTs As Date
                 Dim hasLocal As Boolean, hasGs As Boolean
-                hasLocal = IsDate(ws.Cells(rowNum, COL_MODIFIED).Value)
-                If hasLocal Then localTs = CDate(ws.Cells(rowNum, COL_MODIFIED).Value)
-                Dim gsModV As Variant: gsModV = ParseDt(JsonGet(rec, K("Modifi{e}_le")))
+                hasLocal = IsDate(ws.Cells(rowNum, COL_MODIFIED).value)
+                If hasLocal Then localTs = CDate(ws.Cells(rowNum, COL_MODIFIED).value)
+                Dim gsModV As Variant: gsModV = ParseDt(JsonGet(rec, k("Modifi{e}_le")))
                 hasGs = IsDate(gsModV)
                 If hasGs Then gsTs = CDate(gsModV)
 
@@ -901,7 +916,7 @@ Private Function ImportGSToExcel(ws As Worksheet, gsRecs() As String, _
                     End If
                     ' la version GS gagne : on abandonne la modif locale en attente
                     Application.EnableEvents = False
-                    ws.Cells(rowNum, COL_MODIFIED).Value = ""
+                    ws.Cells(rowNum, COL_MODIFIED).value = ""
                     Application.EnableEvents = True
                 End If
                 ' sinon : Excel >= GS -> on conserve la modif locale (bulkUpdate)
@@ -928,8 +943,8 @@ Private Function RowMatchesGS(ws As Worksheet, r As Long, rec As String) As Bool
 
     ' Date (yyyy-mm-dd)
     Dim lDate As String
-    If IsDate(ws.Cells(r, 2).Value) Then
-        lDate = Format(CDate(ws.Cells(r, 2).Value), "yyyy-mm-dd")
+    If IsDate(ws.Cells(r, 2).value) Then
+        lDate = Format(CDate(ws.Cells(r, 2).value), "yyyy-mm-dd")
     End If
     Dim gDate As String: gDate = JsonGet(rec, "Date")
     If Len(gDate) >= 10 Then gDate = Left(gDate, 10)
@@ -937,7 +952,7 @@ Private Function RowMatchesGS(ws As Worksheet, r As Long, rec As String) As Bool
 
     ' Km (tolerance 0.5)
     Dim lKm As Double: lKm = 0
-    If IsNumeric(ws.Cells(r, 4).Value) Then lKm = CDbl(ws.Cells(r, 4).Value)
+    If IsNumeric(ws.Cells(r, 4).value) Then lKm = CDbl(ws.Cells(r, 4).value)
     Dim gKm As Double: gKm = 0
     Dim gKmStr As String: gKmStr = JsonGet(rec, "Km compteur")
     If IsNumeric(Replace(gKmStr, ".", ",")) Then gKm = CDbl(Replace(gKmStr, ".", ","))
@@ -945,7 +960,7 @@ Private Function RowMatchesGS(ws As Worksheet, r As Long, rec As String) As Bool
 
     ' Litres (tolerance 0.01)
     Dim lLit As Double: lLit = 0
-    If IsNumeric(ws.Cells(r, 5).Value) Then lLit = CDbl(ws.Cells(r, 5).Value)
+    If IsNumeric(ws.Cells(r, 5).value) Then lLit = CDbl(ws.Cells(r, 5).value)
     Dim gLit As Double: gLit = 0
     Dim gLitStr As String: gLitStr = JsonGet(rec, "Nb. Litres")
     If IsNumeric(Replace(gLitStr, ".", ",")) Then gLit = CDbl(Replace(gLitStr, ".", ","))
@@ -965,20 +980,20 @@ End Function
 Private Sub UpdateRowFromGS(ws As Worksheet, r As Long, rec As String)
     Application.EnableEvents = False
     On Error Resume Next
-    ws.Cells(r, 2).Value  = ParseDt(JsonGet(rec, "Date"))
-    ws.Cells(r, 3).Value  = JsonGet(rec, "Type")
-    ws.Cells(r, 4).Value  = ToNum(JsonGet(rec, "Km compteur"))
-    ws.Cells(r, 5).Value  = ToNum(JsonGet(rec, "Nb. Litres"))
-    ws.Cells(r, 6).Value  = ToNum(JsonGet(rec, K("Prix {E}/L")))
-    ws.Cells(r, 7).Value  = JsonGet(rec, "Station essence")
-    ws.Cells(r, 8).Value  = JsonGet(rec, K("V{e}hicule"))
-    ws.Cells(r, 9).Value  = ToNum(JsonGet(rec, K("E85 station ({E}/L)")))
-    ws.Cells(r, 10).Value = ToNum(JsonGet(rec, K("SP98 station ({E}/L)")))
-    ws.Cells(r, 11).Value = ToNum(JsonGet(rec, K("SP95 station ({E}/L)")))
-    ws.Cells(r, 12).Value = ToNum(JsonGet(rec, K("E10 station ({E}/L)")))
-    ws.Cells(r, 13).Value = ToNum(JsonGet(rec, K("Gazole station ({E}/L)")))
-    ws.Cells(r, 14).Value = ToNum(JsonGet(rec, K("GPLc station ({E}/L)")))
-    ws.Cells(r, COL_PHOTO).Value = JsonGet(rec, "Photo ticket")
+    ws.Cells(r, 2).value = ParseDt(JsonGet(rec, "Date"))
+    ws.Cells(r, 3).value = JsonGet(rec, "Type")
+    ws.Cells(r, 4).value = ToNum(JsonGet(rec, "Km compteur"))
+    ws.Cells(r, 5).value = ToNum(JsonGet(rec, "Nb. Litres"))
+    ws.Cells(r, 6).value = ToNum(JsonGet(rec, k("Prix {E}/L")))
+    ws.Cells(r, 7).value = JsonGet(rec, "Station essence")
+    ws.Cells(r, 8).value = JsonGet(rec, k("V{e}hicule"))
+    ws.Cells(r, 9).value = ToNum(JsonGet(rec, k("E85 station ({E}/L)")))
+    ws.Cells(r, 10).value = ToNum(JsonGet(rec, k("SP98 station ({E}/L)")))
+    ws.Cells(r, 11).value = ToNum(JsonGet(rec, k("SP95 station ({E}/L)")))
+    ws.Cells(r, 12).value = ToNum(JsonGet(rec, k("E10 station ({E}/L)")))
+    ws.Cells(r, 13).value = ToNum(JsonGet(rec, k("Gazole station ({E}/L)")))
+    ws.Cells(r, 14).value = ToNum(JsonGet(rec, k("GPLc station ({E}/L)")))
+    ws.Cells(r, COL_PHOTO).value = JsonGet(rec, "Photo ticket")
     On Error GoTo 0
     Application.EnableEvents = True
 End Sub
@@ -1006,18 +1021,21 @@ Private Function ExportExcelToGS(ws As Worksheet, gsRecs() As String) As Long
         If gid <> "" Then gsIds(gid) = True
     Next i
 
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    lastRow = ws.Cells(ws.rows.count, 1).End(xlUp).row
     ReDim rowsJson(lastRow - 2)
     count = 0
 
     For r = 2 To lastRow
-        If ws.Cells(r, 1).Value = "" Then GoTo NextRow
+        If ws.Cells(r, 1).value = "" Then GoTo NextRow
 
-        lsid = Trim(CStr(ws.Cells(r, COL_SYNC_ID).Value))
+        lsid = Trim(CStr(ws.Cells(r, COL_SYNC_ID).value))
+        ' Anti-corruption : ne jamais (re)pousser une ligne fantome vers GS
+        ' (sinon un nettoyage cote GS la recreerait au prochain bulkAdd).
+        If IsGarbageSid(lsid) Then GoTo NextRow
         If lsid = "" Then
             lsid = GenerateUUID()
             Application.EnableEvents = False
-            ws.Cells(r, COL_SYNC_ID).Value = lsid
+            ws.Cells(r, COL_SYNC_ID).value = lsid
             Application.EnableEvents = True
         End If
 
@@ -1061,7 +1079,7 @@ Private Function ExportModificationsToGS(ws As Worksheet, gsRecs() As String) As
     Next i
 
     Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    lastRow = ws.Cells(ws.rows.count, 1).End(xlUp).row
 
     Dim rowsJson()  As String
     Dim dirtyRows() As Long           ' indices de ligne pour effacement col P
@@ -1073,16 +1091,16 @@ Private Function ExportModificationsToGS(ws As Worksheet, gsRecs() As String) As
     Dim lsid As String
 
     For r = 2 To lastRow
-        If ws.Cells(r, 1).Value = "" Then GoTo NextRow2
+        If ws.Cells(r, 1).value = "" Then GoTo NextRow2
 
-        lsid = Trim(CStr(ws.Cells(r, COL_SYNC_ID).Value))
+        lsid = Trim(CStr(ws.Cells(r, COL_SYNC_ID).value))
 
         ' Condition : sync_id connu de GS + col P renseignee (dirty)
         If lsid = "" Then GoTo NextRow2
         If Not gsIds.Exists(lsid) Then GoTo NextRow2
-        If CStr(ws.Cells(r, COL_MODIFIED).Value) = "" Then GoTo NextRow2
+        If CStr(ws.Cells(r, COL_MODIFIED).value) = "" Then GoTo NextRow2
 
-        rowsJson(count)  = RowToJson(ws, r, lsid)
+        rowsJson(count) = RowToJson(ws, r, lsid)
         dirtyRows(count) = r
         count = count + 1
 NextRow2:
@@ -1110,14 +1128,14 @@ NextRow2:
         Application.EnableEvents = False
         Dim j As Long
         For j = 0 To count - 1
-            ws.Cells(dirtyRows(j), COL_MODIFIED).Value = ""
+            ws.Cells(dirtyRows(j), COL_MODIFIED).value = ""
         Next j
         Application.EnableEvents = True
         ExportModificationsToGS = count
     Else
         ' GAS ne supporte pas encore bulkUpdate : col P conservee,
         ' les modifs seront renvoyees au prochain sync
-        Debug.Print Format(Now(), "hh:mm:ss") & _
+        Debug.Print Format(now(), "hh:mm:ss") & _
             "  ExportModificationsToGS : reponse inattendue ou GAS sans bulkUpdate." & _
             " Reponse=" & Left(resp, 200)
         ExportModificationsToGS = 0
@@ -1133,36 +1151,36 @@ Private Function RowToJson(ws As Worksheet, r As Long, sid As String) As String
     Dim ds As String
     Dim ms As String   ' S5 : horodatage de derniere modif (col Q, repli sur horodatage)
 
-    If IsDate(ws.Cells(r, 1).Value) Then
-        ts = Format(ws.Cells(r, 1).Value, "yyyy-mm-dd hh:mm:ss")
+    If IsDate(ws.Cells(r, 1).value) Then
+        ts = Format(ws.Cells(r, 1).value, "yyyy-mm-dd hh:mm:ss")
     End If
-    If IsDate(ws.Cells(r, 2).Value) Then
-        ds = Format(ws.Cells(r, 2).Value, "yyyy-mm-dd")
+    If IsDate(ws.Cells(r, 2).value) Then
+        ds = Format(ws.Cells(r, 2).value, "yyyy-mm-dd")
     End If
-    If IsDate(ws.Cells(r, COL_MODIFIED).Value) Then
-        ms = Format(ws.Cells(r, COL_MODIFIED).Value, "yyyy-mm-dd hh:mm:ss")
+    If IsDate(ws.Cells(r, COL_MODIFIED).value) Then
+        ms = Format(ws.Cells(r, COL_MODIFIED).value, "yyyy-mm-dd hh:mm:ss")
     Else
         ms = ts
     End If
 
     RowToJson = "{" & _
-        jS("sync_id",    sid)                                 & "," & _
-        jS("horodatage", ts)                                  & "," & _
-        jS("modifiedAt", ms)                                  & "," & _
-        jS("date",       ds)                                  & "," & _
-        jS("type",       CStr(ws.Cells(r, 3).Value))          & "," & _
-        jN("km",         ws.Cells(r, 4).Value)                & "," & _
-        jN("litres",     ws.Cells(r, 5).Value)                & "," & _
-        jN("prix",       ws.Cells(r, 6).Value)                & "," & _
-        jS("station",    CStr(ws.Cells(r, 7).Value))          & "," & _
-        jS("vehicule",   CStr(ws.Cells(r, 8).Value))          & "," & _
+        jS("sync_id", sid) & "," & _
+        jS("horodatage", ts) & "," & _
+        jS("modifiedAt", ms) & "," & _
+        jS("date", ds) & "," & _
+        jS("type", CStr(ws.Cells(r, 3).value)) & "," & _
+        jN("km", ws.Cells(r, 4).value) & "," & _
+        jN("litres", ws.Cells(r, 5).value) & "," & _
+        jN("prix", ws.Cells(r, 6).value) & "," & _
+        jS("station", CStr(ws.Cells(r, 7).value)) & "," & _
+        jS("vehicule", CStr(ws.Cells(r, 8).value)) & "," & _
         """stationPrices"":{" & _
-            jN("E85",    ws.Cells(r, 9).Value)                & "," & _
-            jN("SP98",   ws.Cells(r, 10).Value)               & "," & _
-            jN("SP95",   ws.Cells(r, 11).Value)               & "," & _
-            jN("E10",    ws.Cells(r, 12).Value)               & "," & _
-            jN("GAZOLE", ws.Cells(r, 13).Value)               & "," & _
-            jN("GPLC",   ws.Cells(r, 14).Value)               & _
+            jN("E85", ws.Cells(r, 9).value) & "," & _
+            jN("SP98", ws.Cells(r, 10).value) & "," & _
+            jN("SP95", ws.Cells(r, 11).value) & "," & _
+            jN("E10", ws.Cells(r, 12).value) & "," & _
+            jN("GAZOLE", ws.Cells(r, 13).value) & "," & _
+            jN("GPLC", ws.Cells(r, 14).value) & _
         "}}"
 End Function
 
@@ -1262,11 +1280,11 @@ End Function
 Private Function ParseDeletedIds(jsonStr As String) As String()
     Dim emp(0) As String: emp(0) = ""
     Dim p As Long, endP As Long, arr As String
-    Const TAG As String = """deleted"":["
+    Const tag As String = """deleted"":["
 
-    p = InStr(jsonStr, TAG)
+    p = InStr(jsonStr, tag)
     If p = 0 Then ParseDeletedIds = emp: Exit Function
-    p = p + Len(TAG)
+    p = p + Len(tag)
     endP = InStr(p, jsonStr, "]")
     If endP <= p Then ParseDeletedIds = emp: Exit Function
 
@@ -1288,7 +1306,7 @@ End Function
 ' des tombstones GS. Retourne le nombre de lignes supprimees.
 Private Function ApplyGSDeletions(ws As Worksheet, delIds() As String) As Long
     Dim cnt As Long: cnt = 0
-    On Error GoTo Done
+    On Error GoTo done
     If UBound(delIds) < LBound(delIds) Then ApplyGSDeletions = 0: Exit Function
 
     Dim del As Object
@@ -1298,34 +1316,34 @@ Private Function ApplyGSDeletions(ws As Worksheet, delIds() As String) As Long
     For i = LBound(delIds) To UBound(delIds)
         If Trim(delIds(i)) <> "" Then del(Trim(delIds(i))) = True
     Next i
-    If del.Count = 0 Then ApplyGSDeletions = 0: Exit Function
+    If del.count = 0 Then ApplyGSDeletions = 0: Exit Function
 
     Dim tbl As ListObject
-    If ws.ListObjects.Count > 0 Then Set tbl = ws.ListObjects(1)
+    If ws.ListObjects.count > 0 Then Set tbl = ws.ListObjects(1)
 
     Application.EnableEvents = False
     If Not tbl Is Nothing Then
         Dim li As Long, sidL As String
-        For li = tbl.ListRows.Count To 1 Step -1
-            sidL = Trim(CStr(tbl.ListRows(li).Range.Cells(1, COL_SYNC_ID).Value))
+        For li = tbl.ListRows.count To 1 Step -1
+            sidL = Trim(CStr(tbl.ListRows(li).Range.Cells(1, COL_SYNC_ID).value))
             If sidL <> "" Then
                 If del.Exists(sidL) Then tbl.ListRows(li).Delete: cnt = cnt + 1
             End If
         Next li
     Else
         Dim lastRow As Long, r As Long, sid As String
-        lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+        lastRow = ws.Cells(ws.rows.count, 1).End(xlUp).row
         For r = lastRow To 2 Step -1
-            sid = Trim(CStr(ws.Cells(r, COL_SYNC_ID).Value))
+            sid = Trim(CStr(ws.Cells(r, COL_SYNC_ID).value))
             If sid <> "" Then
-                If del.Exists(sid) Then ws.Rows(r).Delete: cnt = cnt + 1
+                If del.Exists(sid) Then ws.rows(r).Delete: cnt = cnt + 1
             End If
         Next r
     End If
     Application.EnableEvents = True
     ApplyGSDeletions = cnt
     Exit Function
-Done:
+done:
     Application.EnableEvents = True
     ApplyGSDeletions = cnt
 End Function
@@ -1378,14 +1396,14 @@ Private Function PushStationsToGS() As Long
     Dim resp As String
     Dim cnt  As Long
 
-    On Error GoTo Done
+    On Error GoTo done
 
     Set ws = Nothing
     On Error Resume Next
     Set ws = ThisWorkbook.Sheets(STATIONS_WS)
     If ws Is Nothing Then On Error GoTo 0: PushStationsToGS = -1: Exit Function
     Set tbl = ws.ListObjects(STATIONS_TBL)
-    On Error GoTo Done
+    On Error GoTo done
     If tbl Is Nothing Then PushStationsToGS = -1: Exit Function
     If tbl.DataBodyRange Is Nothing Then PushStationsToGS = -1: Exit Function
 
@@ -1393,11 +1411,11 @@ Private Function PushStationsToGS() As Long
     seen.CompareMode = vbTextCompare
 
     ' En-tete en premier (la feuille "Stations" attend un header en ligne 1)
-    json = """" & JEsc(K("Station essence utilis{e}e")) & """"
+    json = """" & JEsc(k("Station essence utilis{e}e")) & """"
 
     cnt = 0
     For Each c In tbl.DataBodyRange.Columns(1).Cells
-        v = Trim(CStr(c.Value))
+        v = Trim(CStr(c.value))
         If v <> "" And Not seen.Exists(v) Then
             seen(v) = True
             json = json & ",""" & JEsc(v) & """"
@@ -1411,12 +1429,12 @@ Private Function PushStationsToGS() As Long
     If InStr(resp, """success"":true") > 0 Then
         PushStationsToGS = cnt
     Else
-        Debug.Print Format(Now(), "hh:mm:ss") & _
+        Debug.Print Format(now(), "hh:mm:ss") & _
             "  PushStationsToGS : reponse inattendue. Reponse=" & Left(resp, 200)
         PushStationsToGS = -1
     End If
     Exit Function
-Done:
+done:
     PushStationsToGS = -1
 End Function
 
@@ -1433,7 +1451,7 @@ Private Function ParseDt(s As String) As Variant
     Dim dp()  As String
     Dim tp()  As String
     Dim y As Integer, m As Integer, d As Integer
-    Dim hh As Integer, mm As Integer, ss As Integer
+    Dim hH As Integer, mm As Integer, ss As Integer
 
     If s = "" Then
         ParseDt = ""
@@ -1465,8 +1483,8 @@ Private Function ParseDt(s As String) As Variant
     If tStr <> "" Then
         tp = Split(tStr, ":")
         If UBound(tp) >= 2 Then
-            hh = CInt(tp(0)): mm = CInt(tp(1)): ss = CInt(tp(2))
-            ParseDt = DateSerial(y, m, d) + TimeSerial(hh, mm, ss)
+            hH = CInt(tp(0)): mm = CInt(tp(1)): ss = CInt(tp(2))
+            ParseDt = DateSerial(y, m, d) + TimeSerial(hH, mm, ss)
         Else
             ParseDt = DateSerial(y, m, d)
         End If
@@ -1500,7 +1518,7 @@ Public Function GenerateUUID() As String
     Exit Function
 Fallback:
     Randomize
-    GenerateUUID = Format(Now(), "yyyymmddHHmmss") & "-" & _
+    GenerateUUID = Format(now(), "yyyymmddHHmmss") & "-" & _
                    Right("000000" & CStr(Int(Rnd() * 1000000)), 6) & "-" & _
                    Right("000000" & CStr(Int(Rnd() * 1000000)), 6)
 End Function
@@ -1527,7 +1545,7 @@ Private Function HttpGet(url As String) As String
     h.SetTimeouts T_RESOLVE, T_CONNECT, T_SEND, T_RECEIVE
     h.Open "GET", url, False
     h.Send
-    If h.Status = 200 Then HttpGet = h.ResponseText
+    If h.status = 200 Then HttpGet = h.ResponseText
     Exit Function
 Err_:
     HttpGet = ""
@@ -1544,26 +1562,26 @@ Private Sub LogToSyncLog(ByVal fromGS As Long, ByVal toGS As Long, ByVal dureeS 
     Set wsL = ThisWorkbook.Sheets(LOG_SH)
     On Error GoTo 0
     If wsL Is Nothing Then
-        Set wsL = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
-        wsL.Name = LOG_SH
-        wsL.Visible = xlSheetHidden
-        With wsL.Rows(1)
-            wsL.Cells(1, 1).Value = "Horodatage"
-            wsL.Cells(1, 2).Value = "<- GS"
-            wsL.Cells(1, 3).Value = "-> GS"
-            wsL.Cells(1, 4).Value = "Duree (s)"
+        Set wsL = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.count))
+        wsL.name = LOG_SH
+        wsL.visible = xlSheetHidden
+        With wsL.rows(1)
+            wsL.Cells(1, 1).value = "Horodatage"
+            wsL.Cells(1, 2).value = "<- GS"
+            wsL.Cells(1, 3).value = "-> GS"
+            wsL.Cells(1, 4).value = "Duree (s)"
         End With
-        wsL.Cells(1, 1).Font.Bold = True
-        wsL.Cells(1, 2).Font.Bold = True
-        wsL.Cells(1, 3).Font.Bold = True
-        wsL.Cells(1, 4).Font.Bold = True
+        wsL.Cells(1, 1).Font.bold = True
+        wsL.Cells(1, 2).Font.bold = True
+        wsL.Cells(1, 3).Font.bold = True
+        wsL.Cells(1, 4).Font.bold = True
     End If
-    Dim nxt As Long: nxt = wsL.Cells(wsL.Rows.Count, 1).End(xlUp).Row + 1
-    wsL.Cells(nxt, 1).Value = Now
+    Dim nxt As Long: nxt = wsL.Cells(wsL.rows.count, 1).End(xlUp).row + 1
+    wsL.Cells(nxt, 1).value = now
     wsL.Cells(nxt, 1).NumberFormat = "dd/mm/yyyy hh:mm:ss"
-    wsL.Cells(nxt, 2).Value = fromGS
-    wsL.Cells(nxt, 3).Value = toGS
-    wsL.Cells(nxt, 4).Value = dureeS
+    wsL.Cells(nxt, 2).value = fromGS
+    wsL.Cells(nxt, 3).value = toGS
+    wsL.Cells(nxt, 4).value = dureeS
 End Sub
 
 Private Function HttpPost(url As String, body As String) As String
@@ -1575,8 +1593,10 @@ Private Function HttpPost(url As String, body As String) As String
     h.Open "POST", url, False
     h.setRequestHeader "Content-Type", "application/json; charset=utf-8"
     h.Send body
-    If h.Status = 200 Then HttpPost = h.ResponseText
+    If h.status = 200 Then HttpPost = h.ResponseText
     Exit Function
 Err_:
     HttpPost = ""
 End Function
+
+
