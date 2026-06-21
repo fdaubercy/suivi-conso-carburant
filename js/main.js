@@ -274,16 +274,13 @@ initBudgetSetting();   // stats.js — W39 objectif budget carburant mensuel
 initCo2ObjectifSetting(); // stats.js — W51 objectif CO₂ annuel évité
 initRapport();         // stats.js — rapport mensuel consultable (sélecteur de mois)
 initVoiceKm();         // formulaire.js — W35 dictée vocale km
-initRouter();          // router.js — W42 navigation par vues (onglets + hash)
-initPullRefresh();     // pullrefresh.js — W46 tirer vers le bas → recharge l'app
-initSwipe();           // swipe.js — W44 balayage gauche/droite entre onglets
-initBadges();          // badges.js — W45 pastilles de notification sur les onglets
-initPreferences();     // preferences.js — U4 vue de départ · U5 tuile reprendre · U6 blocs repliables
-initCompteUI();        // parametres.js — U7 « Mon compte » + suppression RGPD
-
 /* W42 — la carte statique est rendue hors écran (offsetWidth=0) : on la re-cadre
    à l'affichage de l'onglet Carte pour un dimensionnement correct.
-   U9 — on (dé)montre aussi la barre véhicule globale selon la vue active. */
+   U9 — on (dé)montre aussi la barre véhicule globale selon la vue active.
+   IMPORTANT (#11) — ce listener DOIT être enregistré AVANT initRouter() :
+   initRouter() émet un `viewchange` SYNCHRONE au chargement (deep-link / F5 direct
+   sur #/carte). Posé après, ce premier événement est perdu → la carte alentour /
+   stations habituelles ne se rend jamais sur un rechargement direct de l'onglet. */
 let _curView = '';
 function _refreshVehBar() {
   const bar = document.getElementById('vehBar');
@@ -297,6 +294,13 @@ window.addEventListener('viewchange', e => {
   if (_curView === 'carte') { renderStationsCard(); renderAlentour(); }   // D3 — stations alentour
   _refreshVehBar();
 });
+
+initRouter();          // router.js — W42 navigation par vues (onglets + hash)
+initPullRefresh();     // pullrefresh.js — W46 tirer vers le bas → recharge l'app
+initSwipe();           // swipe.js — W44 balayage gauche/droite entre onglets
+initBadges();          // badges.js — W45 pastilles de notification sur les onglets
+initPreferences();     // preferences.js — U4 vue de départ · U5 tuile reprendre · U6 blocs repliables
+initCompteUI();        // parametres.js — U7 « Mon compte » + suppression RGPD
 
 /* U9 — Changement de véhicule GLOBAL (barre header, select saisie, ajout/suppression)
    → re-render de toutes les vues filtrées par véhicule (source : 'vehicule-changed'). */

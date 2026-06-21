@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.21.2.0] — 2026-06-21
+
+### Fixed
+- **App — Carte « E85 les moins chers autour de moi » ne s'affiche pas après un rechargement direct (F5 / deep-link) sur l'onglet Carte** — l'écouteur `viewchange` (`js/main.js`) qui déclenche `renderAlentour()` / `renderStationsCard()` était enregistré **après** `initRouter()`, lequel émet un `viewchange` **synchrone** au chargement. Sur un accès direct à `#/carte` (rechargement / lien), ce premier événement était perdu → la carte ne se rendait jamais (en navigation par onglets, l'app étant déjà initialisée, l'écouteur existait → la carte s'affichait normalement, d'où la confusion). Écouteur `viewchange` (+ `_curView` / `_refreshVehBar`) déplacé **avant** `initRouter()` : la carte alentour et la carte des stations habituelles se rendent désormais aussi sur un rechargement direct de l'onglet Carte. `js/main.js`.
+
 ## [5.21.1.0] — 2026-06-20
 
 ### Fixed
