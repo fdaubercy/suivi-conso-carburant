@@ -8,6 +8,10 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ### Fixed
 - **App — Carte « E85 les moins chers autour de moi » ne s'affiche pas après un rechargement direct (F5 / deep-link) sur l'onglet Carte** — l'écouteur `viewchange` (`js/main.js`) qui déclenche `renderAlentour()` / `renderStationsCard()` était enregistré **après** `initRouter()`, lequel émet un `viewchange` **synchrone** au chargement. Sur un accès direct à `#/carte` (rechargement / lien), ce premier événement était perdu → la carte ne se rendait jamais (en navigation par onglets, l'app étant déjà initialisée, l'écouteur existait → la carte s'affichait normalement, d'où la confusion). Écouteur `viewchange` (+ `_curView` / `_refreshVehBar`) déplacé **avant** `initRouter()` : la carte alentour et la carte des stations habituelles se rendent désormais aussi sur un rechargement direct de l'onglet Carte. `js/main.js`.
+- **Excel — « Prix S98 jour » manquant pour le plein du 22/05 (Tableau2 ligne 26)** — ce plein n'a pas de prix SP98 station saisi (`_ImportGS` col J vide) et le relevé marché SP98 (`_PrixHistory`) ne commence qu'au 30/05 → les deux branches de la formule col K échouaient → cellule vide. Repli ajouté à la formule de **K26** : en dernier recours, moyenne marché SP98 du **30/05 (2,022 €/L)** via `AVERAGEIFS`. K26 = 2,022 ; le « Coût Plein équiv. S98 » (L26) se recalcule. Approximation ciblée (cette cellule uniquement) ; si le vrai prix station est saisi plus tard, il primera.
+
+### Docs
+- **Découpe de `CLAUDE.md`** (335 → 193 lignes) : le détail de référence (architecture, charte UI, règles VBA, outils/pouvoirs) déplacé dans `docs/ARCHITECTURE.md`, `docs/UI-WORKFLOW.md`, `docs/VBA.md`, `docs/OUTILS.md`, référencé par pointeurs texte (lecture à la demande) pour alléger le démarrage de session.
 
 ## [5.21.1.0] — 2026-06-20
 
