@@ -53,3 +53,8 @@ graphify-out/*
 # Sauvegardes VBA de session (transient, non versionné)
 backups/
 excel/_vba_backup/
+
+# Claude-flow (runtime local, non versionné)
+.claude-flow/
+# Backups CLAUDE.md horodatés (transient)
+CLAUDE.md.bak-*
