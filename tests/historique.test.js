@@ -4,7 +4,7 @@
  * Logique pure : génération du CSV d'export de l'historique.
  */
 import { describe, it, expect } from 'vitest';
-import { buildHistoriqueCSV } from '../js/historique.js';
+import { buildHistoriqueCSV, estPleinValide } from '../js/historique.js';
 
 const plein = (o = {}) => ({
   Date: '2026-05-30 08:15:00',
@@ -65,5 +65,36 @@ describe('buildHistoriqueCSV — séparateur configurable (W54)', () => {
   it('échappe une valeur contenant la virgule quand le séparateur est la virgule', () => {
     const csv = buildHistoriqueCSV([plein({ 'Station essence': 'Leclerc, Bron' })], ',');
     expect(csv).toContain('"Leclerc, Bron"');
+  });
+});
+
+describe('estPleinValide — anti-fantôme « plein au 01/01/1970 »', () => {
+  it('accepte un plein normal', () => {
+    expect(estPleinValide(plein())).toBe(true);
+  });
+
+  it('accepte un plein daté par le seul Horodatage (Date absente)', () => {
+    expect(estPleinValide(plein({ Date: '' }))).toBe(true);
+  });
+
+  it('rejette une date epoch Unix (01/01/1970)', () => {
+    expect(estPleinValide(plein({ Date: '1970-01-01', Horodatage: '1970-01-01 00:00:00' }))).toBe(false);
+  });
+
+  it('rejette une ligne d’en-tête fantôme (sync_id = "sync_id")', () => {
+    expect(estPleinValide(plein({ sync_id: 'sync_id' }))).toBe(false);
+  });
+
+  it('rejette une ligne d’en-tête fantôme (Type = "Type")', () => {
+    expect(estPleinValide(plein({ Type: 'Type', Date: 'Date', Horodatage: '' }))).toBe(false);
+  });
+
+  it('rejette un enregistrement sans aucune date', () => {
+    expect(estPleinValide(plein({ Date: '', Horodatage: '' }))).toBe(false);
+  });
+
+  it('rejette null / undefined', () => {
+    expect(estPleinValide(null)).toBe(false);
+    expect(estPleinValide(undefined)).toBe(false);
   });
 });

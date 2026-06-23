@@ -12,7 +12,10 @@ let _allRecords  = [];     // memorise TOUS les enregistrements pour validation 
 
 /* ─── Cache localStorage ─── */
 function _loadCache() {
-  try { return JSON.parse(localStorage.getItem(HIST_CACHE_KEY) || '[]'); } catch { return []; }
+  try {
+    const arr = JSON.parse(localStorage.getItem(HIST_CACHE_KEY) || '[]');
+    return Array.isArray(arr) ? arr.filter(estPleinValide) : [];   // anti-fantôme (01/01/1970)
+  } catch { return []; }
 }
 function _saveCache(records) {
   try { localStorage.setItem(HIST_CACHE_KEY, JSON.stringify(records)); } catch { /* quota / private */ }
@@ -36,6 +39,23 @@ function _recordKey(r) {
     String(r['Station essence'] || '').trim().toLowerCase(),
     String(r.Type || '').trim().toLowerCase(),
   ].join('|');
+}
+
+/** Anti-corruption (bug « plein au 01/01/1970 ») : écarte les lignes « fantômes »
+ *  qui survivent dans le cache localStorage même après le filtre serveur (GAS
+ *  `handleExport`) — soit un echo d'en-tête de l'onglet `_ImportGS` (cellule
+ *  Type/sync_id contenant le libellé de colonne), soit une date epoch Unix
+ *  (`new Date(0)` = 01/01/1970, issue d'une date non parsable coercée à 0). */
+export function estPleinValide(r) {
+  if (!r) return false;
+  // Ligne d'en-tête dupliquée (echo de `_ImportGS`) renvoyée ou mise en cache
+  if (String(r.sync_id || r['sync_id'] || '').trim().toLowerCase() === 'sync_id') return false;
+  if (String(r.Type || '').trim().toLowerCase() === 'type') return false;
+  // Date absente ou epoch Unix → enregistrement corrompu (01/01/1970)
+  const raw = String(r.Date || r.Horodatage || '').trim();
+  if (!raw) return false;
+  const d = new Date(raw.replace(' ', 'T'));
+  return !isNaN(d.getTime()) && d.getFullYear() > 1970;
 }
 
 /** Vide le cache historique et force un rechargement complet depuis le GAS. */
@@ -101,6 +121,11 @@ export async function chargerHistorique() {
         r => !delSet.has(String(r.sync_id || r['sync_id'] || ''))
       );
     }
+
+    // Anti-fantôme (bug 01/01/1970) : écarter les lignes d'en-tête dupliquées et
+    // les dates epoch qui survivent dans le cache malgré le filtre serveur (GAS),
+    // AVANT persistance et affichage.
+    allRecords = allRecords.filter(estPleinValide);
 
     // Mettre à jour le cache et le timestamp de dernière sync
     _saveCache(allRecords);

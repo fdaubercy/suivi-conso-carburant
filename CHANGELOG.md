@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.21.3.0] — 2026-06-23
+
+### Fixed
+- **App — Onglet « Historique » : plein fantôme daté du 01/01/1970** — la ligne affichée n'est pas un vrai plein mais l'**echo d'une ligne d'en-tête** de l'onglet `_ImportGS` du Google Sheet (cellules contenant les libellés de colonnes : `Type="Type"`, `sync_id="sync_id"`, date non parsable coercée à `0` → `new Date(0)` = 01/01/1970). Le correctif serveur de v5.21.1.0 (filtre GAS `handleExport` + gardes Excel `IsGarbageSid` + suppression à la source) bloque la propagation, **mais la ligne survivait dans le cache `localStorage` du navigateur** (et le filtre GAS ne couvrait que `sync_id==="sync_id"`). Ajout d'un garde-fou **côté app** (`js/historique.js`) : nouveau prédicat exporté `estPleinValide(r)` qui écarte (1) les echos d'en-tête (`sync_id`/`Type` = libellé de colonne) et (2) les dates absentes ou epoch Unix (année ≤ 1970). Appliqué **à la lecture du cache** (`_loadCache` → couvre le fallback réseau et la tuile « reprendre » de l'accueil) **et avant persistance/affichage** (`chargerHistorique`, avant `_saveCache`). La ligne fantôme disparaît au prochain chargement de l'onglet et n'est plus jamais remise en cache. → **réponse à la question utilisateur : c'est une erreur (ligne technique), à supprimer — ce que le correctif fait automatiquement, sans toucher aux vrais pleins.** 7 tests de non-régression (`tests/historique.test.js`).
+
 ## [5.21.2.0] — 2026-06-21
 
 ### Fixed
