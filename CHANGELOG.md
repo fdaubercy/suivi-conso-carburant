@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.21.6.0] — 2026-06-23
+
+### Changed
+- **Excel — Suivi Carburant : sélection du véhicule par un vrai SEGMENT (slicer)** — le sélecteur de l'onglet *Suivi Carburant* est désormais un **segment « Véhicule » identique à `slcVehicule`** du Tableau de bord, **branché sur le même cache `Segment_Vehicule`** → la sélection est **synchronisée** entre les deux onglets (sélectionner sur l'un coche l'autre). Le changement met à jour `'Tableau de bord'!B5` → `Suivi Carburant!B3` → indicateurs conso/éco + carte « Rentabilité kit ». La cellule `B3` (formule `=B5`) reste le relais lu par les formules ; le segment est le dispositif de sélection. Robustesse : la colonne `Véhicule` de `Tableau2` est une **formule de colonne** (se propage aux nouveaux pleins) et les indicateurs en **références structurées** `Tableau2[...]` suivent la hauteur variable du tableau (vérifié : un plein E85 ajouté → éco cumulée passée de 176 à 192 €). `excel/Suivi Conso Carburants.xlsm`.
+
 ## [5.21.5.0] — 2026-06-23
 
 ### Added
