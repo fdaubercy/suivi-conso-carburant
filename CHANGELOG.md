@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.21.4.0] — 2026-06-23
+
+### Changed
+- **Excel — Tableau de bord : carte « ÉCONOMIES E85 vs SP98 » → « RENTABILITÉ KIT E85 »** — la carte affiche désormais l'**économie cumulée rapportée au coût du kit** (`176 € / 515 €`) avec une **barre de progression d'amortissement** (`amorti 34 %`), en **reprenant les indicateurs déjà calculés par l'onglet `Suivi Carburant`** (`B11` éco cumulée, `B6` coût kit, `J13` progression) plutôt qu'un recalcul VBA divergent. `vba/modDashboardGraphiques.bas` (nouvelles `ReadKitStats` + `AddKpiCardKit`).
+
+### Fixed
+- **Excel — surconsommation E85 lue au mauvais endroit (bandeau KPI + graphiques faussés)** — `modDashboardKPI` et `modGraphiques` lisaient la surconso en `Suivi Carburant!J7`, cellule qui contient en réalité « Conso E85 référence (km/L) » (~15) ; la vraie surconsommation est en **`J8`** (« Surconsommation E85 (%) », ~0,23). Conséquence : `essEq = litres/(1+15)` → économie E85 et **CO2 évité** du bandeau très faussés. Lecture corrigée vers `J8` + **garde-fou de plausibilité** (fraction `0 < x ≤ 1`, sinon défaut 0,20). Le CO2 évité du bandeau repasse à une valeur réaliste (~138 kg). `vba/modDashboardKPI.bas`, `vba/modGraphiques.bas`.
+
 ## [5.21.3.0] — 2026-06-23
 
 ### Fixed

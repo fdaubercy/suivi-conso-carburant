@@ -362,8 +362,12 @@ Private Function BuildHeaderAndKPIs(ws As Worksheet) As Single
     AddKpiCard ws, x, kpiTop, cardW, kpiH, cBlueMid, "COÛT AUX 100 KM", _
                Format(vCoutKm * 100, "0.00") & " €", sScope
     x = x + cardW + gap
-    AddKpiCard ws, x, kpiTop, cardW, kpiH, cGreen, "ÉCONOMIES E85 vs SP98", _
-               Format(vEcon, "0") & " €", "estimées · " & SelLabel(selVeh, "tous véhicules")
+    ' RENTABILITÉ KIT E85 (X47) : reprend les indicateurs de « Suivi Carburant »
+    '  (éco cumulée B11, coût kit B6, progression J13) — filtrés par véhicule via #4.
+    Dim ecoCumul As Double, kitCost As Double, progKit As Double
+    ReadKitStats ecoCumul, kitCost, progKit
+    AddKpiCardKit ws, x, kpiTop, cardW, kpiH, cGreen, "RENTABILITÉ KIT E85", _
+                  ecoCumul, kitCost, progKit, SelLabel(selVeh, "tous véhicules")
     x = x + cardW + gap
     AddKpiCard ws, x, kpiTop, cardW, kpiH, cAmber, "CO2 ÉVITÉ", _
                Format(vCo2, "0") & " kg", "vs essence · objectif " & Format(vObjCo2, "0") & " kg"
@@ -654,6 +658,71 @@ Private Sub AddKpiCard(ws As Worksheet, x As Single, y As Single, w As Single, h
     Set un = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x + 16, y + 56, w - 24, 14)
     un.name = "dash_kpiunit"
     SetText un, unit, FONT_UI, 9, False, cMuted, msoAlignLeft
+End Sub
+
+' Lit les indicateurs de rentabilite du kit depuis « Suivi Carburant » (X47).
+'  B11 = economie cumulee (EUR) ; B6 = cout du kit (EUR) ; J13 = progression (0..1).
+'  Source unique = la feuille (formules) -> coherent et sans le bug surconso VBA ;
+'  devient filtre par vehicule une fois « Suivi Carburant » rendu reactif (X48).
+Private Sub ReadKitStats(ByRef ecoCumul As Double, ByRef kitCost As Double, ByRef prog As Double)
+    ecoCumul = 0: kitCost = 0: prog = 0
+    On Error Resume Next
+    Dim wsC As Worksheet: Set wsC = ThisWorkbook.Worksheets("Suivi Carburant")
+    If wsC Is Nothing Then Exit Sub
+    If IsNumeric(wsC.Range("B11").value) Then ecoCumul = CDbl(wsC.Range("B11").value)
+    If IsNumeric(wsC.Range("B6").value) Then kitCost = CDbl(wsC.Range("B6").value)
+    If IsNumeric(wsC.Range("J13").value) Then prog = CDbl(wsC.Range("J13").value)
+    If prog < 0 Then prog = 0
+    If prog > 1 Then prog = 1
+    On Error GoTo 0
+End Sub
+
+'---- Carte KPI « Rentabilite kit » : eco cumulee / cout kit + barre de progression
+Private Sub AddKpiCardKit(ws As Worksheet, x As Single, y As Single, w As Single, h As Single, _
+                          accent As Long, label As String, _
+                          ecoCumul As Double, kitCost As Double, prog As Double, scope As String)
+    Dim card As Shape
+    Set card = ws.Shapes.AddShape(msoShapeRoundedRectangle, x, y, w, h)
+    card.name = "dash_kpi"
+    StyleRect card, cWhite, cBorder, 5
+
+    Dim bar As Shape
+    Set bar = ws.Shapes.AddShape(msoShapeRectangle, x + 2, y + 6, 4, h - 12)
+    bar.name = "dash_kpibar"
+    StyleRect bar, accent, -1, 0
+
+    Dim lab As Shape
+    Set lab = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x + 16, y + 8, w - 24, 14)
+    lab.name = "dash_kpilabel"
+    SetText lab, label, FONT_UI, 9, True, cMuted, msoAlignLeft
+
+    Dim val As Shape
+    Set val = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x + 15, y + 22, w - 24, 24)
+    val.name = "dash_kpivalue"
+    SetText val, Format(ecoCumul, "0") & " " & ChrW(8364) & " / " & Format(kitCost, "0") & " " & ChrW(8364), FONT_UI, 17, True, accent, msoAlignLeft
+
+    ' Barre de progression : piste grise + remplissage proportionnel a prog (0..1)
+    Dim barW As Single: barW = w - 32
+    Dim trk As Shape
+    Set trk = ws.Shapes.AddShape(msoShapeRoundedRectangle, x + 16, y + h - 22, barW, 8)
+    trk.name = "dash_kpitrack"
+    StyleRect trk, cGrid, -1, 2
+    trk.Shadow.visible = msoFalse
+    Dim fillW As Single: fillW = barW * prog
+    If fillW < 2 And prog > 0 Then fillW = 2
+    If fillW > barW Then fillW = barW
+    If fillW > 0 Then
+        Dim fl As Shape
+        Set fl = ws.Shapes.AddShape(msoShapeRoundedRectangle, x + 16, y + h - 22, fillW, 8)
+        fl.name = "dash_kpifill"
+        StyleRect fl, accent, -1, 2
+        fl.Shadow.visible = msoFalse
+    End If
+
+    Dim un As Shape
+    Set un = ws.Shapes.AddTextbox(msoTextOrientationHorizontal, x + 16, y + h - 13, w - 24, 12)
+    un.name = "dash_kpiunit"
+    SetText un, "amorti " & Format(prog, "0 %") & " " & ChrW(183) & " " & scope, FONT_UI, 8, False, cMuted, msoAlignLeft
 End Sub
 
 '---- Infos parametres (B7/B8) dans le bandeau — bas droite, petite police ---

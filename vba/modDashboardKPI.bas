@@ -104,12 +104,16 @@ Public Function FuelInSel(ByVal fk As String, ByVal sel As String) As Boolean
 End Function
 
 Private Function surconso() As Double
+    ' Surconso E85 (fraction, ex. 0.23) = "Suivi Carburant"!J8 ("Surconsommation E85 (%)").
+    ' NB : J7 = "Conso E85 reference (km/L)" (~15) ; ne JAMAIS la lire comme surconso.
+    ' Garde-fou : n'accepter qu'une fraction plausible (0 < x <= 1), sinon defaut 0.20.
     surconso = DEFAULT_SURCONSO
     On Error Resume Next
     Dim ws As Worksheet: Set ws = ThisWorkbook.Worksheets(WS_CARB)
     If Not ws Is Nothing Then
-        If IsNumeric(ws.Range("J7").value) Then
-            If ws.Range("J7").value > 0 Then surconso = CDbl(ws.Range("J7").value)
+        If IsNumeric(ws.Range("J8").value) Then
+            Dim v As Double: v = CDbl(ws.Range("J8").value)
+            If v > 0 And v <= 1 Then surconso = v
         End If
     End If
     On Error GoTo 0

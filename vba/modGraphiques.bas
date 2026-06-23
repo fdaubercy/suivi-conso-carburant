@@ -141,11 +141,14 @@ Public Sub CreerGraphiquesWeb(Optional silent As Boolean = False)
     Set gsT = SheetByName(GS_SHEET).ListObjects(1)
     On Error GoTo EH
 
-    ' -- Surconso (Suivi Carburant!J7) --
+    ' -- Surconso E85 (fraction) = "Suivi Carburant"!J8 ("Surconsommation E85 (%)") --
+    '    NB : J7 = "Conso E85 reference (km/L)" (~15) ; ne pas la lire comme surconso.
+    '    Garde-fou : fraction plausible (0 < x <= 1), sinon defaut 0.20.
     Dim surconso As Double
     surconso = DEFAULT_SURCONSO
-    If IsNumeric(wsC.Range("J7").value) Then
-        If wsC.Range("J7").value > 0 Then surconso = CDbl(wsC.Range("J7").value)
+    If IsNumeric(wsC.Range("J8").value) Then
+        Dim vSc As Double: vSc = CDbl(wsC.Range("J8").value)
+        If vSc > 0 And vSc <= 1 Then surconso = vSc
     End If
 
     ' -- Bloc parametres + lecture budget / objectif CO2 / annee (X24) --
