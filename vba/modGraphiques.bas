@@ -1002,22 +1002,13 @@ Private Sub AddScatterE85Chart(ws As Worksheet, key As String, wsd As Worksheet,
     End With
 End Sub
 
-' Cout du kit ethanol : "Suivi Carburant"!B5, repli recherche du libelle, defaut 514,54
+' Cout du kit ethanol : "Suivi Carburant"!B6 (libelle "Cout du kit ethanol" en A6), defaut 514,54.
+' (B5 etait lu a tort - cellule vide sous le titre PARAMETRES ; la feuille calcule avec B6.)
 Private Function KitCost(wsC As Worksheet) As Double
     Dim v As Double: v = 514.54
     On Error Resume Next
-    If IsNumeric(wsC.Range("B5").value) Then
-        If wsC.Range("B5").value > 0 Then v = CDbl(wsC.Range("B5").value)
-    End If
-    ' repli : chercher un libelle "Cout du kit" et lire la cellule a droite
-    If v = 514.54 Then
-        Dim f As Range
-        Set f = wsC.Cells.Find(What:="kit", LookIn:=xlValues, LookAt:=xlPart, MatchCase:=False)
-        If Not f Is Nothing Then
-            If IsNumeric(f.Offset(0, 1).value) Then
-                If f.Offset(0, 1).value > 0 Then v = CDbl(f.Offset(0, 1).value)
-            End If
-        End If
+    If IsNumeric(wsC.Range("B6").value) Then
+        If wsC.Range("B6").value > 0 Then v = CDbl(wsC.Range("B6").value)
     End If
     On Error GoTo 0
     KitCost = v

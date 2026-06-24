@@ -10,7 +10,7 @@ Attribute VB_Name = "modReglages"
 '   2) METIER, SYNCHRONISES app<->Excel : la feuille NE stocke PAS de
 '      valeur en double ; elle SURFACE et ECRIT les cellules canoniques
 '      deja gerees par modSyncParametres :
-'        kit E85       -> "Suivi Carburant"!B5
+'        kit E85       -> "Suivi Carburant"!B6
 '        budget        -> "Tableau de bord"!B2
 '        objectif CO2  -> "Tableau de bord"!B3
 '        surconso      -> "Suivi Carburant"!J7
@@ -200,7 +200,7 @@ Public Sub ReglagePullParametres()
     Set d = DashSheet(): Set c = CarbSheet()
     Application.EnableEvents = False
     If Not c Is Nothing Then
-        SetNamed "Reg_KitPrix", c.Range("B5").Value
+        SetNamed "Reg_KitPrix", c.Range("B6").Value
         SetNamed "Reg_Surconso", c.Range("J7").Value
     End If
     If Not d Is Nothing Then
@@ -220,7 +220,7 @@ Public Sub ReglagePushParametres()
     On Error Resume Next
     Set d = DashSheet(): Set c = CarbSheet()
     If Not c Is Nothing Then
-        PutIf c.Range("B5"), ReglageVal("Reg_KitPrix")
+        PutIf c.Range("B6"), ReglageVal("Reg_KitPrix")
         PutIf c.Range("J7"), ReglageVal("Reg_Surconso")
     End If
     If Not d Is Nothing Then

@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.21.7.0] — 2026-06-24
+
+### Fixed
+- **Excel — coût du kit lu sur la mauvaise cellule (`B5` au lieu de `B6`)** — `KitCost` (graphiques de rentabilité), `modSyncParametres` (`kit_prix`) et `modReglages` (`Reg_KitPrix`, pull/push) lisaient/écrivaient le prix du kit en **`Suivi Carburant!B5`** (cellule **vide** sous le titre « PARAMÈTRES »), alors que la feuille saisit et calcule avec **`B6`** (libellé « Coût du kit éthanol », `514,54 €` ; `B12`/`J13` utilisent B6). `KitCost` ne s'en sortait que par un **repli `Find("kit")` fragile** qui tombait en réalité sur le **titre** `A2` (« …KIT ÉTHANOL ») → valeur figée au défaut `514,54 €` quel que soit B6. Les 3 usages pointent désormais **`B6`** (repli `Find` supprimé). **Vérifié** : `B6 = 601 €` → seuil « coût kit » des graphiques de rentabilité = 601 (avant : figé à 514,54). `vba/modGraphiques.bas`, `vba/modReglages.bas`, `vba/modSyncParametres.bas`.
+
 ## [5.21.6.0] — 2026-06-23
 
 ### Changed

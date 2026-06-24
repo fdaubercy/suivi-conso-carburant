@@ -12,7 +12,7 @@ Attribute VB_Name = "modSyncParametres"
 '  cle par cle (meme logique que la sync des pleins de modSyncGS).
 '
 '  Perimetre (metier uniquement) :
-'    kit_prix         <-> "Suivi Carburant"!B5
+'    kit_prix         <-> "Suivi Carburant"!B6
 '    budget_mensuel   <-> "Tableau de bord"!B2   (ex-"Graphiques", renomme en v4.11.0.0)
 '    objectif_co2     <-> "Tableau de bord"!B3
 '    surconso         <-> "Suivi Carburant"!J7
@@ -95,7 +95,7 @@ End Sub
 '  PUSH FORCE des parametres Excel -> Google Sheet (onglet Parametres)
 '  La synchro normale ne pousse PAS une cellule mappee tant qu'elle n'a
 '  pas ete editee (baseline ts=0, pour ne pas ecraser une valeur app).
-'  Consequence : surconso (J7), kit_prix (B5), budget (B2), objectif_co2
+'  Consequence : surconso (J7), kit_prix (B6), budget (B2), objectif_co2
 '  (B3) peuvent ne jamais arriver dans l'onglet "Parametres", et donc le
 '  rapport mensuel GAS retombe sur 20%.
 '  -> Cette macro pousse la valeur ACTUELLE de ces cellules avec
@@ -264,7 +264,7 @@ End Function
 Private Function ParamDefs() As ParamDef()
     Dim d() As ParamDef
     ReDim d(0 To 9)
-    d(0) = Mk("kit_prix", WS_CARB, "B5", False)
+    d(0) = Mk("kit_prix", WS_CARB, "B6", False)
     d(1) = Mk("budget_mensuel", WS_GRAPH, "B2", False)
     d(2) = Mk("objectif_co2", WS_GRAPH, "B3", False)
     d(3) = Mk("surconso", WS_CARB, "J7", False)
