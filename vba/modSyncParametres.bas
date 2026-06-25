@@ -15,7 +15,7 @@ Attribute VB_Name = "modSyncParametres"
 '    kit_prix         <-> "Suivi Carburant"!B6
 '    budget_mensuel   <-> "Tableau de bord"!B2   (ex-"Graphiques", renomme en v4.11.0.0)
 '    objectif_co2     <-> "Tableau de bord"!B3
-'    surconso         <-> "Suivi Carburant"!J7
+'    surconso          -> "Suivi Carburant"!J8  (formule, lecture seule)
 '    seuil_E85/GAZOLE/SP98 (+ _enabled)  -> stockes dans le miroir local
 '      (geres cote app ; le classeur les conserve).
 '
@@ -60,6 +60,7 @@ Private Type ParamDef
     wsName    As String   ' "" = pas de cellule miroir (stocke dans "Parametres" seulement)
     cellAddr  As String
     isBool    As Boolean
+    cellRO    As Boolean  ' True = formule ; lire pour push, ne jamais ecraser par WriteCell
 End Type
 
 ' --- Cle proprietaire privee (SYNC_SECRET) : voir modSyncGS.PoserSyncSecret.
@@ -95,12 +96,12 @@ End Sub
 '  PUSH FORCE des parametres Excel -> Google Sheet (onglet Parametres)
 '  La synchro normale ne pousse PAS une cellule mappee tant qu'elle n'a
 '  pas ete editee (baseline ts=0, pour ne pas ecraser une valeur app).
-'  Consequence : surconso (J7), kit_prix (B6), budget (B2), objectif_co2
+'  Consequence : surconso (J8), kit_prix (B6), budget (B2), objectif_co2
 '  (B3) peuvent ne jamais arriver dans l'onglet "Parametres", et donc le
 '  rapport mensuel GAS retombe sur 20%.
 '  -> Cette macro pousse la valeur ACTUELLE de ces cellules avec
 '     horodatage = maintenant. A lancer UNE FOIS (Alt+F8) pour que le
-'     rapport mensuel et l'app lisent la surconso J7 du classeur.
+'     rapport mensuel et l'app lisent la surconso J8 du classeur.
 ' ============================================================
 Public Sub PousserParametresExcel()
     Dim defs() As ParamDef, ws As Worksheet
@@ -135,7 +136,7 @@ Public Sub PousserParametresExcel()
     Next i
 
     If toPush = "" Then
-        Application.StatusBar = "[Parametres] " & ChrW(9888) & " Cellules B5/B2/B3/J7 vides - rien a pousser."
+        Application.StatusBar = "[Parametres] " & ChrW(9888) & " Cellules B6/B2/B3/J8 vides - rien a pousser."
         Exit Sub
     End If
 
@@ -145,7 +146,7 @@ Public Sub PousserParametresExcel()
         Application.StatusBar = "[Parametres] " & ChrW(9888) & " Echec reseau (push) - voir TestConnexion."
     Else
         Application.StatusBar = "[Parametres] " & ChrW(10003) & " " & n & _
-            " parametre(s) Excel pousse(s) vers le Sheet (dont surconso J7)."
+            " parametre(s) Excel pousse(s) vers le Sheet (dont surconso J8)."
     End If
     Exit Sub
 EH:
@@ -227,7 +228,7 @@ Public Function SyncParametres() As Long
             If srvTs(cle) > lts Then
                 ' serveur plus recent -> applique en local (miroir + cellule)
                 UpsertMirror ws, dRow, dVal, dTs, cle, NormFromServer(srvVal(cle), defs(i).isBool), srvTs(cle)
-                If defs(i).wsName <> "" Then WriteCell defs(i).wsName, defs(i).cellAddr, NormFromServer(srvVal(cle), defs(i).isBool)
+                If defs(i).wsName <> "" And Not defs(i).cellRO Then WriteCell defs(i).wsName, defs(i).cellAddr, NormFromServer(srvVal(cle), defs(i).isBool)
                 nChanged = nChanged + 1
             ElseIf lts > srvTs(cle) Then
                 toPush = AppendParam(toPush, cle, dVal(cle), lts)
@@ -267,7 +268,7 @@ Private Function ParamDefs() As ParamDef()
     d(0) = Mk("kit_prix", WS_CARB, "B6", False)
     d(1) = Mk("budget_mensuel", WS_GRAPH, "B2", False)
     d(2) = Mk("objectif_co2", WS_GRAPH, "B3", False)
-    d(3) = Mk("surconso", WS_CARB, "J7", False)
+    d(3) = MkRO("surconso", WS_CARB, "J8")   ' J8 = formule ; lecture seule
     d(4) = Mk("seuil_E85", "", "", False)
     d(5) = Mk("seuil_GAZOLE", "", "", False)
     d(6) = Mk("seuil_SP98", "", "", False)
@@ -278,7 +279,11 @@ Private Function ParamDefs() As ParamDef()
 End Function
 
 Private Function Mk(cle As String, wsName As String, cellAddr As String, isBool As Boolean) As ParamDef
-    Mk.cle = cle: Mk.wsName = wsName: Mk.cellAddr = cellAddr: Mk.isBool = isBool
+    Mk.cle = cle: Mk.wsName = wsName: Mk.cellAddr = cellAddr: Mk.isBool = isBool: Mk.cellRO = False
+End Function
+
+Private Function MkRO(cle As String, wsName As String, cellAddr As String) As ParamDef
+    MkRO.cle = cle: MkRO.wsName = wsName: MkRO.cellAddr = cellAddr: MkRO.isBool = False: MkRO.cellRO = True
 End Function
 
 ' ============================================================

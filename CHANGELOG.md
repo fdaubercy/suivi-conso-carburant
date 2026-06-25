@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.21.8.0] — 2026-06-24
+
+### Fixed
+- **Excel — surconso E85 partagée lue sur la mauvaise cellule (`J7` au lieu de `J8`)** — le paramètre `surconso` synchronisé (app ↔ Excel ↔ rapports GAS) et le champ `Reg_Surconso` des Réglages lisaient/écrivaient **`Suivi Carburant!J7`** (= « Conso E85 réf. (km/L) », ~15) au lieu de **`J8`** (« Surconsommation E85 (%) », ~0,23). `J8` étant une **formule calculée** (jamais saisie), le partage est désormais **en lecture seule** : nouveau drapeau `cellRO` dans `ParamDef` + helper `MkRO` (`modSyncParametres`) → la sync **lit** `J8` mais ne l'écrase **jamais** (garde `Not cellRO` sur `WriteCell`, en plus du garde `HasFormula` existant) ; côté Réglages, le **pull** lit `J8` et le **push** de la surconso est **supprimé** (`modReglages`). **Vérifié** : `ReglagePullParametres` → `Reg_Surconso = 0,227 = J8` (avant : ~15). `vba/modSyncParametres.bas`, `vba/modReglages.bas`. *(Note : le texte des rapports GAS mentionne encore « Excel J7 » — cosmétique ; la valeur partagée est désormais correcte, à rafraîchir au prochain déploiement GAS.)*
+
 ## [5.21.7.0] — 2026-06-24
 
 ### Fixed

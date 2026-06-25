@@ -13,7 +13,7 @@ Attribute VB_Name = "modReglages"
 '        kit E85       -> "Suivi Carburant"!B6
 '        budget        -> "Tableau de bord"!B2
 '        objectif CO2  -> "Tableau de bord"!B3
-'        surconso      -> "Suivi Carburant"!J7
+'        surconso      -> "Suivi Carburant"!J8  (formule, lecture seule)
 '      Bouton "Appliquer + Synchroniser" = ecrit ces 4 cellules + appelle
 '      SyncParametresManuel (LWW app<->Excel). Les seuils d'alerte restent
 '      geres cote app (miroir "Notes").
@@ -201,7 +201,7 @@ Public Sub ReglagePullParametres()
     Application.EnableEvents = False
     If Not c Is Nothing Then
         SetNamed "Reg_KitPrix", c.Range("B6").Value
-        SetNamed "Reg_Surconso", c.Range("J7").Value
+        SetNamed "Reg_Surconso", c.Range("J8").Value
     End If
     If Not d Is Nothing Then
         SetNamed "Reg_Budget", d.Range("B2").Value
@@ -221,7 +221,7 @@ Public Sub ReglagePushParametres()
     Set d = DashSheet(): Set c = CarbSheet()
     If Not c Is Nothing Then
         PutIf c.Range("B6"), ReglageVal("Reg_KitPrix")
-        PutIf c.Range("J7"), ReglageVal("Reg_Surconso")
+        ' J8 = formule ; ne pas ecraser (la surconso se lit, ne se pousse pas)
     End If
     If Not d Is Nothing Then
         PutIf d.Range("B2"), ReglageVal("Reg_Budget")
