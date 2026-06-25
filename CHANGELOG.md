@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.21.9.0] — 2026-06-25
+
+### Added
+- **Excel — sélecteur véhicule LOCAL optionnel sur « Suivi Carburant » (X54)** — nouveau module `vba/modSuiviVehicule.bas` permettant d'analyser un véhicule sur l'onglet *Suivi Carburant* **sans changer le dashboard**. La cellule `B3` (« Véhicule analysé ») bascule entre deux modes via 2 boutons placés sous le segment « Vehicule » : **Suivre le dashboard** (défaut, inchangé : `B3` = formule miroir de `'Tableau de bord'!B5`, verrouillée, fond blanc — piloté par le slicer `slcVehicule`) et **Analyse locale** (`B3` = valeur figée choisie via une **liste de validation dynamique** des véhicules de `GS_Pleins` (`modDashboardKPI.KPIVehiculeList`), cellule déverrouillée, fond jaune pâle comme repère). **Aucune formule d'indicateur n'est modifiée** : tous les indicateurs (`B7/B8/J6/J7/J8/B11`…) filtrent déjà sur `$B$3` → ils suivent automatiquement, et le mode « suivre » reproduit exactement le comportement actuel (non-régression garantie). Helpers réutilisés : `DeverrouillerSuivi`/`VerrouillerSuivi` (`ModuleImportGS`), `KPI_TOUS`/`KPIVehiculeList` (`modDashboardKPI`). Procédures : `SuiviVehicule_ModeLocal`, `SuiviVehicule_SuivreDashboard`, `SuiviVehicule_EnsureBoutons` (création idempotente des boutons). **Vérifié** (COM, classeur réel) : bascule local → `B3` éditable + liste de validation + fond jaune pâle ; retour dashboard → formule miroir restaurée + verrouillé + fond blanc + validation supprimée. `vba/modSuiviVehicule.bas`.
+
 ## [5.21.8.0] — 2026-06-24
 
 ### Fixed
