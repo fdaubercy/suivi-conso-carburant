@@ -993,7 +993,7 @@ Private Sub AddScatterE85Chart(ws As Worksheet, key As String, wsd As Worksheet,
         sConso.ChartType = xlColumnClustered
         sConso.Format.fill.ForeColor.RGB = C_E85
 
-        ' Serie 2 : prix E85 (courbe ambre, axe secondaire)
+        ' Serie 2 : prix E85 (courbe bleu fonce, axe secondaire)
         Dim sPrix As Series
         Set sPrix = .SeriesCollection.NewSeries
         sPrix.Name = "Prix E85 " & ChrW(8364) & "/L"
@@ -1001,9 +1001,15 @@ Private Sub AddScatterE85Chart(ws As Worksheet, key As String, wsd As Worksheet,
         sPrix.XValues = wsd.Range("AP2").Resize(nPts, 1)
         sPrix.ChartType = xlLine
         sPrix.AxisGroup = xlSecondary
-        sPrix.Format.Line.ForeColor.RGB = C_OBJ
+        sPrix.Format.Line.ForeColor.RGB = C_COUT
         sPrix.Format.Line.Weight = 2
-        sPrix.MarkerStyle = xlMarkerStyleNone
+        sPrix.MarkerStyle = xlMarkerStyleCircle
+        sPrix.MarkerSize = 4
+        sPrix.MarkerForegroundColor = C_COUT
+        sPrix.MarkerBackgroundColor = C_COUT
+
+        ' Barres plus larges
+        sConso.Parent.Parent.ChartGroups(1).GapWidth = 80
 
         .HasTitle = True
         .ChartTitle.text = "Conso & prix E85 par plein"

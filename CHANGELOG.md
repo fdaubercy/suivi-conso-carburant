@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.21.13.0] — 2026-06-26
+
+### Fixed
+- **Excel — `gScatterE85` : couleurs differenciees + barres elargies** — courbe prix E85 passe de `C_OBJ` (ambre, peu visible) a `C_COUT` (bleu fonce) pour contraster avec les barres vertes ; marqueurs cercle (taille 4) ajoutes sur la courbe ; `GapWidth = 80` pour des barres plus larges. `vba/modGraphiques.bas`.
+
 ## [5.21.12.0] — 2026-06-26
 
 ### Fixed
