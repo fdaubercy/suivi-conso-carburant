@@ -162,6 +162,7 @@ Public Sub CreerFeuilleCarte()
     AddButton ws, "btnCarte3", L, T + 60, "Accueil", "NavAccueil", RGB(75, 85, 99)
     AddButton ws, "btnCarte4", L, T + 90, "Stations a proximite", "CarteProximite", RGB(29, 158, 117)
     AddButton ws, "btnCarte5", L, T + 120, "Carte itineraire", "CarteItineraire", RGB(46, 117, 182)
+    AddButton ws, "btnCarte6", L, T + 150, "Me localiser (auto)", "GeolocaliserAuto", RGB(37, 99, 235)
 
     RafraichirCarte
 
@@ -727,7 +728,12 @@ End Function
 ' ou un nom de ville/adresse (geocode via api-adresse.data.gouv.fr).
 Private Function ResolveUserPos(ByRef lat As Double, ByRef lon As Double) As Boolean
     Dim s As String: s = Trim$(CStr(ReadName("Carte_Position")))
-    If s = "" Then Exit Function
+    If s = "" Then
+        ' Repli : geolocalisation automatique par IP (sans saisie).
+        Dim vIP As String
+        ResolveUserPos = GeolocaliserIP(lat, lon, vIP)
+        Exit Function
+    End If
 
     Dim sep As String
     If InStr(s, ";") > 0 Then
@@ -1293,7 +1299,8 @@ Private Function ParseRecords(resp As String, field As String, ByRef res() As St
         ad = "": vl = ""
         If i < mA.Count Then ad = mA(i).SubMatches(0)
         If i < mV.Count Then vl = mV(i).SubMatches(0)
-        res(valid).name = Trim$(ad & IIf(ad <> "" And vl <> "", " - ", "") & vl)
+        ' Protocole app : "enseigne - ville" (enseigne detectee depuis l'adresse).
+        res(valid).name = ComposeName(ResolveEnseigne(ad), vl)
         If res(valid).name = "" Then res(valid).name = "Station"
 NextI2:
     Next i
@@ -1365,6 +1372,163 @@ Private Function ReadRayonKm() As Double
     Else
         ReadRayonKm = 15
     End If
+End Function
+
+
+' ============================================================
+'  NOMMAGE STATIONS "enseigne - ville" (protocole de l'app)
+' ============================================================
+
+' Compose "enseigne - ville" (ville en casse propre, 1er segment).
+Private Function ComposeName(enseigne As String, ville As String) As String
+    Dim v As String: v = FormatVilleC(ville)
+    Dim e As String: e = Trim$(enseigne)
+    If v <> "" And e <> "" Then
+        ComposeName = e & " - " & v
+    ElseIf e <> "" Then
+        ComposeName = e
+    Else
+        ComposeName = v
+    End If
+End Function
+
+' Ville -> "nom propre" : 1er segment avant espace/tiret, capitalise.
+' Ex : "FLERS-EN-ESCREBIEUX" -> "Flers" / "DOUAI" -> "Douai".
+Private Function FormatVilleC(ville As String) As String
+    Dim s As String: s = Trim$(CStr(ville))
+    If s = "" Then Exit Function
+    Dim i As Long, ch As String
+    For i = 1 To Len(s)
+        ch = Mid$(s, i, 1)
+        If ch = " " Or ch = "-" Then Exit For
+    Next i
+    Dim first As String: first = Left$(s, i - 1)
+    If first = "" Then Exit Function
+    FormatVilleC = UCase$(Left$(first, 1)) & LCase$(Mid$(first, 2))
+End Function
+
+' Detecte l'enseigne depuis l'adresse (liste de marques, comme detectBrand).
+' Renvoie le libelle de marque ou "Station" si rien.
+Private Function ResolveEnseigne(adresse As String) As String
+    Dim s As String: s = adresse
+    ' Neutralise "Leclerc" comme odonyme (av./rue/bd... [General] Leclerc).
+    If RegTest(s, "(g[e" & ChrW(233) & "]n[e" & ChrW(233) & "]ral|av(enue)?\.?|rue|bd|boulevard|place|pl\.?|chemin|route|rte)\s+(du\s+|de\s+|d'\s*)?(g[e" & ChrW(233) & "]n[e" & ChrW(233) & "]ral\s+)?leclerc") Then
+        s = RegReplace(s, "leclerc", " ")
+    End If
+    Dim b As String: b = DetectEnseigne(s)
+    If b <> "" Then
+        ResolveEnseigne = b
+    Else
+        ResolveEnseigne = "Station"
+    End If
+End Function
+
+' Liste de marques (ordre = specifique d'abord). Renvoie le libelle ou "".
+Private Function DetectEnseigne(name As String) As String
+    Dim s As String: s = name
+    If RegTest(s, "total\s*acc|totalenergies|\btotal\b") Then DetectEnseigne = "Total": Exit Function
+    If RegTest(s, "e[.\s]*leclerc|leclerc") Then DetectEnseigne = "Leclerc": Exit Function
+    If RegTest(s, "intermarch|\bnetto\b|\broady\b") Then DetectEnseigne = "Intermarch" & ChrW(233): Exit Function
+    If RegTest(s, "carrefour") Then DetectEnseigne = "Carrefour": Exit Function
+    If RegTest(s, "super\s*u|hyper\s*u|\bu\s*express|syst[e" & ChrW(232) & "]me\s*u|magasins?\s*u") Then DetectEnseigne = "Syst" & ChrW(232) & "me U": Exit Function
+    If RegTest(s, "auchan") Then DetectEnseigne = "Auchan": Exit Function
+    If RegTest(s, "\besso\b") Then DetectEnseigne = "Esso": Exit Function
+    If RegTest(s, "\bavia\b") Then DetectEnseigne = "Avia": Exit Function
+    If RegTest(s, "\bbp\b") Then DetectEnseigne = "BP": Exit Function
+    If RegTest(s, "\bshell\b") Then DetectEnseigne = "Shell": Exit Function
+    If RegTest(s, "\bagip\b|\beni\b") Then DetectEnseigne = "Eni": Exit Function
+    If RegTest(s, "dyneff") Then DetectEnseigne = "Dyneff": Exit Function
+    If RegTest(s, "\bcora\b") Then DetectEnseigne = "Cora": Exit Function
+    If RegTest(s, "casino|g[e" & ChrW(233) & "]ant|geant") Then DetectEnseigne = "Casino": Exit Function
+    If RegTest(s, "\b" & ChrW(233) & "lan\b|\belan\b") Then DetectEnseigne = ChrW(201) & "lan": Exit Function
+    If RegTest(s, "\bcolruyt\b") Then DetectEnseigne = "Colruyt": Exit Function
+    DetectEnseigne = ""
+End Function
+
+' RegExp test (insensible a la casse).
+Private Function RegTest(s As String, pattern As String) As Boolean
+    On Error GoTo Fail
+    Dim re As Object: Set re = CreateObject("VBScript.RegExp")
+    re.Global = False: re.IgnoreCase = True
+    re.Pattern = pattern
+    RegTest = re.Test(s)
+    Exit Function
+Fail:
+    RegTest = False
+End Function
+
+' RegExp replace (global, insensible a la casse).
+Private Function RegReplace(s As String, pattern As String, repl As String) As String
+    On Error GoTo Fail
+    Dim re As Object: Set re = CreateObject("VBScript.RegExp")
+    re.Global = True: re.IgnoreCase = True
+    re.Pattern = pattern
+    RegReplace = re.Replace(s, repl)
+    Exit Function
+Fail:
+    RegReplace = s
+End Function
+
+
+' ============================================================
+'  GEOLOCALISATION AUTOMATIQUE (par IP, sans GPS)
+' ============================================================
+
+' Bouton "Me localiser" : geolocalise par IP et remplit Carte_Position.
+Public Sub GeolocaliserAuto()
+    On Error GoTo ErrH
+    Dim lat As Double, lon As Double, ville As String
+    If GeolocaliserIP(lat, lon, ville) Then
+        On Error Resume Next
+        ThisWorkbook.Names("Carte_Position").RefersToRange.Value = _
+            Replace(Format$(lat, "0.######"), ",", ".") & ";" & _
+            Replace(Format$(lon, "0.######"), ",", ".")
+        On Error GoTo ErrH
+        SetStatus "[Carte] " & ChrW(10003) & " Position detectee : " & ville & _
+                  " (" & Format$(lat, "0.0000") & ";" & Format$(lon, "0.0000") & ")."
+    Else
+        SetStatus "[Carte] " & ChrW(9888) & " Geolocalisation IP indisponible. Saisissez 'Ma position' manuellement."
+    End If
+    Exit Sub
+ErrH:
+    SetStatus "[Carte] " & ChrW(9888) & " Erreur geolocalisation " & Err.Number & " : " & Err.Description
+End Sub
+
+' Geolocalisation approximative par IP (ip-api.com, gratuit, sans cle).
+Private Function GeolocaliserIP(ByRef lat As Double, ByRef lon As Double, _
+                                ByRef ville As String) As Boolean
+    On Error GoTo Fail
+    Dim url As String, resp As String
+    url = "http://ip-api.com/json/?fields=status,lat,lon,city"
+
+    Dim http As Object: Set http = CreateObject("WinHttp.WinHttpRequest.5.1")
+    http.SetTimeouts 5000, 10000, 10000, 10000
+    http.Open "GET", url, False
+    http.Send
+    If http.Status <> 200 Then GoTo Fail
+    resp = http.ResponseText
+    If InStr(resp, """status"":""success""") = 0 Then GoTo Fail
+
+    Dim reLat As Object: Set reLat = CreateObject("VBScript.RegExp")
+    reLat.Pattern = """lat""\s*:\s*(-?\d+\.?\d*)"
+    Dim mLat As Object: Set mLat = reLat.Execute(resp)
+    Dim reLon As Object: Set reLon = CreateObject("VBScript.RegExp")
+    reLon.Pattern = """lon""\s*:\s*(-?\d+\.?\d*)"
+    Dim mLon As Object: Set mLon = reLon.Execute(resp)
+    If mLat.Count = 0 Or mLon.Count = 0 Then GoTo Fail
+
+    lat = CDbl(Replace(mLat(0).SubMatches(0), ".", DecSep()))
+    lon = CDbl(Replace(mLon(0).SubMatches(0), ".", DecSep()))
+
+    Dim reC As Object: Set reC = CreateObject("VBScript.RegExp")
+    reC.Pattern = """city""\s*:\s*""([^""]*)"""
+    Dim mC As Object: Set mC = reC.Execute(resp)
+    If mC.Count > 0 Then ville = mC(0).SubMatches(0)
+
+    GeolocaliserIP = (lat <> 0 Or lon <> 0)
+    Exit Function
+Fail:
+    GeolocaliserIP = False
 End Function
 
 

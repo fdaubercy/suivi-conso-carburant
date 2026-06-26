@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.22.2.0] — 2026-06-26
+
+### Added
+- **Excel — geolocalisation automatique** — nouveau bouton « Me localiser (auto) » + repli automatique : la position utilisateur est detectee par IP (API `ip-api.com`, sans GPS ni saisie) et ecrite dans `Carte_Position`. La carte a proximite se localise seule si la cellule est vide. `vba/modCarte.bas`.
+
+### Changed
+- **Excel — nommage stations « enseigne - ville »** — les stations des cartes proximite/itineraire sont nommees selon le protocole de l'app : enseigne detectee depuis l'adresse (liste de marques Total/Leclerc/Intermarche/Carrefour/…) + ville en casse propre (1er segment). Repli « Station » si enseigne inconnue. `vba/modCarte.bas`.
+
 ## [5.22.1.0] — 2026-06-26
 
 ### Changed

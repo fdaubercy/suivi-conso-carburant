@@ -19587,6 +19587,223 @@
       "file_type": "concept",
       "source_file": "ROADMAP.md",
       "source_location": null
+    },
+    {
+      "id": "vba_modcarte_carteproximite",
+      "label": "CarteProximite",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 945
+    },
+    {
+      "id": "vba_modcarte_carteitineraire",
+      "label": "CarteItineraire",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1056
+    },
+    {
+      "id": "vba_modcarte_geolocaliserauto",
+      "label": "GeolocaliserAuto",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1478
+    },
+    {
+      "id": "vba_modcarte_geolocaliserip",
+      "label": "GeolocaliserIP",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1498
+    },
+    {
+      "id": "vba_modcarte_composename",
+      "label": "ComposeName",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1383
+    },
+    {
+      "id": "vba_modcarte_resolveenseigne",
+      "label": "ResolveEnseigne",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1412
+    },
+    {
+      "id": "vba_modcarte_detectenseigne",
+      "label": "DetectEnseigne",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1427
+    },
+    {
+      "id": "vba_modcarte_formatvillec",
+      "label": "FormatVilleC",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1397
+    },
+    {
+      "id": "vba_modcarte_htmlhead",
+      "label": "HtmlHead",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 590
+    },
+    {
+      "id": "vba_modcarte_sticonjs",
+      "label": "StIconJs",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 619
+    },
+    {
+      "id": "vba_modcarte_queryproximite",
+      "label": "QueryProximite",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 981
+    },
+    {
+      "id": "vba_modcarte_queryitineraire",
+      "label": "QueryItineraire",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1147
+    },
+    {
+      "id": "vba_modcarte_queryaround",
+      "label": "QueryAround",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1186
+    },
+    {
+      "id": "vba_modcarte_osrmroute",
+      "label": "OsrmRoute",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1104
+    },
+    {
+      "id": "vba_modcarte_parserecords",
+      "label": "ParseRecords",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1261
+    },
+    {
+      "id": "vba_modcarte_resolveuserpos",
+      "label": "ResolveUserPos",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 729
+    },
+    {
+      "id": "vba_modcarte_genererhtmlcarte",
+      "label": "GenererHtmlCarte",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 534
+    },
+    {
+      "id": "vba_modcarte_genererhtmlproximite",
+      "label": "GenererHtmlProximite",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1006
+    },
+    {
+      "id": "vba_modcarte_genererhtmlitineraire",
+      "label": "GenererHtmlItineraire",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1209
+    },
+    {
+      "id": "vba_modcarte_staavg",
+      "label": "StAvg",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 44
+    },
+    {
+      "id": "vba_modcarte_ouvrircartenavigatear",
+      "label": "OuvrirCarteNavigateur",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 233
+    },
+    {
+      "id": "api_prix_api",
+      "label": "API gouv. v2.1 - Prix carburants",
+      "file_type": "concept",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 29
+    },
+    {
+      "id": "api_osrm",
+      "label": "OSRM - Route API",
+      "file_type": "concept",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 32
+    },
+    {
+      "id": "api_ipapi",
+      "label": "IP-API - Geolocalisation",
+      "file_type": "concept",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1502
+    },
+    {
+      "id": "api_geocode_adresse",
+      "label": "BAN (Base Adresse Nationale)",
+      "file_type": "concept",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 765
+    },
+    {
+      "id": "leaflet_osm",
+      "label": "Leaflet + OSM",
+      "file_type": "concept",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 594
+    },
+    {
+      "id": "vba_modcarte_computeaverages",
+      "label": "ComputeAverages",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 331
+    },
+    {
+      "id": "vba_modcarte_geocodermanquantes",
+      "label": "GeocoderManquantes",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 387
+    },
+    {
+      "id": "vba_modcarte_attachercoords",
+      "label": "AttacherCoords",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 465
+    },
+    {
+      "id": "vba_modcarte_sortbyprice",
+      "label": "SortByPrice",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1316
+    },
+    {
+      "id": "vba_modcarte_havorsine",
+      "label": "HaversineKm",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": 1338
     }
   ],
   "links": [
@@ -54935,6 +55152,321 @@
       "confidence": "INFERRED",
       "confidence_score": 0.85,
       "source_file": "ROADMAP.md",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_carteproximite",
+      "target": "vba_modcarte_resolveuserpos",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_carteproximite",
+      "target": "vba_modcarte_queryproximite",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_carteproximite",
+      "target": "vba_modcarte_genererhtmlproximite",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_carteitineraire",
+      "target": "vba_modcarte_osrmroute",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_carteitineraire",
+      "target": "vba_modcarte_queryitineraire",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_carteitineraire",
+      "target": "vba_modcarte_genererhtmlitineraire",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_geolocaliserauto",
+      "target": "vba_modcarte_geolocaliserip",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_composename",
+      "target": "vba_modcarte_formatvillec",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_resolveenseigne",
+      "target": "vba_modcarte_detectenseigne",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_parserecords",
+      "target": "vba_modcarte_composename",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_parserecords",
+      "target": "vba_modcarte_resolveenseigne",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_queryproximite",
+      "target": "vba_modcarte_parserecords",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_queryproximite",
+      "target": "vba_modcarte_sortbyprice",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_queryitineraire",
+      "target": "vba_modcarte_queryaround",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_queryitineraire",
+      "target": "vba_modcarte_sortbyprice",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_queryaround",
+      "target": "vba_modcarte_parserecords",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtmlproximite",
+      "target": "vba_modcarte_htmlhead",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtmlproximite",
+      "target": "vba_modcarte_sticonjs",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtmlproximite",
+      "target": "vba_modcarte_havorsine",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtmlcarte",
+      "target": "vba_modcarte_htmlhead",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtmlcarte",
+      "target": "vba_modcarte_sticonjs",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtmlitineraire",
+      "target": "vba_modcarte_htmlhead",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtmlitineraire",
+      "target": "vba_modcarte_sticonjs",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_ouvrircartenavigatear",
+      "target": "vba_modcarte_genererhtmlcarte",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_ouvrircartenavigatear",
+      "target": "vba_modcarte_resolveuserpos",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_computeaverages",
+      "target": "vba_modcarte_staavg",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_geocodermanquantes",
+      "target": "vba_modcarte_computeaverages",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_attachercoords",
+      "target": "vba_modcarte_staavg",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_carteproximite",
+      "target": "api_prix_api",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_carteitineraire",
+      "target": "api_osrm",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_geolocaliserip",
+      "target": "api_ipapi",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_resolveuserpos",
+      "target": "api_geocode_adresse",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtmlcarte",
+      "target": "leaflet_osm",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtmlproximite",
+      "target": "leaflet_osm",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtmlitineraire",
+      "target": "leaflet_osm",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "vba/modCarte.bas",
       "weight": 1.0
     }
   ]
