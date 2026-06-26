@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.21.12.0] — 2026-06-26
+
+### Fixed
+- **Excel — `gPrice` : marqueurs discrets + dates en abscisse** — marqueurs remplacés par petits cercles (taille 3) au lieu de supprimés ; axe X forcé en `xlTimeScale` avec format `dd/mm` pour afficher des dates lisibles (au lieu des numéros de série Excel). `vba/modGraphiques.bas`.
+
 ## [5.21.11.0] — 2026-06-26
 
 ### Fixed

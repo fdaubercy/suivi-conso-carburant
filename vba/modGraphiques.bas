@@ -741,9 +741,12 @@ Private Sub AddChartXY(ws As Worksheet, key As String, src As Range, typ As Long
             Dim si As Long
             For si = 1 To .SeriesCollection.count
                 .SeriesCollection(si).smooth = False
-                .SeriesCollection(si).MarkerStyle = xlMarkerStyleNone
+                .SeriesCollection(si).MarkerStyle = xlMarkerStyleCircle
+                .SeriesCollection(si).MarkerSize = 3
             Next si
         End If
+        .Axes(xlCategory).CategoryType = xlTimeScale
+        .Axes(xlCategory).NumberFormat = "dd/mm"
         On Error GoTo 0
     End With
 End Sub
