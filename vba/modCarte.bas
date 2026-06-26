@@ -563,31 +563,18 @@ Private Function GenererHtmlCarte(titre As String) As String
     End If
 
     Dim h As String
-    h = "<!doctype html><html><head><meta charset='utf-8'>" & _
-        "<meta name='viewport' content='width=device-width,initial-scale=1'>" & _
-        "<title>Carte " & EscHtml(titre) & "</title>" & _
-        "<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'>" & _
-        "<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>" & _
-        "<style>html,body{margin:0;height:100%}#map{height:100%}" & _
-        ".ttl{position:absolute;z-index:1000;top:8px;left:54px;background:#1B3A5C;color:#fff;" & _
-        "padding:6px 12px;border-radius:8px;font:700 14px Segoe UI,Arial}" & _
-        ".pr{background:#1B3A5C;color:#fff;border:0;border-radius:8px;font-weight:700;padding:2px 6px}" & _
-        ".pr:before{display:none}" & _
-        ".me{width:18px;height:18px;background:#2A7FFF;border:3px solid #fff;border-radius:50%;" & _
-        "box-shadow:0 0 0 rgba(42,127,255,.5);animation:mepulse 2s infinite}" & _
-        "@keyframes mepulse{0%{box-shadow:0 0 0 0 rgba(42,127,255,.5)}" & _
-        "70%{box-shadow:0 0 0 16px rgba(42,127,255,0)}100%{box-shadow:0 0 0 0 rgba(42,127,255,0)}}" & _
-        "</style></head>"
+    h = HtmlHead("Carte " & EscHtml(titre))
     h = h & "<body><div class='ttl'>" & Emo(&H26FD&) & " Stations " & EscHtml(titre) & " - prix moyens</div>" & _
         "<div id='map'></div><script>" & _
         "var pts=[" & pts & "];" & _
         "var map=L.map('map');" & _
         "L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png'," & _
         "{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);" & _
-        "var meIcon=L.divIcon({className:'me',iconSize:[18,18],iconAnchor:[9,9]});" & _
+        "var meIcon=L.divIcon({className:'me',iconSize:[28,28],iconAnchor:[14,14],html:'" & Emo(&H1F697&) & "'});" & _
+        StIconJs() & _
         "var b=[];pts.forEach(function(p){" & _
-        "var mk=L.marker([p[0],p[1]]).addTo(map);" & _
-        "mk.bindTooltip(p[3]+' EUR/L',{permanent:true,direction:'top',className:'pr',offset:[0,-6]});"
+        "var ic=stIcon(p[3]+' EUR/L');" & _
+        "var mk=L.marker([p[0],p[1]],{icon:ic}).addTo(map);"
     h = h & "mk.bindPopup('<b>'+p[2]+'</b><br>'+p[3]+' EUR/L<br>'+" & _
         "'<a href=""https://www.google.com/maps/dir/?api=1&destination='+p[0]+','+p[1]+'"" target=""_blank"">Google Maps</a> &middot; '+" & _
         "'<a href=""https://waze.com/ul?ll='+p[0]+','+p[1]+'&navigate=yes"" target=""_blank"">Waze</a>');" & _
@@ -597,6 +584,44 @@ Private Function GenererHtmlCarte(titre As String) As String
         "</script></body></html>"
     GenererHtmlCarte = h
 End Function
+
+' Head HTML commun : Leaflet CDN + CSS marqueurs style app (pin goutte + badge prix).
+Private Function HtmlHead(titre As String) As String
+    HtmlHead = "<!doctype html><html><head><meta charset='utf-8'>" & _
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>" & _
+        "<title>" & titre & "</title>" & _
+        "<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'>" & _
+        "<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>" & _
+        "<style>html,body{margin:0;height:100%;font-family:Segoe UI,Arial,sans-serif}#map{height:100%}" & _
+        ".ttl{position:absolute;z-index:1000;top:8px;left:54px;background:#1B3A5C;color:#fff;" & _
+        "padding:6px 12px;border-radius:8px;font:700 14px Segoe UI,Arial;max-width:60%}" & _
+        ".st-mk{display:flex;flex-direction:column;align-items:center;line-height:1}" & _
+        ".st-badge{background:#1B3A5C;color:#fff;font:700 10px/1.3 Arial;padding:2px 6px;" & _
+        "border-radius:5px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.35);margin-bottom:-4px;z-index:1}" & _
+        ".st-pin{width:24px;height:24px;display:flex;align-items:center;justify-content:center;" & _
+        "background:#1D9E75;border:2px solid #fff;border-radius:50% 50% 50% 0;" & _
+        "transform:rotate(45deg);box-shadow:0 1px 4px rgba(0,0,0,.35)}" & _
+        ".st-pin span{transform:rotate(-45deg);font-size:13px}" & _
+        ".me{width:28px;height:28px;display:flex;align-items:center;justify-content:center;" & _
+        "background:#2563EB;border:2px solid #fff;border-radius:50%;" & _
+        "box-shadow:0 0 0 3px rgba(37,99,235,.35),0 2px 6px rgba(0,0,0,.3);" & _
+        "font-size:15px;animation:mepulse 2s infinite}" & _
+        "@keyframes mepulse{0%{box-shadow:0 0 0 3px rgba(37,99,235,.35)}" & _
+        "70%{box-shadow:0 0 0 16px rgba(37,99,235,0)}100%{box-shadow:0 0 0 3px rgba(37,99,235,.35)}}" & _
+        ".ep{width:16px;height:16px;border:3px solid #fff;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,.4)}" & _
+        ".dep{background:#1D9E75}.arr{background:#D64545}" & _
+        "</style></head>"
+End Function
+
+
+' JS factory pour creer un DivIcon style app (badge prix + pin goutte).
+Private Function StIconJs() As String
+    StIconJs = "function stIcon(label){" & _
+        "return L.divIcon({className:'',iconSize:[50,48],iconAnchor:[25,48]," & _
+        "html:'<div class=""st-mk""><span class=""st-badge"">'+label+'</span>" & _
+        "<div class=""st-pin""><span>" & Emo(&H26FD&) & "</span></div></div>'});}"
+End Function
+
 
 ' Double -> chaine JS a point decimal (independant de la locale).
 Private Function JsNum(ByVal v As Double) As String
@@ -992,21 +1017,7 @@ Private Function GenererHtmlProximite(res() As StAvg, nb As Long, titre As Strin
     Next i
 
     Dim h As String
-    h = "<!doctype html><html><head><meta charset='utf-8'>" & _
-        "<meta name='viewport' content='width=device-width,initial-scale=1'>" & _
-        "<title>Stations " & EscHtml(titre) & " a proximite</title>" & _
-        "<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'>" & _
-        "<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>" & _
-        "<style>html,body{margin:0;height:100%}#map{height:100%}" & _
-        ".ttl{position:absolute;z-index:1000;top:8px;left:54px;background:#1D9E75;color:#fff;" & _
-        "padding:6px 12px;border-radius:8px;font:700 14px Segoe UI,Arial}" & _
-        ".pr{background:#1D9E75;color:#fff;border:0;border-radius:8px;font-weight:700;padding:2px 6px}" & _
-        ".pr:before{display:none}" & _
-        ".me{width:18px;height:18px;background:#2A7FFF;border:3px solid #fff;border-radius:50%;" & _
-        "box-shadow:0 0 0 rgba(42,127,255,.5);animation:mepulse 2s infinite}" & _
-        "@keyframes mepulse{0%{box-shadow:0 0 0 0 rgba(42,127,255,.5)}" & _
-        "70%{box-shadow:0 0 0 16px rgba(42,127,255,0)}100%{box-shadow:0 0 0 0 rgba(42,127,255,0)}}" & _
-        "</style></head>"
+    h = HtmlHead("Stations " & EscHtml(titre) & " a proximite")
     h = h & "<body><div class='ttl'>" & Emo(&H26FD&) & " Stations " & EscHtml(titre) & _
         " a proximite (" & Format$(rayonKm, "0") & " km)</div>" & _
         "<div id='map'></div><script>" & _
@@ -1015,12 +1026,13 @@ Private Function GenererHtmlProximite(res() As StAvg, nb As Long, titre As Strin
         "var map=L.map('map');" & _
         "L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png'," & _
         "{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);" & _
-        "var meIcon=L.divIcon({className:'me',iconSize:[18,18],iconAnchor:[9,9]});" & _
+        "var meIcon=L.divIcon({className:'me',iconSize:[28,28],iconAnchor:[14,14],html:'" & Emo(&H1F697&) & "'});" & _
+        StIconJs() & _
         "L.circle(u,{radius:" & JsNum(rayonM) & ",color:'#2E75B6',weight:2,fillOpacity:0.05}).addTo(map);" & _
         "var b=[u];pts.forEach(function(p){" & _
-        "var mk=L.marker([p[0],p[1]]).addTo(map);" & _
         "var lab=(p[5]?p[5]+' ':'')+p[3]+' EUR/L';" & _
-        "mk.bindTooltip(lab,{permanent:true,direction:'top',className:'pr',offset:[0,-6]});"
+        "var ic=stIcon(lab);" & _
+        "var mk=L.marker([p[0],p[1]],{icon:ic}).addTo(map);"
     h = h & "mk.bindPopup('<b>'+(p[5]?p[5]+' ':'')+p[2]+'</b><br>'+p[3]+' EUR/L<br>'+p[4]+' km<br>'+" & _
         "'<a href=""https://www.google.com/maps/dir/?api=1&destination='+p[0]+','+p[1]+'"" target=""_blank"">Google Maps</a> &middot; '+" & _
         "'<a href=""https://waze.com/ul?ll='+p[0]+','+p[1]+'&navigate=yes"" target=""_blank"">Waze</a>');" & _
@@ -1207,19 +1219,7 @@ Private Function GenererHtmlItineraire(res() As StAvg, nb As Long, titre As Stri
     Next i
 
     Dim h As String
-    h = "<!doctype html><html><head><meta charset='utf-8'>" & _
-        "<meta name='viewport' content='width=device-width,initial-scale=1'>" & _
-        "<title>Itineraire " & EscHtml(titre) & "</title>" & _
-        "<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'>" & _
-        "<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>" & _
-        "<style>html,body{margin:0;height:100%}#map{height:100%}" & _
-        ".ttl{position:absolute;z-index:1000;top:8px;left:54px;background:#1B3A5C;color:#fff;" & _
-        "padding:6px 12px;border-radius:8px;font:700 14px Segoe UI,Arial;max-width:60%}" & _
-        ".pr{background:#1B3A5C;color:#fff;border:0;border-radius:8px;font-weight:700;padding:2px 6px}" & _
-        ".pr:before{display:none}" & _
-        ".ep{width:16px;height:16px;border:3px solid #fff;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,.4)}" & _
-        ".dep{background:#1D9E75}.arr{background:#D64545}" & _
-        "</style></head>"
+    h = HtmlHead("Itineraire " & EscHtml(titre))
     h = h & "<body><div class='ttl'>" & Emo(&H1F6E3&) & " Itineraire " & EscHtml(dep) & _
         " " & ChrW(8594) & " " & EscHtml(arr) & " - Stations " & EscHtml(titre) & "</div>" & _
         "<div id='map'></div><script>" & _
@@ -1230,14 +1230,15 @@ Private Function GenererHtmlItineraire(res() As StAvg, nb As Long, titre As Stri
         "var map=L.map('map');" & _
         "L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png'," & _
         "{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);" & _
+        StIconJs() & _
         "var line=L.polyline(poly,{color:'#1B3A5C',weight:4}).addTo(map);" & _
         "var depIcon=L.divIcon({className:'ep dep',iconSize:[16,16],iconAnchor:[8,8]});" & _
         "var arrIcon=L.divIcon({className:'ep arr',iconSize:[16,16],iconAnchor:[8,8]});" & _
         "L.marker(d,{icon:depIcon,zIndexOffset:1000}).addTo(map).bindPopup('Depart : " & EscJs(dep) & "');" & _
         "L.marker(a,{icon:arrIcon,zIndexOffset:1000}).addTo(map).bindPopup('Arrivee : " & EscJs(arr) & "');"
     h = h & "pts.forEach(function(p){" & _
-        "var mk=L.marker([p[0],p[1]]).addTo(map);" & _
-        "mk.bindTooltip(p[3]+' EUR/L',{permanent:true,direction:'top',className:'pr',offset:[0,-6]});" & _
+        "var ic=stIcon(p[3]+' EUR/L');" & _
+        "var mk=L.marker([p[0],p[1]],{icon:ic}).addTo(map);" & _
         "mk.bindPopup('<b>'+p[2]+'</b><br>'+p[3]+' EUR/L<br>'+" & _
         "'<a href=""https://www.google.com/maps/dir/?api=1&destination='+p[0]+','+p[1]+'"" target=""_blank"">Google Maps</a> &middot; '+" & _
         "'<a href=""https://waze.com/ul?ll='+p[0]+','+p[1]+'&navigate=yes"" target=""_blank"">Waze</a>');" & _

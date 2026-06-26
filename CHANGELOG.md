@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.22.1.0] — 2026-06-26
+
+### Changed
+- **Excel — marqueurs cartes style app** — les 3 cartes HTML (stations, proximite, itineraire) utilisent desormais le meme style de marqueurs que l'app web : pin en goutte verte avec emoji carburant + badge prix bleu fonce au-dessus ; position utilisateur = pastille bleue avec emoji voiture. CSS factorise dans `HtmlHead()`, factory JS `stIcon()`. `vba/modCarte.bas`.
+
 ## [5.22.0.0] — 2026-06-26
 
 ### Added
