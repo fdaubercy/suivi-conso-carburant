@@ -993,7 +993,20 @@ Private Sub AddScatterE85Chart(ws As Worksheet, key As String, wsd As Worksheet,
         sConso.ChartType = xlColumnClustered
         sConso.Format.fill.ForeColor.RGB = C_E85
 
-        ' Serie 2 : prix E85 (courbe bleu fonce, axe secondaire)
+        ' Barres : coins arrondis (Excel 365+), gap reduit
+        On Error Resume Next
+        Dim cg As ChartGroup: Set cg = .ChartGroups(1)
+        cg.GapWidth = 60
+        Dim dp As Long
+        For dp = 1 To sConso.Points.count
+            sConso.Points(dp).Format.fill.ForeColor.RGB = C_E85
+            sConso.Points(dp).Format.ThreeD.BevelTopType = 1
+            sConso.Points(dp).Format.ThreeD.BevelTopDepth = 2
+            sConso.Points(dp).Format.ThreeD.BevelTopInset = 2
+        Next dp
+        On Error GoTo 0
+
+        ' Serie 2 : prix E85 (courbe bleu mid, axe secondaire)
         Dim sPrix As Series
         Set sPrix = .SeriesCollection.NewSeries
         sPrix.Name = "Prix E85 " & ChrW(8364) & "/L"
@@ -1001,15 +1014,12 @@ Private Sub AddScatterE85Chart(ws As Worksheet, key As String, wsd As Worksheet,
         sPrix.XValues = wsd.Range("AP2").Resize(nPts, 1)
         sPrix.ChartType = xlLine
         sPrix.AxisGroup = xlSecondary
-        sPrix.Format.Line.ForeColor.RGB = C_COUT
-        sPrix.Format.Line.Weight = 2
+        sPrix.Format.Line.ForeColor.RGB = C_SP98
+        sPrix.Format.Line.Weight = 1.5
         sPrix.MarkerStyle = xlMarkerStyleCircle
-        sPrix.MarkerSize = 4
-        sPrix.MarkerForegroundColor = C_COUT
-        sPrix.MarkerBackgroundColor = C_COUT
-
-        ' Barres plus larges
-        sConso.Parent.Parent.ChartGroups(1).GapWidth = 80
+        sPrix.MarkerSize = 3
+        sPrix.MarkerForegroundColor = C_SP98
+        sPrix.MarkerBackgroundColor = C_SP98
 
         .HasTitle = True
         .ChartTitle.text = "Conso & prix E85 par plein"
