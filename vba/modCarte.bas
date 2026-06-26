@@ -57,6 +57,9 @@ Private g_userHas As Boolean
 Private g_userLat As Double
 Private g_userLon As Double
 
+' Cache des icones de marque (slug -> data URI base64), rempli a la demande.
+Private g_iconCache As Object
+
 
 ' ============================================================
 '  CONSTRUCTION DE LA FEUILLE
@@ -532,13 +535,18 @@ End Sub
 '  Carte interactive OSM (pan/zoom) + marqueurs prix. Necessite Internet.
 ' ============================================================
 Private Function GenererHtmlCarte(titre As String) As String
-    ' Points geolocalises -> tableau JS [lat, lon, "nom", "prix"]
+    ' Points geolocalises -> tableau JS [lat, lon, "nom", "prix", "slug", "color"]
     Dim pts As String, i As Long, n As Long
+    Dim slugs As Object: Set slugs = CreateObject("Scripting.Dictionary")
+    Dim sl As String, col As String
     For i = 1 To g_n
         If g_st(i).hasCoord Then
+            BrandSlugColor g_st(i).name, sl, col
+            If sl <> "" Then slugs(sl) = True
             If pts <> "" Then pts = pts & ","
             pts = pts & "[" & JsNum(g_st(i).lat) & "," & JsNum(g_st(i).lon) & ",""" & _
-                  EscJs(g_st(i).name) & """,""" & PrixStr(g_st(i).avg) & """]"
+                  EscJs(g_st(i).name) & """,""" & PrixStr(g_st(i).avg) & """,""" & _
+                  sl & """,""" & col & """]"
             n = n + 1
         End If
     Next i
@@ -572,9 +580,10 @@ Private Function GenererHtmlCarte(titre As String) As String
         "L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png'," & _
         "{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);" & _
         "var meIcon=L.divIcon({className:'me',iconSize:[28,28],iconAnchor:[14,14],html:'" & Emo(&H1F697&) & "'});" & _
+        LogosJs(slugs) & _
         StIconJs() & _
         "var b=[];pts.forEach(function(p){" & _
-        "var ic=stIcon(p[3]+' EUR/L');" & _
+        "var ic=stIcon(p[3]+' EUR/L',p[4],p[5]);" & _
         "var mk=L.marker([p[0],p[1]],{icon:ic}).addTo(map);"
     h = h & "mk.bindPopup('<b>'+p[2]+'</b><br>'+p[3]+' EUR/L<br>'+" & _
         "'<a href=""https://www.google.com/maps/dir/?api=1&destination='+p[0]+','+p[1]+'"" target=""_blank"">Google Maps</a> &middot; '+" & _
@@ -595,14 +604,17 @@ Private Function HtmlHead(titre As String) As String
         "<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>" & _
         "<style>html,body{margin:0;height:100%;font-family:Segoe UI,Arial,sans-serif}#map{height:100%}" & _
         ".ttl{position:absolute;z-index:1000;top:8px;left:54px;background:#1B3A5C;color:#fff;" & _
-        "padding:6px 12px;border-radius:8px;font:700 14px Segoe UI,Arial;max-width:60%}" & _
-        ".st-mk{display:flex;flex-direction:column;align-items:center;line-height:1}" & _
-        ".st-badge{background:#1B3A5C;color:#fff;font:700 10px/1.3 Arial;padding:2px 6px;" & _
-        "border-radius:5px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.35);margin-bottom:-4px;z-index:1}" & _
-        ".st-pin{width:24px;height:24px;display:flex;align-items:center;justify-content:center;" & _
-        "background:#1D9E75;border:2px solid #fff;border-radius:50% 50% 50% 0;" & _
-        "transform:rotate(45deg);box-shadow:0 1px 4px rgba(0,0,0,.35)}" & _
-        ".st-pin span{transform:rotate(-45deg);font-size:13px}" & _
+        "padding:6px 12px;border-radius:8px;font:700 14px Segoe UI,Arial;max-width:60%}"
+    HtmlHead = HtmlHead & _
+        ".b-mk{display:flex;flex-direction:column;align-items:center;line-height:1}" & _
+        ".b-pin{width:38px;height:38px;background:#fff;border:2px solid #2E75B6;" & _
+        "border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.3);overflow:hidden;" & _
+        "display:flex;align-items:center;justify-content:center}" & _
+        ".b-pin img{width:100%;height:100%;object-fit:contain;padding:4px;" & _
+        "box-sizing:border-box;display:block;pointer-events:none}" & _
+        ".b-badge{background:#fff;color:#2E75B6;font:700 12px/1 Arial;padding:4px 8px;" & _
+        "border-radius:7px;border:2px solid #2E75B6;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.3)}" & _
+        ".b-badge.hb{border-radius:0 0 7px 7px;margin-top:-3px}" & _
         ".me{width:28px;height:28px;display:flex;align-items:center;justify-content:center;" & _
         "background:#2563EB;border:2px solid #fff;border-radius:50%;" & _
         "box-shadow:0 0 0 3px rgba(37,99,235,.35),0 2px 6px rgba(0,0,0,.3);" & _
@@ -615,12 +627,15 @@ Private Function HtmlHead(titre As String) As String
 End Function
 
 
-' JS factory pour creer un DivIcon style app (badge prix + pin goutte).
+' JS factory : DivIcon style app (badge LOGO enseigne + pastille prix).
+' p = [lat,lon,nom,prix,...,slug,color,medaille?]. LOGOS = {slug:dataUri}.
 Private Function StIconJs() As String
-    StIconJs = "function stIcon(label){" & _
-        "return L.divIcon({className:'',iconSize:[50,48],iconAnchor:[25,48]," & _
-        "html:'<div class=""st-mk""><span class=""st-badge"">'+label+'</span>" & _
-        "<div class=""st-pin""><span>" & Emo(&H26FD&) & "</span></div></div>'});}"
+    StIconJs = "function stIcon(label,slug,color){" & _
+        "var uri=LOGOS[slug]||LOGOS['generic'];" & _
+        "var pin=uri?('<div class=""b-pin"" style=""border-color:'+color+'""><img src=""'+uri+'""></div>'):'';" & _
+        "var hb=uri?' hb':'';" & _
+        "return L.divIcon({className:'',iconSize:[60,66],iconAnchor:[30,66]," & _
+        "html:'<div class=""b-mk"">'+pin+'<span class=""b-badge""'+hb+' style=""color:'+color+';border-color:'+color+'"">'+label+'</span></div>'});}"
 End Function
 
 
@@ -1006,6 +1021,8 @@ End Function
 Private Function GenererHtmlProximite(res() As StAvg, nb As Long, titre As String, _
                                       rayonKm As Double, rayonM As Double) As String
     Dim pts As String, i As Long
+    Dim slugs As Object: Set slugs = CreateObject("Scripting.Dictionary")
+    Dim sl As String, col As String
     For i = 1 To nb
         Dim dk As Double: dk = HaversineKm(g_userLat, g_userLon, res(i).lat, res(i).lon)
         Dim med As String: med = ""
@@ -1016,10 +1033,12 @@ Private Function GenererHtmlProximite(res() As StAvg, nb As Long, titre As Strin
         ElseIf i = 3 Then
             med = Emo(&H1F949&)
         End If
+        BrandSlugColor res(i).name, sl, col
+        If sl <> "" Then slugs(sl) = True
         If pts <> "" Then pts = pts & ","
         pts = pts & "[" & JsNum(res(i).lat) & "," & JsNum(res(i).lon) & ",""" & _
               EscJs(res(i).name) & """,""" & PrixStr(res(i).avg) & """,""" & _
-              JsNum(dk) & """,""" & EscJs(med) & """]"
+              JsNum(dk) & """,""" & EscJs(med) & """,""" & sl & """,""" & col & """]"
     Next i
 
     Dim h As String
@@ -1033,11 +1052,12 @@ Private Function GenererHtmlProximite(res() As StAvg, nb As Long, titre As Strin
         "L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png'," & _
         "{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);" & _
         "var meIcon=L.divIcon({className:'me',iconSize:[28,28],iconAnchor:[14,14],html:'" & Emo(&H1F697&) & "'});" & _
+        LogosJs(slugs) & _
         StIconJs() & _
         "L.circle(u,{radius:" & JsNum(rayonM) & ",color:'#2E75B6',weight:2,fillOpacity:0.05}).addTo(map);" & _
         "var b=[u];pts.forEach(function(p){" & _
         "var lab=(p[5]?p[5]+' ':'')+p[3]+' EUR/L';" & _
-        "var ic=stIcon(lab);" & _
+        "var ic=stIcon(lab,p[6],p[7]);" & _
         "var mk=L.marker([p[0],p[1]],{icon:ic}).addTo(map);"
     h = h & "mk.bindPopup('<b>'+(p[5]?p[5]+' ':'')+p[2]+'</b><br>'+p[3]+' EUR/L<br>'+p[4]+' km<br>'+" & _
         "'<a href=""https://www.google.com/maps/dir/?api=1&destination='+p[0]+','+p[1]+'"" target=""_blank"">Google Maps</a> &middot; '+" & _
@@ -1218,10 +1238,15 @@ Private Function GenererHtmlItineraire(res() As StAvg, nb As Long, titre As Stri
     Next i
 
     Dim pts As String
+    Dim slugs As Object: Set slugs = CreateObject("Scripting.Dictionary")
+    Dim sl As String, col As String
     For i = 1 To nb
+        BrandSlugColor res(i).name, sl, col
+        If sl <> "" Then slugs(sl) = True
         If pts <> "" Then pts = pts & ","
         pts = pts & "[" & JsNum(res(i).lat) & "," & JsNum(res(i).lon) & ",""" & _
-              EscJs(res(i).name) & """,""" & PrixStr(res(i).avg) & """]"
+              EscJs(res(i).name) & """,""" & PrixStr(res(i).avg) & """,""" & _
+              sl & """,""" & col & """]"
     Next i
 
     Dim h As String
@@ -1236,6 +1261,7 @@ Private Function GenererHtmlItineraire(res() As StAvg, nb As Long, titre As Stri
         "var map=L.map('map');" & _
         "L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png'," & _
         "{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);" & _
+        LogosJs(slugs) & _
         StIconJs() & _
         "var line=L.polyline(poly,{color:'#1B3A5C',weight:4}).addTo(map);" & _
         "var depIcon=L.divIcon({className:'ep dep',iconSize:[16,16],iconAnchor:[8,8]});" & _
@@ -1243,7 +1269,7 @@ Private Function GenererHtmlItineraire(res() As StAvg, nb As Long, titre As Stri
         "L.marker(d,{icon:depIcon,zIndexOffset:1000}).addTo(map).bindPopup('Depart : " & EscJs(dep) & "');" & _
         "L.marker(a,{icon:arrIcon,zIndexOffset:1000}).addTo(map).bindPopup('Arrivee : " & EscJs(arr) & "');"
     h = h & "pts.forEach(function(p){" & _
-        "var ic=stIcon(p[3]+' EUR/L');" & _
+        "var ic=stIcon(p[3]+' EUR/L',p[4],p[5]);" & _
         "var mk=L.marker([p[0],p[1]],{icon:ic}).addTo(map);" & _
         "mk.bindPopup('<b>'+p[2]+'</b><br>'+p[3]+' EUR/L<br>'+" & _
         "'<a href=""https://www.google.com/maps/dir/?api=1&destination='+p[0]+','+p[1]+'"" target=""_blank"">Google Maps</a> &middot; '+" & _
@@ -1443,6 +1469,90 @@ Private Function DetectEnseigne(name As String) As String
     If RegTest(s, "\b" & ChrW(233) & "lan\b|\belan\b") Then DetectEnseigne = ChrW(201) & "lan": Exit Function
     If RegTest(s, "\bcolruyt\b") Then DetectEnseigne = "Colruyt": Exit Function
     DetectEnseigne = ""
+End Function
+
+' Mappe un nom (ou "enseigne - ville") vers slug d'icone + couleur de marque.
+' Memes patterns/couleurs que brand.js de l'app. slug="" -> generic.
+Private Sub BrandSlugColor(name As String, ByRef slug As String, ByRef color As String)
+    Dim s As String: s = name
+    slug = "": color = "#2E75B6"
+    If RegTest(s, "total\s*acc|totalenergies|\btotal\b") Then slug = "total": color = "#E2001A": Exit Sub
+    If RegTest(s, "e[.\s]*leclerc|leclerc") Then slug = "leclerc": color = "#0066B3": Exit Sub
+    If RegTest(s, "intermarch|\bnetto\b|\broady\b") Then slug = "intermarche": color = "#D81E20": Exit Sub
+    If RegTest(s, "carrefour") Then slug = "carrefour": color = "#0E4C96": Exit Sub
+    If RegTest(s, "super\s*u|hyper\s*u|\bu\s*express|syst[e" & ChrW(232) & "]me\s*u|magasins?\s*u") Then slug = "systeme-u": color = "#E2001A": Exit Sub
+    If RegTest(s, "auchan") Then slug = "auchan": color = "#E2001A": Exit Sub
+    If RegTest(s, "\besso\b") Then slug = "esso": color = "#0033A0": Exit Sub
+    If RegTest(s, "\bavia\b") Then slug = "avia": color = "#E2001A": Exit Sub
+    If RegTest(s, "\bbp\b") Then slug = "bp": color = "#0A9A00": Exit Sub
+    If RegTest(s, "\bshell\b") Then slug = "shell": color = "#D52B1E": Exit Sub
+    If RegTest(s, "\bagip\b|\beni\b") Then slug = "eni": color = "#C8A21A": Exit Sub
+    If RegTest(s, "dyneff") Then slug = "dyneff": color = "#E2001A": Exit Sub
+    If RegTest(s, "\bcora\b") Then slug = "cora": color = "#E2001A": Exit Sub
+    If RegTest(s, "casino|g[e" & ChrW(233) & "]ant|geant") Then slug = "casino": color = "#C8102E": Exit Sub
+    If RegTest(s, "\b" & ChrW(233) & "lan\b|\belan\b") Then slug = "elan": color = "#0066B3": Exit Sub
+    If RegTest(s, "\bcolruyt\b") Then slug = "colruyt": color = "#E2001A": Exit Sub
+End Sub
+
+' Dossier des icones de marque (depot : excel\..\public\icons\brands\).
+Private Function BrandsDir() As String
+    BrandsDir = ThisWorkbook.Path & "\..\public\icons\brands\"
+End Function
+
+' Renvoie le data URI base64 du SVG d'un slug (repli generic). Cache module.
+Private Function IconDataUri(slug As String) As String
+    Dim sl As String: sl = slug
+    If sl = "" Then sl = "generic"
+    If g_iconCache Is Nothing Then Set g_iconCache = CreateObject("Scripting.Dictionary")
+    If g_iconCache.Exists(sl) Then IconDataUri = g_iconCache(sl): Exit Function
+
+    Dim b64 As String: b64 = FileToBase64(BrandsDir() & sl & ".svg")
+    If b64 = "" And sl <> "generic" Then
+        IconDataUri = IconDataUri("generic"): Exit Function
+    End If
+    Dim uri As String
+    If b64 <> "" Then uri = "data:image/svg+xml;base64," & b64
+    g_iconCache(sl) = uri
+    IconDataUri = uri
+End Function
+
+' Lit un fichier binaire et l'encode en base64 (une seule ligne).
+Private Function FileToBase64(path As String) As String
+    On Error GoTo Fail
+    Dim st As Object: Set st = CreateObject("ADODB.Stream")
+    st.Type = 1: st.Open
+    st.LoadFromFile path
+    Dim bytes() As Byte: bytes = st.Read
+    st.Close
+    Dim dom As Object: Set dom = CreateObject("MSXML2.DOMDocument")
+    Dim el As Object: Set el = dom.createElement("b64")
+    el.DataType = "bin.base64"
+    el.nodeTypedValue = bytes
+    FileToBase64 = Replace(Replace(el.Text, vbCr, ""), vbLf, "")
+    Exit Function
+Fail:
+    FileToBase64 = ""
+End Function
+
+' Construit le JS "var LOGOS={slug:'datauri',...};" pour les slugs d'un Dictionary.
+Private Function LogosJs(slugs As Object) As String
+    Dim js As String, k As Variant, sep As String
+    js = "var LOGOS={"
+    sep = ""
+    ' generic toujours present (repli).
+    Dim gu As String: gu = IconDataUri("generic")
+    If gu <> "" Then js = js & "'generic':'" & gu & "'": sep = ","
+    For Each k In slugs.keys
+        If CStr(k) <> "" And CStr(k) <> "generic" Then
+            Dim u As String: u = IconDataUri(CStr(k))
+            If u <> "" Then
+                js = js & sep & "'" & CStr(k) & "':'" & u & "'"
+                sep = ","
+            End If
+        End If
+    Next k
+    js = js & "};"
+    LogosJs = js
 End Function
 
 ' RegExp test (insensible a la casse).

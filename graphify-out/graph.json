@@ -19628,14 +19628,14 @@
       "label": "ResolveEnseigne",
       "file_type": "code",
       "source_file": "vba/modCarte.bas",
-      "source_location": 1412
+      "source_location": "1438-1450"
     },
     {
       "id": "vba_modcarte_detectenseigne",
       "label": "DetectEnseigne",
       "file_type": "code",
       "source_file": "vba/modCarte.bas",
-      "source_location": 1427
+      "source_location": "1453-1472"
     },
     {
       "id": "vba_modcarte_formatvillec",
@@ -19649,14 +19649,14 @@
       "label": "HtmlHead",
       "file_type": "code",
       "source_file": "vba/modCarte.bas",
-      "source_location": 590
+      "source_location": "1599-1627"
     },
     {
       "id": "vba_modcarte_sticonjs",
       "label": "StIconJs",
       "file_type": "code",
       "source_file": "vba/modCarte.bas",
-      "source_location": 619
+      "source_location": "1632-1639"
     },
     {
       "id": "vba_modcarte_queryproximite",
@@ -19804,6 +19804,76 @@
       "file_type": "code",
       "source_file": "vba/modCarte.bas",
       "source_location": 1338
+    },
+    {
+      "id": "vba_modcarte_brandslugcolor",
+      "label": "BrandSlugColor",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": "1476-1495"
+    },
+    {
+      "id": "vba_modcarte_iconsdatauri",
+      "label": "IconDataUri",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": "1503-1517"
+    },
+    {
+      "id": "vba_modcarte_filetobase64",
+      "label": "FileToBase64",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": "1520-1535"
+    },
+    {
+      "id": "vba_modcarte_brandsdir",
+      "label": "BrandsDir",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": "1498-1500"
+    },
+    {
+      "id": "vba_modcarte_logosjs",
+      "label": "LogosJs",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": "1538-1556"
+    },
+    {
+      "id": "vba_modcarte_genererhtml carte",
+      "label": "GenererHtmlCarte",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": "1537-1596"
+    },
+    {
+      "id": "vba_modcarte_genererhtml proximite",
+      "label": "GenererHtmlProximite",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": "1021-1070"
+    },
+    {
+      "id": "vba_modcarte_genererhtml itineraire",
+      "label": "GenererHtmlItineraire",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": "1229-1281"
+    },
+    {
+      "id": "vba_modcarte_g_iconcache",
+      "label": "g_iconCache",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": "61"
+    },
+    {
+      "id": "vba_modcarte_regtest",
+      "label": "RegTest",
+      "file_type": "code",
+      "source_file": "vba/modCarte.bas",
+      "source_location": "1559-1568"
     }
   ],
   "links": [
@@ -55466,6 +55536,177 @@
       "relation": "references",
       "confidence": "INFERRED",
       "confidence_score": 0.85,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtml carte",
+      "target": "vba_modcarte_brandslugcolor",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtml carte",
+      "target": "vba_modcarte_logosjs",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtml carte",
+      "target": "vba_modcarte_sticonjs",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtml carte",
+      "target": "vba_modcarte_htmlhead",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtml proximite",
+      "target": "vba_modcarte_brandslugcolor",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtml proximite",
+      "target": "vba_modcarte_logosjs",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtml proximite",
+      "target": "vba_modcarte_sticonjs",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtml proximite",
+      "target": "vba_modcarte_htmlhead",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtml itineraire",
+      "target": "vba_modcarte_brandslugcolor",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtml itineraire",
+      "target": "vba_modcarte_logosjs",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtml itineraire",
+      "target": "vba_modcarte_sticonjs",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_genererhtml itineraire",
+      "target": "vba_modcarte_htmlhead",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_logosjs",
+      "target": "vba_modcarte_iconsdatauri",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_iconsdatauri",
+      "target": "vba_modcarte_filetobase64",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_iconsdatauri",
+      "target": "vba_modcarte_brandsdir",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_iconsdatauri",
+      "target": "vba_modcarte_g_iconcache",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_brandslugcolor",
+      "target": "vba_modcarte_regtest",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_resolveenseigne",
+      "target": "vba_modcarte_regtest",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "vba/modCarte.bas",
+      "weight": 1.0
+    },
+    {
+      "source": "vba_modcarte_detectenseigne",
+      "target": "vba_modcarte_regtest",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
       "source_file": "vba/modCarte.bas",
       "weight": 1.0
     }

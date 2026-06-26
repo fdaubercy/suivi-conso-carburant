@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.22.3.0] — 2026-06-26
+
+### Changed
+- **Excel — marqueurs cartes avec logo d'enseigne** — les 3 cartes affichent desormais le LOGO de l'enseigne (badge blanc bordure couleur de marque + pastille prix coloree), comme l'app web, au lieu du pin goutte generique. Les SVG de `public/icons/brands/` sont embarques en data URI base64 (autonomes, hors-ligne). Slug + couleur detectes par marque (memes patterns/couleurs que `brand.js`), repli `generic.svg`. `vba/modCarte.bas`.
+
 ## [5.22.2.0] — 2026-06-26
 
 ### Added
