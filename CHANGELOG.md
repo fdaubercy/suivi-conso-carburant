@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.21.11.0] — 2026-06-26
+
+### Fixed
+- **Excel — `gPrice` : marqueurs supprimés sur les courbes de prix** — `AddChartXY` ne forçait pas `MarkerStyle = xlMarkerStyleNone` ; Excel affichait des points surdimensionnés sur les lignes. Ajout du flag dans la boucle `smooth`. `vba/modGraphiques.bas`.
+- **Excel — `gScatterE85` : scatter prix/conso réparé** — `SetSourceData` avec `PlotBy:=xlColumns` causait une double-interprétation des colonnes (deux séries distinctes au lieu de X/Y). Remplacement par affectation explicite `.XValues` / `.Values` (AP2:AP[n] = prix, AQ2:AQ[n] = conso, sans en-tête). Ajout d'un vidage des séries existantes, garde `nPts >= 3` pour la trendline, et axes non ancrés à 0 (`MinimumScaleIsAuto`). `vba/modGraphiques.bas`.
+
+## [5.21.10.0] — 2026-06-26
+
+### Changed
+- **Excel — ouverture silencieuse : onglet « Accueil » reste au 1er plan** — `Workbook_Open` gèle l'affichage (`ScreenUpdating=False`) et active « Accueil » **avant toute autre opération**, puis rétablit l'affichage avant le plein-écran. L'utilisateur ne voit plus les autres onglets défiler pendant le démarrage. `vba/ThisWorkbook.cls`.
+- **Excel — sélecteur « Vehicule » repositionné dans le bandeau bleu (lignes 2-3)** — nouvelle macro `SuiviVehicule_PositionnerDansBandeau` qui déplace le slicer « Vehicule » et les 2 boutons (*Analyse locale* / *Suivre le dashboard*) **à l'intérieur du bandeau bleu** (lignes 2-3 de l'onglet *Suivi Carburant*), à la place des cellules A3+B3. Les boutons sont repositionnés horizontalement à droite du slicer dans le même bandeau. `SuiviVehicule_EnsureBoutons` délègue désormais à cette nouvelle proc (idempotente). `vba/modSuiviVehicule.bas`.
+
 ## [5.21.9.0] — 2026-06-25
 
 ### Added

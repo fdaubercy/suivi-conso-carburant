@@ -19,6 +19,13 @@ Option Explicit
 ' ============================================================
 
 Private Sub Workbook_Open()
+    ' Afficher Accueil immediatement : l'utilisateur ne voit aucun autre onglet defiler
+    Application.ScreenUpdating = False
+    On Error Resume Next
+    ThisWorkbook.Sheets("Accueil").Activate
+    On Error GoTo 0
+    Application.ScreenUpdating = True
+
     Application.StatusBar = "Ouverture 1/6 : affichage plein ecran..."
     DoEvents
     Call ActiverPleinEcran

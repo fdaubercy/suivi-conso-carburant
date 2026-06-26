@@ -349,8 +349,8 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsd As Workshee
     wsd.Range("AJ1:AK1").value = Array("Plein n", "Cout c" & eu & "/km")
     ' X9 : economie cumulee E85 par date (AM=39, AN=40)
     wsd.Range("AM1:AN1").value = Array("Date", "Economie cumulee E85 (" & eu & ")")
-    ' X15 : scatter prix E85/L vs conso L/100 km (AP=42, AQ=43)
-    wsd.Range("AP1:AQ1").value = Array("Prix E85 " & eu & "/L", "Conso L/100 km")
+    ' X15 : conso E85 + prix par plein dans le temps (AP=42 date, AQ=43 conso, AR=44 prix)
+    wsd.Range("AP1:AR1").value = Array("Date", "Conso L/100 km", "Prix E85 " & eu & "/L")
 
     rMonth = 1: rPrice = 1: rConso = 1: rVeh = 1: rBudg = 1: rKit = 1: rCoutKm = 1
     rEcoDate = 1: rScatter = 1
@@ -466,11 +466,12 @@ Private Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsd As Workshee
                 wsd.Cells(rEco, 40).value = NumOr0(a(i, ciEcoCum)) ' AN : eco cumulee
             End If
         End If
-        ' X15 : scatter prix E85/L vs conso (AP=42, AQ=43) ? uniquement pleins E85
+        ' X15 : conso + prix E85 par plein dans le temps ? uniquement pleins E85
         If fk = "E85" And prix > 0 And conso > 0 Then
             rSc = rSc + 1
-            wsd.Cells(rSc, 42).value = prix  ' AP : prix E85 ?/L
-            wsd.Cells(rSc, 43).value = conso ' AQ : conso L/100 km
+            wsd.Cells(rSc, 42).value = d     ' AP : date
+            wsd.Cells(rSc, 43).value = conso ' AQ : conso L/100 km (barres)
+            wsd.Cells(rSc, 44).value = prix  ' AR : prix E85 ?/L (courbe)
         End If
 
         ' -- station preferee + KPIs (annee cible : B4 ou plus recente) --
@@ -740,6 +741,7 @@ Private Sub AddChartXY(ws As Worksheet, key As String, src As Range, typ As Long
             Dim si As Long
             For si = 1 To .SeriesCollection.count
                 .SeriesCollection(si).smooth = False
+                .SeriesCollection(si).MarkerStyle = xlMarkerStyleNone
             Next si
         End If
         On Error GoTo 0
@@ -964,38 +966,67 @@ Private Sub AddEcoCumDateChart(ws As Worksheet, key As String, wsd As Worksheet,
 End Sub
 
 ' X15 : scatter prix E85/L vs conso L/100 km (correlation prix/comportement)
+' X15 : conso E85 (barres vertes) + prix E85 (courbe ambre, axe secondaire) par
+' plein dans le temps. Combine lisible remplacant l'ancien nuage de points.
 Private Sub AddScatterE85Chart(ws As Worksheet, key As String, wsd As Worksheet, rSc As Long, _
                                L As Double, T As Double, w As Double, h As Double)
+    If rSc < 2 Then Exit Sub   ' pas assez de donnees
+    Dim nPts As Long: nPts = rSc - 1  ' lignes de donnees (hors en-tete ligne 1)
     Dim co As ChartObject
     Set co = EnsureChart(ws, key, L, T, w, h)
     With co.Chart
-        .ChartType = xlXYScatter
-        .SetSourceData Source:=wsd.Range("AP1").Resize(rSc, 2), PlotBy:=xlColumns
+        .ChartType = xlColumnClustered
+        ' Vider les series existantes
+        Do While .SeriesCollection.count > 0
+            .SeriesCollection(1).Delete
+        Loop
+
+        ' Serie 1 : conso L/100 km (barres vertes, axe principal)
+        Dim sConso As Series
+        Set sConso = .SeriesCollection.NewSeries
+        sConso.Name = "Conso L/100 km"
+        sConso.Values = wsd.Range("AQ2").Resize(nPts, 1)
+        sConso.XValues = wsd.Range("AP2").Resize(nPts, 1)
+        sConso.ChartType = xlColumnClustered
+        sConso.Format.fill.ForeColor.RGB = C_E85
+
+        ' Serie 2 : prix E85 (courbe ambre, axe secondaire)
+        Dim sPrix As Series
+        Set sPrix = .SeriesCollection.NewSeries
+        sPrix.Name = "Prix E85 " & ChrW(8364) & "/L"
+        sPrix.Values = wsd.Range("AR2").Resize(nPts, 1)
+        sPrix.XValues = wsd.Range("AP2").Resize(nPts, 1)
+        sPrix.ChartType = xlLine
+        sPrix.AxisGroup = xlSecondary
+        sPrix.Format.Line.ForeColor.RGB = C_OBJ
+        sPrix.Format.Line.Weight = 2
+        sPrix.MarkerStyle = xlMarkerStyleNone
+
         .HasTitle = True
-        .ChartTitle.text = "Prix E85 (" & ChrW(8364) & "/L) vs Conso (L/100 km)"
+        .ChartTitle.text = "Conso & prix E85 par plein"
         .ChartTitle.Font.Size = 11: .ChartTitle.Font.bold = True
-        .HasLegend = False
+        .HasLegend = True
+        .Legend.Position = xlLegendPositionBottom
+
         On Error Resume Next
-        With .SeriesCollection(1)
-            .MarkerStyle = xlMarkerStyleCircle
-            .MarkerSize = 5
-            .Format.fill.ForeColor.RGB = C_E85
-            .Format.Line.visible = msoFalse
-            ' tendance lineaire : montre la correlation
-            Dim tl As Trendline
-            Set tl = .Trendlines.Add(Type:=xlLinear, DisplayEquation:=False, DisplayRSquared:=False)
-            tl.Format.Line.ForeColor.RGB = C_OBJ
-            tl.Format.Line.DashStyle = msoLineDash
-        End With
+        ' Axe X : dates
         With .Axes(xlCategory)
-            .HasTitle = True
-            .AxisTitle.text = "Prix E85 " & ChrW(8364) & "/L"
-            .AxisTitle.Font.Size = 9
+            .TickLabels.NumberFormat = "mmm aa"
+            .TickLabels.Font.Size = 8
         End With
-        With .Axes(xlValue)
+        ' Axe principal (conso L/100 km)
+        With .Axes(xlValue, xlPrimary)
             .HasTitle = True
             .AxisTitle.text = "L/100 km"
             .AxisTitle.Font.Size = 9
+            .MinimumScaleIsAuto = True
+        End With
+        ' Axe secondaire (prix)
+        With .Axes(xlValue, xlSecondary)
+            .HasTitle = True
+            .AxisTitle.text = ChrW(8364) & "/L"
+            .AxisTitle.Font.Size = 9
+            .MinimumScaleIsAuto = True
         End With
         .ChartArea.Border.LineStyle = xlNone
         On Error GoTo 0
