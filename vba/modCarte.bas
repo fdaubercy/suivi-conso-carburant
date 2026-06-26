@@ -29,6 +29,7 @@ Private Const WS_DATA   As String = "GS_Pleins"
 Private Const PRIX_API  As String = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records"
 Private Const FAVORITE_MIN As Long = 4
 Private Const TILE_SZ   As Long = 256
+Private Const OSRM_API  As String = "https://router.project-osrm.org/route/v1/driving/"
 
 ' Colonnes GS_Pleins (1-based)
 Private Const COL_TYPE    As Long = 3
@@ -116,12 +117,51 @@ Public Sub CreerFeuilleCarte()
         .Borders.Color = RGB(209, 213, 219)
     End With
 
+    ' Rayon de recherche (vue proximite)
+    ws.Cells(5, 2).Value = "Rayon proximite (km)"
+    ws.Cells(5, 2).Font.Bold = True
+    With ws.Cells(5, 3)
+        .Name = "Carte_Rayon"
+        If Not IsNumeric(.Value) Then .Value = 15
+        .Interior.Color = RGB(243, 244, 246)
+        .HorizontalAlignment = xlCenter
+        .Borders.LineStyle = xlContinuous
+        .Borders.Color = RGB(209, 213, 219)
+        On Error Resume Next
+        .Validation.Delete
+        .Validation.Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:="5,10,15,20"
+        .Validation.InCellDropdown = True
+        On Error GoTo ErrH
+    End With
+
+    ' Itineraire : depart / arrivee
+    ws.Cells(6, 2).Value = "Itineraire - depart"
+    ws.Cells(6, 2).Font.Bold = True
+    With ws.Cells(6, 3)
+        .Name = "Carte_Depart"
+        .Interior.Color = RGB(243, 244, 246)
+        .HorizontalAlignment = xlLeft
+        .Borders.LineStyle = xlContinuous
+        .Borders.Color = RGB(209, 213, 219)
+    End With
+    ws.Cells(7, 2).Value = "Itineraire - arrivee"
+    ws.Cells(7, 2).Font.Bold = True
+    With ws.Cells(7, 3)
+        .Name = "Carte_Arrivee"
+        .Interior.Color = RGB(243, 244, 246)
+        .HorizontalAlignment = xlLeft
+        .Borders.LineStyle = xlContinuous
+        .Borders.Color = RGB(209, 213, 219)
+    End With
+
     ' Boutons
     Dim L As Single: L = ws.Cells(3, 8).Left
     Dim T As Single: T = ws.Cells(3, 8).Top
     AddButton ws, "btnCarte1", L, T, "Ouvrir la carte (navigateur)", "OuvrirCarteNavigateur", RGB(217, 119, 6)
     AddButton ws, "btnCarte2", L, T + 30, "Geocoder + Actualiser", "RafraichirCarte", RGB(46, 117, 182)
     AddButton ws, "btnCarte3", L, T + 60, "Accueil", "NavAccueil", RGB(75, 85, 99)
+    AddButton ws, "btnCarte4", L, T + 90, "Stations a proximite", "CarteProximite", RGB(29, 158, 117)
+    AddButton ws, "btnCarte5", L, T + 120, "Carte itineraire", "CarteItineraire", RGB(46, 117, 182)
 
     RafraichirCarte
 
@@ -446,15 +486,15 @@ End Sub
 '  TABLEAU PRIX MOYENS
 ' ============================================================
 Private Sub RenderTable(ws As Worksheet)
-    ws.Range("B5:F100000").Clear
+    ws.Range("B9:F100000").Clear
 
-    ws.Cells(5, 2).Value = "Stations " & CurrentFuelShort() & " habituelles"
-    ws.Cells(5, 2).Font.Bold = True: ws.Cells(5, 2).Font.Color = RGB(27, 58, 92)
+    ws.Cells(9, 2).Value = "Stations " & CurrentFuelShort() & " habituelles"
+    ws.Cells(9, 2).Font.Bold = True: ws.Cells(9, 2).Font.Color = RGB(27, 58, 92)
 
     Dim hdr As Variant: hdr = Array("Station", "Prix moyen", "Pleins", "Coord.", "")
     Dim c As Long
     For c = 0 To 3
-        With ws.Cells(6, 2 + c)
+        With ws.Cells(10, 2 + c)
             .Value = hdr(c)
             .Font.Bold = True: .Font.Color = vbWhite
             .Interior.Color = RGB(217, 119, 6)
@@ -463,14 +503,14 @@ Private Sub RenderTable(ws As Worksheet)
     Next c
 
     If g_n = 0 Then
-        ws.Cells(7, 2).Value = "Aucun plein " & CurrentFuelShort() & " enregistre."
+        ws.Cells(11, 2).Value = "Aucun plein " & CurrentFuelShort() & " enregistre."
         Exit Sub
     End If
 
     Dim minAvg As Double: minAvg = g_st(1).avg     ' g_st trie par prix
     Dim i As Long, rr As Long
     For i = 1 To g_n
-        rr = 6 + i
+        rr = 10 + i
         Dim label As String: label = g_st(i).name
         If g_st(i).count >= FAVORITE_MIN Then label = Emo(&H2B50&) & " " & label   ' etoile favori
         ws.Cells(rr, 2).Value = label
@@ -867,6 +907,465 @@ Private Sub AddButton(ws As Worksheet, nm As String, L As Single, T As Single, _
         .OnAction = macro
     End With
 End Sub
+
+' ============================================================
+'  VUE 1 - CARTE A PROXIMITE
+' ============================================================
+Public Sub CarteProximite()
+    Dim html As String, path As String
+    On Error GoTo ErrH
+
+    g_userHas = ResolveUserPos(g_userLat, g_userLon)
+    If Not g_userHas Then
+        SetStatus "[Carte] " & ChrW(9888) & " Renseignez 'Ma position' (lat;lon ou ville) avant la recherche de proximite."
+        Exit Sub
+    End If
+
+    Dim rayonKm As Double: rayonKm = ReadRayonKm()
+    Dim rayonM As Double: rayonM = rayonKm * 1000#
+
+    Dim fuelKey As String: fuelKey = CurrentFuelKey()
+    Dim field As String: field = FuelApiField(fuelKey)
+
+    Dim res() As StAvg, nb As Long
+    nb = QueryProximite(field, g_userLon, g_userLat, rayonM, res)
+    If nb = 0 Then
+        SetStatus "[Carte] " & ChrW(9888) & " Aucune station " & CurrentFuelShort() & _
+                  " dans un rayon de " & Format$(rayonKm, "0") & " km."
+        Exit Sub
+    End If
+
+    html = GenererHtmlProximite(res, nb, CurrentFuelShort(), rayonKm, rayonM)
+    path = Environ$("TEMP") & "\suivi_carte_proximite.html"
+    EcrireUtf8 path, html
+    Shell "explorer.exe """ & path & """", vbNormalFocus
+    SetStatus "[Carte] " & ChrW(10003) & " " & nb & " stations " & CurrentFuelShort() & _
+              " a proximite (rayon " & Format$(rayonKm, "0") & " km)."
+    Exit Sub
+ErrH:
+    SetStatus "[Carte] " & ChrW(9888) & " Erreur proximite " & Err.Number & " : " & Err.Description
+End Sub
+
+
+Private Function QueryProximite(field As String, lon As Double, lat As Double, _
+                                rayonM As Double, ByRef res() As StAvg) As Long
+    On Error GoTo Fail
+    Dim whereClause As String, sel As String, url As String, resp As String
+    whereClause = "(" & field & " is not null) and distance(geom, geom'POINT(" & _
+                  JsNum(lon) & " " & JsNum(lat) & ")', " & Format$(rayonM, "0") & "m)"
+    sel = "adresse,ville,cp,geom," & field
+    url = PRIX_API & "?where=" & Application.WorksheetFunction.EncodeURL(whereClause) & _
+          "&select=" & Application.WorksheetFunction.EncodeURL(sel) & "&limit=50"
+
+    Dim http As Object: Set http = CreateObject("WinHttp.WinHttpRequest.5.1")
+    http.SetTimeouts 5000, 10000, 15000, 15000
+    http.Open "GET", url, False
+    http.Send
+    If http.Status <> 200 Then GoTo Fail
+    resp = http.ResponseText
+
+    QueryProximite = ParseRecords(resp, field, res)
+    If QueryProximite > 0 Then SortByPrice res, QueryProximite
+    Exit Function
+Fail:
+    QueryProximite = 0
+End Function
+
+
+Private Function GenererHtmlProximite(res() As StAvg, nb As Long, titre As String, _
+                                      rayonKm As Double, rayonM As Double) As String
+    Dim pts As String, i As Long
+    For i = 1 To nb
+        Dim dk As Double: dk = HaversineKm(g_userLat, g_userLon, res(i).lat, res(i).lon)
+        Dim med As String: med = ""
+        If i = 1 Then
+            med = Emo(&H1F947&)
+        ElseIf i = 2 Then
+            med = Emo(&H1F948&)
+        ElseIf i = 3 Then
+            med = Emo(&H1F949&)
+        End If
+        If pts <> "" Then pts = pts & ","
+        pts = pts & "[" & JsNum(res(i).lat) & "," & JsNum(res(i).lon) & ",""" & _
+              EscJs(res(i).name) & """,""" & PrixStr(res(i).avg) & """,""" & _
+              JsNum(dk) & """,""" & EscJs(med) & """]"
+    Next i
+
+    Dim h As String
+    h = "<!doctype html><html><head><meta charset='utf-8'>" & _
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>" & _
+        "<title>Stations " & EscHtml(titre) & " a proximite</title>" & _
+        "<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'>" & _
+        "<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>" & _
+        "<style>html,body{margin:0;height:100%}#map{height:100%}" & _
+        ".ttl{position:absolute;z-index:1000;top:8px;left:54px;background:#1D9E75;color:#fff;" & _
+        "padding:6px 12px;border-radius:8px;font:700 14px Segoe UI,Arial}" & _
+        ".pr{background:#1D9E75;color:#fff;border:0;border-radius:8px;font-weight:700;padding:2px 6px}" & _
+        ".pr:before{display:none}" & _
+        ".me{width:18px;height:18px;background:#2A7FFF;border:3px solid #fff;border-radius:50%;" & _
+        "box-shadow:0 0 0 rgba(42,127,255,.5);animation:mepulse 2s infinite}" & _
+        "@keyframes mepulse{0%{box-shadow:0 0 0 0 rgba(42,127,255,.5)}" & _
+        "70%{box-shadow:0 0 0 16px rgba(42,127,255,0)}100%{box-shadow:0 0 0 0 rgba(42,127,255,0)}}" & _
+        "</style></head>"
+    h = h & "<body><div class='ttl'>" & Emo(&H26FD&) & " Stations " & EscHtml(titre) & _
+        " a proximite (" & Format$(rayonKm, "0") & " km)</div>" & _
+        "<div id='map'></div><script>" & _
+        "var pts=[" & pts & "];" & _
+        "var u=[" & JsNum(g_userLat) & "," & JsNum(g_userLon) & "];" & _
+        "var map=L.map('map');" & _
+        "L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png'," & _
+        "{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);" & _
+        "var meIcon=L.divIcon({className:'me',iconSize:[18,18],iconAnchor:[9,9]});" & _
+        "L.circle(u,{radius:" & JsNum(rayonM) & ",color:'#2E75B6',weight:2,fillOpacity:0.05}).addTo(map);" & _
+        "var b=[u];pts.forEach(function(p){" & _
+        "var mk=L.marker([p[0],p[1]]).addTo(map);" & _
+        "var lab=(p[5]?p[5]+' ':'')+p[3]+' EUR/L';" & _
+        "mk.bindTooltip(lab,{permanent:true,direction:'top',className:'pr',offset:[0,-6]});"
+    h = h & "mk.bindPopup('<b>'+(p[5]?p[5]+' ':'')+p[2]+'</b><br>'+p[3]+' EUR/L<br>'+p[4]+' km<br>'+" & _
+        "'<a href=""https://www.google.com/maps/dir/?api=1&destination='+p[0]+','+p[1]+'"" target=""_blank"">Google Maps</a> &middot; '+" & _
+        "'<a href=""https://waze.com/ul?ll='+p[0]+','+p[1]+'&navigate=yes"" target=""_blank"">Waze</a>');" & _
+        "b.push([p[0],p[1]]);});" & _
+        "L.marker(u,{icon:meIcon,zIndexOffset:1000}).addTo(map).bindPopup('Votre position');" & _
+        "map.fitBounds(b,{padding:[60,60]});" & _
+        "</script></body></html>"
+    GenererHtmlProximite = h
+End Function
+
+
+' ============================================================
+'  VUE 2 - CARTE ITINERAIRE
+' ============================================================
+Public Sub CarteItineraire()
+    Dim html As String, path As String
+    On Error GoTo ErrH
+
+    Dim dep As String, arr As String
+    dep = Trim$(CStr(ReadName("Carte_Depart")))
+    arr = Trim$(CStr(ReadName("Carte_Arrivee")))
+    If dep = "" Or arr = "" Then
+        SetStatus "[Carte] " & ChrW(9888) & " Renseignez le depart ET l'arrivee de l'itineraire."
+        Exit Sub
+    End If
+
+    Dim lat1 As Double, lon1 As Double, lat2 As Double, lon2 As Double
+    If Not GeocodeAdresse(dep, lat1, lon1) Then
+        SetStatus "[Carte] " & ChrW(9888) & " Depart introuvable : " & dep
+        Exit Sub
+    End If
+    If Not GeocodeAdresse(arr, lat2, lon2) Then
+        SetStatus "[Carte] " & ChrW(9888) & " Arrivee introuvable : " & arr
+        Exit Sub
+    End If
+
+    Dim rLats() As Double, rLons() As Double, nPoly As Long
+    nPoly = OsrmRoute(lon1, lat1, lon2, lat2, rLats, rLons)
+    If nPoly = 0 Then
+        SetStatus "[Carte] " & ChrW(9888) & " Itineraire OSRM indisponible (reseau ?)."
+        Exit Sub
+    End If
+
+    Dim fuelKey As String: fuelKey = CurrentFuelKey()
+    Dim field As String: field = FuelApiField(fuelKey)
+
+    Dim res() As StAvg, nb As Long
+    nb = QueryItineraire(field, rLats, rLons, nPoly, res)
+
+    html = GenererHtmlItineraire(res, nb, CurrentFuelShort(), dep, arr, _
+                                 rLats, rLons, nPoly, lat1, lon1, lat2, lon2)
+    path = Environ$("TEMP") & "\suivi_carte_itineraire.html"
+    EcrireUtf8 path, html
+    Shell "explorer.exe """ & path & """", vbNormalFocus
+    SetStatus "[Carte] " & ChrW(10003) & " Itineraire " & dep & " -> " & arr & _
+              " : " & nb & " stations " & CurrentFuelShort() & " le long du trajet."
+    Exit Sub
+ErrH:
+    SetStatus "[Carte] " & ChrW(9888) & " Erreur itineraire " & Err.Number & " : " & Err.Description
+End Sub
+
+
+Private Function OsrmRoute(lon1 As Double, lat1 As Double, lon2 As Double, lat2 As Double, _
+                           ByRef rLats() As Double, ByRef rLons() As Double) As Long
+    On Error GoTo Fail
+    Dim url As String, resp As String
+    url = OSRM_API & JsNum(lon1) & "," & JsNum(lat1) & ";" & _
+          JsNum(lon2) & "," & JsNum(lat2) & "?overview=full&geometries=geojson"
+
+    Dim http As Object: Set http = CreateObject("WinHttp.WinHttpRequest.5.1")
+    http.SetTimeouts 5000, 10000, 20000, 20000
+    http.Open "GET", url, False
+    http.Send
+    If http.Status <> 200 Then GoTo Fail
+    resp = http.ResponseText
+
+    Dim p As Long, q As Long, blob As String
+    p = InStr(resp, """coordinates""")
+    If p = 0 Then GoTo Fail
+    p = InStr(p, resp, "[")
+    If p = 0 Then GoTo Fail
+    q = InStr(p, resp, "]]")
+    If q = 0 Then GoTo Fail
+    blob = Mid$(resp, p, q - p + 2)
+
+    Dim re As Object: Set re = CreateObject("VBScript.RegExp")
+    re.Global = True
+    re.Pattern = "\[\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*\]"
+    Dim mm As Object: Set mm = re.Execute(blob)
+    Dim n As Long: n = mm.Count
+    If n = 0 Then GoTo Fail
+
+    ReDim rLats(1 To n): ReDim rLons(1 To n)
+    Dim i As Long
+    For i = 0 To n - 1
+        rLons(i + 1) = CDbl(Replace(mm(i).SubMatches(0), ".", DecSep()))
+        rLats(i + 1) = CDbl(Replace(mm(i).SubMatches(1), ".", DecSep()))
+    Next i
+    OsrmRoute = n
+    Exit Function
+Fail:
+    OsrmRoute = 0
+End Function
+
+
+Private Function QueryItineraire(field As String, rLats() As Double, rLons() As Double, _
+                                 nPoly As Long, ByRef res() As StAvg) As Long
+    On Error GoTo Fail
+    Dim dseen As Object: Set dseen = CreateObject("Scripting.Dictionary")
+    Dim acc() As StAvg, accN As Long: accN = 0
+    ReDim acc(1 To 60)
+
+    Dim fracs As Variant: fracs = Array(0#, 0.25, 0.5, 0.75, 1#)
+    Dim s As Long, idx As Long
+    For s = 0 To UBound(fracs)
+        idx = 1 + CLng(CDbl(fracs(s)) * (nPoly - 1))
+        If idx < 1 Then idx = 1
+        If idx > nPoly Then idx = nPoly
+
+        Dim tmp() As StAvg, k As Long
+        k = QueryAround(field, rLons(idx), rLats(idx), 5000#, tmp)
+        Dim j As Long
+        For j = 1 To k
+            Dim key As String: key = LCase$(tmp(j).name)
+            If Not dseen.Exists(key) Then
+                dseen(key) = 1
+                accN = accN + 1
+                If accN > UBound(acc) Then ReDim Preserve acc(1 To accN + 30)
+                acc(accN) = tmp(j)
+            End If
+        Next j
+    Next s
+
+    If accN = 0 Then QueryItineraire = 0: Exit Function
+    ReDim res(1 To accN)
+    For j = 1 To accN: res(j) = acc(j): Next j
+    SortByPrice res, accN
+    QueryItineraire = accN
+    Exit Function
+Fail:
+    QueryItineraire = 0
+End Function
+
+
+Private Function QueryAround(field As String, lon As Double, lat As Double, _
+                             rayonM As Double, ByRef res() As StAvg) As Long
+    On Error GoTo Fail
+    Dim whereClause As String, sel As String, url As String, resp As String
+    whereClause = "(" & field & " is not null) and distance(geom, geom'POINT(" & _
+                  JsNum(lon) & " " & JsNum(lat) & ")', " & Format$(rayonM, "0") & "m)"
+    sel = "adresse,ville,cp,geom," & field
+    url = PRIX_API & "?where=" & Application.WorksheetFunction.EncodeURL(whereClause) & _
+          "&select=" & Application.WorksheetFunction.EncodeURL(sel) & "&limit=10"
+
+    Dim http As Object: Set http = CreateObject("WinHttp.WinHttpRequest.5.1")
+    http.SetTimeouts 5000, 10000, 15000, 15000
+    http.Open "GET", url, False
+    http.Send
+    If http.Status <> 200 Then GoTo Fail
+    resp = http.ResponseText
+    QueryAround = ParseRecords(resp, field, res)
+    Exit Function
+Fail:
+    QueryAround = 0
+End Function
+
+
+Private Function GenererHtmlItineraire(res() As StAvg, nb As Long, titre As String, _
+                                       dep As String, arr As String, _
+                                       rLats() As Double, rLons() As Double, nPoly As Long, _
+                                       lat1 As Double, lon1 As Double, _
+                                       lat2 As Double, lon2 As Double) As String
+    Dim poly As String, i As Long
+    For i = 1 To nPoly
+        If poly <> "" Then poly = poly & ","
+        poly = poly & "[" & JsNum(rLats(i)) & "," & JsNum(rLons(i)) & "]"
+    Next i
+
+    Dim pts As String
+    For i = 1 To nb
+        If pts <> "" Then pts = pts & ","
+        pts = pts & "[" & JsNum(res(i).lat) & "," & JsNum(res(i).lon) & ",""" & _
+              EscJs(res(i).name) & """,""" & PrixStr(res(i).avg) & """]"
+    Next i
+
+    Dim h As String
+    h = "<!doctype html><html><head><meta charset='utf-8'>" & _
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>" & _
+        "<title>Itineraire " & EscHtml(titre) & "</title>" & _
+        "<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'>" & _
+        "<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>" & _
+        "<style>html,body{margin:0;height:100%}#map{height:100%}" & _
+        ".ttl{position:absolute;z-index:1000;top:8px;left:54px;background:#1B3A5C;color:#fff;" & _
+        "padding:6px 12px;border-radius:8px;font:700 14px Segoe UI,Arial;max-width:60%}" & _
+        ".pr{background:#1B3A5C;color:#fff;border:0;border-radius:8px;font-weight:700;padding:2px 6px}" & _
+        ".pr:before{display:none}" & _
+        ".ep{width:16px;height:16px;border:3px solid #fff;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,.4)}" & _
+        ".dep{background:#1D9E75}.arr{background:#D64545}" & _
+        "</style></head>"
+    h = h & "<body><div class='ttl'>" & Emo(&H1F6E3&) & " Itineraire " & EscHtml(dep) & _
+        " " & ChrW(8594) & " " & EscHtml(arr) & " - Stations " & EscHtml(titre) & "</div>" & _
+        "<div id='map'></div><script>" & _
+        "var poly=[" & poly & "];" & _
+        "var pts=[" & pts & "];" & _
+        "var d=[" & JsNum(lat1) & "," & JsNum(lon1) & "];" & _
+        "var a=[" & JsNum(lat2) & "," & JsNum(lon2) & "];" & _
+        "var map=L.map('map');" & _
+        "L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png'," & _
+        "{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);" & _
+        "var line=L.polyline(poly,{color:'#1B3A5C',weight:4}).addTo(map);" & _
+        "var depIcon=L.divIcon({className:'ep dep',iconSize:[16,16],iconAnchor:[8,8]});" & _
+        "var arrIcon=L.divIcon({className:'ep arr',iconSize:[16,16],iconAnchor:[8,8]});" & _
+        "L.marker(d,{icon:depIcon,zIndexOffset:1000}).addTo(map).bindPopup('Depart : " & EscJs(dep) & "');" & _
+        "L.marker(a,{icon:arrIcon,zIndexOffset:1000}).addTo(map).bindPopup('Arrivee : " & EscJs(arr) & "');"
+    h = h & "pts.forEach(function(p){" & _
+        "var mk=L.marker([p[0],p[1]]).addTo(map);" & _
+        "mk.bindTooltip(p[3]+' EUR/L',{permanent:true,direction:'top',className:'pr',offset:[0,-6]});" & _
+        "mk.bindPopup('<b>'+p[2]+'</b><br>'+p[3]+' EUR/L<br>'+" & _
+        "'<a href=""https://www.google.com/maps/dir/?api=1&destination='+p[0]+','+p[1]+'"" target=""_blank"">Google Maps</a> &middot; '+" & _
+        "'<a href=""https://waze.com/ul?ll='+p[0]+','+p[1]+'&navigate=yes"" target=""_blank"">Waze</a>');" & _
+        "});" & _
+        "map.fitBounds(line.getBounds(),{padding:[60,60]});" & _
+        "</script></body></html>"
+    GenererHtmlItineraire = h
+End Function
+
+
+' ============================================================
+'  HELPERS PARTAGES (proximite + itineraire)
+' ============================================================
+Private Function ParseRecords(resp As String, field As String, ByRef res() As StAvg) As Long
+    On Error GoTo Fail
+    Dim reG As Object: Set reG = CreateObject("VBScript.RegExp")
+    reG.Global = True
+    reG.Pattern = """lon""\s*:\s*(-?\d+\.?\d*)\s*,\s*""lat""\s*:\s*(-?\d+\.?\d*)"
+    Dim mG As Object: Set mG = reG.Execute(resp)
+
+    Dim reP As Object: Set reP = CreateObject("VBScript.RegExp")
+    reP.Global = True
+    reP.Pattern = """" & field & """\s*:\s*(\d+\.?\d*)"
+    Dim mP As Object: Set mP = reP.Execute(resp)
+
+    Dim reA As Object: Set reA = CreateObject("VBScript.RegExp")
+    reA.Global = True
+    reA.Pattern = """adresse""\s*:\s*""([^""]*)"""
+    Dim mA As Object: Set mA = reA.Execute(resp)
+
+    Dim reV As Object: Set reV = CreateObject("VBScript.RegExp")
+    reV.Global = True
+    reV.Pattern = """ville""\s*:\s*""([^""]*)"""
+    Dim mV As Object: Set mV = reV.Execute(resp)
+
+    Dim n As Long: n = mG.Count
+    If n = 0 Then GoTo Fail
+
+    ReDim res(1 To n)
+    Dim i As Long, valid As Long: valid = 0
+    For i = 0 To n - 1
+        Dim prix As Double: prix = 0
+        If i < mP.Count Then prix = CDbl(Replace(mP(i).SubMatches(0), ".", DecSep()))
+        If prix <= 0 Then GoTo NextI2
+        valid = valid + 1
+        res(valid).lon = CDbl(Replace(mG(i).SubMatches(0), ".", DecSep()))
+        res(valid).lat = CDbl(Replace(mG(i).SubMatches(1), ".", DecSep()))
+        res(valid).avg = prix
+        res(valid).hasCoord = True
+        res(valid).count = 1
+        Dim ad As String, vl As String
+        ad = "": vl = ""
+        If i < mA.Count Then ad = mA(i).SubMatches(0)
+        If i < mV.Count Then vl = mV(i).SubMatches(0)
+        res(valid).name = Trim$(ad & IIf(ad <> "" And vl <> "", " - ", "") & vl)
+        If res(valid).name = "" Then res(valid).name = "Station"
+NextI2:
+    Next i
+    If valid = 0 Then GoTo Fail
+    If valid < n Then ReDim Preserve res(1 To valid)
+    ParseRecords = valid
+    Exit Function
+Fail:
+    ParseRecords = 0
+End Function
+
+
+Private Sub SortByPrice(ByRef a() As StAvg, nb As Long)
+    Dim i As Long, j As Long, tmp As StAvg
+    For i = 2 To nb
+        tmp = a(i): j = i - 1
+        Do While j >= 1
+            If a(j).avg <= tmp.avg Then Exit Do
+            a(j + 1) = a(j): j = j - 1
+        Loop
+        a(j + 1) = tmp
+    Next i
+End Sub
+
+
+Private Function FuelApiField(fuelKey As String) As String
+    Select Case fuelKey
+        Case "GAZOLE": FuelApiField = "gazole_prix"
+        Case "SP98":   FuelApiField = "sp98_prix"
+        Case Else:     FuelApiField = "e85_prix"
+    End Select
+End Function
+
+
+Private Function HaversineKm(ByVal lat1 As Double, ByVal lon1 As Double, _
+                             ByVal lat2 As Double, ByVal lon2 As Double) As Double
+    Const R As Double = 6371#
+    Const PI As Double = 3.14159265358979
+    Dim rlat1 As Double, rlat2 As Double, dLat As Double, dLon As Double, aa As Double
+    rlat1 = lat1 * PI / 180
+    rlat2 = lat2 * PI / 180
+    dLat = (lat2 - lat1) * PI / 180
+    dLon = (lon2 - lon1) * PI / 180
+    aa = Sin(dLat / 2) * Sin(dLat / 2) + _
+         Cos(rlat1) * Cos(rlat2) * Sin(dLon / 2) * Sin(dLon / 2)
+    Dim c As Double
+    c = 2 * Atn2Sqrt(aa)
+    HaversineKm = Int(R * c * 10 + 0.5) / 10
+End Function
+
+
+Private Function Atn2Sqrt(ByVal aa As Double) As Double
+    Dim y As Double, x As Double
+    y = Sqr(aa)
+    x = Sqr(1 - aa)
+    If x = 0 Then
+        Atn2Sqrt = 1.5707963267949
+    Else
+        Atn2Sqrt = Atn(y / x)
+    End If
+End Function
+
+
+Private Function ReadRayonKm() As Double
+    Dim v As Variant: v = ReadName("Carte_Rayon")
+    If IsNumeric(v) Then
+        ReadRayonKm = CDbl(v)
+        If ReadRayonKm <= 0 Then ReadRayonKm = 15
+    Else
+        ReadRayonKm = 15
+    End If
+End Function
+
 
 Private Function Emo(ByVal cp As Long) As String
     If cp <= &HFFFF& Then

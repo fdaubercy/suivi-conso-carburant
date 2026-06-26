@@ -4,6 +4,13 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.22.0.0] — 2026-06-26
+
+### Added
+- **Excel — Carte a proximite** — nouveau bouton « Stations a proximite » : requete live API prix gouv (rayon 5/10/15/20 km configurable), carte Leaflet avec cercle de rayon, medailles TOP 3, distance haversine, popups Google Maps + Waze. `vba/modCarte.bas`.
+- **Excel — Carte itineraire** — nouveau bouton « Carte itineraire » : saisie depart/arrivee, trace OSRM (routage public), stations-service le long du trajet (5 points echantillonnes, rayon 5 km), polyline + marqueurs prix sur carte Leaflet. `vba/modCarte.bas`.
+- **Excel — Controles feuille Carte** — cellules nommees `Carte_Rayon` (C5), `Carte_Depart` (C6), `Carte_Arrivee` (C7) + 2 boutons supplementaires. Tableau prix decale en ligne 9 pour eviter le chevauchement.
+
 ## [5.21.13.0] — 2026-06-26
 
 ### Changed
