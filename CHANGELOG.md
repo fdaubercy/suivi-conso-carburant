@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.22.9.0] — 2026-06-27
+
+### Fixed
+- **Excel — logos de marqueurs rognés (« Intermarché » → « ermarc ») — CAUSE RACINE** — le vrai défaut derrière tous les retours « trop zoomé » : `.b-pin` est un conteneur **flex** et l'`<img>` (flex-item) avait `min-width:auto` par défaut → `width:100%` était ignoré, l'image prenait sa **largeur intrinsèque** et **débordait**, rognée par `overflow:hidden` (on ne voyait qu'un fragment central du logo). Visible uniquement dans un vrai navigateur (Chrome/Edge), pas dans les rendus isolés. Correctif : `min-width:0;min-height:0` sur `.b-pin img` → `object-fit:contain` contraint enfin l'image, les logos (wordmarks compris) s'affichent **en entier**. Vérifié dans Chrome installé (0 marqueur débordant / 19). `vba/modCarte.bas`.
+
 ## [5.22.8.0] — 2026-06-27
 
 ### Changed

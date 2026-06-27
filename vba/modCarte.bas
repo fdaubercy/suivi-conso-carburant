@@ -613,7 +613,7 @@ Private Function HtmlHead(titre As String) As String
         ".b-pin{width:30px;height:30px;background:#fff;border:2px solid #2E75B6;" & _
         "border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.3);overflow:hidden;" & _
         "display:flex;align-items:center;justify-content:center}" & _
-        ".b-pin img{width:100%;height:100%;object-fit:contain;padding:4px;" & _
+        ".b-pin img{width:100%;height:100%;min-width:0;min-height:0;object-fit:contain;padding:4px;" & _
         "box-sizing:border-box;display:block;pointer-events:none}" & _
         ".b-badge{background:#fff;color:#2E75B6;font:700 10px/1 Arial;padding:3px 6px;" & _
         "border-radius:7px;border:2px solid #2E75B6;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.3)}" & _
