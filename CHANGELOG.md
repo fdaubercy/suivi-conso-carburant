@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.22.7.0] — 2026-06-27
+
+### Changed
+- **Excel — encadré des marqueurs ajusté à la largeur du logo entier (wordmarks)** — sur retour utilisateur, les logos-texte (`total` rendu « TE », `intermarche`, `systeme-u`) restaient tassés/illisibles car la pastille était plafonnée à 58 px. Le plafond est retiré : la largeur de `.b-pin` épouse désormais le logo complet à hauteur compacte constante (`W = round(22·ratio) + 8`, hauteur 30 px inchangée) → le wordmark s'affiche en entier et lisible (`Intermarché` ~126 px, `Système U` ~77 px), les logos carrés (Carrefour/Leclerc/Auchan) restent à 30 px. Logos inchangés. `vba/modCarte.bas`.
+
 ## [5.22.6.0] — 2026-06-27
 
 ### Changed

@@ -636,7 +636,7 @@ Private Function StIconJs() As String
     StIconJs = "function stIcon(label,slug,color){" & _
         "var uri=LOGOS[slug]||LOGOS['generic'];" & _
         "var ar=(typeof LOGOS_AR!=='undefined'&&LOGOS_AR[slug])||1;" & _
-        "var W=30;if(ar>1.3){W=Math.min(Math.round(30*ar),58);}" & _
+        "var W=30;if(ar>1.3){W=Math.round(22*ar)+8;}" & _
         "var pin=uri?('<div class=""b-pin"" style=""border-color:'+color+';width:'+W+'px""><img src=""'+uri+'""></div>'):'';" & _
         "var hb=uri?' hb':'';var iw=Math.max(W,52);" & _
         "return L.divIcon({className:'',iconSize:[iw,54],iconAnchor:[iw/2,54]," & _
