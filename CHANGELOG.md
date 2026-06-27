@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.22.6.0] — 2026-06-27
+
+### Changed
+- **Excel — marqueurs de cartes plus compacts (moins « zoomés »)** — sur retour utilisateur, les marqueurs étaient trop gros (l'élargissement des wordmarks en v5.22.5.0 accentuait l'effet). Taille réduite ~21 % : pastille `.b-pin` 38→**30 px**, plafond d'élargissement wordmark 84→**58 px**, badge prix `font 12→10 px`/`padding 4×8→3×6`, `iconSize`/`iconAnchor` ajustés (66→54). Logos et prix restent lisibles ; marqueurs plus discrets sur la carte. Validé en prévisualisation Playwright (comparatif 3 tailles). `vba/modCarte.bas`.
+
 ## [5.22.5.0] — 2026-06-27
 
 ### Fixed

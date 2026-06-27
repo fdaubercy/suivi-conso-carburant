@@ -610,12 +610,12 @@ Private Function HtmlHead(titre As String) As String
         "padding:6px 12px;border-radius:8px;font:700 14px Segoe UI,Arial;max-width:60%}"
     HtmlHead = HtmlHead & _
         ".b-mk{display:flex;flex-direction:column;align-items:center;line-height:1}" & _
-        ".b-pin{width:38px;height:38px;background:#fff;border:2px solid #2E75B6;" & _
+        ".b-pin{width:30px;height:30px;background:#fff;border:2px solid #2E75B6;" & _
         "border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.3);overflow:hidden;" & _
         "display:flex;align-items:center;justify-content:center}" & _
         ".b-pin img{width:100%;height:100%;object-fit:contain;padding:4px;" & _
         "box-sizing:border-box;display:block;pointer-events:none}" & _
-        ".b-badge{background:#fff;color:#2E75B6;font:700 12px/1 Arial;padding:4px 8px;" & _
+        ".b-badge{background:#fff;color:#2E75B6;font:700 10px/1 Arial;padding:3px 6px;" & _
         "border-radius:7px;border:2px solid #2E75B6;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.3)}" & _
         ".b-badge.hb{border-radius:0 0 7px 7px;margin-top:-3px}" & _
         ".me{width:28px;height:28px;display:flex;align-items:center;justify-content:center;" & _
@@ -636,10 +636,10 @@ Private Function StIconJs() As String
     StIconJs = "function stIcon(label,slug,color){" & _
         "var uri=LOGOS[slug]||LOGOS['generic'];" & _
         "var ar=(typeof LOGOS_AR!=='undefined'&&LOGOS_AR[slug])||1;" & _
-        "var W=38;if(ar>1.3){W=Math.min(Math.round(38*ar),84);}" & _
+        "var W=30;if(ar>1.3){W=Math.min(Math.round(30*ar),58);}" & _
         "var pin=uri?('<div class=""b-pin"" style=""border-color:'+color+';width:'+W+'px""><img src=""'+uri+'""></div>'):'';" & _
-        "var hb=uri?' hb':'';var iw=Math.max(W,60);" & _
-        "return L.divIcon({className:'',iconSize:[iw,66],iconAnchor:[iw/2,66]," & _
+        "var hb=uri?' hb':'';var iw=Math.max(W,52);" & _
+        "return L.divIcon({className:'',iconSize:[iw,54],iconAnchor:[iw/2,54]," & _
         "html:'<div class=""b-mk"">'+pin+'<span class=""b-badge""'+hb+' style=""color:'+color+';border-color:'+color+'"">'+label+'</span></div>'});}"
 End Function
 
