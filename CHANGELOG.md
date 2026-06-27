@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.22.8.0] — 2026-06-27
+
+### Changed
+- **Excel — plafond de largeur sur les marqueurs très larges (Intermarché)** — sur retour utilisateur, Intermarché (ratio 5.4:1) restait trop large/« zoomé » en pleine largeur (~126 px). Ajout d'un plafond de largeur 72 px : au-delà, la largeur est bornée à 72 px et la **hauteur réduite proportionnellement** (`H = round(64/ratio)+8`) pour que l'encadré continue d'épouser le logo entier (pas de bord vide). Intermarché → 72×20, Système U → 72×28 ; logos plus étroits (Total, Carrefour…) inchangés. `vba/modCarte.bas`.
+
 ## [5.22.7.0] — 2026-06-27
 
 ### Changed

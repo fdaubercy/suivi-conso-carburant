@@ -120,6 +120,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.22.8.0 | **Excel — Plafond largeur marqueurs très larges (X59f)** — Intermarché (5.4:1) trop large en pleine largeur : plafond 72 px + hauteur réduite proportionnellement (`H=round(64/ratio)+8`) → l'encadré épouse toujours le logo, mais borné (Intermarché 72×20, Système U 72×28). `vba/modCarte.bas`. |
 | v5.22.7.0 | **Excel — Encadré marqueur ajusté à la largeur du logo (X59e)** — sur retour utilisateur, plafond 58 px retiré : la pastille épouse le logo-texte complet à hauteur compacte (`W = round(22·ratio)+8`, hauteur 30). `Intermarché`/`Système U`/`Total` affichés en entier et lisibles ; logos carrés inchangés. Logos non modifiés. `vba/modCarte.bas`. |
 | v5.22.6.0 | **Excel — Marqueurs de cartes plus compacts (X59d)** — sur retour utilisateur (« trop zoomés »), taille réduite ~21 % : `.b-pin` 38→30 px, plafond wordmark 84→58 px, badge 12→10 px, `iconSize` 66→54. Logos/prix lisibles, marqueurs discrets. Validé en préview Playwright. `vba/modCarte.bas`. |
 | v5.22.5.0 | **Excel — Logos wordmark lisibles sur les marqueurs (X59c)** — les logos très larges (`intermarche` 5.4:1, `systeme-u` 3.2:1) écrasés dans le carré 38 px → pastille `.b-pin` élargie selon le ratio du SVG (`W = min(38·ratio, 84)` si ratio > 1.3). Nouveau `SvgAspect` (viewBox/width-height, cache `g_arCache`) + map `LOGOS_AR` lue par `stIcon`. Les SVG sans `viewBox` (`shell`, `eni`) ne rognent plus. `vba/modCarte.bas`. |
