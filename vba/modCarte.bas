@@ -60,6 +60,8 @@ Private g_userLon As Double
 
 ' Cache des icones de marque (slug -> data URI base64), rempli a la demande.
 Private g_iconCache As Object
+' Cache des ratios largeur/hauteur des SVG d'enseigne (slug -> Double).
+Private g_arCache As Object
 
 
 ' ============================================================
@@ -633,9 +635,11 @@ End Function
 Private Function StIconJs() As String
     StIconJs = "function stIcon(label,slug,color){" & _
         "var uri=LOGOS[slug]||LOGOS['generic'];" & _
-        "var pin=uri?('<div class=""b-pin"" style=""border-color:'+color+'""><img src=""'+uri+'""></div>'):'';" & _
-        "var hb=uri?' hb':'';" & _
-        "return L.divIcon({className:'',iconSize:[60,66],iconAnchor:[30,66]," & _
+        "var ar=(typeof LOGOS_AR!=='undefined'&&LOGOS_AR[slug])||1;" & _
+        "var W=38;if(ar>1.3){W=Math.min(Math.round(38*ar),84);}" & _
+        "var pin=uri?('<div class=""b-pin"" style=""border-color:'+color+';width:'+W+'px""><img src=""'+uri+'""></div>'):'';" & _
+        "var hb=uri?' hb':'';var iw=Math.max(W,60);" & _
+        "return L.divIcon({className:'',iconSize:[iw,66],iconAnchor:[iw/2,66]," & _
         "html:'<div class=""b-mk"">'+pin+'<span class=""b-badge""'+hb+' style=""color:'+color+';border-color:'+color+'"">'+label+'</span></div>'});}"
 End Function
 
@@ -1659,23 +1663,85 @@ End Function
 
 ' Construit le JS "var LOGOS={slug:'datauri',...};" pour les slugs d'un Dictionary.
 Private Function LogosJs(slugs As Object) As String
-    Dim js As String, k As Variant, sep As String
-    js = "var LOGOS={"
+    Dim js As String, ar As String, k As Variant, sep As String
+    js = "var LOGOS={": ar = "var LOGOS_AR={"
     sep = ""
     ' generic toujours present (repli).
     Dim gu As String: gu = IconDataUri("generic")
-    If gu <> "" Then js = js & "'generic':'" & gu & "'": sep = ","
+    If gu <> "" Then
+        js = js & "'generic':'" & gu & "'"
+        ar = ar & "'generic':" & SvgAspectStr("generic")
+        sep = ","
+    End If
     For Each k In slugs.keys
         If CStr(k) <> "" And CStr(k) <> "generic" Then
             Dim u As String: u = IconDataUri(CStr(k))
             If u <> "" Then
                 js = js & sep & "'" & CStr(k) & "':'" & u & "'"
+                ar = ar & sep & "'" & CStr(k) & "':" & SvgAspectStr(CStr(k))
                 sep = ","
             End If
         End If
     Next k
     js = js & "};"
-    LogosJs = js
+    ar = ar & "};"
+    ' LOGOS_AR : ratio largeur/hauteur du SVG -> StIconJs elargit la pastille
+    ' pour les logos "wordmark" larges (sinon ecrases/illisibles a 38px).
+    LogosJs = js & ar
+End Function
+
+' Ratio largeur/hauteur du SVG d'une enseigne, en chaine JS (point decimal).
+Private Function SvgAspectStr(slug As String) As String
+    SvgAspectStr = Replace(Format$(SvgAspect(slug), "0.###"), ",", ".")
+End Function
+
+' Lit le ratio largeur/hauteur du SVG (viewBox prioritaire, sinon width/height).
+' Defaut 1 (carre) si illisible. Mis en cache par slug.
+Private Function SvgAspect(slug As String) As Double
+    On Error GoTo Fail
+    SvgAspect = 1
+    If g_arCache Is Nothing Then Set g_arCache = CreateObject("Scripting.Dictionary")
+    If g_arCache.Exists(slug) Then SvgAspect = g_arCache(slug): Exit Function
+
+    Dim txt As String: txt = ReadTextFile(BrandsDir() & slug & ".svg")
+    If txt <> "" Then
+        Dim w As Double, h As Double
+        Dim re As Object: Set re = CreateObject("VBScript.RegExp")
+        re.IgnoreCase = True
+        re.Pattern = "viewBox\s*=\s*""\s*[-\d.]+\s+[-\d.]+\s+([\d.]+)\s+([\d.]+)"
+        Dim m As Object: Set m = re.Execute(txt)
+        If m.Count > 0 Then
+            w = CDbl(Replace(m(0).SubMatches(0), ".", DecSep()))
+            h = CDbl(Replace(m(0).SubMatches(1), ".", DecSep()))
+        Else
+            re.Pattern = "\bwidth\s*=\s*""([\d.]+)"
+            Dim mw As Object: Set mw = re.Execute(txt)
+            re.Pattern = "\bheight\s*=\s*""([\d.]+)"
+            Dim mh As Object: Set mh = re.Execute(txt)
+            If mw.Count > 0 And mh.Count > 0 Then
+                w = CDbl(Replace(mw(0).SubMatches(0), ".", DecSep()))
+                h = CDbl(Replace(mh(0).SubMatches(0), ".", DecSep()))
+            End If
+        End If
+        If w > 0 And h > 0 Then SvgAspect = w / h
+    End If
+    g_arCache(slug) = SvgAspect
+    Exit Function
+Fail:
+    SvgAspect = 1
+End Function
+
+' Lit un fichier texte (UTF-8) en chaine. "" si echec.
+Private Function ReadTextFile(path As String) As String
+    On Error GoTo Fail
+    Dim st As Object: Set st = CreateObject("ADODB.Stream")
+    st.Type = 2: st.Charset = "utf-8": st.Open
+    st.LoadFromFile path
+    ReadTextFile = st.ReadText
+    st.Close
+    Exit Function
+Fail:
+    ReadTextFile = ""
 End Function
 
 ' RegExp test (insensible a la casse).

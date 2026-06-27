@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.22.5.0] — 2026-06-27
+
+### Fixed
+- **Excel — logos de marqueurs « wordmark » trop zoomés/illisibles sur les cartes** — les logos très larges (`intermarche` ratio 5.4:1, `systeme-u` 3.2:1) étaient écrasés dans le carré 38 px du marqueur (`object-fit:contain`) → bande illisible (marqueurs rouges « écrasés » signalés). La pastille `.b-pin` s'**élargit désormais selon le ratio largeur/hauteur du SVG** (`W = min(round(38·ratio), 84)` si ratio > 1.3) → un wordmark s'affiche dans une pastille horizontale lisible, un logo carré reste carré. Nouveau lecteur `SvgAspect` (viewBox prioritaire, sinon `width`/`height`, cache `g_arCache`) + map JS `LOGOS_AR` consommée par `stIcon` (`iconSize`/`iconAnchor` ajustés). Les SVG sans `viewBox` (`shell`, `eni`) ne sont plus à risque de rognage. `vba/modCarte.bas`.
+
 ## [5.22.4.0] — 2026-06-27
 
 ### Fixed
