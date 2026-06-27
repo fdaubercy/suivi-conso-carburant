@@ -48,6 +48,7 @@ Private Type StAvg
     lat      As Double
     lon      As Double
     hasCoord As Boolean
+    ville    As String
 End Type
 Private g_st() As StAvg
 Private g_n    As Long
@@ -981,6 +982,7 @@ Public Sub CarteProximite()
         Exit Sub
     End If
 
+    EnrichEnseignesOSM res, nb        ' enseigne reelle via OSM (logos + "Enseigne - Ville")
     html = GenererHtmlProximite(res, nb, CurrentFuelShort(), rayonKm, rayonM)
     path = Environ$("TEMP") & "\suivi_carte_proximite.html"
     EcrireUtf8 path, html
@@ -1107,6 +1109,7 @@ Public Sub CarteItineraire()
 
     Dim res() As StAvg, nb As Long
     nb = QueryItineraire(field, rLats, rLons, nPoly, res)
+    If nb > 0 Then EnrichEnseignesOSM res, nb   ' enseigne reelle via OSM (logos + nommage)
 
     html = GenererHtmlItineraire(res, nb, CurrentFuelShort(), dep, arr, _
                                  rLats, rLons, nPoly, lat1, lon1, lat2, lon2)
@@ -1182,7 +1185,9 @@ Private Function QueryItineraire(field As String, rLats() As Double, rLons() As 
         k = QueryAround(field, rLons(idx), rLats(idx), 5000#, tmp)
         Dim j As Long
         For j = 1 To k
-            Dim key As String: key = LCase$(tmp(j).name)
+            ' Dedup par COORDONNEES (le nommage "Station - Ville" pre-OSM fusionnerait
+            ' a tort des stations homonymes distinctes).
+            Dim key As String: key = Format$(tmp(j).lat, "0.0000") & "," & Format$(tmp(j).lon, "0.0000")
             If Not dseen.Exists(key) Then
                 dseen(key) = 1
                 accN = accN + 1
@@ -1323,9 +1328,12 @@ Private Function ParseRecords(resp As String, field As String, ByRef res() As St
         res(valid).count = 1
         Dim ad As String, vl As String
         ad = "": vl = ""
-        If i < mA.Count Then ad = mA(i).SubMatches(0)
-        If i < mV.Count Then vl = mV(i).SubMatches(0)
-        ' Protocole app : "enseigne - ville" (enseigne detectee depuis l'adresse).
+        If i < mA.Count Then ad = JsonUnescape(mA(i).SubMatches(0))
+        If i < mV.Count Then vl = JsonUnescape(mV(i).SubMatches(0))
+        ' Protocole app : "enseigne - ville". L'API ne fournit PAS la marque ->
+        ' enseigne approximee depuis l'adresse ici, AFFINEE ensuite via OSM
+        ' (EnrichEnseignesOSM). La ville est conservee pour ce renommage.
+        res(valid).ville = vl
         res(valid).name = ComposeName(ResolveEnseigne(ad), vl)
         If res(valid).name = "" Then res(valid).name = "Station"
 NextI2:
@@ -1493,6 +1501,121 @@ Private Sub BrandSlugColor(name As String, ByRef slug As String, ByRef color As 
     If RegTest(s, "\b" & ChrW(233) & "lan\b|\belan\b") Then slug = "elan": color = "#0066B3": Exit Sub
     If RegTest(s, "\bcolruyt\b") Then slug = "colruyt": color = "#E2001A": Exit Sub
 End Sub
+
+' ============================================================
+'  ENRICHISSEMENT ENSEIGNE via OSM/Overpass (comme enrichStationsBulk de l'app)
+' ============================================================
+' L'API prix-carburants ne fournit PAS la marque (que l'adresse = rue). On recupere
+' l'enseigne (brand > name > operator) du noeud `amenity=fuel` OSM le plus proche
+' (<= 300 m) via UNE requete Overpass groupee, et on renomme res().name en
+' "Enseigne - Ville" -> BrandSlugColor retrouve alors le logo. Repli silencieux
+' (noms inchanges) si Overpass echoue/timeout.
+Private Sub EnrichEnseignesOSM(ByRef res() As StAvg, nb As Long)
+    On Error GoTo Done
+    If nb < 1 Then Exit Sub
+    Const OVERPASS As String = "https://overpass-api.de/api/interpreter"
+    Const QRAD As String = "300"
+    Const MATCH_M As Double = 300#
+
+    Dim q As String, i As Long
+    q = "[out:json][timeout:25];("
+    For i = 1 To nb
+        q = q & "node(around:" & QRAD & "," & JsNum(res(i).lat) & "," & JsNum(res(i).lon) & ")[amenity=fuel];"
+        q = q & "way(around:" & QRAD & "," & JsNum(res(i).lat) & "," & JsNum(res(i).lon) & ")[amenity=fuel];"
+    Next i
+    q = q & ");out tags center;"
+
+    Dim http As Object: Set http = CreateObject("WinHttp.WinHttpRequest.5.1")
+    http.SetTimeouts 5000, 10000, 25000, 25000
+    http.Open "POST", OVERPASS, False
+    http.SetRequestHeader "Content-Type", "application/x-www-form-urlencoded"
+    ' Overpass renvoie 406 sans User-Agent explicite.
+    http.SetRequestHeader "User-Agent", "SuiviConsoCarburant/1.0 (Excel VBA; +github.com/fdaubercy)"
+    http.Send "data=" & Application.WorksheetFunction.EncodeURL(q)
+    If http.Status <> 200 Then Exit Sub
+    Dim resp As String: resp = http.ResponseText
+    If Len(resp) = 0 Then Exit Sub
+
+    ' Decoupe par element sur la cle "type" (Overpass renvoie du JSON INDENTE :
+    ' "{" et "type" sont separes par des espaces/sauts de ligne -> ne pas inclure "{").
+    Dim parts() As String: parts = Split(resp, """type""")
+    Dim ub As Long: ub = UBound(parts)
+    If ub < 1 Then Exit Sub
+    Dim oLat() As Double, oLon() As Double, oBr() As String
+    ReDim oLat(1 To ub): ReDim oLon(1 To ub): ReDim oBr(1 To ub)
+    Dim reLat As Object: Set reLat = CreateObject("VBScript.RegExp")
+    reLat.Pattern = """lat""\s*:\s*(-?\d+\.?\d*)"
+    Dim reLon As Object: Set reLon = CreateObject("VBScript.RegExp")
+    reLon.Pattern = """lon""\s*:\s*(-?\d+\.?\d*)"
+
+    Dim m As Long: m = 0
+    Dim k As Long
+    For k = 1 To ub
+        Dim blk As String: blk = parts(k)
+        Dim la As Object: Set la = reLat.Execute(blk)
+        Dim lo As Object: Set lo = reLon.Execute(blk)
+        If la.Count > 0 And lo.Count > 0 Then
+            Dim br As String: br = OsmBrand(blk)
+            If br <> "" Then
+                m = m + 1
+                oLat(m) = CDbl(Replace(la(0).SubMatches(0), ".", DecSep()))
+                oLon(m) = CDbl(Replace(lo(0).SubMatches(0), ".", DecSep()))
+                oBr(m) = br
+            End If
+        End If
+    Next k
+    If m = 0 Then Exit Sub
+
+    ' Appariement : noeud OSM le plus proche (<= 300 m, MetricDist en degres).
+    For i = 1 To nb
+        Dim best As Long, bestD As Double: best = 0: bestD = 1E+30
+        For k = 1 To m
+            Dim dd As Double: dd = MetricDist(res(i).lat, res(i).lon, oLat(k), oLon(k))
+            If dd < bestD Then bestD = dd: best = k
+        Next k
+        If best > 0 And (bestD * 111320#) <= MATCH_M Then
+            Dim norm As String, lbl As String
+            norm = DetectEnseigne(oBr(best))
+            If norm <> "" Then lbl = norm Else lbl = Trim$(oBr(best))
+            If lbl <> "" Then res(i).name = ComposeName(lbl, res(i).ville)
+        End If
+    Next i
+Done:
+End Sub
+
+' brand > name > operator depuis un bloc JSON d'element OSM.
+Private Function OsmBrand(blk As String) As String
+    OsmBrand = JsonStrVal(blk, "brand")
+    If OsmBrand = "" Then OsmBrand = JsonStrVal(blk, "name")
+    If OsmBrand = "" Then OsmBrand = JsonStrVal(blk, "operator")
+End Function
+
+' Valeur d'une cle chaine "key":"val" dans un fragment JSON.
+Private Function JsonStrVal(blk As String, key As String) As String
+    Dim re As Object: Set re = CreateObject("VBScript.RegExp")
+    re.Pattern = """" & key & """\s*:\s*""([^""]*)"""
+    Dim mm As Object: Set mm = re.Execute(blk)
+    If mm.Count > 0 Then JsonStrVal = JsonUnescape(mm(0).SubMatches(0))
+End Function
+
+' Decode les echappements JSON usuels (\uXXXX, \/, \", \\) d'une chaine.
+Private Function JsonUnescape(s As String) As String
+    Dim x As String: x = s
+    If InStr(x, "\u") > 0 Then
+        Dim re As Object: Set re = CreateObject("VBScript.RegExp")
+        re.Global = True: re.Pattern = "\\u([0-9a-fA-F]{4})"
+        Dim m As Object: Set m = re.Execute(x)
+        Dim i As Long
+        For i = m.Count - 1 To 0 Step -1
+            x = Left$(x, m(i).FirstIndex) & ChrW(CLng("&H" & m(i).SubMatches(0))) & _
+                Mid$(x, m(i).FirstIndex + 7)
+        Next i
+    End If
+    x = Replace(x, "\/", "/")
+    x = Replace(x, "\""", """")
+    x = Replace(x, "\\", "\")
+    JsonUnescape = x
+End Function
 
 ' Dossier des icones de marque (depot : excel\..\public\icons\brands\).
 Private Function BrandsDir() As String

@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.22.4.0] — 2026-06-27
+
+### Fixed
+- **Excel — enseignes réelles + logos sur la carte « Stations à proximité » (et itinéraire)** — les marqueurs affichaient « Station » sans logo. Nouveau `EnrichEnseignesOSM` : une requête Overpass groupée récupère la marque réelle (`brand` > `name` > `operator`) du nœud `amenity=fuel` OSM le plus proche (≤ 300 m), puis renomme en « Enseigne - Ville » → `BrandSlugColor` retrouve le logo (vérifié : 16/19 stations enrichies, Leclerc/Auchan/Carrefour/Total/Intermarché…). Corrige au passage : requête Overpass URL-encodée (`EncodeURL`), en-tête `User-Agent` (Overpass renvoie 406 sans), découpe du JSON indenté sur la clé `"type"`, décodage des `\uXXXX` (villes type « Courrières »), dédup proximité/itinéraire par coordonnées (et non par nom). `vba/modCarte.bas`.
+
 ## [5.22.3.0] — 2026-06-26
 
 ### Changed
