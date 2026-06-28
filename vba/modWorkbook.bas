@@ -326,14 +326,23 @@ End Sub
 
 Public Sub OpenTask_Import()
     RunSilentTask "ImporterNouveauxPleinsAuto"
+    On Error Resume Next
+    modSplash.SplashMarkImport
+    On Error GoTo 0
 End Sub
 
 Public Sub OpenTask_Rebuild()
     RunSilentTask "SyncFiltersAndRebuildOnOpen"
+    On Error Resume Next
+    modSplash.SplashMarkRebuild
+    On Error GoTo 0
 End Sub
 
 Public Sub OpenTask_Sync()
     RunSilentTask "SyncOnOpen"
+    On Error Resume Next
+    modSplash.SplashMarkSync
+    On Error GoTo 0
 End Sub
 
 

@@ -19,6 +19,12 @@ Option Explicit
 ' ============================================================
 
 Private Sub Workbook_Open()
+    ' Ecran d'attente (X60) : masque le montage des onglets et donne un
+    ' retour visuel pendant le chargement (barre de progression par etapes).
+    On Error Resume Next
+    modSplash.SplashShow
+    On Error GoTo 0
+
     ' Afficher Accueil immediatement : l'utilisateur ne voit aucun autre onglet defiler
     Application.ScreenUpdating = False
     On Error Resume Next
@@ -26,16 +32,19 @@ Private Sub Workbook_Open()
     On Error GoTo 0
     Application.ScreenUpdating = True
 
+    modSplash.SplashStep 1, "Affichage plein ecran..."
     Application.StatusBar = "Ouverture 1/6 : affichage plein ecran..."
     DoEvents
     Call ActiverPleinEcran
     Application.OnKey "^{F11}", "BasculerPleinEcran"
 
     ' Import rapide des nouveaux pleins (~2s) : donnees fraiches visibles vite.
+    modSplash.SplashStep 2, "Import des nouveaux pleins programme (+2s)..."
     Application.StatusBar = "Ouverture 2/6 : import des nouveaux pleins programme (+2s)..."
     DoEvents
     Application.OnTime now + TimeValue("00:00:02"), "OpenTask_Import"
 
+    modSplash.SplashStep 3, "Formatage des dates..."
     Application.StatusBar = "Ouverture 3/6 : formatage des dates..."
     DoEvents
     ForceFormatDates
@@ -43,10 +52,12 @@ Private Sub Workbook_Open()
     ' Synchro Google Sheets DIFFEREE : Workbook_Open rend la main immediatement
     ' (classeur visible et interactif tout de suite) ; la synchro reseau lourde
     ' (~30s, bidirectionnelle + refresh Power Query) est repoussee a +5s.
+    modSplash.SplashStep 4, "Synchro Google Sheets programmee (+5s)..."
     Application.StatusBar = "Ouverture 4/6 : synchro Google Sheets programmee (+5s)..."
     DoEvents
     Application.OnTime now + TimeValue("00:00:05"), "OpenTask_Sync"
 
+    modSplash.SplashStep 5, "Protection de la feuille..."
     Application.StatusBar = "Ouverture 5/6 : protection de la feuille..."
     DoEvents
     ThisWorkbook.Sheets("Suivi Carburant").Protect _
@@ -57,6 +68,7 @@ Private Sub Workbook_Open()
     ThisWorkbook.Sheets("Suivi Carburant").Columns("Z").Hidden = True
     ThisWorkbook.Sheets("Suivi Carburant").Columns("AA").Hidden = True
 
+    modSplash.SplashStep 6, "Vue de depart + barre de navigation..."
     Application.StatusBar = "Ouverture 6/6 : vue de depart + barre de navigation..."
     DoEvents
     On Error Resume Next
@@ -68,6 +80,8 @@ Private Sub Workbook_Open()
     On Error GoTo 0
 
     Application.OnTime now + TimeValue("00:00:03"), "OpenTask_Rebuild"
+    ' Fermeture de securite du splash si une tache differee n'aboutit pas.
+    Application.OnTime now + TimeValue("00:01:30"), "SplashForceClose"
     Application.StatusBar = "Classeur pret. (Import +2s, synchro Google Sheets +5s en arriere-plan.)"
 End Sub
 

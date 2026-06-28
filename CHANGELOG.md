@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.24.0.0] — 2026-06-28
+
+### Added
+- **Excel — écran d'attente au démarrage (splash X60)** — un `UserForm` modeless plein cadre (`frmSplash` : logo ⛽, titre, libellé d'étape, **barre de progression**) s'affiche en tête de `Workbook_Open` et masque le « montage » des onglets pendant l'ouverture. Progression **par étapes** (1→6 synchrones, puis import / rebuild / synchro différés), mise à jour via `modSplash.SplashStep` avec `DoEvents`/`.Repaint` entre les blocs. Fermeture **coordonnée** sur la fin des 3 tâches différées (`SplashMarkImport`/`SplashMarkRebuild`/`SplashMarkSync`) + **fermeture de sécurité** `SplashForceClose` planifiée à +90 s si une tâche n'aboutit pas. Limite assumée (VBA mono-thread) : pas d'animation continue, pas de moteur web embarqué. Aperçu : Alt+F8 → `SplashDemo`. `vba/frmSplash.frm`, `vba/modSplash.bas`, `vba/ThisWorkbook.cls`, `vba/modWorkbook.bas`.
+
 ## [5.23.0.0] — 2026-06-28
 
 ### Added
