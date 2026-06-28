@@ -54,7 +54,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|
 | X40 | **Lint VBA pré-commit** (`scripts/check_vba_compile.py`) : détecter (a) les `Const`/`Dim`/`Type` au niveau module placés **après** la 1ʳᵉ procédure (→ « Variable non définie » en compile-on-demand) et (b) les `Call`/OnAction/OnTime/Run vers des procédures **inexistantes** (modules supprimés). | Évite les -2146788248 latents, invisibles hors clic réel ; 3 trouvés/corrigés en v5.11.1.0. |
 | X41 | **Garde-erreur `Feuil2.Worksheet_Activate`** : enrober `ImporterNouveauxPleinsAuto` d'un `On Error Resume Next` (comme `Feuil7`/Réglages). | Défense en profondeur : un échec réseau d'import ne bloquerait jamais la navigation vers « Suivi Carburant ». |
-| X42 | **Nettoyer les orphelins** : supprimer `vba/synchroniseGoogleForm.bas` (module retiré du classeur) et le module quasi vide `Module1` du `.xlsm`. | Cohérence disque ↔ classeur. |
 | X44 | **Modularisation des gros modules VBA** : `modGraphiques.bas` (**72 Ko**, ~1500 lignes) → `modGraphData` (agrégats `BuildAggregates`/`BuildPriceBlockMerged`/`BuildConsoBlock`) + `modGraphRender` (`EnsureChart`/`CreerGraphiquesWeb`) + `modGraphExport` (PDF) ; idem `modSyncGS.bas` (57 Ko). | Viole la règle « fichiers < 500 lignes » (CLAUDE.md) ; surface réduite → moins de risque de `Const` mal placée (cf. X40) et navigation plus simple. |
 | X45 | **Tests VBA des fonctions pures** : module `modTests` (`Test_CoutPlein`, `Test_FuelInSel`, `Test_FuelKeyP`, `Test_ParseGoogleDate`, conso L/100 km) exécutable et vérifiable en CI via `check_vba_drift`. | Aucune couverture VBA aujourd'hui (Vitest = JS seul) ; verrouille les régressions de calcul (ex. bug date 6 sept / 9 juin de v5.12.0.0). |
 | X47 | **Économies E85 / CO2 négatives quand le prix SP98 de référence manque** : pour les pleins E85 sans « SP98 station » renseigné, `ComputeDashboardStats` se replie sur `DernierPrixSP98()` ; si aucun prix SP98 n'existe dans les données, l'économie devient négative (= −coût E85) et le CO2 évité aussi. Utiliser une référence marché robuste (dernier SP98 connu de `_PrixHistory`/secteur, ou défaut configurable en `Réglages`), et masquer/annoter la carte si aucune référence fiable. | Cartes « Économies E85 vs SP98 » (−91 €) et « CO2 évité » (−166 kg) trompeuses tant que les prix SP98 de référence ne sont pas saisis (constaté en v5.18.0.0). |
@@ -106,11 +105,11 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Rang | Item | Effort | Bénéfice |
 |---|---|---|---|
-| 1 | **X39** — Accumulation journalière des prix marché | ~2-3 h | Débloque les séries SP95/GAZOLE quasi vides de `gPrice` |
-| 2 | **X43c** — Rebuild dashboard incrémental | ~1 j | Réduit encore l'attente après filtrage (au-delà du debounce v5.13.0.0) |
-| 3 | **W78** — Lazy-load carte / Google Maps | ~1-2 h | Démarrage de l'app plus rapide |
-| 4 | **C9** — Service account Google | ~2 h | Auth stable sans renouvellement manuel du token |
-| 5 | **X42** — Nettoyer les orphelins VBA (`synchroniseGoogleForm.bas`, `Module1`) | <1 h | Cohérence disque ↔ classeur (modNavMenu déjà retiré en v5.16.0.0) |
+| 1 | **X43c** — Rebuild dashboard incrémental | ~1 j | Réduit encore l'attente après filtrage (au-delà du debounce v5.13.0.0) |
+| 2 | **W78** — Lazy-load carte / Google Maps | ~1-2 h | Démarrage de l'app plus rapide |
+| 3 | **C9** — Service account Google | ~2 h | Auth stable sans renouvellement manuel du token |
+| 4 | **X40** — Lint VBA pré-commit | ~½ j | Détecte les `Const`/`Dim` mal placés et appels morts avant compile |
+| 5 | **X44** — Modularisation des gros modules VBA | ~1 j | `modGraphiques`/`modSyncGS` < 500 lignes, navigation plus simple |
 
 > ✅ S3/S4/S5 (suppression bidir., force resync, conflits par timestamp) implémentés en v4.8.0.0 — voir le tableau ci-dessous.
 
@@ -120,6 +119,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.24.1.0 | **Excel — nettoyage orphelin VBA (X42)** — suppression du module orphelin `vba/synchroniseGoogleForm.bas` (`SyncStationsVersGoogleSheets`, repris par `modSyncGS`) ; `Module1`/`synchroniseGoogleForm` déjà absents du classeur (cohérence disque ↔ classeur). Au passage, **X39 retiré du Top 5** (déjà livré en v5.20.1.0, traînait à tort en priorité n°1). |
 | v5.24.0.0 | **Excel — écran d'attente au démarrage (splash X60)** — `UserForm` modeless plein cadre `frmSplash` (logo ⛽ + libellé d'étape + **barre de progression**) affiché en tête de `Workbook_Open`, masque le « montage » des onglets. Progression **par étapes** (6 synchrones + import/rebuild/synchro différés) via `modSplash.SplashStep` (`DoEvents`/`.Repaint`). Fermeture **coordonnée** sur la fin des 3 tâches différées + **sécurité** `SplashForceClose` à +90 s. Limite assumée (VBA mono-thread) : pas d'animation continue ni moteur web embarqué. Aperçu Alt+F8 → `SplashDemo`. `vba/frmSplash.frm`, `vba/modSplash.bas`, `vba/ThisWorkbook.cls`, `vba/modWorkbook.bas`. |
 | v5.23.0.0 | **Excel — cartes en Google Maps (W82)** — les 3 cartes du classeur (stations, proximité, itinéraire) passent de Leaflet/OSM à **Google Maps JS** (`AdvancedMarkerElement`), via un moteur unifié `MapEngineJs` (cfg unique pour les 2 rendus). Marqueurs logo+prix, cercle, polyligne, popups conservés. **Repli Leaflet automatique** si clé absente / `gm_authFailure`. Clé Maps **non restreinte par référent** stockée hors dépôt (registre HKCU `SuiviE85\Maps\ApiKey`, macro `PoserCleMaps`). Vérifié dans Chrome réel. `vba/modCarte.bas`. |
 | v5.22.9.0 | **Excel — Fix rognage logos marqueurs / cause racine « trop zoomé » (X59g)** — `.b-pin img` flex-item avait `min-width:auto` → `width:100%` ignoré, image débordante rognée par `overflow:hidden` (« Intermarché »→« ermarc »). Correctif `min-width:0;min-height:0` → logos affichés en entier. Vérifié dans Chrome réel. `vba/modCarte.bas`. |

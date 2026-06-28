@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.24.1.0] — 2026-06-28
+
+### Removed
+- **Excel — orphelin VBA `synchroniseGoogleForm.bas` (X42)** — module supprimé du dépôt (procédure unique `SyncStationsVersGoogleSheets`, déjà reprise par `modSyncGS`). `Module1` et le composant `synchroniseGoogleForm` étaient déjà absents du classeur → cohérence disque ↔ classeur rétablie. `vba/synchroniseGoogleForm.bas`.
+
+### Changed
+- **ROADMAP — X39 retiré du Top 5** : l'accumulation journalière des prix marché (X39) a été livrée en v5.20.1.0 ; sa ligne traînait encore à tort en priorité n°1. Top 5 recalé (X43c, W78, C9, X40, X44).
+
 ## [5.24.0.0] — 2026-06-28
 
 ### Added
