@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.23.0.0] — 2026-06-28
+
+### Added
+- **Excel — cartes en Google Maps (W82)** — les trois cartes générées par le classeur (carte stations, « Stations à proximité », itinéraire) utilisent désormais **Google Maps JavaScript** (`AdvancedMarkerElement`) au lieu de Leaflet/OSM, comme demandé. Marqueurs = mêmes badges logo d'enseigne + pastille prix (DOM réutilisé), cercle de rayon, polyligne d'itinéraire, marqueur « ma position », popups Google Maps/Waze. Moteur de carte **unifié** (`MapEngineJs`) : une seule source pour les deux rendus, les générateurs ne préparent plus qu'un objet `cfg`. **Repli automatique sur OpenStreetMap/Leaflet** si la clé est absente ou en cas de `gm_authFailure` (zéro régression). Vérifié dans le vrai Chrome (Google Maps actif, 19 marqueurs, 0 logo rogné). `vba/modCarte.bas`.
+
+### Fixed
+- **Cartes Excel — boutons zoom +/- rétablis** — le rendu Google Maps (`renderGoogle`) ne déclarait pas `zoomControl`, masquant les boutons +/- sur les pages « Ouvrir la carte » / « Stations à proximité ». Ajout explicite de `zoomControl:true`. `vba/modCarte.bas`.
+
+### Changed
+- **Clé Google Maps locale hors dépôt** — la carte Excel s'ouvrant en `file://`, elle exige une clé **non restreinte par référent** (incompatible avec la clé `config.js` restreinte à `fdaubercy.github.io`). Cette clé est stockée dans le **registre local HKCU** (`GetSetting/SaveSetting "SuiviE85","Maps","ApiKey"`, pattern `SYNC_SECRET`), **jamais commitée** (dépôt public). Macro `PoserCleMaps` (Alt+F8) pour la (re)saisir/effacer. Map ID public surchargeable (`…,"Maps","MapId"`).
+
 ## [5.22.9.0] — 2026-06-27
 
 ### Fixed

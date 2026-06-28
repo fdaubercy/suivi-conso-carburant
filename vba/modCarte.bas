@@ -538,18 +538,19 @@ End Sub
 '  Carte interactive OSM (pan/zoom) + marqueurs prix. Necessite Internet.
 ' ============================================================
 Private Function GenererHtmlCarte(titre As String) As String
-    ' Points geolocalises -> tableau JS [lat, lon, "nom", "prix", "slug", "color"]
-    Dim pts As String, i As Long, n As Long
+    ' Stations geolocalisees -> objet cfg consomme par FuelMap.render (Google/Leaflet).
+    Dim stj As String, i As Long, n As Long
     Dim slugs As Object: Set slugs = CreateObject("Scripting.Dictionary")
-    Dim sl As String, col As String
+    Dim sl As String, col As String, lbl As String, pop As String
     For i = 1 To g_n
         If g_st(i).hasCoord Then
             BrandSlugColor g_st(i).name, sl, col
             If sl <> "" Then slugs(sl) = True
-            If pts <> "" Then pts = pts & ","
-            pts = pts & "[" & JsNum(g_st(i).lat) & "," & JsNum(g_st(i).lon) & ",""" & _
-                  EscJs(g_st(i).name) & """,""" & PrixStr(g_st(i).avg) & """,""" & _
-                  sl & """,""" & col & """]"
+            If stj <> "" Then stj = stj & ","
+            lbl = PrixStr(g_st(i).avg) & " EUR/L"
+            pop = "<b>" & g_st(i).name & "</b><br>" & PrixStr(g_st(i).avg) & " EUR/L<br>" & _
+                  NavLinks(g_st(i).lat, g_st(i).lon)
+            stj = stj & StationJs(g_st(i).lat, g_st(i).lon, lbl, sl, col, pop)
             n = n + 1
         End If
     Next i
@@ -559,52 +560,46 @@ Private Function GenererHtmlCarte(titre As String) As String
         Exit Function
     End If
 
-    ' JS de position utilisateur : marqueur fixe si "Ma position" renseignee,
-    ' sinon geoloc live du navigateur (peut etre bloquee sur un fichier local).
-    Dim ujs As String
+    ' Position utilisateur : marqueur fixe si "Ma position" renseignee, sinon geoloc live.
+    Dim meJs As String, liveJs As String
     If g_userHas Then
-        ujs = "var u=[" & JsNum(g_userLat) & "," & JsNum(g_userLon) & "];" & _
-              "L.marker(u,{icon:meIcon,zIndexOffset:1000}).addTo(map).bindPopup('Votre position');" & _
-              "b.push(u);map.fitBounds(b,{padding:[60,60]});"
+        meJs = "[" & JsNum(g_userLat) & "," & JsNum(g_userLon) & "]"
+        liveJs = "false"
     Else
-        ujs = "map.locate({setView:false,enableHighAccuracy:true,timeout:8000});" & _
-              "map.on('locationfound',function(e){" & _
-              "L.marker(e.latlng,{icon:meIcon,zIndexOffset:1000}).addTo(map).bindPopup('Votre position');" & _
-              "if(e.accuracy){L.circle(e.latlng,{radius:e.accuracy,color:'#2A7FFF',weight:1,fillOpacity:.08}).addTo(map);}" & _
-              "b.push([e.latlng.lat,e.latlng.lng]);map.fitBounds(b,{padding:[60,60]});});"
+        meJs = "null"
+        liveJs = "true"
     End If
 
     Dim h As String
     h = HtmlHead("Carte " & EscHtml(titre))
     h = h & "<body><div class='ttl'>" & Emo(&H26FD&) & " Stations " & EscHtml(titre) & " - prix moyens</div>" & _
         "<div id='map'></div><script>" & _
-        "var pts=[" & pts & "];" & _
-        "var map=L.map('map');" & _
-        "L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png'," & _
-        "{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);" & _
-        "var meIcon=L.divIcon({className:'me',iconSize:[28,28],iconAnchor:[14,14],html:'" & Emo(&H1F697&) & "'});" & _
-        LogosJs(slugs) & _
-        StIconJs() & _
-        "var b=[];pts.forEach(function(p){" & _
-        "var ic=stIcon(p[3]+' EUR/L',p[4],p[5]);" & _
-        "var mk=L.marker([p[0],p[1]],{icon:ic}).addTo(map);"
-    h = h & "mk.bindPopup('<b>'+p[2]+'</b><br>'+p[3]+' EUR/L<br>'+" & _
-        "'<a href=""https://www.google.com/maps/dir/?api=1&destination='+p[0]+','+p[1]+'"" target=""_blank"">Google Maps</a> &middot; '+" & _
-        "'<a href=""https://waze.com/ul?ll='+p[0]+','+p[1]+'&navigate=yes"" target=""_blank"">Waze</a>');" & _
-        "b.push([p[0],p[1]]);});" & _
-        "if(b.length===1){map.setView(b[0],13);}else{map.fitBounds(b,{padding:[60,60]});}" & _
-        ujs & _
+        LogosJs(slugs) & StIconJs() & MapEngineJs() & _
+        "var cfg={key:" & KeyJs() & ",mapId:'" & MapsMapId() & "',meEmoji:'" & Emo(&H1F697&) & "'," & _
+        "stations:[" & stj & "],me:" & meJs & ",meLive:" & liveJs & "};" & _
+        "FuelMap.render(cfg);" & _
         "</script></body></html>"
     GenererHtmlCarte = h
 End Function
 
 ' Head HTML commun : Leaflet CDN + CSS marqueurs style app (pin goutte + badge prix).
 Private Function HtmlHead(titre As String) As String
+    ' Cle Google Maps (registre local HKCU, jamais dans le depot). Si presente,
+    ' on charge l'API Maps JS (libraries=marker) + le pont gm_authFailure -> repli.
+    Dim gk As String: gk = MapsApiKey()
+    Dim boot As String: boot = ""
+    If gk <> "" Then
+        boot = "<script>window.__gmReady=false;window.__gmFailed=false;" & _
+               "window.gm_authFailure=function(){window.__gmFailed=true;if(window.__gmOnReady)window.__gmOnReady();};" & _
+               "function __gmcb(){window.__gmReady=true;if(window.__gmOnReady)window.__gmOnReady();}</script>" & _
+               "<script async src='https://maps.googleapis.com/maps/api/js?key=" & gk & _
+               "&callback=__gmcb&libraries=marker&v=weekly'></script>"
+    End If
     HtmlHead = "<!doctype html><html><head><meta charset='utf-8'>" & _
         "<meta name='viewport' content='width=device-width,initial-scale=1'>" & _
         "<title>" & titre & "</title>" & _
         "<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'>" & _
-        "<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>" & _
+        "<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>" & boot & _
         "<style>html,body{margin:0;height:100%;font-family:Segoe UI,Arial,sans-serif}#map{height:100%}" & _
         ".ttl{position:absolute;z-index:1000;top:8px;left:54px;background:#1B3A5C;color:#fff;" & _
         "padding:6px 12px;border-radius:8px;font:700 14px Segoe UI,Arial;max-width:60%}"
@@ -627,6 +622,130 @@ Private Function HtmlHead(titre As String) As String
         ".ep{width:16px;height:16px;border:3px solid #fff;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,.4)}" & _
         ".dep{background:#1D9E75}.arr{background:#D64545}" & _
         "</style></head>"
+End Function
+
+' ============================================================
+'  CLE GOOGLE MAPS (registre local HKCU, hors depot)
+'  La cle Maps JS NON RESTREINTE par referent ne doit pas etre commitee
+'  (depot public). Stockee comme SYNC_SECRET : GetSetting/SaveSetting.
+'  Vide => les cartes basculent sur OpenStreetMap/Leaflet (repli).
+' ============================================================
+Private Function MapsApiKey() As String
+    MapsApiKey = GetSetting("SuiviE85", "Maps", "ApiKey", "")
+End Function
+
+' Map ID (public) requis par AdvancedMarkerElement. Surchargable via registre.
+Private Function MapsMapId() As String
+    Dim m As String: m = GetSetting("SuiviE85", "Maps", "MapId", "")
+    If m = "" Then m = "7360d7e630d5813247b526c9"
+    MapsMapId = m
+End Function
+
+' Alt+F8 -> PoserCleMaps -> coller la cle (locale a ce poste). Vide = effacer.
+Public Sub PoserCleMaps()
+    Dim s As String
+    s = InputBox("Colle la cle Google Maps JS (API Maps JavaScript, NON restreinte par referent)." & vbCrLf & _
+                 "Laisse vide pour effacer (repli OpenStreetMap).", "Cle Google Maps")
+    If StrPtr(s) = 0 Then Exit Sub   ' Annuler
+    s = Trim$(s)
+    SaveSetting "SuiviE85", "Maps", "ApiKey", s
+    If s <> "" Then
+        MsgBox "Cle Google Maps enregistree (locale a ce poste)." & vbCrLf & _
+               "Les cartes utiliseront Google Maps.", vbInformation, "Cle Maps"
+    Else
+        MsgBox "Cle effacee. Les cartes utiliseront OpenStreetMap (Leaflet).", vbInformation, "Cle Maps"
+    End If
+End Sub
+
+' Cle pour litteral JS (cfg.key) : '' si absente -> repli Leaflet cote client.
+Private Function KeyJs() As String
+    KeyJs = "'" & MapsApiKey() & "'"
+End Function
+
+' Liens de navigation (Google Maps / Waze) pour le popup d'une station.
+Private Function NavLinks(ByVal lat As Double, ByVal lon As Double) As String
+    NavLinks = "<a href=""https://www.google.com/maps/dir/?api=1&destination=" & JsNum(lat) & "," & JsNum(lon) & _
+               """ target=""_blank"">Google Maps</a> &middot; " & _
+               "<a href=""https://waze.com/ul?ll=" & JsNum(lat) & "," & JsNum(lon) & _
+               "&navigate=yes"" target=""_blank"">Waze</a>"
+End Function
+
+' Echappe pour un litteral JS entre apostrophes (cfg utilise des apostrophes).
+Private Function EscJsS(s As String) As String
+    Dim x As String: x = s
+    x = Replace(x, "\", "\\")
+    x = Replace(x, "'", "\'")
+    x = Replace(x, vbCr, " ")
+    x = Replace(x, vbLf, " ")
+    EscJsS = x
+End Function
+
+' Objet station pour cfg.stations (consomme par FuelMap.render, Google + Leaflet).
+Private Function StationJs(ByVal lat As Double, ByVal lon As Double, label As String, _
+                           slug As String, color As String, popupHtml As String) As String
+    StationJs = "{lat:" & JsNum(lat) & ",lon:" & JsNum(lon) & _
+                ",label:'" & EscJsS(label) & "',slug:'" & slug & "',color:'" & color & _
+                "',popup:'" & EscJsS(popupHtml) & "'}"
+End Function
+
+' ============================================================
+'  MOTEUR DE CARTE UNIFIE (JS) : Google Maps si cle valide, sinon Leaflet.
+'  Une seule source pour les 2 moteurs ; les 3 generateurs ne font que
+'  preparer un objet cfg (stations/me/circle/polyline/endpoints) et appeler
+'  FuelMap.render(cfg). Bascule auto sur Leaflet si pas de cle / gm_authFailure.
+' ============================================================
+Private Function MapEngineJs() As String
+    Dim e As String, q As String
+    q = Chr$(34)
+    e = "window.FuelMap=(function(){"
+    e = e & "function pinHtml(label,slug,color){var L=window.LOGOS||{},A=window.LOGOS_AR||{};" & _
+        "var uri=L[slug]||L['generic'];var ar=A[slug]||1;var W=30,H=30;" & _
+        "if(ar>1.3){W=Math.round(22*ar)+8;if(W>72){W=72;H=Math.round(64/ar)+8;}}" & _
+        "var hb=uri?' hb':'';" & _
+        "var pin=uri?('<div class=" & q & "b-pin" & q & " style=" & q & "border-color:'+color+';width:'+W+'px;height:'+H+'px" & q & "><img src=" & q & "'+uri+'" & q & "></div>'):'';" & _
+        "return '<div class=" & q & "b-mk" & q & ">'+pin+'<span class=" & q & "b-badge'+hb+'" & q & " style=" & q & "color:'+color+';border-color:'+color+'" & q & ">'+label+'</span></div>';}"
+    e = e & "function renderGoogle(cfg){var AM=google.maps.marker.AdvancedMarkerElement;" & _
+        "var map=new google.maps.Map(document.getElementById('map'),{mapId:cfg.mapId,zoomControl:true,streetViewControl:false,mapTypeControl:true,fullscreenControl:true});" & _
+        "var iw=new google.maps.InfoWindow();var b=new google.maps.LatLngBounds();var cnt=0;" & _
+        "if(cfg.polyline&&cfg.polyline.length){var pp=cfg.polyline.map(function(c){return {lat:c[0],lng:c[1]};});" & _
+        "new google.maps.Polyline({map:map,path:pp,strokeColor:'#1B3A5C',strokeWeight:4});pp.forEach(function(x){b.extend(x);});}" & _
+        "if(cfg.circle){new google.maps.Circle({map:map,center:{lat:cfg.circle[0],lng:cfg.circle[1]},radius:cfg.circle[2],strokeColor:'#2E75B6',strokeWeight:2,fillColor:'#2E75B6',fillOpacity:0.05});}" & _
+        "(cfg.endpoints||[]).forEach(function(ep){var d=document.createElement('div');d.className='ep '+ep.cls;" & _
+        "new AM({map:map,position:{lat:ep.lat,lng:ep.lon},content:d,title:ep.label,zIndex:1000});b.extend({lat:ep.lat,lng:ep.lon});});"
+    e = e & "(cfg.stations||[]).forEach(function(p){var t=document.createElement('div');t.innerHTML=pinHtml(p.label,p.slug,p.color);" & _
+        "var mk=new AM({map:map,position:{lat:p.lat,lng:p.lon},content:t.firstChild});" & _
+        "mk.addListener('gmp-click',function(){iw.setContent(p.popup);iw.open({map:map,anchor:mk});});" & _
+        "b.extend({lat:p.lat,lng:p.lon});cnt++;});" & _
+        "if(cfg.me){var dm=document.createElement('div');dm.className='me';dm.textContent=cfg.meEmoji;" & _
+        "new AM({map:map,position:{lat:cfg.me[0],lng:cfg.me[1]},content:dm,zIndex:1200});b.extend({lat:cfg.me[0],lng:cfg.me[1]});cnt++;}" & _
+        "if(!b.isEmpty()){if(cnt===1&&!cfg.polyline&&!cfg.circle){map.setCenter(b.getCenter());map.setZoom(13);}else{map.fitBounds(b,60);}}" & _
+        "if(cfg.meLive&&navigator.geolocation){navigator.geolocation.getCurrentPosition(function(pos){" & _
+        "var ll={lat:pos.coords.latitude,lng:pos.coords.longitude};var dm2=document.createElement('div');dm2.className='me';dm2.textContent=cfg.meEmoji;" & _
+        "new AM({map:map,position:ll,content:dm2,zIndex:1200});var nb=new google.maps.LatLngBounds();" & _
+        "(cfg.stations||[]).forEach(function(p){nb.extend({lat:p.lat,lng:p.lon});});nb.extend(ll);map.fitBounds(nb,60);});}}"
+    e = e & "function renderLeaflet(cfg){var map=L.map('map');" & _
+        "L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);" & _
+        "var b=[];" & _
+        "if(cfg.circle){L.circle([cfg.circle[0],cfg.circle[1]],{radius:cfg.circle[2],color:'#2E75B6',weight:2,fillOpacity:0.05}).addTo(map);}" & _
+        "if(cfg.polyline&&cfg.polyline.length){L.polyline(cfg.polyline,{color:'#1B3A5C',weight:4}).addTo(map);}" & _
+        "(cfg.endpoints||[]).forEach(function(ep){var ic=L.divIcon({className:'ep '+ep.cls,iconSize:[16,16],iconAnchor:[8,8]});" & _
+        "L.marker([ep.lat,ep.lon],{icon:ic,zIndexOffset:1000}).addTo(map).bindPopup(ep.label);});"
+    e = e & "(cfg.stations||[]).forEach(function(p){var ic=stIcon(p.label,p.slug,p.color);" & _
+        "L.marker([p.lat,p.lon],{icon:ic}).addTo(map).bindPopup(p.popup);b.push([p.lat,p.lon]);});" & _
+        "if(cfg.me){var meIcon=L.divIcon({className:'me',iconSize:[28,28],iconAnchor:[14,14],html:cfg.meEmoji});" & _
+        "L.marker([cfg.me[0],cfg.me[1]],{icon:meIcon,zIndexOffset:1000}).addTo(map).bindPopup('Votre position');b.push([cfg.me[0],cfg.me[1]]);}" & _
+        "if(cfg.polyline&&cfg.polyline.length){map.fitBounds(L.polyline(cfg.polyline).getBounds(),{padding:[60,60]});}" & _
+        "else if(b.length===1){map.setView(b[0],13);}else if(b.length>1){map.fitBounds(b,{padding:[60,60]});}" & _
+        "if(cfg.meLive){map.locate({setView:false,enableHighAccuracy:true,timeout:8000});" & _
+        "map.on('locationfound',function(ev){L.marker(ev.latlng,{icon:L.divIcon({className:'me',iconSize:[28,28],iconAnchor:[14,14],html:cfg.meEmoji}),zIndexOffset:1000}).addTo(map).bindPopup('Votre position');" & _
+        "if(ev.accuracy){L.circle(ev.latlng,{radius:ev.accuracy,color:'#2A7FFF',weight:1,fillOpacity:.08}).addTo(map);}" & _
+        "var nb=b.slice();nb.push([ev.latlng.lat,ev.latlng.lng]);map.fitBounds(nb,{padding:[60,60]});});}}"
+    e = e & "function render(cfg){if(!cfg.key||window.__gmFailed){return renderLeaflet(cfg);}var done=false;" & _
+        "function go(){if(done)return;done=true;" & _
+        "if(window.google&&google.maps&&google.maps.marker&&!window.__gmFailed){try{renderGoogle(cfg);}catch(e2){renderLeaflet(cfg);}}else{renderLeaflet(cfg);}}" & _
+        "if(window.__gmReady){setTimeout(go,350);}else{window.__gmOnReady=function(){setTimeout(go,350);};setTimeout(go,6000);}}" & _
+        "return {render:render};})();"
+    MapEngineJs = e
 End Function
 
 
@@ -1026,25 +1145,26 @@ End Function
 
 Private Function GenererHtmlProximite(res() As StAvg, nb As Long, titre As String, _
                                       rayonKm As Double, rayonM As Double) As String
-    Dim pts As String, i As Long
+    Dim stj As String, i As Long
     Dim slugs As Object: Set slugs = CreateObject("Scripting.Dictionary")
-    Dim sl As String, col As String
+    Dim sl As String, col As String, lbl As String, pop As String, medp As String
     For i = 1 To nb
         Dim dk As Double: dk = HaversineKm(g_userLat, g_userLon, res(i).lat, res(i).lon)
-        Dim med As String: med = ""
+        medp = ""
         If i = 1 Then
-            med = Emo(&H1F947&)
+            medp = Emo(&H1F947&) & " "
         ElseIf i = 2 Then
-            med = Emo(&H1F948&)
+            medp = Emo(&H1F948&) & " "
         ElseIf i = 3 Then
-            med = Emo(&H1F949&)
+            medp = Emo(&H1F949&) & " "
         End If
         BrandSlugColor res(i).name, sl, col
         If sl <> "" Then slugs(sl) = True
-        If pts <> "" Then pts = pts & ","
-        pts = pts & "[" & JsNum(res(i).lat) & "," & JsNum(res(i).lon) & ",""" & _
-              EscJs(res(i).name) & """,""" & PrixStr(res(i).avg) & """,""" & _
-              JsNum(dk) & """,""" & EscJs(med) & """,""" & sl & """,""" & col & """]"
+        If stj <> "" Then stj = stj & ","
+        lbl = medp & PrixStr(res(i).avg) & " EUR/L"
+        pop = "<b>" & medp & res(i).name & "</b><br>" & PrixStr(res(i).avg) & " EUR/L<br>" & _
+              Format$(dk, "0.0") & " km<br>" & NavLinks(res(i).lat, res(i).lon)
+        stj = stj & StationJs(res(i).lat, res(i).lon, lbl, sl, col, pop)
     Next i
 
     Dim h As String
@@ -1052,25 +1172,12 @@ Private Function GenererHtmlProximite(res() As StAvg, nb As Long, titre As Strin
     h = h & "<body><div class='ttl'>" & Emo(&H26FD&) & " Stations " & EscHtml(titre) & _
         " a proximite (" & Format$(rayonKm, "0") & " km)</div>" & _
         "<div id='map'></div><script>" & _
-        "var pts=[" & pts & "];" & _
-        "var u=[" & JsNum(g_userLat) & "," & JsNum(g_userLon) & "];" & _
-        "var map=L.map('map');" & _
-        "L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png'," & _
-        "{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);" & _
-        "var meIcon=L.divIcon({className:'me',iconSize:[28,28],iconAnchor:[14,14],html:'" & Emo(&H1F697&) & "'});" & _
-        LogosJs(slugs) & _
-        StIconJs() & _
-        "L.circle(u,{radius:" & JsNum(rayonM) & ",color:'#2E75B6',weight:2,fillOpacity:0.05}).addTo(map);" & _
-        "var b=[u];pts.forEach(function(p){" & _
-        "var lab=(p[5]?p[5]+' ':'')+p[3]+' EUR/L';" & _
-        "var ic=stIcon(lab,p[6],p[7]);" & _
-        "var mk=L.marker([p[0],p[1]],{icon:ic}).addTo(map);"
-    h = h & "mk.bindPopup('<b>'+(p[5]?p[5]+' ':'')+p[2]+'</b><br>'+p[3]+' EUR/L<br>'+p[4]+' km<br>'+" & _
-        "'<a href=""https://www.google.com/maps/dir/?api=1&destination='+p[0]+','+p[1]+'"" target=""_blank"">Google Maps</a> &middot; '+" & _
-        "'<a href=""https://waze.com/ul?ll='+p[0]+','+p[1]+'&navigate=yes"" target=""_blank"">Waze</a>');" & _
-        "b.push([p[0],p[1]]);});" & _
-        "L.marker(u,{icon:meIcon,zIndexOffset:1000}).addTo(map).bindPopup('Votre position');" & _
-        "map.fitBounds(b,{padding:[60,60]});" & _
+        LogosJs(slugs) & StIconJs() & MapEngineJs() & _
+        "var cfg={key:" & KeyJs() & ",mapId:'" & MapsMapId() & "',meEmoji:'" & Emo(&H1F697&) & "'," & _
+        "stations:[" & stj & "]," & _
+        "me:[" & JsNum(g_userLat) & "," & JsNum(g_userLon) & "]," & _
+        "circle:[" & JsNum(g_userLat) & "," & JsNum(g_userLon) & "," & JsNum(rayonM) & "]};" & _
+        "FuelMap.render(cfg);" & _
         "</script></body></html>"
     GenererHtmlProximite = h
 End Function
@@ -1246,45 +1353,34 @@ Private Function GenererHtmlItineraire(res() As StAvg, nb As Long, titre As Stri
         poly = poly & "[" & JsNum(rLats(i)) & "," & JsNum(rLons(i)) & "]"
     Next i
 
-    Dim pts As String
+    Dim stj As String
     Dim slugs As Object: Set slugs = CreateObject("Scripting.Dictionary")
-    Dim sl As String, col As String
+    Dim sl As String, col As String, lbl As String, pop As String
     For i = 1 To nb
         BrandSlugColor res(i).name, sl, col
         If sl <> "" Then slugs(sl) = True
-        If pts <> "" Then pts = pts & ","
-        pts = pts & "[" & JsNum(res(i).lat) & "," & JsNum(res(i).lon) & ",""" & _
-              EscJs(res(i).name) & """,""" & PrixStr(res(i).avg) & """,""" & _
-              sl & """,""" & col & """]"
+        If stj <> "" Then stj = stj & ","
+        lbl = PrixStr(res(i).avg) & " EUR/L"
+        pop = "<b>" & res(i).name & "</b><br>" & PrixStr(res(i).avg) & " EUR/L<br>" & _
+              NavLinks(res(i).lat, res(i).lon)
+        stj = stj & StationJs(res(i).lat, res(i).lon, lbl, sl, col, pop)
     Next i
+
+    Dim eps As String
+    eps = "{lat:" & JsNum(lat1) & ",lon:" & JsNum(lon1) & ",cls:'dep',label:'Depart : " & EscJsS(dep) & "'}," & _
+          "{lat:" & JsNum(lat2) & ",lon:" & JsNum(lon2) & ",cls:'arr',label:'Arrivee : " & EscJsS(arr) & "'}"
 
     Dim h As String
     h = HtmlHead("Itineraire " & EscHtml(titre))
     h = h & "<body><div class='ttl'>" & Emo(&H1F6E3&) & " Itineraire " & EscHtml(dep) & _
         " " & ChrW(8594) & " " & EscHtml(arr) & " - Stations " & EscHtml(titre) & "</div>" & _
         "<div id='map'></div><script>" & _
-        "var poly=[" & poly & "];" & _
-        "var pts=[" & pts & "];" & _
-        "var d=[" & JsNum(lat1) & "," & JsNum(lon1) & "];" & _
-        "var a=[" & JsNum(lat2) & "," & JsNum(lon2) & "];" & _
-        "var map=L.map('map');" & _
-        "L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png'," & _
-        "{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);" & _
-        LogosJs(slugs) & _
-        StIconJs() & _
-        "var line=L.polyline(poly,{color:'#1B3A5C',weight:4}).addTo(map);" & _
-        "var depIcon=L.divIcon({className:'ep dep',iconSize:[16,16],iconAnchor:[8,8]});" & _
-        "var arrIcon=L.divIcon({className:'ep arr',iconSize:[16,16],iconAnchor:[8,8]});" & _
-        "L.marker(d,{icon:depIcon,zIndexOffset:1000}).addTo(map).bindPopup('Depart : " & EscJs(dep) & "');" & _
-        "L.marker(a,{icon:arrIcon,zIndexOffset:1000}).addTo(map).bindPopup('Arrivee : " & EscJs(arr) & "');"
-    h = h & "pts.forEach(function(p){" & _
-        "var ic=stIcon(p[3]+' EUR/L',p[4],p[5]);" & _
-        "var mk=L.marker([p[0],p[1]],{icon:ic}).addTo(map);" & _
-        "mk.bindPopup('<b>'+p[2]+'</b><br>'+p[3]+' EUR/L<br>'+" & _
-        "'<a href=""https://www.google.com/maps/dir/?api=1&destination='+p[0]+','+p[1]+'"" target=""_blank"">Google Maps</a> &middot; '+" & _
-        "'<a href=""https://waze.com/ul?ll='+p[0]+','+p[1]+'&navigate=yes"" target=""_blank"">Waze</a>');" & _
-        "});" & _
-        "map.fitBounds(line.getBounds(),{padding:[60,60]});" & _
+        LogosJs(slugs) & StIconJs() & MapEngineJs() & _
+        "var cfg={key:" & KeyJs() & ",mapId:'" & MapsMapId() & "',meEmoji:'" & Emo(&H1F697&) & "'," & _
+        "stations:[" & stj & "]," & _
+        "polyline:[" & poly & "]," & _
+        "endpoints:[" & eps & "]};" & _
+        "FuelMap.render(cfg);" & _
         "</script></body></html>"
     GenererHtmlItineraire = h
 End Function
