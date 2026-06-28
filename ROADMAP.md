@@ -96,7 +96,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi |
 |---|---|---|
 | G1 | **Validation de données** sur l'onglet de saisie GS (listes déroulantes Carburant / Véhicule / Station depuis l'onglet `Stations`) | Saisie web directe fiable, mêmes valeurs que l'app |
-| G2 | **MFC prix sur le Sheet** : dégradé couleur sur la colonne Prix €/L (vert = bas, rouge = haut) par carburant | Lecture rapide de l'historique directement dans le navigateur |
 | G3 | **Onglet `Dashboard` natif Sheets** : graphiques Google (prix, conso, CO₂) répliquant le tableau de bord Excel | Consulter le bilan sans ouvrir le `.xlsm` (mobile/web) |
 
 ---
@@ -119,6 +118,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.26.0.0 | **Google Sheets — dégradé couleur prix par carburant (G2)** — coloration par script de `_PrixHistory!D` (Prix €/L) en dégradé **vert→jaune→rouge** (vert = prix bas), calculé **indépendamment par carburant** (colonne `Type`) sur une **fenêtre glissante de 90 jours** (repli historique complet si pas de relevé récent). Appliqué en fin de `refreshPrixCarburants()` (quotidien ~7 h) + fonction manuelle `reappliquerMFCPrix`. La MFC native « échelle de couleurs » ne sait pas grouper par carburant → coloration `setBackgrounds` en batch. `RefreshPrix.gs`. |
 | v5.25.0.0 | **Excel — santé de la sync dans `Réglages` (X46)** — nouvelle section « 🔁 Santé de la sync » en bas de l'onglet `Réglages` affichant statut **OK/KO**, horodatage, lignes échangées (← / →) et durée de la dernière sync, lus depuis `_SyncLog`. `LogToSyncLog` (modSyncGS) gagne une 5ᵉ colonne **« Statut »** désormais journalisée **succès comme échec** (chemins réseau/réponse non-JSON/`ErrHandler` de `SyncCore`) — migration auto des journaux 4 colonnes existants. Affichage via `AfficherSanteSyncReglages` (idempotent), branché dans `CreerFeuilleReglages`. `vba/modSyncGS.bas`, `vba/modReglages.bas`. |
 | v5.24.1.0 | **Excel — nettoyage orphelin VBA (X42)** — suppression du module orphelin `vba/synchroniseGoogleForm.bas` (`SyncStationsVersGoogleSheets`, repris par `modSyncGS`) ; `Module1`/`synchroniseGoogleForm` déjà absents du classeur (cohérence disque ↔ classeur). Au passage, **X39 retiré du Top 5** (déjà livré en v5.20.1.0, traînait à tort en priorité n°1). |
 | v5.24.0.0 | **Excel — écran d'attente au démarrage (splash X60)** — `UserForm` modeless plein cadre `frmSplash` (logo ⛽ + libellé d'étape + **barre de progression**) affiché en tête de `Workbook_Open`, masque le « montage » des onglets. Progression **par étapes** (6 synchrones + import/rebuild/synchro différés) via `modSplash.SplashStep` (`DoEvents`/`.Repaint`). Fermeture **coordonnée** sur la fin des 3 tâches différées + **sécurité** `SplashForceClose` à +90 s. Limite assumée (VBA mono-thread) : pas d'animation continue ni moteur web embarqué. Aperçu Alt+F8 → `SplashDemo`. `vba/frmSplash.frm`, `vba/modSplash.bas`, `vba/ThisWorkbook.cls`, `vba/modWorkbook.bas`. |

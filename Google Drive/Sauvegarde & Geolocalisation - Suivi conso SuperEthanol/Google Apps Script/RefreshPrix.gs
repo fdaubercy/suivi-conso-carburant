@@ -155,6 +155,94 @@ function refreshPrixCarburants() {
   try { detecterAnomalies_(ss); } catch (e) {
     Logger.log('S15 detecterAnomalies_ erreur : ' + e.message);
   }
+
+  // ── G2 — dégradé couleur prix par carburant (fenêtre 90 j) ──
+  try { appliquerMFCPrix(ss); } catch (e) {
+    Logger.log('G2 appliquerMFCPrix erreur : ' + e.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  G2 — Dégradé couleur sur _PrixHistory!D (Prix €/L), par carburant.
+//  Vert = prix bas, rouge = prix haut. Min/max calculés indépendamment
+//  pour chaque carburant (colonne C "Type") sur une FENÊTRE GLISSANTE de
+//  90 jours, pour qu'un vieux prix extrême ne fausse pas l'échelle récente.
+//  Coloration par script : la MFC native « échelle de couleurs » s'applique
+//  à une plage contiguë et calcule un min/max GLOBAL — elle ne sait pas
+//  grouper par carburant (E85 ~0,70 € vs Gazole ~1,60 €).
+// ─────────────────────────────────────────────────────────────
+const MFC_PRIX_WINDOW_DAYS = 90;
+const MFC_PRIX_BAS  = [0x57, 0xBB, 0x8A];   // vert  #57BB8A
+const MFC_PRIX_MED  = [0xFF, 0xD6, 0x66];   // jaune #FFD666
+const MFC_PRIX_HAUT = [0xE6, 0x7C, 0x73];   // rouge #E67C73
+
+function appliquerMFCPrix(ss) {
+  ss = ss || SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(PRIXHIST_SHEET);
+  if (!sh) { Logger.log('G2 : onglet _PrixHistory absent.'); return; }
+
+  const last = sh.getLastRow();
+  if (last < 2) return;                       // que l'en-tête
+  const n = last - 1;                         // lignes de données
+
+  // Date (B) + Type (C) + Prix (D) en un seul appel.
+  const data = sh.getRange(2, 2, n, 3).getValues();   // [[date, type, prix], …]
+
+  const cutoff = Date.now() - MFC_PRIX_WINDOW_DAYS * 24 * 3600 * 1000;
+
+  // min/max par carburant sur la fenêtre glissante, + repli sur tout l'historique
+  // pour les carburants sans relevé récent.
+  const stats = {}, statsAll = {};
+  data.forEach(r => {
+    const t = String(r[1] || '').trim();
+    const p = Number(r[2]);
+    if (!t || !isFinite(p)) return;
+    if (!statsAll[t]) statsAll[t] = { min: p, max: p };
+    else { if (p < statsAll[t].min) statsAll[t].min = p; if (p > statsAll[t].max) statsAll[t].max = p; }
+    if (toMillis_(r[0]) < cutoff) return;     // hors fenêtre → ignoré pour l'échelle
+    if (!stats[t]) stats[t] = { min: p, max: p };
+    else { if (p < stats[t].min) stats[t].min = p; if (p > stats[t].max) stats[t].max = p; }
+  });
+
+  // Colonne de couleurs (1 colonne = D).
+  const bg = data.map(r => {
+    const t = String(r[1] || '').trim();
+    const p = Number(r[2]);
+    const s = stats[t] || statsAll[t];
+    if (!s || !isFinite(p)) return [null];            // pas de couleur
+    let ratio = (s.max === s.min) ? 0.5 : (p - s.min) / (s.max - s.min);
+    ratio = Math.max(0, Math.min(1, ratio));          // clamp (lignes hors fenêtre)
+    return [interpolerCouleur_(ratio)];
+  });
+
+  sh.getRange(2, 4, n, 1).setBackgrounds(bg);         // colonne D
+  Logger.log('G2 : MFC prix appliquée sur ' + n + ' lignes (' +
+    Object.keys(stats).length + ' carburants, fenêtre ' + MFC_PRIX_WINDOW_DAYS + ' j).');
+}
+
+// Convertit une valeur de date (Date ou chaîne 'yyyy-MM-dd') en millisecondes.
+function toMillis_(v) {
+  if (v instanceof Date) return v.getTime();
+  const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]).getTime();
+  const t = Date.parse(String(v || ''));
+  return isNaN(t) ? 0 : t;                    // 0 = très ancien → hors fenêtre
+}
+
+// ratio 0 → vert, 0.5 → jaune, 1 → rouge. Retourne "#RRGGBB".
+function interpolerCouleur_(ratio) {
+  ratio = Math.max(0, Math.min(1, ratio));
+  let a, b, t;
+  if (ratio < 0.5) { a = MFC_PRIX_BAS; b = MFC_PRIX_MED; t = ratio / 0.5; }
+  else             { a = MFC_PRIX_MED; b = MFC_PRIX_HAUT; t = (ratio - 0.5) / 0.5; }
+  const c = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  return '#' + c.map(v => ('0' + v.toString(16)).slice(-2)).join('').toUpperCase();
+}
+
+// Fonction manuelle : ré-applique la MFC sur tout l'historique existant
+// (premier passage / debug). Exécutable depuis l'éditeur Apps Script.
+function reappliquerMFCPrix() {
+  appliquerMFCPrix(SpreadsheetApp.openById(SPREADSHEET_ID));
 }
 
 // ─────────────────────────────────────────────────────────────

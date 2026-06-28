@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.26.0.0] — 2026-06-28
+
+### Added
+- **Google Sheets — dégradé couleur prix par carburant (G2)** — `appliquerMFCPrix()` colore `_PrixHistory!D` (Prix €/L) en dégradé **vert→jaune→rouge** (vert = prix bas), min/max calculés **par carburant** (colonne `Type`) sur une **fenêtre glissante de 90 jours** (repli sur l'historique complet pour un carburant sans relevé récent). Coloration `setBackgrounds` en batch (la MFC native « échelle de couleurs » ne sait pas grouper par carburant). Branché en fin de `refreshPrixCarburants()` (rafraîchissement quotidien) + fonction manuelle `reappliquerMFCPrix` pour un premier passage sur l'historique. `RefreshPrix.gs`.
+
 ## [5.25.0.0] — 2026-06-28
 
 ### Added
