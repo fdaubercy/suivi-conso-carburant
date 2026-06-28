@@ -650,10 +650,10 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
 
     On Error GoTo ErrHandler
 
+    tStart = now   ' X46 : pose le chrono avant tout (journalisation KO incluse)
     SetStatus "Connexion a Google Sheets..."
     Application.Cursor = xlWait
 
-    tStart = now
     Set ws = ThisWorkbook.Sheets(WS_NAME)
 
     ' v2.9 : s'assurer que la col P est bien initialisee
@@ -663,11 +663,17 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
 
     If jsonStr = "" Then
         SetStatus "ERREUR reseau - lancer TestConnexion() pour diagnostiquer"
+        On Error Resume Next
+        LogToSyncLog 0, 0, DateDiff("s", tStart, now), "KO reseau"
+        On Error GoTo ErrHandler
         GoTo Cleanup
     End If
 
     If InStr(jsonStr, """records""") = 0 Then
         SetStatus "ERREUR : reponse non-JSON - GAS pas re-deploye ? (TestConnexion pour details)"
+        On Error Resume Next
+        LogToSyncLog 0, 0, DateDiff("s", tStart, now), "KO reponse GAS"
+        On Error GoTo ErrHandler
         GoTo Cleanup
     End If
 
@@ -730,9 +736,9 @@ Private Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     If paramSync > 0 Then msg = msg & " / params:" & paramSync
     SetStatus msg
 
-    ' X11 : journalise cette sync dans l'onglet _SyncLog
+    ' X11 : journalise cette sync dans l'onglet _SyncLog (X46 : statut OK)
     On Error Resume Next
-    LogToSyncLog addedFromGS, sentToGS, DateDiff("s", tStart, now)
+    LogToSyncLog addedFromGS, sentToGS, DateDiff("s", tStart, now), "OK"
     On Error GoTo ErrHandler
 
     ' Propage les lignes GS_Pleins -> vue derivee "Suivi Carburant" (Tableau2).
@@ -767,6 +773,9 @@ Cleanup:
 
 ErrHandler:
     Application.Cursor = xlDefault
+    On Error Resume Next
+    LogToSyncLog 0, 0, DateDiff("s", tStart, now), "KO " & Err.Description
+    On Error GoTo 0
     SetStatus "ERREUR : " & Err.Description & " (TestConnexion pour verifier)"
 End Sub
 
@@ -1555,7 +1564,10 @@ End Function
 '  X11 : JOURNAL DE SYNC (_SyncLog)
 '  Ajoute une ligne date | <- GS | -> GS | duree(s) a chaque sync.
 ' ============================================================
-Private Sub LogToSyncLog(ByVal fromGS As Long, ByVal toGS As Long, ByVal dureeS As Long)
+'  X46 : ajout d'une colonne E "Statut" (OK / KO ...) journalisee a chaque
+'  sync, succes comme echec, pour alimenter la sante de la sync (Reglages).
+Private Sub LogToSyncLog(ByVal fromGS As Long, ByVal toGS As Long, ByVal dureeS As Long, _
+                         ByVal statut As String)
     Const LOG_SH As String = "_SyncLog"
     Dim wsL As Worksheet
     On Error Resume Next
@@ -1565,16 +1577,16 @@ Private Sub LogToSyncLog(ByVal fromGS As Long, ByVal toGS As Long, ByVal dureeS 
         Set wsL = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.count))
         wsL.name = LOG_SH
         wsL.visible = xlSheetHidden
-        With wsL.rows(1)
-            wsL.Cells(1, 1).value = "Horodatage"
-            wsL.Cells(1, 2).value = "<- GS"
-            wsL.Cells(1, 3).value = "-> GS"
-            wsL.Cells(1, 4).value = "Duree (s)"
-        End With
-        wsL.Cells(1, 1).Font.bold = True
-        wsL.Cells(1, 2).Font.bold = True
-        wsL.Cells(1, 3).Font.bold = True
-        wsL.Cells(1, 4).Font.bold = True
+        wsL.Cells(1, 1).value = "Horodatage"
+        wsL.Cells(1, 2).value = "<- GS"
+        wsL.Cells(1, 3).value = "-> GS"
+        wsL.Cells(1, 4).value = "Duree (s)"
+        wsL.Cells(1, 5).value = "Statut"
+        wsL.Range("A1:E1").Font.bold = True
+    ElseIf CStr(wsL.Cells(1, 5).value) = "" Then
+        ' Migration des journaux anterieurs a X46 (4 colonnes) : ajoute l'en-tete.
+        wsL.Cells(1, 5).value = "Statut"
+        wsL.Cells(1, 5).Font.bold = True
     End If
     Dim nxt As Long: nxt = wsL.Cells(wsL.rows.count, 1).End(xlUp).row + 1
     wsL.Cells(nxt, 1).value = now
@@ -1582,6 +1594,7 @@ Private Sub LogToSyncLog(ByVal fromGS As Long, ByVal toGS As Long, ByVal dureeS 
     wsL.Cells(nxt, 2).value = fromGS
     wsL.Cells(nxt, 3).value = toGS
     wsL.Cells(nxt, 4).value = dureeS
+    wsL.Cells(nxt, 5).value = statut
 End Sub
 
 Private Function HttpPost(url As String, body As String) As String

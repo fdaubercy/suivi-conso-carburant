@@ -176,6 +176,9 @@ Public Sub CreerFeuilleReglages()
               "Appliquer la charte", "modCharte.AppliquerCharte", RGB(29, 158, 117)
     r = r + 8
 
+    ' ── 5) Sante de la sync (X46) ──
+    AfficherSanteSyncReglages
+
     ' Remplit les 4 cellules metier depuis les cellules canoniques
     ReglagePullParametres
 
@@ -313,6 +316,97 @@ End Sub
 Private Sub PutIf(target As Range, v As Variant)
     If Len(Trim$(CStr(v))) > 0 Then target.Value = v
 End Sub
+
+' ============================================================
+'  X46 : SANTE DE LA SYNC (lecture de _SyncLog)
+'  Affiche statut / horodatage / lignes echangees / duree de la
+'  derniere sync. Le statut OK/KO est lu directement dans la colonne E
+'  "Statut" de _SyncLog, alimentee par modSyncGS (succes ET echecs).
+'  Idempotente : peut etre rappelee seule pour rafraichir le bloc.
+' ============================================================
+Public Sub AfficherSanteSyncReglages()
+    Const LOG_SH As String = "_SyncLog"
+    Dim ws As Worksheet, wsL As Worksheet
+    Dim r As Long, lastLog As Long
+    Dim hStamp As Variant, sFrom As Variant, sTo As Variant, sDuree As Variant
+    Dim sStat As String
+    Dim statut As String, dt As String, lignes As String, duree As String
+
+    On Error Resume Next
+    Set ws = ThisWorkbook.Sheets(WS_REG)
+    Set wsL = ThisWorkbook.Sheets(LOG_SH)
+    On Error GoTo 0
+    If ws Is Nothing Then Exit Sub
+
+    ' Valeurs par defaut : aucune sync connue.
+    statut = ChrW(9888) & " Aucune sync"
+    dt = "-": lignes = "-": duree = "-"
+
+    If Not wsL Is Nothing Then
+        lastLog = wsL.Cells(wsL.rows.count, 1).End(xlUp).row
+        If lastLog >= 2 Then
+            hStamp = wsL.Cells(lastLog, 1).value
+            sFrom = wsL.Cells(lastLog, 2).value
+            sTo = wsL.Cells(lastLog, 3).value
+            sDuree = wsL.Cells(lastLog, 4).value
+            sStat = CStr(wsL.Cells(lastLog, 5).value)
+            If IsDate(hStamp) Then dt = Format$(CDate(hStamp), "dd/mm/yyyy hh:mm:ss")
+            If sStat = "" Then
+                statut = ChrW(10003) & " OK"            ' journaux anterieurs a X46 : presume OK
+            ElseIf UCase$(Left$(sStat, 2)) = "OK" Then
+                statut = ChrW(10003) & " " & sStat       ' coche
+            Else
+                statut = ChrW(10007) & " " & sStat       ' croix (KO ...)
+            End If
+            lignes = ChrW(8592) & " " & CStr(NzNum(sFrom)) & "   " & _
+                     ChrW(8594) & " " & CStr(NzNum(sTo))
+            duree = CStr(NzNum(sDuree)) & " s"
+        End If
+    End If
+
+    ' Section affichee en bas de la feuille (sous la charte).
+    r = ws.Cells(ws.rows.count, 2).End(xlUp).row + 2
+    On Error Resume Next
+    ThisWorkbook.Names.Add Name:="SanteSync_Start", RefersTo:=ws.Cells(r, 2)
+    On Error GoTo 0
+
+    Application.EnableEvents = False
+    WSection ws, r, Emo(&H1F501&) & " Sant" & ChrW(233) & " de la sync": r = r + 1
+    WSanteLine ws, r, "Statut", statut: r = r + 1
+    WSanteLine ws, r, "Derniere sync", dt: r = r + 1
+    WSanteLine ws, r, "Lignes echangees", lignes: r = r + 1
+    WSanteLine ws, r, "Duree", duree
+    Application.EnableEvents = True
+End Sub
+
+' Affiche une ligne libelle (col B) / valeur (col D), style des sections.
+Private Sub WSanteLine(ByVal ws As Worksheet, ByVal r As Long, _
+                       ByVal label As String, ByVal val As String)
+    With ws.Cells(r, 2)
+        .Value = label
+        .Font.Color = RGB(55, 65, 81)
+        .Font.Size = 11
+        .IndentLevel = 1
+    End With
+    With ws.Cells(r, 4)
+        .Value = val
+        .Font.Bold = True
+        .Font.Color = RGB(27, 58, 92)
+        .Interior.Color = RGB(243, 244, 246)
+        .HorizontalAlignment = xlCenter
+        .Borders.LineStyle = xlContinuous
+        .Borders.Color = RGB(209, 213, 219)
+        .Borders.Weight = xlThin
+    End With
+    ws.Rows(r).RowHeight = 22
+End Sub
+
+' Convertit une valeur eventuellement vide/non numerique en nombre (0 par defaut).
+Private Function NzNum(ByVal v As Variant) As Long
+    On Error Resume Next
+    If IsNumeric(v) Then NzNum = CLng(v) Else NzNum = 0
+    On Error GoTo 0
+End Function
 
 Private Sub WSection(ws As Worksheet, r As Long, title As String)
     With ws.Cells(r, 2)

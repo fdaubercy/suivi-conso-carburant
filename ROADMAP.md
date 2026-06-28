@@ -73,7 +73,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| X46 | **Santé de la sync dans l'onglet `Réglages`** : afficher la dernière sync (OK/KO), son horodatage, le nb de lignes échangées et la durée, lus depuis `_SyncLog` (déjà alimenté par X11/`LogSync`). | Diagnostic en un coup d'œil sans ouvrir `_SyncLog` ni l'IDE VBA. |
+| _(aucune en attente)_ | — | X46 livré en v5.25.0.0 |
 
 ### 🛡️ Sécurité
 
@@ -119,6 +119,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.25.0.0 | **Excel — santé de la sync dans `Réglages` (X46)** — nouvelle section « 🔁 Santé de la sync » en bas de l'onglet `Réglages` affichant statut **OK/KO**, horodatage, lignes échangées (← / →) et durée de la dernière sync, lus depuis `_SyncLog`. `LogToSyncLog` (modSyncGS) gagne une 5ᵉ colonne **« Statut »** désormais journalisée **succès comme échec** (chemins réseau/réponse non-JSON/`ErrHandler` de `SyncCore`) — migration auto des journaux 4 colonnes existants. Affichage via `AfficherSanteSyncReglages` (idempotent), branché dans `CreerFeuilleReglages`. `vba/modSyncGS.bas`, `vba/modReglages.bas`. |
 | v5.24.1.0 | **Excel — nettoyage orphelin VBA (X42)** — suppression du module orphelin `vba/synchroniseGoogleForm.bas` (`SyncStationsVersGoogleSheets`, repris par `modSyncGS`) ; `Module1`/`synchroniseGoogleForm` déjà absents du classeur (cohérence disque ↔ classeur). Au passage, **X39 retiré du Top 5** (déjà livré en v5.20.1.0, traînait à tort en priorité n°1). |
 | v5.24.0.0 | **Excel — écran d'attente au démarrage (splash X60)** — `UserForm` modeless plein cadre `frmSplash` (logo ⛽ + libellé d'étape + **barre de progression**) affiché en tête de `Workbook_Open`, masque le « montage » des onglets. Progression **par étapes** (6 synchrones + import/rebuild/synchro différés) via `modSplash.SplashStep` (`DoEvents`/`.Repaint`). Fermeture **coordonnée** sur la fin des 3 tâches différées + **sécurité** `SplashForceClose` à +90 s. Limite assumée (VBA mono-thread) : pas d'animation continue ni moteur web embarqué. Aperçu Alt+F8 → `SplashDemo`. `vba/frmSplash.frm`, `vba/modSplash.bas`, `vba/ThisWorkbook.cls`, `vba/modWorkbook.bas`. |
 | v5.23.0.0 | **Excel — cartes en Google Maps (W82)** — les 3 cartes du classeur (stations, proximité, itinéraire) passent de Leaflet/OSM à **Google Maps JS** (`AdvancedMarkerElement`), via un moteur unifié `MapEngineJs` (cfg unique pour les 2 rendus). Marqueurs logo+prix, cercle, polyligne, popups conservés. **Repli Leaflet automatique** si clé absente / `gm_authFailure`. Clé Maps **non restreinte par référent** stockée hors dépôt (registre HKCU `SuiviE85\Maps\ApiKey`, macro `PoserCleMaps`). Vérifié dans Chrome réel. `vba/modCarte.bas`. |

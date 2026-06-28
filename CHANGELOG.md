@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.25.0.0] — 2026-06-28
+
+### Added
+- **Excel — santé de la sync dans `Réglages` (X46)** — nouvelle section « 🔁 Santé de la sync » (statut **OK/KO**, horodatage, lignes échangées ← / →, durée de la dernière sync) lue depuis `_SyncLog`, affichée par `AfficherSanteSyncReglages` (idempotent) et branchée dans `CreerFeuilleReglages`. `vba/modReglages.bas`.
+
+### Changed
+- **Excel — `_SyncLog` journalise désormais le statut (X46)** — `LogToSyncLog` (`modSyncGS`) gagne une 5ᵉ colonne **« Statut »** écrite à chaque sync, **succès comme échec** : les chemins d'échec de `SyncCore` (réseau vide, réponse non-JSON, `ErrHandler`) journalisent un `KO …` au lieu de ne rien écrire. Migration automatique des journaux 4 colonnes antérieurs (en-tête ajouté, anciens logs présumés OK). `vba/modSyncGS.bas`.
+
 ## [5.24.1.0] — 2026-06-28
 
 ### Removed
