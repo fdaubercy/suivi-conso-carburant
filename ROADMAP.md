@@ -12,7 +12,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi | Effort |
 |---|---|---|---|
 | W78 | **Lazy-load carte / Google Maps** : import dynamique de `js/carte.js` + `js/gmap.js` (chargeur Maps lourd) uniquement à l'entrée sur la route `#/carte` | Démarrage plus rapide et moins de JS au 1ᵉʳ rendu : le chargeur Google Maps n'est plus tiré au boot pour les sessions qui ne consultent jamais la carte | ~1-2 h |
-| W79 | **Audit a11y automatisé** : job CI **non-bloquant** (axe-core ou Lighthouse) sur les vues principales (saisie, stats, historique) | Prolonge W77 (aria-labels) en verrouillant l'accessibilité AA : toute régression de contraste/label est signalée au lieu de passer inaperçue | ~2 h |
+| W81 | **Corriger les violations a11y relevées par W79** : `select-name` (critique) sur `#stationSel` (ajouter `aria-label`/`<label>`), et `color-contrast` (sérieux) sur les éléments signalés (saisie/stats/historique). | Mettre l'app en conformité WCAG AA réelle (W79 ne fait que signaler) ; une fois à zéro, durcir le job `a11y` en bloquant. | ~1-2 h |
 | W80 | **UI file d'attente offline** : badge « N pleins en attente de sync » + bouton *retry* visible (la file `queuePlein` d'`offline.js` existe déjà mais est muette) | Confiance utilisateur en mode hors-ligne : on voit ce qui n'est pas encore remonté et on peut forcer l'envoi | ~2-3 h |
 
 ---
@@ -116,6 +116,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.28.0.0 | **CI — audit a11y automatisé (W79)** — job CI `a11y` **non-bloquant** passant **axe-core** (WCAG 2.0/2.1 A & AA) via Playwright sur saisie/stats/historique ; `tests/a11y.spec.js` (mocks réseau + session U7 seedée, reporter résilient), `npm run test:a11y`, devDep `@axe-core/playwright`. Violations relevées → W81. `.github/workflows/ci.yml`. |
 | v5.27.0.0 | **Excel — garde-erreur import auto (X41)** — `Feuil2.Worksheet_Activate` enrobe `ImporterNouveauxPleinsAuto` d'un `On Error Resume Next`/`On Error GoTo 0` (modèle `Feuil7`/Réglages) : un échec réseau/GAS de l'import ne bloque plus la navigation vers « Suivi Carburant ». Doc-module `Feuil2` désormais versionné (`vba/Feuil2.cls`). |
 | v5.27.0.0 | **Excel — projection rentabilité J11/J12 véhicule-aware (X51)** — `Suivi Carburant`!J11 (date) et J12 (km) de rentabilité passent de `LOOKUP`/`INDEX` **globaux** à des `MAXIFS`/`MINIFS` filtrés par véhicule sélectionné (idiome `IF($B$3="(tous)","*",$B$3)`, cohérent B11/J7/J8). Prouvé via cellule brouillon (MAXIFS Z900=13864, FANTOME=0). Latent tant qu'un seul véhicule existe. |
 | v5.26.0.0 | **Google Sheets — dégradé couleur prix par carburant (G2)** — coloration par script de `_PrixHistory!D` (Prix €/L) en dégradé **vert→jaune→rouge** (vert = prix bas), calculé **indépendamment par carburant** (colonne `Type`) sur une **fenêtre glissante de 90 jours** (repli historique complet si pas de relevé récent). Appliqué en fin de `refreshPrixCarburants()` (quotidien ~7 h) + fonction manuelle `reappliquerMFCPrix`. La MFC native « échelle de couleurs » ne sait pas grouper par carburant → coloration `setBackgrounds` en batch. `RefreshPrix.gs`. |

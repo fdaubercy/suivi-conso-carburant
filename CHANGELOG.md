@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.28.0.0] — 2026-06-29
+
+### Added
+- **CI — audit accessibilité automatisé (W79)** — nouveau job CI `a11y` **non-bloquant** (`continue-on-error: true`) qui passe **axe-core** (WCAG 2.0/2.1 A & AA) via Playwright sur les 3 vues principales (saisie, stats, historique), résumé des violations graves publié dans le récap du job. Test `tests/a11y.spec.js` (mocks réseau + session authentifiée seedée pour franchir le mur U7 sur stats/historique ; reporter résilient : une instabilité de vue n'échoue jamais le test). Script `npm run test:a11y`, devDep `@axe-core/playwright`. Premières violations relevées : `select-name` (critique, `#stationSel`) et `color-contrast` (sérieux) → suivi en W81.
+
 ## [5.27.0.0] — 2026-06-29
 
 ### Fixed

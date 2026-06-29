@@ -326,14 +326,16 @@ Suite de 5 scénarios Playwright exécutés sur le serveur Vite local, en mode *
 npm run test:e2e          # headless Chromium
 npm run test:e2e:headed   # navigateur visible
 npm run test:e2e:report   # ouvre le rapport HTML
+npm run test:a11y         # audit a11y axe-core (saisie/stats/historique), non-bloquant (W79)
 ```
 
-### 🔁 CI — GitHub Actions (W13 + S9 + W72)
-Cinq jobs automatiques sur chaque `push` / `pull_request` :
+### 🔁 CI — GitHub Actions (W13 + S9 + W72 + W79)
+Six jobs automatiques sur chaque `push` / `pull_request` :
 - **ESLint** : lint de tous les fichiers `js/` (règles `no-var`, `no-unused-vars`, `no-undef`…), **strict `--max-warnings=0`** (T11) — le moindre warning fait échouer le job
 - **Tests Vitest** : **235 cas unitaires** sur 22 fichiers (utils, prix, itineraire, notifications, stationsmap, ticket/OCR, **+ state, ui, carburant, recherche, formulaire, offline, geo, carte, pwa — W72**), env `jsdom`
 - **Couverture (W72)** : `npm run test:coverage` (`@vitest/coverage-v8`, provider v8) — résumé publié dans le récap du job, **non-bloquant** (`continue-on-error: true`, aucun seuil)
 - **npm audit** (S9) : signale les vulnérabilités `moderate+` sur les dépendances — non-bloquant (`continue-on-error: true`)
+- **Audit a11y (W79)** : `npm run test:a11y` (axe-core via Playwright sur saisie/stats/historique, WCAG 2.0/2.1 A & AA) — violations graves rapportées dans le récap du job, **non-bloquant** (`continue-on-error: true`)
 - **Version check** : compare `APP_VERSION` dans `config.js` au dernier tag Git — avertissement si divergence
 
 **Dependabot (S9)** : MAJ npm automatiques hebdomadaires (lundi 09h00 Europe/Paris) pour Tesseract.js, Vite, Vitest et les autres dépendances ; MAJ github-actions mensuellement.
