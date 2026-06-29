@@ -27,6 +27,11 @@ Private g_Applying As Boolean                  ' X39 P5 : anti-reentrance du rec
 Private g_PeriodDefaultDone As Boolean         ' X39 : calage chronologie min<->max applique 1x/session
 Private g_RebuildAt As Double                  ' X43 : echeance OnTime du rebuild debounce (0 = aucun planifie)
 Private Const REBUILD_DELAY As Long = 1        ' X43 : secondes de coalescence (plancher fiable d'Application.OnTime)
+' X43c : signature de rebuild (no-op skip + classification rsNone/rsTargeted/rsFull)
+Private Const WS_CARB    As String = "Suivi Carburant"
+Private Const T2_NAME    As String = "Tableau2"
+Private Const SIG_SHEET  As String = "_GraphData"
+Private Const SIG_CELL   As String = "ZZ1"
 
 ' Ouverture : recale B5/B6 sur les segments restaures par Excel puis reconstruit
 ' le tableau -> KPI synchronises sur le dernier vehicule/carburant selectionne.
@@ -40,6 +45,7 @@ Public Sub SyncFiltersAndRebuildOnOpen()
     WritePeriodFromTimeline wsd
     Application.EnableEvents = True
     modDashboardGraphiques.RecreerDashboardComplet
+    WriteLastSignature ComputeRebuildSignature()   ' X43c : etat de reference apres rebuild d'ouverture
     On Error GoTo 0
 End Sub
 
@@ -118,14 +124,24 @@ End Sub
 '  Sablier + barre d'etat -> supprime l'effet "fige" pendant les ~20-30 s de calcul.
 Public Sub DebouncedRebuild()
     g_RebuildAt = 0
+    ' X43c : signature -> sauter le rebuild si rien d'observable n'a change (no-op).
+    Dim newSig As String: newSig = ComputeRebuildSignature()
+    Dim scope As Long: scope = ClassifyFilterDelta(ReadLastSignature(), newSig)
+    If scope = 0 Then
+        Application.StatusBar = "Tableau de bord deja a jour (aucun changement)."
+        Exit Sub
+    End If
     Dim evt As Boolean: evt = Application.EnableEvents
     Dim cur As Long: cur = Application.Cursor
     On Error GoTo restore
     Application.EnableEvents = False
     Application.Cursor = xlWait
     Application.StatusBar = "Mise a jour du tableau de bord..."
+    ' rsTargeted et rsFull : meme chemin complet pour cet increment ; le ciblage
+    '  par bloc (rsTargeted) est un raffinement ulterieur (cf. ROADMAP X43c-opt).
     Application.Run "CreerGraphiquesWeb", True    ' rebuild data + graphiques (silencieux)
     Application.Run "MAJ_Dashboard_Graphiques"    ' restyle + layout + KPI + panneaux + boutons
+    WriteLastSignature newSig                     ' X43c : enregistre l'etat reconstruit (apres succes)
     Application.StatusBar = False
     Application.Cursor = cur
     Application.EnableEvents = evt
@@ -137,6 +153,82 @@ restore:
     Application.EnableEvents = evt
     On Error GoTo 0
 End Sub
+
+' ============================================================
+'  X43c : signature de rebuild (no-op skip + classification)
+' ============================================================
+' Signature = filtres (B5 veh / B6 carb / B9-B10 periode / B2 budget / B3 CO2 /
+'  B4 annee) + empreinte des donnees source. Identique au dernier rebuild reussi
+'  -> rien d'observable n'a change -> on saute (rsNone).
+Private Function ComputeRebuildSignature() As String
+    Dim wsd As Worksheet: Set wsd = SheetByName(WS_DASH)
+    If wsd Is Nothing Then Exit Function
+    ComputeRebuildSignature = _
+        CStr(wsd.Range("B5").value) & vbTab & CStr(wsd.Range("B6").value) & vbTab & _
+        CStr(wsd.Range("B9").value) & vbTab & CStr(wsd.Range("B10").value) & vbTab & _
+        CStr(wsd.Range("B2").value) & vbTab & CStr(wsd.Range("B3").value) & vbTab & _
+        CStr(wsd.Range("B4").value) & vbTab & SourceFingerprint()
+End Function
+
+' Empreinte legere des donnees source : nb lignes + max(Date)/max(Km) de Tableau2
+'  + nb lignes de GS_Pleins. Un import de pleins la change -> rebuild force (pas
+'  de no-op a tort).
+Private Function SourceFingerprint() As String
+    Dim s As String, lo As ListObject, ws As Worksheet
+    On Error Resume Next
+    Set ws = SheetByName(WS_CARB)
+    If Not ws Is Nothing Then Set lo = ws.ListObjects(T2_NAME)
+    If Not lo Is Nothing Then _
+        s = "T2:" & RowsOf(lo) & "/" & MaxOf(lo, "Date") & "/" & MaxOf(lo, "Km compteur")
+    Set lo = Nothing: Set ws = SheetByName(GS_SHEET)
+    If Not ws Is Nothing Then Set lo = ws.ListObjects(1)
+    If Not lo Is Nothing Then s = s & "|GS:" & RowsOf(lo)
+    On Error GoTo 0
+    SourceFingerprint = s
+End Function
+
+Private Function RowsOf(lo As ListObject) As Long
+    On Error Resume Next
+    If Not lo.DataBodyRange Is Nothing Then RowsOf = lo.DataBodyRange.Rows.count
+    On Error GoTo 0
+End Function
+
+Private Function MaxOf(lo As ListObject, ByVal colName As String) As Double
+    On Error Resume Next
+    Dim c As Range: Set c = lo.ListColumns(colName).DataBodyRange
+    If Not c Is Nothing Then MaxOf = Application.WorksheetFunction.Max(c)
+    On Error GoTo 0
+End Function
+
+Private Function ReadLastSignature() As String
+    On Error Resume Next
+    Dim ws As Worksheet: Set ws = SheetByName(SIG_SHEET)
+    If Not ws Is Nothing Then ReadLastSignature = CStr(ws.Range(SIG_CELL).value)
+    On Error GoTo 0
+End Function
+
+Private Sub WriteLastSignature(ByVal sig As String)
+    On Error Resume Next
+    Dim ws As Worksheet: Set ws = SheetByName(SIG_SHEET)
+    If ws Is Nothing Then Exit Sub
+    ws.Range(SIG_CELL).value = "'" & sig
+    On Error GoTo 0
+End Sub
+
+' rsNone(0)  : signatures identiques -> aucun rebuild.
+' rsFull(2)  : empreinte source OU vehicule OU periode change -> tout en depend.
+' rsTargeted(1) : seuls carburant / budget / CO2 / annee ont change.
+Private Function ClassifyFilterDelta(ByVal oldSig As String, ByVal newSig As String) As Long
+    If Len(newSig) > 0 And oldSig = newSig Then ClassifyFilterDelta = 0: Exit Function
+    Dim o() As String, n() As String
+    o = Split(oldSig, vbTab): n = Split(newSig, vbTab)
+    If UBound(o) <> 7 Or UBound(n) <> 7 Then ClassifyFilterDelta = 2: Exit Function
+    If n(7) <> o(7) Or n(0) <> o(0) Or n(2) <> o(2) Or n(3) <> o(3) Then
+        ClassifyFilterDelta = 2          ' source / vehicule / periode -> FULL
+    Else
+        ClassifyFilterDelta = 1          ' carburant / budget / CO2 / annee -> TARGETED
+    End If
+End Function
 
 ' CSV des items SELECTIONNES d'un segment ; tous (ou aucun) coches -> "(tous)"
 Private Function SlicerCsv(ByVal field As String) As String

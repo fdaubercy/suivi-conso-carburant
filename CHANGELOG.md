@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.29.0.0] — 2026-06-29
+
+### Changed
+- **Excel — rebuild dashboard incrémental hybride (X43c)** — `modFiltres.DebouncedRebuild` consulte désormais une **signature d'état** (filtres B5/B6/B9/B10 + budget B2 / CO2 B3 / année B4 + **empreinte des données source** : nb lignes & max Date/Km de `Tableau2`, nb lignes `GS_Pleins`) avant de reconstruire. Classification `ClassifyFilterDelta` → `rsNone` (signature identique → **skip total instantané**, plus de rebuild ~20-30 s au re-clic du même filtre), `rsTargeted` (carburant/budget/CO2/année), `rsFull` (véhicule/période/données → tout en dépend). Signature stockée dans `_GraphData!ZZ1`, écrite après chaque rebuild réussi + à l'ouverture (`SyncFiltersAndRebuildOnOpen`). Un import de pleins change l'empreinte → rebuild forcé (pas de no-op à tort). *Note : pour cet incrément, `rsTargeted` se replie sur un rebuild complet — le recalcul par bloc est différé en X43c-opt ; le gain livré est le **no-op skip**.* Complète X43a/b (debounce, v5.13.0.0). `vba/modFiltres.bas`.
+
 ## [5.28.0.0] — 2026-06-29
 
 ### Added

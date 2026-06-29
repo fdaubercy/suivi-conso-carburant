@@ -46,7 +46,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi | Effort |
 |---|---|---|---|
-| X43c | **Rebuild dashboard incrémental** : ne recalculer que les séries impactées par le filtre changé au lieu du rebuild complet (`BuildAggregates`), `EnsureChart` réutilisant déjà les objets graphiques. *(Le non-bloquant + anti-cascade + debounce — parties (a)/(b) — a été livré en v5.13.0.0.)* | Réduire encore le temps après filtrage, au-delà de la coalescence : un changement isolé déclenche toujours un recalcul complet de ~20-30 s. | ~1 j |
+| X43c-opt | **Rebuild incrémental — ciblage par bloc (suite de X43c)** : pour `rsTargeted` (carburant/budget/CO2/année changés), ne recalculer que les blocs `BuildAggregates` impactés au lieu d'un rebuild complet. Exige de découper `BuildAggregates` (monolithe ~240 lignes) en sous-calculs par bloc. | Gagner sur les rares filtres isolables ; X43c livre déjà le **no-op skip** (rsNone) qui couvre le cas dominant (re-clic même filtre). Véhicule/période restent incompressibles. | ~1 j |
 
 ### 🛠️ Robustesse
 
@@ -116,6 +116,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.29.0.0 | **Excel — rebuild dashboard incrémental hybride (X43c)** — `modFiltres.DebouncedRebuild` consulte une **signature d'état** (filtres B5/B6/B9/B10 + budget/CO2/année + empreinte source Tableau2/GS_Pleins) : `rsNone` → **skip total** au re-clic du même filtre (plus de rebuild ~20-30 s), `rsTargeted`/`rsFull` → rebuild (complet pour cet incrément). Signature en `_GraphData!ZZ1`. Vérifié via COM (no-op = horodatage B8 inchangé ; changement = B8 avance). Ciblage par bloc différé → X43c-opt. Complète X43a/b (v5.13.0.0). `vba/modFiltres.bas`. |
 | v5.28.0.0 | **CI — audit a11y automatisé (W79)** — job CI `a11y` **non-bloquant** passant **axe-core** (WCAG 2.0/2.1 A & AA) via Playwright sur saisie/stats/historique ; `tests/a11y.spec.js` (mocks réseau + session U7 seedée, reporter résilient), `npm run test:a11y`, devDep `@axe-core/playwright`. Violations relevées → W81. `.github/workflows/ci.yml`. |
 | v5.27.0.0 | **Excel — garde-erreur import auto (X41)** — `Feuil2.Worksheet_Activate` enrobe `ImporterNouveauxPleinsAuto` d'un `On Error Resume Next`/`On Error GoTo 0` (modèle `Feuil7`/Réglages) : un échec réseau/GAS de l'import ne bloque plus la navigation vers « Suivi Carburant ». Doc-module `Feuil2` désormais versionné (`vba/Feuil2.cls`). |
 | v5.27.0.0 | **Excel — projection rentabilité J11/J12 véhicule-aware (X51)** — `Suivi Carburant`!J11 (date) et J12 (km) de rentabilité passent de `LOOKUP`/`INDEX` **globaux** à des `MAXIFS`/`MINIFS` filtrés par véhicule sélectionné (idiome `IF($B$3="(tous)","*",$B$3)`, cohérent B11/J7/J8). Prouvé via cellule brouillon (MAXIFS Z900=13864, FANTOME=0). Latent tant qu'un seul véhicule existe. |
