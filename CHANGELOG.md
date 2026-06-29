@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.27.0.0] — 2026-06-29
+
+### Fixed
+- **Excel — garde-erreur sur l'import auto à l'activation de « Suivi Carburant » (X41)** — `Feuil2.Worksheet_Activate` enrobe désormais l'appel `ImporterNouveauxPleinsAuto` d'un `On Error Resume Next` … `On Error GoTo 0` (modèle `Feuil7`/Réglages). Un échec réseau/GAS de l'import ne bloque plus la navigation vers l'onglet. Doc-module `Feuil2` désormais versionné (`vba/Feuil2.cls`).
+- **Excel — projection de rentabilité du kit (`Suivi Carburant`!J11/J12) filtrée par véhicule (X51)** — la date (J11) et le km (J12) estimés de rentabilité passaient par des `LOOKUP`/`INDEX` **globaux** sur `Tableau2[Date]`/`[Km compteur]` (tous véhicules confondus). Remplacés par des `MAXIFS`/`MINIFS` filtrés sur le véhicule sélectionné (idiome `IF($B$3="(tous)","*",$B$3)`, cohérent avec B11/J7/J8). Cohérence multi-véhicule de la projection (latent tant qu'un seul véhicule existe).
+
 ## [5.26.0.0] — 2026-06-28
 
 ### Added
