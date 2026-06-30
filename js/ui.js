@@ -30,6 +30,7 @@ export function setSubmitState(loading) {
 
 export function showFeedback(type, title, msg) {
   const el = document.getElementById('feedback');
+  if (!el) return;   // garde : ne jamais lever (un throw ici tuerait le handler appelant en silence)
   el.className = 'feedback ' + type;
   el.innerHTML = '<strong>' + title + '</strong>' + msg;
   el.style.display = 'block';

@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.29.0.3] — 2026-06-30
+
+### Fixed
+- **Web — feedback du badge hors-ligne enfin visible (W82)** — cliquer le badge `📵 N hors-ligne` (présent dans le header, donc cliquable depuis **toutes** les vues) ne produisait « rien » à l'écran : `syncQueue({ manual })` appelait bien `showFeedback()` (ex. « 🔐 Reconnexion requise » sur session expirée), mais l'élément `#feedback` vivait **à l'intérieur de `view-saisie`**. Quand une autre vue était active (l'app démarre sur **`view-accueil`**), cette vue est en `display:none` → le message s'écrivait dans un conteneur masqué → invisible. Reproduit au navigateur : `feedbackText` correctement rempli mais élément hors écran. Correctif : `#feedback` sorti des vues et remonté en enfant direct de `#app-main`, restylé en **toast `position:fixed`** (haut, centré, `z-index`, `safe-area-inset`) → visible quelle que soit la vue active. Garde null ajoutée à `showFeedback()` (un `#feedback` absent ne tue plus le handler en silence). Vérifié au navigateur (mobile 375 px) : toast 343 px affiché en haut depuis l'accueil. `index.html`, `css/style.css`, `js/ui.js`.
+
 ## [5.29.0.2] — 2026-06-30
 
 ### Fixed

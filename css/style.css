@@ -775,7 +775,16 @@ header h1 {
 
 /* ─── Feedback soumission ─── */
 .feedback {
-  display: none; margin: 8px 16px 0;
+  display: none;
+  /* Toast global : fixé en haut, centré, au-dessus du contenu. Visible quelle
+     que soit la vue active (le badge hors-ligne est cliquable partout). W82. */
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: min(440px, calc(100vw - 32px));
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .18);
   border-radius: var(--radius); padding: 14px 16px; font-size: 14px;
 }
 .feedback.success { background: var(--green-light); border: 1.5px solid #9FE1CB; color: #085041; }

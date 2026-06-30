@@ -77,6 +77,12 @@
 
 <main id="app-main">
 
+<!-- Feedback global (toast) — hors de toute vue pour rester visible quel que soit
+     l'écran actif (le badge hors-ligne du header peut être cliqué depuis l'accueil,
+     les stats, etc. ; auparavant #feedback vivait dans view-saisie → message
+     invisible si une autre vue était active). W82. -->
+<div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+
 <!-- ════════════ U7 — Mur de connexion ════════════
      Affiché par le routeur À LA PLACE des vues perso (stats / historique /
      réglages) quand l'auth est active et l'utilisateur déconnecté. -->
@@ -272,8 +278,6 @@
 
 <!-- ─── W38 Moins cher du secteur (relevé quotidien) ─── -->
 <div class="card secteur-card" id="secteurCard" hidden></div>
-
-<div class="feedback" id="feedback"></div>
 
 <div class="submit-wrap">
   <button class="submit-btn" id="submitBtn">
