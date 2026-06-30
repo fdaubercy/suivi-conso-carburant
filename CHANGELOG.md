@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.29.0.2] — 2026-06-30
+
+### Fixed
+- **PWA — versionnage du Service Worker réparé (W82)** — le plugin Vite `swVersionPlugin` qui substitue `__SW_VERSION__` dans `sw.js` (nom du cache indexé sur `APP_VERSION`) était **défini mais jamais enregistré** dans `plugins: []` (`vite.config.js`) : il ne tournait ni en dev ni au build. Le `sw.js` déployé gardait donc le littéral `__SW_VERSION__`, son contenu ne changeait **jamais** d'un déploiement à l'autre → le navigateur ne détectait aucune mise à jour du SW → l'invite « Actualiser » (W23) ne se déclenchait pas → la PWA mobile restait **figée sur l'ancien code** après chaque déploiement (symptôme : badge hors-ligne v5.29.0.1 jamais reçu sur le portable, clic sans effet). Plugin désormais enregistré ; le hook `closeBundle` est en plus rendu robuste (lecture de repli sur `public/sw.js` si `dist/sw.js` absent au moment du hook). Vérifié : `dist/sw.js` contient bien `...shell-v5.29.0.2` après build. `vite.config.js`.
+
 ## [5.29.0.1] — 2026-06-30
 
 ### Fixed

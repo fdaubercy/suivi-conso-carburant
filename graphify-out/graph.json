@@ -7967,7 +7967,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L30",
-      "community": 2,
+      "community": 5,
       "norm_label": "[5.17.0.0] \u2014 2026-06-14",
       "id": "changelog_5_17_0_0_2026_06_14"
     },
@@ -8381,7 +8381,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L469",
-      "community": 0,
+      "community": 2,
       "norm_label": "[4.18.0.0] \u2014 2026-06-04",
       "id": "changelog_4_18_0_0_2026_06_04"
     },
@@ -8840,7 +8840,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L936",
-      "community": 2,
+      "community": 0,
       "norm_label": "[3.12.2.0] \u2014 2026-05-30",
       "id": "changelog_3_12_2_0_2026_05_30"
     },
@@ -8894,7 +8894,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L1041",
-      "community": 5,
+      "community": 2,
       "norm_label": "[3.8.0.0] \u2014 2026-05-30",
       "id": "changelog_3_8_0_0_2026_05_30"
     },
@@ -8912,7 +8912,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L1070",
-      "community": 5,
+      "community": 2,
       "norm_label": "[3.6.0.0] \u2014 2026-05-30",
       "id": "changelog_3_6_0_0_2026_05_30"
     },
@@ -8984,7 +8984,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L1187",
-      "community": 2,
+      "community": 5,
       "norm_label": "[3.3.0.9] \u2014 2026-05-30",
       "id": "changelog_3_3_0_9_2026_05_30"
     },
@@ -8993,7 +8993,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L1198",
-      "community": 2,
+      "community": 5,
       "norm_label": "[3.3.0.8] \u2014 2026-05-30",
       "id": "changelog_3_3_0_8_2026_05_30"
     },
@@ -9146,7 +9146,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L1408",
-      "community": 5,
+      "community": 2,
       "norm_label": "[3.1.0.3] \u2014 2026-05-29",
       "id": "changelog_3_1_0_3_2026_05_29"
     },
@@ -9173,7 +9173,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L1428",
-      "community": 5,
+      "community": 2,
       "norm_label": "[3.1.0.0] \u2014 2026-05-29",
       "id": "changelog_3_1_0_0_2026_05_29"
     },
@@ -9236,7 +9236,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L1519",
-      "community": 2,
+      "community": 5,
       "norm_label": "[2.17.0.0] \u2014 2026-05-28",
       "id": "changelog_2_17_0_0_2026_05_28"
     },
@@ -9326,7 +9326,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L1655",
-      "community": 2,
+      "community": 5,
       "norm_label": "[2.11.0.0] \u2014 2026-05-27",
       "id": "changelog_2_11_0_0_2026_05_27"
     },
@@ -9605,7 +9605,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L1944",
-      "community": 5,
+      "community": 2,
       "norm_label": "[2.4.5.0] \u2014 2026-05-25",
       "id": "changelog_2_4_5_0_2026_05_25"
     },
@@ -62638,5 +62638,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "13af697ecda409ee3570a7e98d877e753a0cbdff"
+  "built_at_commit": "862578ef86968d732c8a908987d2540f5f934261"
 }

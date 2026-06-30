@@ -28,12 +28,21 @@ function swVersionPlugin() {
         } catch(e) { next(e); }
       });
     },
-    /* Build : remplace __SW_VERSION__ dans dist/sw.js */
+    /* Build : remplace __SW_VERSION__ dans dist/sw.js.
+       Robuste à rolldown-vite (Vite 8) : selon le timing de copie du dossier
+       public/, dist/sw.js peut ne pas encore exister au déclenchement du hook.
+       On lit alors la source depuis public/sw.js et on (ré)écrit toujours
+       dist/sw.js substitué — sinon le cache resterait nommé __SW_VERSION__,
+       le SW ne changerait jamais et l'invite de mise à jour ne se déclencherait
+       jamais (PWA figée sur l'ancien code après déploiement). */
     closeBundle() {
-      const p = resolve(process.cwd(), 'dist/sw.js');
-      if (!existsSync(p)) return;
-      const src = readFileSync(p, 'utf-8');
-      writeFileSync(p, src.replace(/__SW_VERSION__/g, getVersion()));
+      const dest = resolve(process.cwd(), 'dist/sw.js');
+      const srcPath = existsSync(dest)
+        ? dest
+        : resolve(process.cwd(), 'public/sw.js');
+      if (!existsSync(srcPath)) return;
+      const src = readFileSync(srcPath, 'utf-8');
+      writeFileSync(dest, src.replace(/__SW_VERSION__/g, getVersion()));
     },
   };
 }
@@ -42,6 +51,11 @@ export default defineConfig(({ command }) => ({
   // En dev (vite) : base '/' → http://localhost:5173/
   // En build (vite build) : base '/suivi-conso-carburant/' → GitHub Pages
   base: command === 'build' ? '/suivi-conso-carburant/' : '/',
+
+  // T3 — substitue __SW_VERSION__ dans sw.js (cache versionné par APP_VERSION).
+  // Sans cet enregistrement le plugin ne tournait pas : le SW gardait un cache
+  // au nom constant → aucune mise à jour détectée → PWA figée après déploiement.
+  plugins: [swVersionPlugin()],
 
   // Serveur de dev : port fixe (PORT injecté par le harness de prévisualisation,
   // sinon 5173). strictPort = pas de glissement silencieux en 5174 (qui casserait
