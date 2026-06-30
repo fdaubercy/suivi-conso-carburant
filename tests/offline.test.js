@@ -6,16 +6,17 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-const A = vi.hoisted(() => ({ enabled: false, authed: true }));
+const A = vi.hoisted(() => ({ enabled: false, authed: true, promptLogin: null }));
 vi.mock('../js/ui.js', () => ({ showFeedback: vi.fn() }));
 vi.mock('../js/auth.js', () => ({
   authEnabled: () => A.enabled,
   isAuthed:    () => A.authed,
   getIdToken:  () => 'tok',
+  promptLogin: (...args) => A.promptLogin(...args),
 }));
 
 import {
-  getQueue, getPendingCount, queuePlein, syncQueue, updateOfflineBadge, updateOfflineRow,
+  getQueue, getPendingCount, queuePlein, syncQueue, updateOfflineBadge, updateOfflineRow, initOffline,
 } from '../js/offline.js';
 import { showFeedback } from '../js/ui.js';
 
@@ -25,11 +26,12 @@ beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
   A.enabled = false; A.authed = true;
+  A.promptLogin = vi.fn();
   document.body.innerHTML = '<span id="offlineBadge" hidden></span><div id="offlineRow"></div>';
 });
 afterEach(() => { delete global.fetch; });
 
-describe('file d’attente (localStorage)', () => {
+describe("file d'attente (localStorage)", () => {
   it('getQueue retourne [] quand vide et tolère un JSON corrompu', () => {
     expect(getQueue()).toEqual([]);
     localStorage.setItem(QUEUE_KEY, '{pas du json');
@@ -48,7 +50,7 @@ describe('file d’attente (localStorage)', () => {
 });
 
 describe('updateOfflineBadge', () => {
-  it('affiche « 📵 N hors-ligne » quand la file n’est pas vide', () => {
+  it("affiche « 📵 N hors-ligne » quand la file n'est pas vide", () => {
     queuePlein({ a: 1 }); queuePlein({ a: 2 });
     updateOfflineBadge();
     const b = document.getElementById('offlineBadge');
@@ -62,7 +64,7 @@ describe('updateOfflineBadge', () => {
 });
 
 describe('updateOfflineRow', () => {
-  it('masque l’encart quand on est en ligne, l’affiche sinon', () => {
+  it("masque l'encart quand on est en ligne, l'affiche sinon", () => {
     Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
     updateOfflineRow();
     expect(document.getElementById('offlineRow').hidden).toBe(true);
@@ -80,7 +82,7 @@ describe('syncQueue', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('diffère le flush si l’auth est active mais l’utilisateur déconnecté', async () => {
+  it("diffère le flush si l'auth est active mais l'utilisateur déconnecté", async () => {
     A.enabled = true; A.authed = false;
     queuePlein({ a: 1 });
     global.fetch = vi.fn();
@@ -98,7 +100,7 @@ describe('syncQueue', () => {
     expect(showFeedback).toHaveBeenCalledWith('success', expect.stringContaining('synchronisé'), expect.any(String));
   });
 
-  it('conserve l’entrée et signale une sync partielle si le serveur refuse', async () => {
+  it("conserve l'entrée et signale une sync partielle si le serveur refuse", async () => {
     queuePlein({ a: 1 });
     global.fetch = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: false }) }));
     await syncQueue();
@@ -106,10 +108,73 @@ describe('syncQueue', () => {
     expect(showFeedback).toHaveBeenCalledWith('error', 'Sync partielle', expect.any(String));
   });
 
-  it('s’arrête sans crash si le réseau coupe (fetch rejette)', async () => {
+  it("s'arrête sans crash si le réseau coupe (fetch rejette)", async () => {
     queuePlein({ a: 1 });
     global.fetch = vi.fn(() => Promise.reject(new TypeError('offline')));
     await syncQueue();
     expect(getPendingCount()).toBe(1);   // rien purgé
+  });
+
+  it('mode manuel : file vide → info « Rien à synchroniser »', async () => {
+    global.fetch = vi.fn();
+    await syncQueue({ manual: true });
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(showFeedback).toHaveBeenCalledWith('info', 'Rien à synchroniser', expect.any(String));
+  });
+
+  it('mode manuel : session expirée → info + promptLogin, file intacte', async () => {
+    A.enabled = true; A.authed = false;
+    queuePlein({ a: 1 });
+    global.fetch = vi.fn();
+    await syncQueue({ manual: true });
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(getPendingCount()).toBe(1);
+    expect(A.promptLogin).toHaveBeenCalledTimes(1);
+    expect(showFeedback).toHaveBeenCalledWith('info', expect.stringContaining('Reconnexion'), expect.any(String));
+  });
+
+  it('mode manuel : toujours hors-ligne (fetch rejette) → error « hors-ligne »', async () => {
+    queuePlein({ a: 1 });
+    global.fetch = vi.fn(() => Promise.reject(new TypeError('offline')));
+    await syncQueue({ manual: true });
+    expect(getPendingCount()).toBe(1);
+    expect(showFeedback).toHaveBeenCalledWith('error', expect.stringContaining('hors-ligne'), expect.any(String));
+  });
+
+  it('mode auto : session expirée reste silencieux (pas de feedback)', async () => {
+    A.enabled = true; A.authed = false;
+    queuePlein({ a: 1 });
+    global.fetch = vi.fn();
+    await syncQueue();           // manual = false
+    expect(showFeedback).not.toHaveBeenCalled();
+    expect(A.promptLogin).not.toHaveBeenCalled();
+  });
+});
+
+describe('initOffline — badge cliquable & visibilitychange', () => {
+  it('rend le badge interactif (role=button, tabindex, aria-label)', () => {
+    initOffline();
+    const b = document.getElementById('offlineBadge');
+    expect(b.getAttribute('role')).toBe('button');
+    expect(b.getAttribute('tabindex')).toBe('0');
+    expect(b.getAttribute('aria-label')).toBeTruthy();
+  });
+
+  it('clic sur le badge déclenche une sync manuelle (file vide → info)', () => {
+    initOffline();
+    global.fetch = vi.fn();
+    document.getElementById('offlineBadge').click();
+    expect(showFeedback).toHaveBeenCalledWith('info', 'Rien à synchroniser', expect.any(String));
+  });
+
+  it('visibilitychange (visible + online) retente la sync et purge', async () => {
+    queuePlein({ a: 1 });
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+    global.fetch = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true }) }));
+    initOffline();
+    document.dispatchEvent(new Event('visibilitychange'));
+    await Promise.resolve(); await Promise.resolve();   // laisse la promesse fetch se résoudre
+    expect(global.fetch).toHaveBeenCalled();
   });
 });

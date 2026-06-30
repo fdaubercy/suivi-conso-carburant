@@ -13,7 +13,7 @@
 
 import { GAS_URL, APP_TOKEN } from './config.js';
 import { showFeedback } from './ui.js';
-import { getIdToken, isAuthed, authEnabled } from './auth.js';
+import { getIdToken, isAuthed, authEnabled, promptLogin } from './auth.js';
 
 const QUEUE_KEY = 'suivi_e85_offline_queue';
 
@@ -40,16 +40,31 @@ function clearFromQueue(id) {
 
 /* ─── Synchronisation ────────────────────────────────────────────────── */
 
-export async function syncQueue() {
+export async function syncQueue({ manual = false } = {}) {
   const queue = getQueue();
-  if (!queue.length) return;
+  if (!queue.length) {
+    if (manual) showFeedback('info', 'Rien à synchroniser', 'Aucun plein en attente.');
+    return;
+  }
 
   // U7 — si l'auth est active mais l'utilisateur déconnecté, on diffère le flush
   // jusqu'à la reconnexion (sinon le GAS rejetterait les pleins en mode strict).
-  if (authEnabled() && !isAuthed()) return;
+  if (authEnabled() && !isAuthed()) {
+    if (manual) {
+      const s = queue.length > 1;
+      showFeedback(
+        'info',
+        '🔐 Reconnexion requise',
+        `Reconnecte-toi pour envoyer ${queue.length} plein${s ? 's' : ''} en attente.`,
+      );
+      promptLogin();   // relance l'invite Google ; auth-changed relancera la sync
+    }
+    return;
+  }
 
   let synced = 0;
-  let failed  = 0;
+  let failed = 0;
+  let offline = false;
 
   for (const entry of queue) {
     try {
@@ -67,6 +82,7 @@ export async function syncQueue() {
       }
     } catch {
       /* Toujours hors-ligne — on arrête pour ne pas flood */
+      offline = true;
       break;
     }
   }
@@ -78,7 +94,7 @@ export async function syncQueue() {
     showFeedback(
       'success',
       `${synced} plein${s ? 's' : ''} synchronisé${s ? 's' : ''} ✓`,
-      `Les pleins enregistrés hors-ligne ont été envoyés à Google Sheets.`
+      `Les pleins enregistrés hors-ligne ont été envoyés à Google Sheets.`,
     );
     /* Rafraîchit l'historique sans recharger la page */
     if (typeof window.chargerHistorique === 'function') window.chargerHistorique();
@@ -86,6 +102,10 @@ export async function syncQueue() {
 
   if (failed > 0) {
     showFeedback('error', 'Sync partielle', `${failed} plein${failed > 1 ? 's' : ''} non synchronisé${failed > 1 ? 's' : ''} — vérifiez votre accès à Google Sheets.`);
+  }
+
+  if (manual && offline && synced === 0 && failed === 0) {
+    showFeedback('error', '📵 Toujours hors-ligne', 'Connexion indisponible — vos pleins restent en file d\'attente.');
   }
 }
 
@@ -118,6 +138,20 @@ export function initOffline() {
   updateOfflineBadge();
   updateOfflineRow();
 
+  /* Badge cliquable → sync manuelle (visible en ligne comme hors-ligne dès
+     qu'un plein est en file). Sur session expirée, syncQueue relance la
+     connexion ; sinon il envoie la file. */
+  const badge = document.getElementById('offlineBadge');
+  if (badge) {
+    badge.setAttribute('role', 'button');
+    badge.setAttribute('tabindex', '0');
+    badge.setAttribute('aria-label', 'Synchroniser les pleins en attente');
+    badge.addEventListener('click', () => syncQueue({ manual: true }));
+    badge.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); syncQueue({ manual: true }); }
+    });
+  }
+
   /* Sync automatique dès le retour réseau */
   window.addEventListener('online', () => {
     updateOfflineRow();
@@ -129,6 +163,12 @@ export function initOffline() {
   window.addEventListener('offline', () => {
     updateOfflineRow();
     showFeedback('info', '📵 Hors-ligne', 'Vos pleins seront mis en file d\'attente et envoyés au retour du réseau.');
+  });
+
+  /* Retour au premier plan : retenter la sync (l'événement « online » n'est pas
+     fiable sur PWA mobile / iOS — c'est ce déclencheur qui débloque la file). */
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && navigator.onLine) syncQueue();
   });
 
   /* Message reçu du Service Worker (Background Sync) */

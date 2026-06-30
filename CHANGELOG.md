@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.29.0.1] — 2026-06-30
+
+### Fixed
+- **Web — synchronisation hors-ligne débloquée (W80)** — `syncQueue()` (`js/offline.js`) abandonnait **en silence** quand la session Google était expirée (`id_token` ~1 h ; reconnexion silencieuse GIS souvent en échec sur Safari/iOS) : les pleins restaient en file sans aucun retour. La fonction prend désormais une option `manual` : en mode manuel elle affiche un feedback explicite (« 🔐 Reconnexion requise », « Rien à synchroniser », « 📵 Toujours hors-ligne ») et **relance la connexion** via `promptLogin()` quand la session est expirée — l'événement `auth-changed` enchaîne alors la sync. Le mode automatique reste silencieux (pas de spam). Nouveau déclencheur `visibilitychange` : la sync est retentée à chaque retour au premier plan, supprimant la dépendance à l'événement `online` peu fiable sur PWA mobile. `js/offline.js`, `tests/offline.test.js` (17 tests).
+
+### Added
+- **Web — badge hors-ligne cliquable (W80)** — le badge header `📵 N hors-ligne` devient un bouton accessible (`role="button"`, `tabindex`, `aria-label`, clavier Enter/Espace, `:focus-visible`) qui force une synchronisation manuelle de la file. `js/offline.js`, `css/style.css`.
+
 ## [5.29.0.0] — 2026-06-29
 
 ### Changed

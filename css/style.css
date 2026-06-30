@@ -1221,7 +1221,12 @@ body.no-share .hist-share { display: none; }
   border-radius: 20px;
   padding: 2px 8px;
   white-space: nowrap;
+  cursor: pointer;
   animation: pulse-badge 2s ease-in-out infinite;
+}
+.offline-badge:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
 }
 @keyframes pulse-badge {
   0%, 100% { opacity: 1; }
