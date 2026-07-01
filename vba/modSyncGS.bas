@@ -64,17 +64,8 @@ Private Const COL_MODIFIED As Integer = 17  ' Q  timestamp derniere modif locale
 Private Const STATIONS_WS  As String = "Notes"
 Private Const STATIONS_TBL As String = "tbl_stationEssence"
 
-Private Const T_RESOLVE  As Long = 5000
-Private Const T_CONNECT  As Long = 10000
-Private Const T_SEND     As Long = 30000
-Private Const T_RECEIVE  As Long = 30000
 
-Private Function Euro() As String:   Euro = ChrW(8364): End Function
-Private Function eAcc() As String:   eAcc = ChrW(233):  End Function
 
-Private Function k(s As String) As String
-    k = Replace(Replace(s, "{E}", Euro()), "{e}", eAcc())
-End Function
 
 ' ============================================================
 '  CLE PROPRIETAIRE PRIVEE (SYNC_SECRET)
@@ -1245,119 +1236,11 @@ End Function
 ' ============================================================
 '  JSON PARSER
 ' ============================================================
-Private Function JsonGet(jsonObj As String, key As String) As String
-    Dim pat As String
-    Dim pos As Long
-    Dim ch  As String
-    Dim vs  As Long
-    Dim ve  As Long
-    Dim ns  As Long
 
-    pat = """" & key & """:"
-    pos = InStr(jsonObj, pat)
-    If pos = 0 Then Exit Function
-    pos = pos + Len(pat)
-
-    Do While pos <= Len(jsonObj) And Mid(jsonObj, pos, 1) = " "
-        pos = pos + 1
-    Loop
-
-    ch = Mid(jsonObj, pos, 1)
-
-    If ch = """" Then
-        vs = pos + 1
-        ve = vs
-        Do While ve <= Len(jsonObj)
-            If Mid(jsonObj, ve, 1) = """" And Mid(jsonObj, ve - 1, 1) <> "\" Then Exit Do
-            ve = ve + 1
-        Loop
-        JsonGet = Mid(jsonObj, vs, ve - vs)
-    ElseIf ch = "n" Then
-        JsonGet = ""
-    Else
-        ns = pos
-        Do While pos <= Len(jsonObj)
-            ch = Mid(jsonObj, pos, 1)
-            If ch = "," Or ch = "}" Then Exit Do
-            pos = pos + 1
-        Loop
-        JsonGet = Trim(Mid(jsonObj, ns, pos - ns))
-    End If
-End Function
-
-Private Function ParseRecords(jsonStr As String) As String()
-    Dim emp(0)   As String
-    Dim parts()  As String
-    Dim result() As String
-    Dim p        As Long
-    Dim endP     As Long
-    Dim arr      As String
-    Dim i        As Long
-    Dim n        As Long
-    Dim s        As String
-
-    emp(0) = ""
-
-    p = InStr(jsonStr, """records"":[")
-    If p = 0 Then
-        ParseRecords = emp
-        Exit Function
-    End If
-    p = p + Len("""records"":[")
-
-    endP = InStrRev(jsonStr, "]")
-    If endP <= p Then
-        ParseRecords = emp
-        Exit Function
-    End If
-
-    arr = Trim(Mid(jsonStr, p, endP - p))
-    If arr = "" Then
-        ParseRecords = emp
-        Exit Function
-    End If
-
-    parts = Split(arr, "},{")
-    n = UBound(parts)
-    ReDim result(n)
-
-    For i = 0 To n
-        s = parts(i)
-        If Left(s, 1) <> "{" Then s = "{" & s
-        If Right(s, 1) <> "}" Then s = s & "}"
-        result(i) = s
-    Next i
-
-    ParseRecords = result
-End Function
 
 ' S3 : extrait le tableau "deleted":[ "id", ... ] de la reponse export.
 ' Place AVANT "records" cote GAS pour que ParseRecords (InStrRev "]")
 ' continue de viser la fin du tableau records.
-Private Function ParseDeletedIds(jsonStr As String) As String()
-    Dim emp(0) As String: emp(0) = ""
-    Dim p As Long, endP As Long, arr As String
-    Const tag As String = """deleted"":["
-
-    p = InStr(jsonStr, tag)
-    If p = 0 Then ParseDeletedIds = emp: Exit Function
-    p = p + Len(tag)
-    endP = InStr(p, jsonStr, "]")
-    If endP <= p Then ParseDeletedIds = emp: Exit Function
-
-    arr = Trim(Mid(jsonStr, p, endP - p))
-    If arr = "" Then ParseDeletedIds = emp: Exit Function
-
-    Dim parts() As String: parts = Split(arr, ",")
-    Dim i As Long, s As String
-    For i = 0 To UBound(parts)
-        s = Trim(parts(i))
-        If Left(s, 1) = """" Then s = Mid(s, 2)
-        If Right(s, 1) = """" Then s = Left(s, Len(s) - 1)
-        parts(i) = Trim(s)
-    Next i
-    ParseDeletedIds = parts
-End Function
 
 ' S3 : supprime localement les lignes dont le sync_id figure dans la liste
 ' des tombstones GS. Retourne le nombre de lignes supprimees.
@@ -1409,30 +1292,9 @@ End Function
 ' ============================================================
 '  HELPERS JSON
 ' ============================================================
-Private Function jS(key As String, val As String) As String
-    val = Replace(val, "\", "\\")
-    val = Replace(val, """", "\""")
-    jS = """" & key & """:""" & val & """"
-End Function
 
-Private Function jN(key As String, val As Variant) As String
-    Dim n As String
-    If IsEmpty(val) Or IsNull(val) Or val = "" Then
-        n = "null"
-    ElseIf IsNumeric(val) Then
-        n = Replace(CStr(CDbl(val)), ",", ".")
-    Else
-        n = "null"
-    End If
-    jN = """" & key & """:" & n
-End Function
 
 ' Echappe une chaine pour insertion dans une valeur JSON
-Private Function JEsc(ByVal s As String) As String
-    s = Replace(s, "\", "\\")
-    s = Replace(s, """", "\""")
-    JEsc = s
-End Function
 
 
 ' ============================================================
@@ -1499,63 +1361,7 @@ End Function
 ' ============================================================
 '  HELPERS DIVERS
 ' ============================================================
-Private Function ParseDt(s As String) As Variant
-    Dim norm  As String
-    Dim sp    As Long
-    Dim dotP  As Long
-    Dim dStr  As String
-    Dim tStr  As String
-    Dim dp()  As String
-    Dim tp()  As String
-    Dim y As Integer, m As Integer, d As Integer
-    Dim hH As Integer, mm As Integer, ss As Integer
 
-    If s = "" Then
-        ParseDt = ""
-        Exit Function
-    End If
-
-    On Error GoTo Bad
-
-    norm = s
-    norm = Replace(norm, "T", " ")
-
-    dotP = InStr(norm, ".")
-    If dotP > 0 Then norm = Left(norm, dotP - 1)
-    If Right(norm, 1) = "Z" Then norm = Left(norm, Len(norm) - 1)
-
-    sp = InStr(norm, " ")
-    If sp > 0 Then
-        dStr = Left(norm, sp - 1)
-        tStr = Mid(norm, sp + 1)
-    Else
-        dStr = norm
-        tStr = ""
-    End If
-
-    dp = Split(dStr, "-")
-    If UBound(dp) <> 2 Then GoTo Bad
-    y = CInt(dp(0)): m = CInt(dp(1)): d = CInt(dp(2))
-
-    If tStr <> "" Then
-        tp = Split(tStr, ":")
-        If UBound(tp) >= 2 Then
-            hH = CInt(tp(0)): mm = CInt(tp(1)): ss = CInt(tp(2))
-            ParseDt = DateSerial(y, m, d) + TimeSerial(hH, mm, ss)
-        Else
-            ParseDt = DateSerial(y, m, d)
-        End If
-    Else
-        ParseDt = DateSerial(y, m, d)
-    End If
-    Exit Function
-Bad:
-    ParseDt = ""
-End Function
-
-Private Function IsoToDate(iso As String) As Variant
-    IsoToDate = ParseDt(iso)
-End Function
 
 Private Function ToNum(s As String) As Variant
     If s = "" Or s = "null" Then
@@ -1567,46 +1373,12 @@ Private Function ToNum(s As String) As Variant
     End If
 End Function
 
-Public Function GenerateUUID() As String
-    Dim g As String
-    On Error GoTo Fallback
-    g = CreateObject("Scriptlet.TypeLib").GUID
-    GenerateUUID = Mid(g, 2, Len(g) - 2)
-    Exit Function
-Fallback:
-    Randomize
-    GenerateUUID = Format(now(), "yyyymmddHHmmss") & "-" & _
-                   Right("000000" & CStr(Int(Rnd() * 1000000)), 6) & "-" & _
-                   Right("000000" & CStr(Int(Rnd() * 1000000)), 6)
-End Function
 
 
 ' ============================================================
 '  HTTP
 ' ============================================================
-Private Function CreateHttp() As Object
-    On Error Resume Next
-    Set CreateHttp = CreateObject("WinHttp.WinHttpRequest.5.1")
-    If Err.Number <> 0 Or CreateHttp Is Nothing Then
-        Err.Clear
-        Set CreateHttp = CreateObject("MSXML2.XMLHTTP60")
-    End If
-    On Error GoTo 0
-End Function
 
-Private Function HttpGet(url As String) As String
-    Dim h As Object
-    On Error GoTo Err_
-    Set h = CreateHttp()
-    If h Is Nothing Then Exit Function
-    h.SetTimeouts T_RESOLVE, T_CONNECT, T_SEND, T_RECEIVE
-    h.Open "GET", url, False
-    h.Send
-    If h.status = 200 Then HttpGet = h.ResponseText
-    Exit Function
-Err_:
-    HttpGet = ""
-End Function
 
 ' ============================================================
 '  X11 : JOURNAL DE SYNC (_SyncLog)
@@ -1645,19 +1417,5 @@ Private Sub LogToSyncLog(ByVal fromGS As Long, ByVal toGS As Long, ByVal dureeS 
     wsL.Cells(nxt, 5).value = statut
 End Sub
 
-Private Function HttpPost(url As String, body As String) As String
-    Dim h As Object
-    On Error GoTo Err_
-    Set h = CreateHttp()
-    If h Is Nothing Then Exit Function
-    h.SetTimeouts T_RESOLVE, T_CONNECT, T_SEND, T_RECEIVE
-    h.Open "POST", url, False
-    h.setRequestHeader "Content-Type", "application/json; charset=utf-8"
-    h.Send body
-    If h.status = 200 Then HttpPost = h.ResponseText
-    Exit Function
-Err_:
-    HttpPost = ""
-End Function
 
 

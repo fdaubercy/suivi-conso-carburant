@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.30.2.0] — 2026-07-01
+
+### Changed
+- **Excel — modularisation VBA `modSyncGS` (X44, Phase 1)** — extraction des helpers **purs** hors du monolithe `modSyncGS.bas` (1663 l.) vers deux nouveaux modules versionnés :
+  - **`modSyncJson.bas`** (~220 l.) — helpers JSON/format sans état (`jS`, `jN`, `JEsc`, `JsonGet`, `ParseRecords`, `ParseDeletedIds`, `ParseDt`, `IsoToDate`, `GenerateUUID`, `k`, `Euro`, `eAcc`), rendus `Public`.
+  - **`modSyncNet.bas`** (~50 l.) — couche HTTP (`CreateHttp`, `HttpGet`, `HttpPost`) + timeouts `T_*`, rendus `Public`.
+  - `modSyncGS.bas` allégé **1663 → 1420 l.** (comportement identique, flux de données inchangé). `RowToJson` (dépend de `COL_MODIFIED`) et `ToNum` (collision avec `modSaisie.ToNum` `Public`) **conservés** dans `modSyncGS` — décidés par audit de pureté/collision.
+- **Excel — déduplication `modSyncParametres`** — retrait des copies privées `JEsc`/`JsonGet`/`CreateHttp`/`HttpGet`/`HttpPost` (prouvées équivalentes) + consts `T_*` orphelines → appels résolus vers `modSyncJson`/`modSyncNet` ; **555 → 480 l.**
+- Injecté en live par COM (`Import` du `.bas` canonique), **Débogage→Compiler** sans erreur, `GenerateUUID` + `TestConnexion` exécutés (couche HTTP + JSON fonctionnelles), classeur enregistré. Linter X40 : 0 violation, 0 doublon `Public`.
+
+_Note : X44 n'est pas terminé — `modSyncGS` (1420 l.) et `modGraphiques.bas` restent > 500 l. Phases suivantes à venir (découpe du moteur `SyncCore` / import-export ; `modGraphiques`)._
+
 ## [5.30.1.0] — 2026-07-01
 
 ### Added

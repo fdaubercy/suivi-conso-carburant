@@ -49,10 +49,6 @@ Private Const WS_CARB   As String = "Suivi Carburant"
 ' budget_mensuel/objectif_co2 (B2/B3) vivent desormais sur cet onglet.
 Private Const WS_GRAPH  As String = "Tableau de bord"
 
-Private Const T_RESOLVE As Long = 5000
-Private Const T_CONNECT As Long = 10000
-Private Const T_SEND    As Long = 30000
-Private Const T_RECEIVE As Long = 30000
 
 ' --- Definition d'un parametre metier ---
 Private Type ParamDef
@@ -431,11 +427,6 @@ Private Function AppendParam(acc As String, cle As String, valeur As Variant, ts
     If acc = "" Then AppendParam = obj Else AppendParam = acc & "," & obj
 End Function
 
-Private Function JEsc(ByVal s As String) As String
-    s = Replace(s, "\", "\\")
-    s = Replace(s, """", "\""")
-    JEsc = s
-End Function
 
 ' Decoupe le tableau "params":[ {..},{..} ] en objets JSON individuels.
 Private Function ParseParamObjects(jsonStr As String) As String()
@@ -466,35 +457,6 @@ Private Function ParseParamObjects(jsonStr As String) As String()
 End Function
 
 ' Lecture d'une valeur scalaire dans un objet JSON plat (chaine ou nombre).
-Private Function JsonGet(jsonObj As String, key As String) As String
-    Dim pat As String, pos As Long, ch As String, vs As Long, ve As Long, ns As Long
-    pat = """" & key & """:"
-    pos = InStr(jsonObj, pat)
-    If pos = 0 Then Exit Function
-    pos = pos + Len(pat)
-    Do While pos <= Len(jsonObj) And Mid(jsonObj, pos, 1) = " "
-        pos = pos + 1
-    Loop
-    ch = Mid(jsonObj, pos, 1)
-    If ch = """" Then
-        vs = pos + 1: ve = vs
-        Do While ve <= Len(jsonObj)
-            If Mid(jsonObj, ve, 1) = """" And Mid(jsonObj, ve - 1, 1) <> "\" Then Exit Do
-            ve = ve + 1
-        Loop
-        JsonGet = Mid(jsonObj, vs, ve - vs)
-    ElseIf ch = "n" Then
-        JsonGet = ""
-    Else
-        ns = pos
-        Do While pos <= Len(jsonObj)
-            ch = Mid(jsonObj, pos, 1)
-            If ch = "," Or ch = "}" Then Exit Do
-            pos = pos + 1
-        Loop
-        JsonGet = Trim(Mid(jsonObj, ns, pos - ns))
-    End If
-End Function
 
 ' ============================================================
 '  HORODATAGE UTC (epoch ms) - aligne sur Date.now() de l'app
@@ -515,41 +477,5 @@ End Function
 ' ============================================================
 '  HTTP (copie autonome - pas de dependance a modSyncGS)
 ' ============================================================
-Private Function CreateHttp() As Object
-    On Error Resume Next
-    Set CreateHttp = CreateObject("WinHttp.WinHttpRequest.5.1")
-    If Err.Number <> 0 Or CreateHttp Is Nothing Then
-        Err.Clear
-        Set CreateHttp = CreateObject("MSXML2.XMLHTTP60")
-    End If
-    On Error GoTo 0
-End Function
 
-Private Function HttpGet(url As String) As String
-    Dim h As Object
-    On Error GoTo Err_
-    Set h = CreateHttp()
-    If h Is Nothing Then Exit Function
-    h.SetTimeouts T_RESOLVE, T_CONNECT, T_SEND, T_RECEIVE
-    h.Open "GET", url, False
-    h.Send
-    If h.Status = 200 Then HttpGet = h.ResponseText
-    Exit Function
-Err_:
-    HttpGet = ""
-End Function
 
-Private Function HttpPost(url As String, body As String) As String
-    Dim h As Object
-    On Error GoTo Err_
-    Set h = CreateHttp()
-    If h Is Nothing Then Exit Function
-    h.SetTimeouts T_RESOLVE, T_CONNECT, T_SEND, T_RECEIVE
-    h.Open "POST", url, False
-    h.setRequestHeader "Content-Type", "application/json; charset=utf-8"
-    h.Send body
-    If h.Status = 200 Then HttpPost = h.ResponseText
-    Exit Function
-Err_:
-    HttpPost = ""
-End Function
