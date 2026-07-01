@@ -170,6 +170,11 @@ Public Sub PoserSidebarSurFeuille(ws As Worksheet, Optional zOverride As Single 
     Set bg = ws.Shapes.AddShape(msoShapeRectangle, 0, bT, bWd, bH)
     bg.name = SB_BG: bg.Placement = xlFreeFloating
     bg.fill.ForeColor.RGB = C_BG(): bg.Line.visible = msoFalse
+    ' Bandeau toujours en arriere-plan : les boutons d'action propres a une
+    ' feuille (ex. GS_Pleins : Synchroniser / Nouveau plein / Supprimer) restent
+    ' visibles DEVANT la barre. Sans ca, la recreation de la sidebar a chaque
+    ' activation de feuille repassait le fond bleu par-dessus et les masquait.
+    bg.ZOrder msoSendToBack
 
     ' -- Labels et cibles de navigation
     Dim labels(5) As String, tgts(5) As String

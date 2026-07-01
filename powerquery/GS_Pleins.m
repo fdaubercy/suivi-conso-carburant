@@ -72,6 +72,7 @@ let
         {"Column14", "GPLc station"},
         {"Column15", "sync_id"},
         {"Column16", "Photo ticket"},
+        {"Column18", "Supprimé"},
         {"Column19", "Email"}
     }),
 
@@ -81,8 +82,15 @@ let
     FilteredUser = Table.SelectRows(Renamed, each
         [Email] = "fdaubercy@gmail.com" or [Email] = null or [Email] = ""),
 
+    // S3 — Soft-delete : EXCLURE les pleins marqués supprimés côté GAS
+    // (colonne « Supprimé » = horodatage de suppression). Sans ce filtre, un
+    // plein effacé depuis l'app/Excel réapparaissait dans « Suivi Carburant »
+    // au rafraîchissement (la vue est reconstruite depuis cette requête).
+    FilteredActif = Table.SelectRows(FilteredUser, each
+        [Supprimé] = null or [Supprimé] = ""),
+
     // 16 colonnes A→P (la col Q « Modifie_local » reste hors requête).
-    Kept = Table.SelectColumns(FilteredUser, {
+    Kept = Table.SelectColumns(FilteredActif, {
         "Horodatage", "Date", "Type", "Km", "Litres", "PrixL",
         "Station essence", "Vehicule",
         "E85 station", "SP98 station", "SP95 station", "E10 station",

@@ -76,11 +76,14 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
     colStation = 0
     Dim colSP98 As Long
     colSP98 = 0
+    Dim colSupprime As Long
+    colSupprime = 0
     Dim colNom As String, kk As Long
     For kk = 1 To tblImport.ListColumns.count
         colNom = LCase(Trim(tblImport.ListColumns(kk).name))
         If colNom = "station essence" Then colStation = kk
         If InStr(colNom, "sp98 station") > 0 Then colSP98 = kk
+        If InStr(colNom, "supprim") > 0 Then colSupprime = kk
     Next kk
 
     If colStation = 0 Then
@@ -119,6 +122,14 @@ Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
     For Each ligneSrc In tblImport.ListRows
         i = i + 1
         SetStatus "[4/4] Examen du plein " & i & " / " & nbTotal & "…"
+
+        ' S3 — Soft-delete : ignorer les pleins marqués supprimés côté GAS
+        ' (colonne « Supprimé » = horodatage). Sans ce filtre, un plein effacé
+        ' (app ou Excel) était réimporté dans « Suivi Carburant » à chaque
+        ' activation de l'onglet (Worksheet_Activate -> ImporterNouveauxPleinsAuto).
+        If colSupprime > 0 Then
+            If Len(Trim(CStr(ligneSrc.Range.Cells(1, colSupprime).value))) > 0 Then GoTo NextLigne
+        End If
 
         ' Ignorer horodatage vide
         horodatageTxt = CStr(ligneSrc.Range.Cells(1, 1).value)

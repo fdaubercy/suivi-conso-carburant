@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.29.0.4] — 2026-07-01
+
+### Fixed
+- **Excel — pleins supprimés qui réapparaissaient (S3, soft-delete honoré partout)** — un plein effacé (app ou Excel) revenait dans « Suivi Carburant » à chaque activation de l'onglet. Deux couches d'import **ignoraient la colonne « Supprimé »** (horodatage de soft-delete côté GAS) : (1) la requête Power Query `GS_Pleins` (filtrait l'e-mail mais pas « Supprimé ») → `powerquery/GS_Pleins.m` : rename `Column18`→`Supprimé` + `Table.SelectRows … [Supprimé] = null or ""` ; (2) l'import VBA `ModuleImportGS.ImporterNouveauxPleins` (appelé par `Worksheet_Activate` de « Suivi Carburant » → `ImporterNouveauxPleinsAuto`), qui réimportait le CSV gviz sans filtre → détection de la colonne « Supprimé » + saut des lignes marquées. Vérifié : après nettoyage, N°21 (doublon 29/06 Km 14089) ne revient plus sur 2 ré-activations. `powerquery/GS_Pleins.m`, `vba/ModuleImportGS.bas`.
+
+### Added
+- **Excel — suppression d'un plein accessible à l'utilisateur (S5)** — module `modSuppression` (désormais **versionné** — son absence du repo avait causé un double-import → « Nom ambigu ») : construit par code le UserForm `frmSupprimerPlein` (liste des pleins, filtres) et supprime via `sync_id` (local + propagation Google Sheets `bulkDelete`). Entrées `SupprimerUnPlein` / `AccSupprimerPlein`. Bouton « ✖ Supprimer un plein » posé sur l'Accueil. Form agrandi (hauteur 388, boutons non tronqués). `vba/modSuppression.bas`.
+
+### Changed
+- **Excel — bandeau de navigation toujours en arrière-plan (`modSidebar`)** — `PoserSidebarSurFeuille` envoie le fond `sb_bg` en arrière-plan (`ZOrder msoSendToBack`) à chaque régénération : les boutons d'action propres à une feuille (GS_Pleins : Synchroniser / Nouveau plein / Supprimer) restent visibles devant la barre au lieu d'être masqués. `vba/modSidebar.bas`.
+
 ## [5.29.0.3] — 2026-06-30
 
 ### Fixed
