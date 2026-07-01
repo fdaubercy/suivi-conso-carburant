@@ -371,6 +371,54 @@ Private Sub EnsureModifiedColHeader(ws As Worksheet)
     On Error GoTo 0
 End Sub
 
+' X48 - Garde-fou des en-tetes canoniques de GS_Pleins.
+' Les KPI et l'import lisent leurs colonnes par NOM (ColIdx/LCIdx) : un en-tete
+' renomme/corrompu renvoie 0 -> KPI a zero silencieux (aucune erreur visible).
+' Cette garde verifie, au demarrage, les en-tetes KPI-critiques et les repare
+' PAR POSITION (l'ordre des colonnes est fige par la requete Power Query).
+' Idempotente : ne fait rien si tout est sain. Retourne le nombre de reparations.
+Public Function EnsureGSHeaders() As Long
+    On Error GoTo Fail
+    Dim lo As ListObject: Set lo = FindGSTable()
+    If lo Is Nothing Then Exit Function
+    If lo.HeaderRowRange Is Nothing Then Exit Function
+
+    ' { index colonne (base 1, ordre PQ) -> nom canonique attendu }
+    Dim idx As Variant, nm As Variant
+    idx = Array(2, 3, 4, 5, 6, 7, 8, 10, COL_PHOTO)
+    nm = Array("Date", "Type", "Km", "Litres", "PrixL", "Station essence", _
+               "Vehicule", "SP98 station", "Photo ticket")
+
+    Dim n As Long, i As Long
+    For i = LBound(idx) To UBound(idx)
+        Dim c As Long: c = CLng(idx(i))
+        If c >= 1 And c <= lo.ListColumns.count Then
+            Dim cur As String: cur = CStr(lo.HeaderRowRange.Cells(1, c).value)
+            If StrComp(Trim$(cur), CStr(nm(i)), vbTextCompare) <> 0 Then
+                lo.HeaderRowRange.Cells(1, c).value = CStr(nm(i))
+                n = n + 1
+            End If
+        End If
+    Next i
+    EnsureGSHeaders = n
+    Exit Function
+Fail:
+    EnsureGSHeaders = 0
+End Function
+
+' Localise la table GS_Pleins par son nom (robuste au renommage de feuille).
+Private Function FindGSTable() As ListObject
+    On Error Resume Next
+    Dim ws As Worksheet, lo As ListObject
+    For Each ws In ThisWorkbook.Worksheets
+        For Each lo In ws.ListObjects
+            If StrComp(lo.name, "GS_Pleins", vbTextCompare) = 0 Then
+                Set FindGSTable = lo: Exit Function
+            End If
+        Next lo
+    Next ws
+End Function
+
 
 ' ============================================================
 '  POINTS D'ENTREE

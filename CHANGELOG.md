@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.30.1.0] — 2026-07-01
+
+### Added
+- **Excel — garde-fou des en-têtes `GS_Pleins` (X48)** — nouvelle fonction `modSyncGS.EnsureGSHeaders()` appelée au démarrage (`OpenTask_Import`, avant l'import et les KPI) : vérifie les en-têtes **KPI-critiques** de la table `GS_Pleins` (`Date`/`Type`/`Km`/`Litres`/`PrixL`/`Station essence`/`Vehicule`/`SP98 station`/`Photo ticket`) et les **répare par position** (l'ordre des colonnes est figé par la requête Power Query) si un nom a été corrompu/renommé. Défense en profondeur : un en-tête cassé faisait renvoyer `ColIdx → 0` → **KPI à zéro silencieux** (aucune erreur visible). Idempotente (0 réparation si tout est sain). Testée en live : sain → 0 ; `SP98 station` renommé → réparé (retour 1) ; re-run → 0. `vba/modSyncGS.bas`, `vba/modWorkbook.bas`.
+
+### Changed
+- **X47 clôturé — obsolète (économies E85/CO2 négatives)** — enquête sur l'item ROADMAP X47 : le chemin visé (`ComputeDashboardStats.eco`, `ComputeKPIs.outEco`) est devenu **code mort** (calculé mais plus affiché — la carte KPI a été remplacée par « Rentabilité kit E85 »). L'économie réellement affichée (graphe X9) lit la colonne **formule** « Économie cumulée (€) » de `Tableau2`, qui possède déjà des gardes `ISNUMBER` ; vérifié dans le classeur en cours : **18 valeurs, 0 négative** (10,17 → 227,38 €). La moitié « CO2 évité négatif » venait de l'ancien bug `surconso` (J7 au lieu de J8), **déjà corrigé** (défaut 0,20 + garde `0<v≤1`). X47 est donc sans objet ; nettoyage du code mort proposé au ROADMAP.
+
 ## [5.30.0.0] — 2026-07-01
 
 ### Added

@@ -325,6 +325,13 @@ Private Sub RunSilentTask(ByVal taskName As String)
 End Sub
 
 Public Sub OpenTask_Import()
+    ' X48 : garde-fou en-tetes GS_Pleins AVANT l'import/les KPI (un en-tete
+    ' corrompu renverrait des KPI a zero sans erreur visible).
+    On Error Resume Next
+    Dim nFix As Long: nFix = modSyncGS.EnsureGSHeaders()
+    If nFix > 0 Then Application.StatusBar = ChrW(9888) & " " & nFix & _
+        " en-tete(s) GS_Pleins reparee(s) (X48)."
+    On Error GoTo 0
     RunSilentTask "ImporterNouveauxPleinsAuto"
     On Error Resume Next
     modSplash.SplashMarkImport

@@ -97,8 +97,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|---|
 | 1 | **C9** — Service account Google | ~2 h | Auth stable sans renouvellement manuel du token |
 | 2 | **X44** — Modularisation des gros modules VBA | ~1 j | `modGraphiques`/`modSyncGS` < 500 lignes, navigation plus simple |
-| 3 | **X47** — Éco E85/CO2 négatives si réf. SP98 manquante | ~1-2 h | Cartes « Économies » / « CO2 évité » trompeuses tant que la réf. SP98 manque |
-| 4 | **X48** — Garde-fou en-têtes `GS_Pleins` | ~1 h | Défense en profondeur : une corruption d'en-tête remet les KPI à 0 sans erreur |
+| 3 | **X53** — Nettoyage code mort `ComputeDashboardStats.eco`/`ComputeKPIs.outEco` | ~30 min | Suite à X47 : ces calculs d'économie ne sont plus affichés (carte remplacée par « Rentabilité kit ») → retirer pour clarifier |
 
 > ✅ S3/S4/S5 (suppression bidir., force resync, conflits par timestamp) implémentés en v4.8.0.0 — voir le tableau ci-dessous.
 
@@ -108,6 +107,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.30.1.0 | **Excel — garde-fou des en-têtes `GS_Pleins` (X48)** — `modSyncGS.EnsureGSHeaders()` (appelée au démarrage via `OpenTask_Import`, avant import/KPI) vérifie les en-têtes KPI-critiques (`Date`/`Type`/`Km`/`Litres`/`PrixL`/`Station essence`/`Vehicule`/`SP98 station`/`Photo ticket`) et les **répare par position** (ordre figé par Power Query) si corrompus/renommés. Neutralise le `ColIdx → 0 → KPI à zéro silencieux`. Idempotente. Testée en live (sain → 0 ; `SP98 station` renommé → réparé). `vba/modSyncGS.bas`, `vba/modWorkbook.bas`. |
+| v5.30.1.0 | **X47 clôturé (obsolète)** — l'item « éco E85/CO2 négatives si réf. SP98 manquante » est **sans objet** : le code visé (`ComputeDashboardStats.eco`/`ComputeKPIs.outEco`) est mort (plus affiché) ; l'économie affichée (colonne formule « Économie cumulée (€) » de `Tableau2`, graphe X9) a déjà des gardes `ISNUMBER` et est vérifiée **positive** en live (0 négative sur 18 valeurs) ; la moitié « CO2 négatif » venait de l'ancien bug `surconso` J7/J8 **déjà corrigé**. Nettoyage du code mort suivi en X53. |
 | v5.30.0.0 | **Web — lazy-load carte / Google Maps (W78)** — la chaîne la plus lourde du bundle (`gmaprender.js` + `gmap.js`, chargeur Google Maps JS API + clusterer) n'est plus tirée au démarrage. `carte.js`/`cartealentour.js`/`stationsmap.js` importent un loader partagé `js/gmaprenderLazy.js` (`import()` dynamique) → Vite en fait un **chunk séparé** (`gmaprender-*.js`, ~6,5 kB) chargé à la 1ʳᵉ consultation d'une carte. Vérifié au navigateur : au boot seul `gmaprenderLazy.js` est requêté (pas `gmaprender.js`/`gmap.js`). `js/gmaprenderLazy.js`, `js/carte.js`, `js/cartealentour.js`, `js/stationsmap.js`. |
 | v5.30.0.0 | **Web — anti-rebond du retry `visibilitychange` (W82, le vrai)** — `initOffline` retentait `syncQueue()` à chaque retour au premier plan (bascule d'onglet, verrouillage mobile), même juste après une sync réussie. Garde 30 s ajoutée via `_lastSyncAttemptTs` (maj dans `syncQueue`). Distinct des correctifs mal étiquetés « W82 » de v5.29.0.2/0.3 (versionnage SW / toast feedback). `js/offline.js`. |
 | v5.30.0.0 | **Outillage — lint VBA pré-commit (X40)** — `scripts/check_vba_compile.py` (stdlib) détecte (a) `Const`/`Dim`/`Type`/`Enum` niveau module **après** la 1ʳᵉ procédure et (b) `Call`/`.OnAction`/`OnTime`/`Run` vers une procédure **inexistante**. Gate **bloquant** dans `commit.sh` (étape Lint, JS + VBA). Gère les noms qualifiés module (`modSidebar.NavSidebar_0`) et ignore les cibles concaténées dynamiques (`… & k`). Module `General.bas` (vivant mais non versionné) **versionné** → 0 violation. `scripts/check_vba_compile.py`, `commit.sh`, `vba/General.bas`. |
