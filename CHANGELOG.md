@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.30.3.0] — 2026-07-01
+
+### Changed
+- **Excel — modularisation VBA `modSyncGS` (X44, Phase 2)** — découpe du moteur de synchronisation hors du monolithe (`modSyncGS.bas` 1420 → 762 l.) en deux nouveaux modules versionnés :
+  - **`modSyncCfg.bas`** (~16 l.) — configuration partagée en `Public Const` : `GAS_URL`, `APP_TOKEN`, `WS_NAME`, `COL_SYNC_ID`, `COL_PHOTO`, `COL_MODIFIED`, `STATIONS_WS`, `STATIONS_TBL`. Les homonymes `Private` ailleurs (modSuppression/modFuelPanel/modHistorique/modSyncParametres) restent locaux (aucune collision).
+  - **`modSyncEngine.bas`** (~677 l.) — moteur `SyncCore` + import (GS→Excel) + export (Excel→GS) + helpers (`BuildLocalIndex`, `ImportGSToExcel`, `RowToJson`, `ApplyGSDeletions`, `PushStationsToGS`, `ToNum`, `LogToSyncLog`…). `Public` : `SyncCore`, `BuildLocalIndex`, `GraphSheetExists`, `ImportGSToExcel` (appelés par modSyncGS). Config via `modSyncCfg`, JSON via `modSyncJson`, HTTP via `modSyncNet`.
+  - `modSyncGS.bas` conserve les **points d'entrée/commandes** (`TestConnexion`, `SyncManuel`, `ForceResync`, `SyncDiagnose`, `RafraichirPrixHistory`, `SupprimerPleinExcel`, `EnsureGSHeaders`…) + helpers statut/secret. `SyncSecretQS` et `EnsureModifiedColHeader` passés `Public` (appelés par le moteur). `SetStatus` (homonyme `Public` dans `ModuleImportGS`) **dupliqué en `Private`** dans le moteur pour éviter la collision.
+- Injecté en live par COM (`Import`), **Débogage→Compiler** sans erreur ; `TestConnexion`/`GenerateUUID` OK et **`SyncDiagnose` exécuté en réel** (`GS=21 | XL=22 | dirty:1`) → le moteur lit les vraies données GS. Linter X40 : 0 violation, 0 doublon `Public`. Classeur enregistré.
+
+_Note : X44 avance mais n'est pas clos — `modSyncGS` (762 l.), `modSyncEngine` (677 l.) et `modGraphiques.bas` (~1500 l.) restent > 500 l. Phase 3 (`modGraphiques`) à venir ; découpe fine du moteur optionnelle._
+
 ## [5.30.2.0] — 2026-07-01
 
 ### Changed
