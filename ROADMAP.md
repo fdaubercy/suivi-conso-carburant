@@ -11,9 +11,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi | Effort |
 |---|---|---|---|
-| W78 | **Lazy-load carte / Google Maps** : import dynamique de `js/carte.js` + `js/gmap.js` (chargeur Maps lourd) uniquement à l'entrée sur la route `#/carte` | Démarrage plus rapide et moins de JS au 1ᵉʳ rendu : le chargeur Google Maps n'est plus tiré au boot pour les sessions qui ne consultent jamais la carte | ~1-2 h |
 | W81 | **Corriger les violations a11y relevées par W79** : `select-name` (critique) sur `#stationSel` (ajouter `aria-label`/`<label>`), et `color-contrast` (sérieux) sur les éléments signalés (saisie/stats/historique). | Mettre l'app en conformité WCAG AA réelle (W79 ne fait que signaler) ; une fois à zéro, durcir le job `a11y` en bloquant. | ~1-2 h |
-| W82 | **Anti-rebond du retry `visibilitychange`** : `initOffline` retente `syncQueue()` à chaque retour au premier plan ; ajouter une garde (timestamp de dernière sync réussie, ex. ≥ 30 s) pour éviter un appel réseau à chaque bascule d'onglet sur mobile. | Réduire le bruit réseau si l'usage réel montre des basculements fréquents (relevé en revue de W80, non bloquant). | ~30 min |
 
 ---
 
@@ -52,7 +50,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| X40 | **Lint VBA pré-commit** (`scripts/check_vba_compile.py`) : détecter (a) les `Const`/`Dim`/`Type` au niveau module placés **après** la 1ʳᵉ procédure (→ « Variable non définie » en compile-on-demand) et (b) les `Call`/OnAction/OnTime/Run vers des procédures **inexistantes** (modules supprimés). | Évite les -2146788248 latents, invisibles hors clic réel ; 3 trouvés/corrigés en v5.11.1.0. |
 | X44 | **Modularisation des gros modules VBA** : `modGraphiques.bas` (**72 Ko**, ~1500 lignes) → `modGraphData` (agrégats `BuildAggregates`/`BuildPriceBlockMerged`/`BuildConsoBlock`) + `modGraphRender` (`EnsureChart`/`CreerGraphiquesWeb`) + `modGraphExport` (PDF) ; idem `modSyncGS.bas` (57 Ko). | Viole la règle « fichiers < 500 lignes » (CLAUDE.md) ; surface réduite → moins de risque de `Const` mal placée (cf. X40) et navigation plus simple. |
 | X45 | **Tests VBA des fonctions pures** : module `modTests` (`Test_CoutPlein`, `Test_FuelInSel`, `Test_FuelKeyP`, `Test_ParseGoogleDate`, conso L/100 km) exécutable et vérifiable en CI via `check_vba_drift`. | Aucune couverture VBA aujourd'hui (Vitest = JS seul) ; verrouille les régressions de calcul (ex. bug date 6 sept / 9 juin de v5.12.0.0). |
 | X47 | **Économies E85 / CO2 négatives quand le prix SP98 de référence manque** : pour les pleins E85 sans « SP98 station » renseigné, `ComputeDashboardStats` se replie sur `DernierPrixSP98()` ; si aucun prix SP98 n'existe dans les données, l'économie devient négative (= −coût E85) et le CO2 évité aussi. Utiliser une référence marché robuste (dernier SP98 connu de `_PrixHistory`/secteur, ou défaut configurable en `Réglages`), et masquer/annoter la carte si aucune référence fiable. | Cartes « Économies E85 vs SP98 » (−91 €) et « CO2 évité » (−166 kg) trompeuses tant que les prix SP98 de référence ne sont pas saisis (constaté en v5.18.0.0). |
@@ -85,10 +82,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 ### 🎯 Backend (GAS)
 
-| # | Idée | Pourquoi |
-|---|---|---|
-| S13 | **Rapport mensuel illustré** : `RapportMensuel.gs` insère des mini-graphes via URLs **QuickChart** (image dans l'email HTML) | Email plus parlant sans pièce jointe lourde |
-
 ### 📋 Onglets Google Sheets
 
 | # | Idée | Pourquoi |
@@ -102,11 +95,10 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Rang | Item | Effort | Bénéfice |
 |---|---|---|---|
-| 1 | **X43c** — Rebuild dashboard incrémental | ~1 j | Réduit encore l'attente après filtrage (au-delà du debounce v5.13.0.0) |
-| 2 | **W78** — Lazy-load carte / Google Maps | ~1-2 h | Démarrage de l'app plus rapide |
-| 3 | **C9** — Service account Google | ~2 h | Auth stable sans renouvellement manuel du token |
-| 4 | **X40** — Lint VBA pré-commit | ~½ j | Détecte les `Const`/`Dim` mal placés et appels morts avant compile |
-| 5 | **X44** — Modularisation des gros modules VBA | ~1 j | `modGraphiques`/`modSyncGS` < 500 lignes, navigation plus simple |
+| 1 | **C9** — Service account Google | ~2 h | Auth stable sans renouvellement manuel du token |
+| 2 | **X44** — Modularisation des gros modules VBA | ~1 j | `modGraphiques`/`modSyncGS` < 500 lignes, navigation plus simple |
+| 3 | **X47** — Éco E85/CO2 négatives si réf. SP98 manquante | ~1-2 h | Cartes « Économies » / « CO2 évité » trompeuses tant que la réf. SP98 manque |
+| 4 | **X48** — Garde-fou en-têtes `GS_Pleins` | ~1 h | Défense en profondeur : une corruption d'en-tête remet les KPI à 0 sans erreur |
 
 > ✅ S3/S4/S5 (suppression bidir., force resync, conflits par timestamp) implémentés en v4.8.0.0 — voir le tableau ci-dessous.
 
@@ -116,6 +108,10 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.30.0.0 | **Web — lazy-load carte / Google Maps (W78)** — la chaîne la plus lourde du bundle (`gmaprender.js` + `gmap.js`, chargeur Google Maps JS API + clusterer) n'est plus tirée au démarrage. `carte.js`/`cartealentour.js`/`stationsmap.js` importent un loader partagé `js/gmaprenderLazy.js` (`import()` dynamique) → Vite en fait un **chunk séparé** (`gmaprender-*.js`, ~6,5 kB) chargé à la 1ʳᵉ consultation d'une carte. Vérifié au navigateur : au boot seul `gmaprenderLazy.js` est requêté (pas `gmaprender.js`/`gmap.js`). `js/gmaprenderLazy.js`, `js/carte.js`, `js/cartealentour.js`, `js/stationsmap.js`. |
+| v5.30.0.0 | **Web — anti-rebond du retry `visibilitychange` (W82, le vrai)** — `initOffline` retentait `syncQueue()` à chaque retour au premier plan (bascule d'onglet, verrouillage mobile), même juste après une sync réussie. Garde 30 s ajoutée via `_lastSyncAttemptTs` (maj dans `syncQueue`). Distinct des correctifs mal étiquetés « W82 » de v5.29.0.2/0.3 (versionnage SW / toast feedback). `js/offline.js`. |
+| v5.30.0.0 | **Outillage — lint VBA pré-commit (X40)** — `scripts/check_vba_compile.py` (stdlib) détecte (a) `Const`/`Dim`/`Type`/`Enum` niveau module **après** la 1ʳᵉ procédure et (b) `Call`/`.OnAction`/`OnTime`/`Run` vers une procédure **inexistante**. Gate **bloquant** dans `commit.sh` (étape Lint, JS + VBA). Gère les noms qualifiés module (`modSidebar.NavSidebar_0`) et ignore les cibles concaténées dynamiques (`… & k`). Module `General.bas` (vivant mais non versionné) **versionné** → 0 violation. `scripts/check_vba_compile.py`, `commit.sh`, `vba/General.bas`. |
+| v5.30.0.0 | **GAS — rapport mensuel illustré (S13)** — l'e-mail HTML de `RapportMensuel.gs` insère un **mini-graphe QuickChart** (image, sans pièce jointe) de l'évolution du prix payé sur le mois : `calculerStatsRapport` collecte `detailPleins`, `construireUrlGraphePrix` bâtit l'URL Chart.js (série unique, coloration point-par-point E85/autre), affiché si ≥ 2 pleins. `Google Drive/…/RapportMensuel.gs`. |
 | v5.29.0.4 | **Excel — soft-delete honoré + suppression accessible (S3/S5)** — les pleins effacés (app/Excel) ne réapparaissent plus dans « Suivi Carburant » : filtre « Supprimé » ajouté aux DEUX couches d'import (Power Query `GS_Pleins.m` + VBA `ModuleImportGS.ImporterNouveauxPleins` appelé au `Worksheet_Activate`). Nouveau module **versionné** `modSuppression` (form `frmSupprimerPlein` de suppression par sync_id, local + `bulkDelete` GS) + bouton « ✖ Supprimer un plein » sur l'Accueil. `modSidebar` : bandeau nav envoyé en arrière-plan (boutons d'action visibles). `powerquery/GS_Pleins.m`, `vba/ModuleImportGS.bas`, `vba/modSuppression.bas`, `vba/modSidebar.bas`. |
 | v5.29.0.3 | **Web — feedback du badge hors-ligne enfin visible (W82)** — le clic du badge `📵 N hors-ligne` (header, cliquable depuis toutes les vues) ne montrait « rien » : `#feedback` était enfermé dans `view-saisie`, masquée (`display:none`) quand une autre vue est active (l'app démarre sur `view-accueil`) → le message « 🔐 Reconnexion requise » s'écrivait dans un conteneur invisible. `#feedback` remonté en enfant de `#app-main` + restylé en toast `position:fixed` (visible partout) + garde null dans `showFeedback`. Reproduit et vérifié au navigateur (mobile 375 px). `index.html`, `css/style.css`, `js/ui.js`. |
 | v5.29.0.2 | **PWA — versionnage du Service Worker réparé (W82)** — le plugin Vite `swVersionPlugin` (substitution `__SW_VERSION__` → `APP_VERSION` dans `sw.js`) était défini mais **jamais enregistré** dans `plugins: []` : SW au cache constant → aucune mise à jour détectée → invite « Actualiser » (W23) jamais déclenchée → PWA figée sur l'ancien code après déploiement (badge v5.29.0.1 jamais reçu sur le portable). Plugin enregistré + `closeBundle` robuste (repli `public/sw.js`). Vérifié : `dist/sw.js` = `...shell-v5.29.0.2`. `vite.config.js`. |

@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.30.0.0] — 2026-07-01
+
+### Added
+- **Rapport mensuel illustré (S13)** — l'e-mail HTML de `RapportMensuel.gs` insère désormais un **mini-graphe QuickChart** (image `<img>`, aucune pièce jointe) de l'évolution du prix payé sur le mois. `calculerStatsRapport` collecte `detailPleins` (`{d, prix, type}` par plein valide, trié chronologiquement) ; nouvelle fonction `construireUrlGraphePrix` construisant une URL QuickChart (Chart.js line, série unique « prix payé », coloration **point par point** selon le carburant — vert `#1D9E75` E85 / bleu `#2E75B6` autre, ligne de tendance grise) ; le graphe n'apparaît que si ≥ 2 pleins détaillés. `Google Drive/…/RapportMensuel.gs`.
+- **Lint VBA pré-commit (X40)** — nouveau `scripts/check_vba_compile.py` (stdlib) détectant deux classes de bugs « compile-on-demand » invisibles hors clic réel : (a) `Const`/`Dim`/`Type`/`Enum` au niveau module déclarés **après** la 1ʳᵉ procédure, (b) `Call`/`.OnAction`/`OnTime`/`Run` vers une procédure **inexistante** dans les modules versionnés. Intégré comme **gate bloquant** à l'étape « Lint » de `commit.sh` (JS + VBA). Le linter distingue les noms **qualifiés par module** (`modSidebar.NavSidebar_0`) et **ignore les cibles concaténées dynamiques** (`"modSidebar.NavSidebar_" & k`) pour éviter les faux positifs. Au passage, module `General.bas` (vivant dans le classeur mais non versionné) **versionné** dans `vba/` → 0 violation. `scripts/check_vba_compile.py`, `commit.sh`, `vba/General.bas`.
+
+### Changed
+- **Lazy-load carte / Google Maps (W78)** — la chaîne la plus lourde du bundle (`gmaprender.js` + `gmap.js`, chargeur Google Maps JS API + clusterer) n'est plus tirée au démarrage : `carte.js`, `cartealentour.js` et `stationsmap.js` importent désormais un loader partagé `js/gmaprenderLazy.js` (`import()` dynamique) au lieu d'importer `gmaprender.js` statiquement. Vite en fait un **chunk séparé** (`gmaprender-*.js`, ~6,5 kB) chargé à la 1ʳᵉ consultation d'une carte. Vérifié : au boot, seul `gmaprenderLazy.js` est requêté (pas `gmaprender.js`/`gmap.js`) ; build → chunk isolé. `js/gmaprenderLazy.js`, `js/carte.js`, `js/cartealentour.js`, `js/stationsmap.js`.
+
+### Fixed
+- **Anti-rebond du retry `visibilitychange` (W82)** — `initOffline` retentait `syncQueue()` à **chaque** retour au premier plan (bascule d'onglet, verrouillage/déverrouillage mobile), même juste après une sync réussie. Garde ajoutée : le retry est ignoré si moins de **30 s** se sont écoulées depuis la dernière tentative de sync (`_lastSyncAttemptTs`, mis à jour dans `syncQueue`). Réduit le bruit réseau sur mobile. `js/offline.js`.
+
 ## [5.29.0.4] — 2026-07-01
 
 ### Fixed

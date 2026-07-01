@@ -9,7 +9,7 @@ import { state } from './state.js';
 import { escHtml } from './utils.js';
 import { FUEL_CONFIG } from './config.js';
 import { detectBrand } from './brand.js';
-import { googleMapsActive, renderGoogleStationMap } from './gmaprender.js';
+import { loadGmapRender } from './gmaprenderLazy.js';
 
 const TILE_SZ = 256;
 
@@ -17,12 +17,16 @@ const TILE_SZ = 256;
    Point d'entrée commun
 ═══════════════════════════════════════════════════════════════════════ */
 
-export function showMap(uLat, uLon, stations, radiusM = null) {
+export async function showMap(uLat, uLon, stations, radiusM = null) {
   state._mapStations = stations.filter(s => s.lat && s.lon);
   if (!state._mapStations.length) return;
   const wrap = document.getElementById('stationMapWrap');
   const wasHidden = wrap.classList.contains('hidden');
   wrap.classList.remove('hidden');
+
+  // W78 — chargement à la demande de gmaprender.js (+ gmap.js, chunk séparé) :
+  // seul le 1er appel déclenche le fetch réseau, les suivants sont déjà en cache.
+  const { googleMapsActive } = await loadGmapRender();
 
   const render = googleMapsActive()
     ? () => _renderGoogleMap(uLat, uLon, radiusM)
@@ -55,7 +59,10 @@ function _renderGoogleMap(uLat, uLon, radiusM) {
     };
   });
   const userPos = (uLat != null && uLon != null) ? { lat: uLat, lon: uLon, title: 'Point de recherche' } : null;
-  renderGoogleStationMap(container, { stations, userPos, radiusM, onFallback: () => _renderMap(uLat, uLon, radiusM) });
+  // Déjà en cache à ce stade (chargé par showMap juste avant) → résolution quasi immédiate.
+  loadGmapRender().then(({ renderGoogleStationMap }) =>
+    renderGoogleStationMap(container, { stations, userPos, radiusM, onFallback: () => _renderMap(uLat, uLon, radiusM) })
+  );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -93,6 +100,9 @@ function bestZoom(allLats, allLons, maxW, maxH) {
 
 export function _renderMap(uLat, uLon, radiusM = null) {
   const container = document.getElementById('stationMap');
+  // W78 — showMap est désormais async (import dynamique) : le rendu différé
+  // peut se déclencher après que l'utilisateur a quitté la vue → conteneur nul.
+  if (!container) return;
   const rect = container.getBoundingClientRect();
   const W = rect.width || container.offsetWidth || 360;
   const H = rect.height || container.offsetHeight || 220;

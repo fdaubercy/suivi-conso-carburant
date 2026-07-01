@@ -17,6 +17,12 @@ import { getIdToken, isAuthed, authEnabled, promptLogin } from './auth.js';
 
 const QUEUE_KEY = 'suivi_e85_offline_queue';
 
+/* W82 — anti-rebond du retry visibilitychange : sans garde, initOffline
+   retente syncQueue() à CHAQUE retour au premier plan (bascule d'onglet,
+   verrouillage/déverrouillage mobile…), même juste après une sync réussie. */
+const VISIBILITY_RETRY_MIN_MS = 30_000;
+let _lastSyncAttemptTs = 0;
+
 /* ─── File d'attente (localStorage) ─────────────────────────────────── */
 
 export function getQueue() {
@@ -46,6 +52,9 @@ export async function syncQueue({ manual = false } = {}) {
     if (manual) showFeedback('info', 'Rien à synchroniser', 'Aucun plein en attente.');
     return;
   }
+  // W82 — on n'arme la garde visibilitychange que sur une vraie tentative de sync
+  // (file non vide) : une sync à vide ne fait aucun appel réseau à débruiter.
+  _lastSyncAttemptTs = Date.now();
 
   // U7 — si l'auth est active mais l'utilisateur déconnecté, on diffère le flush
   // jusqu'à la reconnexion (sinon le GAS rejetterait les pleins en mode strict).
@@ -134,6 +143,10 @@ export function updateOfflineRow() {
 /* ─── Init ───────────────────────────────────────────────────────────── */
 
 export function initOffline() {
+  /* W82 — baseline de la garde visibilitychange remise à zéro à l'init : le
+     1er retour au premier plan après le démarrage doit pouvoir synchroniser. */
+  _lastSyncAttemptTs = 0;
+
   /* Affichage initial du badge + encart hors-ligne */
   updateOfflineBadge();
   updateOfflineRow();
@@ -166,9 +179,14 @@ export function initOffline() {
   });
 
   /* Retour au premier plan : retenter la sync (l'événement « online » n'est pas
-     fiable sur PWA mobile / iOS — c'est ce déclencheur qui débloque la file). */
+     fiable sur PWA mobile / iOS — c'est ce déclencheur qui débloque la file).
+     W82 — anti-rebond : on ignore un retour au premier plan survenant moins de
+     VISIBILITY_RETRY_MIN_MS après la dernière tentative de sync, pour éviter un
+     appel réseau à chaque bascule d'onglet / verrouillage-déverrouillage mobile. */
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && navigator.onLine) syncQueue();
+    if (document.hidden || !navigator.onLine) return;
+    if (Date.now() - _lastSyncAttemptTs < VISIBILITY_RETRY_MIN_MS) return;
+    syncQueue();
   });
 
   /* Message reçu du Service Worker (Background Sync) */

@@ -14,7 +14,7 @@ import { FUEL_CONFIG, FUEL_KEYS, FUEL_SELECT } from './config.js';
 import { state } from './state.js';
 import { haversine, escHtml, getCoords, stationSubLabel, composeStationName, resolveEnseigne } from './utils.js';
 import { renderMiniMap } from './carte.js';
-import { googleMapsActive, renderGoogleStationMap, zoomGoogleMap } from './gmaprender.js';
+import { loadGmapRender, gmapRenderCached } from './gmaprenderLazy.js';
 import { detectBrand } from './brand.js';
 import { showStationPopup } from './itineraire.js';
 import { enrichStationsBulk, cancelOsmEnrich } from './osm.js';
@@ -86,12 +86,15 @@ function _itemHtml(s, fuel, rank) {
 }
 
 /* ── Rendu de la carte (Google si dispo, sinon tuiles OSM) ─────────────────── */
-function _renderMap(sorted, fuel) {
+async function _renderMap(sorted, fuel) {
   const id = 'alentourStationMap';
   const container = document.getElementById(id);
   if (!container) return;
   const short = FUEL_CONFIG[fuel]?.short || fuel;
   const top3 = new Set(sorted.slice(0, 3));
+
+  // W78 — chargement à la demande de gmaprender.js (+ gmap.js, chunk séparé).
+  const { googleMapsActive, renderGoogleStationMap } = await loadGmapRender();
 
   if (googleMapsActive()) {
     const gStations = sorted.map(s => ({
@@ -260,12 +263,14 @@ export function initAlentour() {
       if (AL_FUELS.includes(k) && k !== _fuel) { _fuel = k; _render(); }
       return;
     }
-    // Zoom (carte Google)
+    // Zoom (carte Google) — module nécessairement déjà chargé (une carte Google
+    // a dû être rendue au moins une fois pour que ces boutons soient pertinents).
     const zb = e.target.closest('.smap-zoom-btn');
     if (zb) {
       const delta = parseInt(zb.dataset.delta, 10);
       const container = document.getElementById('alentourStationMap');
-      if (container && googleMapsActive()) zoomGoogleMap(container, delta);
+      const cached = gmapRenderCached();
+      if (container && cached?.googleMapsActive()) cached.zoomGoogleMap(container, delta);
     }
   });
 }

@@ -64,9 +64,11 @@ describe('_renderMap — repli OpenStreetMap maison', () => {
 describe('showMap / hideMap', () => {
   afterEach(() => vi.useRealTimers());
 
-  it('filtre les sans-coords, dé-masque le conteneur puis rend (repli OSM différé)', () => {
+  it('filtre les sans-coords, dé-masque le conteneur puis rend (repli OSM différé)', async () => {
     vi.useFakeTimers();
-    showMap(50.38, 3.09, [
+    // W78 — showMap est async (import dynamique de gmaprender) : on l'attend
+    // pour que le setTimeout(render) soit bien programmé avant runAllTimers.
+    await showMap(50.38, 3.09, [
       { name: 'X',         lat: 50.37, lon: 3.08, prices: {} },
       { name: 'SansCoord', lat: null,  lon: null, prices: {} },
     ]);

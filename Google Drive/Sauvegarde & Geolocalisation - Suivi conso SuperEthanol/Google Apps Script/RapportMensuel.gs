@@ -148,6 +148,7 @@ function calculerStatsRapport(data, debut, fin, surconsoOverride) {
   let kmMin = Infinity, kmMax = -Infinity;
   let coutE85 = 0, coutSp98Equiv = 0;
   const stationCount = {};   // frequence des stations sur le mois
+  const detailPleins = [];  // {d, date, prix, type} pour le mini-graphe QuickChart
 
   // Prix SP98 de reference (repli pour les pleins E85 sans SP98 renseigne).
   // Calcule sur TOUT l'historique (pas seulement le mois) sinon un mois sans
@@ -184,6 +185,11 @@ function calculerStatsRapport(data, debut, fin, surconsoOverride) {
       nbPleins++; totalCout += lit * prix; totalLitres += lit;
       const st = String(r[cSta] || '').trim();
       if (st) stationCount[st] = (stationCount[st] || 0) + 1;   // station preferee
+      const dRaw = r[cDate];
+      const dObj = dRaw instanceof Date ? dRaw : new Date(String(dRaw));
+      if (!isNaN(dObj.getTime())) {
+        detailPleins.push({ d: dObj, prix: prix, type: String(r[cType] || '') });
+      }
     }
     if (km > 0) { kmMin = Math.min(kmMin, km); kmMax = Math.max(kmMax, km); }
 
@@ -213,6 +219,10 @@ function calculerStatsRapport(data, debut, fin, surconsoOverride) {
     if (stationCount[st] > stationPrefN) { stationPrefN = stationCount[st]; stationPref = st; }
   });
 
+  // Detail des pleins, trie chronologiquement (les rows filtrees ne le sont
+  // pas forcement) -> utilise pour le mini-graphe QuickChart du rapport.
+  detailPleins.sort((a, b) => a.d - b.d);
+
   return {
     nbPleins,
     nbE85,
@@ -225,7 +235,8 @@ function calculerStatsRapport(data, debut, fin, surconsoOverride) {
     co2Evite,
     prixMoyenE85,
     stationPref,
-    stationPrefN
+    stationPrefN,
+    detailPleins
   };
 }
 
@@ -288,6 +299,63 @@ function lireSurconsoParam(ss) {
 }
 
 // ─────────────────────────────────────────────────────────────
+//  Construit l'URL QuickChart (image) du mini-graphe "prix paye
+//  sur le mois" -> insere dans le mail via <img src="...">.
+//  Une seule serie (prix paye au litre), point colore selon le
+//  type de carburant (E85 vert / autre bleu fonce). GET only (pas
+//  de POST possible dans une balise <img>) -> JSON compact.
+//  Retourne '' si detailPleins est vide ou n'a pas au moins 2
+//  points (un graphe a 0-1 point n'apporte rien).
+// ─────────────────────────────────────────────────────────────
+function construireUrlGraphePrix(detailPleins) {
+  if (!detailPleins || detailPleins.length < 2) return '';
+
+  const isE85 = t => /e85|ethanol/i.test(String(t));
+  const COULEUR_E85   = '#1D9E75';
+  const COULEUR_AUTRE = '#2E75B6';
+
+  const labels = detailPleins.map(p => Utilities.formatDate(p.d, Session.getScriptTimeZone(), 'dd/MM'));
+  const prix   = detailPleins.map(p => Math.round(p.prix * 1000) / 1000);
+  const couleurs = detailPleins.map(p => isE85(p.type) ? COULEUR_E85 : COULEUR_AUTRE);
+
+  const config = {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Prix paye (EUR/L)',
+        data: prix,
+        borderColor: '#94a3b8',
+        borderWidth: 2,
+        pointBackgroundColor: couleurs,
+        pointBorderColor: couleurs,
+        pointRadius: 5,
+        pointHoverRadius: 6,
+        fill: false,
+        tension: 0.25
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { ticks: { callback: 'function(v){return v.toFixed(2)+" EUR";}' } }
+      }
+    }
+  };
+
+  const params = [
+    'c=' + encodeURIComponent(JSON.stringify(config)),
+    'w=560',
+    'h=220',
+    'devicePixelRatio=2',
+    'backgroundColor=white',
+    'f=png'
+  ].join('&');
+
+  return 'https://quickchart.io/chart?' + params;
+}
+
+// ─────────────────────────────────────────────────────────────
 //  Construit le corps HTML du mail (style aligne sur l'app).
 // ─────────────────────────────────────────────────────────────
 function construireCorpsRapport(moisLabel, s) {
@@ -300,6 +368,7 @@ function construireCorpsRapport(moisLabel, s) {
   const co2Val     = (s.nbE85 && s.co2Evite > 0) ? Math.round(s.co2Evite) + ' kg' : '—';
   const prixE85Val = (s.prixMoyenE85 > 0) ? prix3(s.prixMoyenE85) + ' €/L' : '—';
   const genere = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy à HH:mm');
+  const urlGraphe = construireUrlGraphePrix(s.detailPleins);
 
   if (s.nbPleins === 0) {
     return `<div style="font-family:Arial,Helvetica,sans-serif;color:#334155;max-width:600px;margin:0 auto;padding:24px;">
@@ -359,6 +428,10 @@ function construireCorpsRapport(moisLabel, s) {
       </td></tr>
 
       <tr><td style="padding:18px 30px 4px;">${hero}</td></tr>
+
+      ${urlGraphe ? `<tr><td style="padding:14px 30px 4px;text-align:center;">
+        <img src="${urlGraphe}" width="560" alt="Évolution du prix payé sur le mois" style="max-width:100%;border-radius:8px;">
+      </td></tr>` : ''}
 
       <tr><td style="padding:14px 22px 2px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">

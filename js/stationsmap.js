@@ -5,7 +5,7 @@ import { PRIX_API, FUEL_CONFIG, FAVORITE_MIN_PLEINS, STATION_SORT_KEY, PINNED_ST
 import { state }          from './state.js';
 import { showStationPopup } from './itineraire.js';
 import { getSectorToday, loadSectorPrices } from './secteur.js';   // W48 prix secteur par carburant
-import { googleMapsActive, renderGoogleStationMap, zoomGoogleMap } from './gmaprender.js';   // W63 carte Google (onglet Carte)
+import { loadGmapRender, gmapRenderCached } from './gmaprenderLazy.js';   // W63/W78 carte Google (onglet Carte, lazy)
 import { detectBrand } from './brand.js';   // W63 enseigne (couleur + nom) des marqueurs
 
 const COORD_CACHE_KEY = 'suivi_e85_station_coords';
@@ -298,7 +298,10 @@ export function renderStationsCard() {
       if (!btn) return;
       const delta = parseInt(btn.dataset.delta, 10);
       const container = card.querySelector('#staticStationMap');
-      if (container && googleMapsActive()) zoomGoogleMap(container, delta);
+      // Module nécessairement déjà chargé (une carte Google a dû être rendue
+      // au moins une fois pour que ces boutons de zoom soient pertinents).
+      const cached = gmapRenderCached();
+      if (container && cached?.googleMapsActive()) cached.zoomGoogleMap(container, delta);
     });
   }
   card.querySelector('.smap-top').innerHTML = topHtml;
@@ -322,11 +325,14 @@ export function renderStationsCard() {
 // ── Rendu mini-carte statique ────────────────────────────────────────────────
 
 /** Onglet « Carte » — W63 : Google Maps interactif si dispo, sinon repli tuiles
- *  OSM maison. Mêmes données (stations habituelles + position) dans les deux cas. */
-function _renderHabituellesMap(stations, userPos) {
+ *  OSM maison. Mêmes données (stations habituelles + position) dans les deux cas.
+ *  W78 : gmaprender.js (+ gmap.js) chargé à la demande via loadGmapRender(). */
+async function _renderHabituellesMap(stations, userPos) {
   _renderedStations = stations;   // S11 — pour le clic (popup itinéraire) en repli OSM
   const container = document.getElementById('staticStationMap');
   if (!container) return;
+
+  const { googleMapsActive, renderGoogleStationMap } = await loadGmapRender();
   if (!googleMapsActive()) { _renderStaticMap(stations, userPos); return; }
 
   const short = FUEL_CONFIG[_selectedFuel]?.short || _selectedFuel;

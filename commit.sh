@@ -105,11 +105,24 @@ else
   info "Aucune balise [vX.Y.Z.W] dans le message — étape ignorée."
 fi
 
-# --- 4. Lint ---
-step 4 "🔍" "ESLint (npm run lint)"
+# --- 4. Lint (JS + VBA) ---
+step 4 "🔍" "ESLint (npm run lint) + Lint VBA (X40)"
 info "Analyse des fichiers js/ en cours…"
 $UNBUF npm run lint || die "ESLint a échoué (erreurs ou warnings). Commit annulé."
-ok "Lint propre — 0 erreur, 0 warning."
+ok "Lint JS propre — 0 erreur, 0 warning."
+
+# Lint statique des modules VBA (X40) : Const/Dim mal placés + appels morts.
+info "Lint VBA (scripts/check_vba_compile.py)…"
+if command -v python >/dev/null 2>&1; then PYBIN=python
+elif command -v python3 >/dev/null 2>&1; then PYBIN=python3
+elif command -v py >/dev/null 2>&1; then PYBIN="py -3"
+else PYBIN=""; fi
+if [ -n "$PYBIN" ]; then
+  $PYBIN scripts/check_vba_compile.py || die "Lint VBA a échoué (déclarations mal placées ou appels vers procédures inexistantes). Commit annulé."
+  ok "Lint VBA propre — 0 violation."
+else
+  warn "python introuvable — lint VBA ignoré."
+fi
 
 # --- 5. Tests unitaires ---
 step 5 "🧪" "Tests unitaires (vitest — sortie en direct)"
