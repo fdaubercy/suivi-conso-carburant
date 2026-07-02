@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.30.11.0] — 2026-07-02
+
+### Added
+- **GAS — onglet « Tableau de bord » natif Google Sheets (G3)** — consultation du bilan sur mobile/web sans ouvrir le `.xlsm` :
+  - `Dashboard.gs` / `construireDashboard()` : agrège `_ImportGS` (exclut le soft-delete col `Supprimé`), calcule la **dépense mensuelle**, le **CO₂ évité** (E85, surconso dynamique réutilisée via `statsComputeSurconso_`) et les **KPIs** de l'année récente.
+  - (Re)crée l'onglet « Tableau de bord » avec la table des mois, un bloc KPIs, et **2 graphiques natifs** (colonnes = dépense, courbe = CO₂ évité) via `insertChart`. Idempotent (supprime les charts existants avant reconstruction), placé en tête du classeur. **Additif** : ne modifie jamais les données sources.
+  - Déclenchable via `GET ?action=buildDashboard&token=APP_TOKEN` (dispatcher `doGet`) ou depuis l'éditeur Apps Script.
+  - Déployé en production (version GAS v60). Vérifié via l'API Sheets : onglet présent (index 0), 2 charts, 4 mois de données + KPIs. `Dashboard.gs`, `Code.gs`.
+
 ## [5.30.10.0] — 2026-07-02
 
 ### Added

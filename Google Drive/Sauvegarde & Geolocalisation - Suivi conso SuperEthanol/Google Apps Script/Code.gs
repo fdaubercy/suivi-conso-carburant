@@ -221,6 +221,11 @@ function doGet(e) {
     return handleGetParametres(pEmail);
   }
 
+  // G3 — (re)construction de l'onglet « Tableau de bord » natif Sheets.
+  if (e.parameter.action === 'buildDashboard') {
+    return jsonResponse(construireDashboard());
+  }
+
   const isMobile = (e.parameter.v === 'mobile');
   return HtmlService
     .createHtmlOutputFromFile(isMobile ? 'iphone' : 'index')

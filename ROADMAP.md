@@ -83,7 +83,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| G3 | **Onglet `Dashboard` natif Sheets** : graphiques Google (prix, conso, CO₂) répliquant le tableau de bord Excel | Consulter le bilan sans ouvrir le `.xlsm` (mobile/web) |
 | C1 | **Cohérence libellés carburant** : `tbl_carburant` contient « Super 95 » que `FuelKey` ne reconnaît PAS comme SP95 (règle exige `SP95`/`S95`) ; E10/GPLc absents. Ajouter la reconnaissance `SUPER`+`95` → SP95 dans `FuelKey`, et compléter `tbl_carburant` (E10/GPLc) si l'utilisateur en a besoin. | Éviter un mauvais classement dashboard si l'utilisateur saisit « Super 95 » via la nouvelle dropdown (G1). |
 
 ---
@@ -102,6 +101,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.30.11.0 | **GAS — onglet « Tableau de bord » natif Google Sheets (G3)** — `Dashboard.gs`/`construireDashboard()` agrège `_ImportGS` (hors soft-delete) → dépense mensuelle, CO₂ évité (E85), KPIs, dans un onglet dédié avec 2 graphiques natifs (`insertChart`). Idempotent, additif (ne touche pas les données), placé en tête. Déclenchable via `?action=buildDashboard&token=`. Déployé en prod (GAS v60), vérifié via l'API Sheets. `Dashboard.gs`, `Code.gs`. |
 | v5.30.10.0 | **Excel — listes déroulantes de saisie (G1)** — validation de données sur `Suivi Carburant`/`Tableau2` : colonnes **Type** → `tbl_carburant`, **Station essence** → `tbl_stationEssence`, **Véhicule** → `tbl_vehicule` (nouvelle table dans `Notes`, initialisée avec les véhicules distincts). Sources exposées via plages nommées `lst_*` pointant sur le corps des tables (dynamiques). Mode avertissement (guide sans bloquer une valeur nouvelle) ; n'affecte pas les imports programmatiques. Macro versionnée `modValidation.InstallerValidationsSaisie` (réexécutable), feuille protégée déverrouillée le temps de l'opération. `tbl_carburant` nettoyé de ses lignes vides. Vérifié par COM (3 dropdowns actives). `vba/modValidation.bas`. |
 | v5.30.9.0 | **Excel — rebuild ciblé des objectifs (X43c-opt)** — scope `rsCheap` : quand seuls budget (B2) et/ou CO₂ (B3) changent (véhicule/carburant/période/année/source inchangés, jauge budget préservée), `RefreshObjectifs` recalcule uniquement les cellules objectif (col E cumul CO₂, col U budget 6 mois, AD3 jauge) sans re-parcourir les données ni recréer les graphiques. `ClassifyFilterDelta` → `rsNone`/`rsTargeted`/`rsFull`/`rsCheap`. Vérifié par COM. `vba/modFiltres.bas`. |
 | v5.30.8.0 | **Web — conformité a11y WCAG AA + gate bloquant (W81)** — 0 violation grave axe-core sur saisie/stats/historique : `select-name` corrigé (`aria-label` sur `#vehiculeSel`), `color-contrast` corrigé (nouvelle variable thème-aware `--text-muted-strong` #4b5563/#cbd5e1 pour boutons carburant inactifs + `.scan-hint`). Job CI `a11y` **durci en bloquant** (`tests/a11y.spec.js` assère 0 violation grave, `continue-on-error` retiré + `pipefail`). `index.html`, `css/style.css`, `tests/a11y.spec.js`, `.github/workflows/ci.yml`. |
