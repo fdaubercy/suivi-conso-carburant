@@ -201,7 +201,7 @@ NextRow:
         Dim cibleMois As Double: cibleMois = co2Obj / 12
         For k = 0 To UBound(keys)
             rw = rw + 1
-            wsd.Cells(rw, 1).value = keys(k)
+            wsd.Cells(rw, 1).value = MoisDate(keys(k))
             wsd.Cells(rw, 2).value = Round(NumDict(moisCost, keys(k)), 2)
             Dim cm As Double: cm = NumDict(moisCO2, keys(k))
             wsd.Cells(rw, 3).value = Round(cm, 1)
@@ -215,7 +215,7 @@ NextRow:
         If startK < 0 Then startK = 0
         For k = startK To UBound(keys)
             rb = rb + 1
-            wsd.Cells(rb, 19).value = keys(k)                              ' S
+            wsd.Cells(rb, 19).value = MoisDate(keys(k))                    ' S
             wsd.Cells(rb, 20).value = Round(NumDict(moisCost, keys(k)), 2) ' T
             If budget > 0 Then wsd.Cells(rb, 21).value = budget            ' U
         Next k
@@ -243,7 +243,20 @@ NextRow:
     ' Format colonnes date
     wsd.Columns(12).NumberFormat = "dd/mm/yyyy"   ' conso
     wsd.Columns(39).NumberFormat = "dd/mm/yyyy"   ' X9 eco cumulee
+    ' Abscisses mensuelles (gCost/gCo2 col A ; gBudget col S) : vraies dates, format FR MM/AAAA
+    wsd.Columns(1).NumberFormat = "mm/yyyy"
+    wsd.Columns(19).NumberFormat = "mm/yyyy"
 End Sub
+
+' Vraie date (1er du mois) a partir d'une cle de tri "yyyy-mm".
+' Les cles restent triees en "yyyy-mm" (chronologique) ; on ecrit une Date
+' explicite (pas une string coercee, locale-dependante) en col A/S : les axes
+' mensuels gCost/gCo2/gBudget affichent MM/AAAA via TickLabels.NumberFormat.
+Private Function MoisDate(ByVal k As String) As Date
+    If Len(k) = 7 And Mid$(k, 5, 1) = "-" And IsNumeric(Left$(k, 4)) And IsNumeric(Mid$(k, 6, 2)) Then
+        MoisDate = DateSerial(CInt(Left$(k, 4)), CInt(Mid$(k, 6, 2)), 1)
+    End If
+End Function
 
 Public Sub EnsurePeriodNames(wsG As Worksheet)
     On Error Resume Next

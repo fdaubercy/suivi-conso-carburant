@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.30.5.0] — 2026-07-02
+
+### Fixed
+- **Excel — dates des abscisses du Tableau de bord au format français (X61)** — tous les graphiques temporels affichent désormais les dates en format FR (`JJ/MM/AAAA` / `MM/AAAA`), au lieu de formats US ou anglais :
+  - **gPrice / gConso** (quotidien) : `m/d/yyyy` (mois/jour US) → **`dd/mm/yyyy`**.
+  - **gCost / gCo2 / gBudget** (mensuel) : `mmm-yy` (« juin-26 ») → **`mm/yyyy`**.
+  - **gEcoDate** : `mm/yy` → **`mm/yyyy`** ; **gScatterE85** : `mmm aa` → **`dd/mm/yyyy`**.
+  - Cause racine : `AddChartXY` fixait `Axes(xlCategory).NumberFormat` (sans effet sur l'affichage) au lieu de `TickLabels.NumberFormat` ; et les abscisses mensuelles étaient écrites en chaîne « yyyy-mm » coercée en date par Excel (format d'axe hérité `mmm-yy`).
+  - Correctifs : `modGraphData` écrit de **vraies dates** (`DateSerial`, 1er du mois, helper `MoisDate`) en col A/S ; `modGraphRender.AddChartXY` prend un paramètre `catFmt` et pose `TickLabels.NumberFormat` + `NumberFormatLinked=False` ; formats mensuels ajoutés à `AddCo2MonthlyChart`/`AddBudgetTrendChart`. Injecté COM, `CreerGraphiquesWeb` régénéré et vérifié (formats d'axe contrôlés programmatiquement). `vba/modGraphData.bas`, `vba/modGraphRender.bas`, `vba/modGraphiques.bas`.
+
 ## [5.30.4.0] — 2026-07-02
 
 ### Changed

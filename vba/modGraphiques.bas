@@ -181,7 +181,7 @@ Public Sub CreerGraphiquesWeb(Optional silent As Boolean = False)
     End If
     If rMonth > 1 Then
         AddChartXY wsG, "gCost", wsd.Range("A1").Resize(rMonth, 2), xlColumnClustered, _
-            "Cout mensuel du carburant (" & ChrW(8364) & ")", L1, topBase + stepY, w, h, False
+            "Cout mensuel du carburant (" & ChrW(8364) & ")", L1, topBase + stepY, w, h, False, "mm/yyyy"
     Else
         DeleteChartByName wsG, "gCost"
     End If

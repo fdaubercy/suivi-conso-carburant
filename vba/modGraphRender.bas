@@ -9,7 +9,7 @@ Option Explicit
 
 Public Sub AddChartXY(ws As Worksheet, key As String, src As Range, typ As Long, titre As String, _
                        L As Double, T As Double, w As Double, h As Double, _
-                       smooth As Boolean)
+                       smooth As Boolean, Optional catFmt As String = "dd/mm/yyyy")
     Dim co As ChartObject
     Set co = EnsureChart(ws, key, L, T, w, h)
     With co.Chart
@@ -32,7 +32,8 @@ Public Sub AddChartXY(ws As Worksheet, key As String, src As Range, typ As Long,
             Next si
         End If
         .Axes(xlCategory).CategoryType = xlTimeScale
-        .Axes(xlCategory).NumberFormat = "dd/mm"
+        .Axes(xlCategory).TickLabels.NumberFormat = catFmt
+        .Axes(xlCategory).TickLabels.NumberFormatLinked = False
         On Error GoTo 0
     End With
 End Sub
@@ -57,6 +58,8 @@ Public Sub AddBudgetTrendChart(ws As Worksheet, key As String, wsd As Worksheet,
         .SeriesCollection(1).Format.fill.ForeColor.RGB = C_COUT
         .HasLegend = True: .Legend.Position = xlLegendPositionBottom
         .ChartArea.Border.LineStyle = xlNone
+        .Axes(xlCategory).TickLabels.NumberFormat = "mm/yyyy"
+        .Axes(xlCategory).TickLabels.NumberFormatLinked = False
         On Error GoTo 0
     End With
 End Sub
@@ -82,6 +85,8 @@ Public Sub AddCo2MonthlyChart(ws As Worksheet, key As String, wsd As Worksheet, 
         End If
         .HasLegend = True: .Legend.Position = xlLegendPositionBottom
         .ChartArea.Border.LineStyle = xlNone
+        .Axes(xlCategory).TickLabels.NumberFormat = "mm/yyyy"
+        .Axes(xlCategory).TickLabels.NumberFormatLinked = False
         On Error GoTo 0
     End With
 End Sub
@@ -237,7 +242,7 @@ Public Sub AddEcoCumDateChart(ws As Worksheet, key As String, wsd As Worksheet, 
             .Format.Line.Weight = 2
             .smooth = True
         End With
-        .Axes(xlCategory).TickLabels.NumberFormat = "mm/yy"
+        .Axes(xlCategory).TickLabels.NumberFormat = "mm/yyyy"
         .ChartArea.Border.LineStyle = xlNone
         On Error GoTo 0
     End With
@@ -302,7 +307,7 @@ Public Sub AddScatterE85Chart(ws As Worksheet, key As String, wsd As Worksheet, 
         On Error Resume Next
         ' Axe X : dates
         With .Axes(xlCategory)
-            .TickLabels.NumberFormat = "mmm aa"
+            .TickLabels.NumberFormat = "dd/mm/yyyy"
             .TickLabels.Font.Size = 8
         End With
         ' Axe principal (conso L/100 km)
