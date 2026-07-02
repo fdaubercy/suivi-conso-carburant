@@ -317,11 +317,10 @@ Private Function BuildHeaderAndKPIs(ws As Worksheet) As Single
     Dim ds As DashStats
     modDashboardKPI.ComputeDashboardStats selVeh, selFuel, ds
 
-    Dim vConso As Double, vCoutKm As Double, vEcon As Double, vCo2 As Double
+    Dim vConso As Double, vCoutKm As Double, vCo2 As Double
     Dim vPleins As Double, vKm As Double, vLitres As Double, vPctE85 As Double
     vConso = ds.conso
     vCoutKm = ds.coutKm100 / 100          ' la carte COÛT multiplie par 100
-    vEcon = ds.eco
     vCo2 = ds.co2
     vPleins = ds.nbPleins
     vKm = ds.km

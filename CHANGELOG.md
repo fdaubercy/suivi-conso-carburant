@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.30.6.0] — 2026-07-02
+
+### Removed
+- **Excel — nettoyage code mort économie E85 (X53)** — suite à X47 (carte KPI « éco E85 » remplacée par « Rentabilité kit »), l'économie calculée n'était plus affichée :
+  - `modDashboardGraphiques` : suppression de `vEcon` (assigné depuis `ds.eco`, jamais lu).
+  - `modDashboardKPI` : suppression du champ `eco` du type `DashStats`, du calcul `ds.eco` dans `ComputeDashboardStats` (le CO₂ conserve `essEq`), et — constaté mort à l'analyse (aucun appelant, 3 params `ByRef` → non déclenchable par `OnAction`) — du `Sub ComputeKPIs` entier ainsi que de la fonction `DernierPrixSP98` (uniquement appelée par ce code mort). `ciSP98` retiré de `ComputeDashboardStats` (devenu inutile).
+  - Vérifié : lint VBA (X40) 0 violation, injection COM + `MAJ_Dashboard_Graphiques` réexécuté sans erreur (compilation OK). `vba/modDashboardKPI.bas`, `vba/modDashboardGraphiques.bas`.
+
 ## [5.30.5.0] — 2026-07-02
 
 ### Fixed

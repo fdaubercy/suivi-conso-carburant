@@ -19,7 +19,7 @@ Attribute VB_Name = "modDashboardKPI"
 '  Expose :
 '    � KPIVehiculeList / KPICarburantList  -> tableaux de choix (pour validation)
 '    � KPIDefautVehicule / KPIDefautCarburant -> selection par defaut
-'    � ComputeKPIs(veh, fuel, conso, coutKm, eco) -> calcule les 3 KPI
+'    � ComputeDashboardStats(veh, fuel, ds) -> remplit toutes les stats du dashboard
 '  Tout est defensif (On Error) : si GS_Pleins manque, renvoie 0.
 ' ============================================================
 Option Explicit
@@ -38,7 +38,6 @@ Public Const KPI_TOUS As String = "(tous)"
 Public Type DashStats
     conso       As Double   ' L/100 km (filtre veh+fuel)
     coutKm100   As Double   ' EUR/100 km (filtre veh+fuel)
-    eco         As Double   ' EUR economie E85 vs SP98 (lignes E85)
     co2         As Double   ' kg CO2 evite (lignes E85)
     nbPleins    As Long     ' nb pleins du perimetre (hors plein de reference)
     km          As Double   ' distance kmMax - kmMin
@@ -221,126 +220,12 @@ Public Function KPIDefautCarburant() As String
 End Function
 
 '------------------------------------------------------------
-'  CALCUL DES 3 KPI filtres par vehicule (+ carburant)
-'  veh  : "" ou KPI_TOUS = tous vehicules ; sinon nom exact
-'  fuel : "" ou KPI_TOUS = tous carburants ; sinon E85/GAZOLE/SP98/...
-'------------------------------------------------------------
-Public Sub ComputeKPIs(ByVal veh As String, ByVal fuel As String, _
-                       ByRef outConso As Double, ByRef outCoutKm As Double, _
-                       ByRef outEco As Double)
-    outConso = 0: outCoutKm = 0: outEco = 0
-    On Error GoTo EH
-
-    Dim lo As ListObject: Set lo = GSTable()
-    If lo Is Nothing Then Exit Sub
-    If lo.DataBodyRange Is Nothing Then Exit Sub
-
-    Dim ciVeh As Long, ciType As Long, ciKm As Long, ciLit As Long, ciPrix As Long, ciSP98 As Long
-    ciVeh = ColIdx(lo, "Vehicule")
-    ciType = ColIdx(lo, "Type")
-    ciKm = ColIdx(lo, "Km")
-    ciLit = ColIdx(lo, "Litres")
-    ciPrix = ColIdx(lo, "PrixL")
-    ciSP98 = ColIdx(lo, "SP98 station")
-    If ciKm = 0 Or ciLit = 0 Then Exit Sub
-
-    Dim filtVeh As Boolean: filtVeh = (Len(veh) > 0 And veh <> KPI_TOUS)
-    Dim filtFuel As Boolean: filtFuel = (Len(fuel) > 0 And fuel <> KPI_TOUS)
-    Dim sc As Double: sc = surconso()
-
-    Dim a As Variant: a = lo.DataBodyRange.value
-    Dim i As Long
-
-    Dim litres As Double, cout As Double
-    Dim kmMin As Double, kmMax As Double, haveKm As Boolean
-    Dim eco As Double
-    litres = 0: cout = 0: eco = 0: haveKm = False
-
-    ' === PASSE 1 : trouver kmMin (plein de reference full-to-full) ===
-    ' Methodologie full-to-full : le 1er plein etablit le point de depart.
-    ' Son volume represente du carburant consomme AVANT notre fenetre de mesure
-    ' (km inconnu -> kmMin) ; on l'exclut du cumul litres/cout.
-    ' Les pleins suivants representent la consommation reelle sur kmMin->kmMax.
-    For i = 1 To UBound(a, 1)
-        If filtVeh And ciVeh > 0 Then
-            If StrComp(Trim$(CStr(a(i, ciVeh))), veh, vbTextCompare) <> 0 Then GoTo P1NX
-        End If
-        Dim fk0 As String: fk0 = ""
-        If ciType > 0 Then fk0 = FuelKeyK(CStr(a(i, ciType)))
-        If filtFuel Then If Not FuelInSel(fk0, fuel) Then GoTo P1NX
-        Dim km0 As Double: km0 = Nz(a(i, ciKm))
-        If km0 > 0 Then
-            If Not haveKm Then
-                kmMin = km0: kmMax = km0: haveKm = True
-            Else
-                If km0 < kmMin Then kmMin = km0
-                If km0 > kmMax Then kmMax = km0
-            End If
-        End If
-P1NX:
-    Next i
-
-    If Not haveKm Then GoTo CalcFin
-
-    ' === PASSE 2 : accumule litres/cout/eco en excluant le plein de reference ===
-    For i = 1 To UBound(a, 1)
-        ' -- filtres --
-        If filtVeh And ciVeh > 0 Then
-            If StrComp(Trim$(CStr(a(i, ciVeh))), veh, vbTextCompare) <> 0 Then GoTo NX
-        End If
-        Dim fk As String
-        fk = ""
-        If ciType > 0 Then fk = FuelKeyK(CStr(a(i, ciType)))
-        If filtFuel Then
-            If Not FuelInSel(fk, fuel) Then GoTo NX
-        End If
-
-        Dim km As Double: km = Nz(a(i, ciKm))
-        Dim li As Double: li = Nz(a(i, ciLit))
-        Dim pr As Double: pr = Nz(a(i, ciPrix))
-
-        ' Exclut le plein de reference (km = kmMin) : methode full-to-full.
-        If km = kmMin Then GoTo NX
-
-        litres = litres + li
-        ' W73 : cout reel (col 20) si saisi, sinon litres * prix
-        Dim ct As Double: ct = 0
-        If UBound(a, 2) >= 20 Then If IsNumeric(a(i, 20)) Then ct = CDbl(a(i, 20))
-        cout = cout + IIf(ct > 0, ct, li * pr)
-
-        ' -- economie E85 vs SP98 (ligne E85 uniquement) --
-        If fk = "E85" And li > 0 Then
-            Dim prixSP98 As Double: prixSP98 = 0
-            If ciSP98 > 0 Then prixSP98 = Nz(a(i, ciSP98))
-            If prixSP98 <= 0 Then prixSP98 = DernierPrixSP98()
-            If prixSP98 > 0 Then
-                Dim essEq As Double: essEq = li / (1 + sc)
-                eco = eco + (essEq * prixSP98) - (li * pr)
-            End If
-        End If
-NX:
-    Next i
-
-CalcFin:
-    Dim dist As Double: dist = 0
-    If haveKm Then dist = kmMax - kmMin
-    If dist > 0 Then
-        outConso = litres / dist * 100
-        outCoutKm = cout / dist * 100
-    End If
-    outEco = eco
-    Exit Sub
-EH:
-    outConso = 0: outCoutKm = 0: outEco = 0
-End Sub
-
-'------------------------------------------------------------
 '  X37 � STATISTIQUES COMPLETES DU DASHBOARD (filtrees veh/fuel)
 '  Regroupe en une passe toutes les valeurs affichees par le
 '  tableau de bord (KPI + bandeau meta + fusion ancien dashboard),
 '  pour DECOUPLER le dashboard de l'ancien onglet "Tableau de bord".
 '  Methode conso/cout : full-to-full (exclut le plein de reference),
-'  identique a ComputeKPIs. (Type DashStats + constantes CO2 declares en tete.)
+'  (Type DashStats + constantes CO2 declares en tete.)
 '------------------------------------------------------------
 Public Sub ComputeDashboardStats(ByVal veh As String, ByVal fuel As String, _
                                  ByRef ds As DashStats)
@@ -351,13 +236,12 @@ Public Sub ComputeDashboardStats(ByVal veh As String, ByVal fuel As String, _
     If lo Is Nothing Then Exit Sub
     If lo.DataBodyRange Is Nothing Then Exit Sub
 
-    Dim ciVeh As Long, ciType As Long, ciKm As Long, ciLit As Long, ciPrix As Long, ciSP98 As Long, ciDate As Long, ciStation As Long
+    Dim ciVeh As Long, ciType As Long, ciKm As Long, ciLit As Long, ciPrix As Long, ciDate As Long, ciStation As Long
     ciVeh = ColIdx(lo, "Vehicule")
     ciType = ColIdx(lo, "Type")
     ciKm = ColIdx(lo, "Km")
     ciLit = ColIdx(lo, "Litres")
     ciPrix = ColIdx(lo, "PrixL")
-    ciSP98 = ColIdx(lo, "SP98 station")
     ciDate = ColIdx(lo, "Date")
     ciStation = ColIdx(lo, "Station essence")
     If ciKm = 0 Or ciLit = 0 Then Exit Sub
@@ -445,11 +329,7 @@ P1NX:
             ds.nbPleins = ds.nbPleins + 1
 
             If fk = "E85" And li > 0 Then
-                Dim prixSP98 As Double: prixSP98 = 0
-                If ciSP98 > 0 Then prixSP98 = Nz(a(i, ciSP98))
-                If prixSP98 <= 0 Then prixSP98 = DernierPrixSP98()
                 Dim essEq As Double: essEq = li / (1 + sc)
-                If prixSP98 > 0 Then ds.eco = ds.eco + (essEq * prixSP98) - (li * pr)
                 ds.co2 = ds.co2 + (essEq * CO2_ESSENCE_PER_L) - (li * CO2_E85_PER_L)
             End If
 P2NX:
@@ -478,36 +358,6 @@ EH:
     Dim e As DashStats: ds = e
 End Sub
 
-' Dernier prix SP98 marche (table PrixHistory) � repli pour l'economie.
-Private Function DernierPrixSP98() As Double
-    On Error GoTo Fail
-    Dim ws As Worksheet, lo As ListObject
-    For Each ws In ThisWorkbook.Worksheets
-        For Each lo In ws.ListObjects
-            If LCase$(Trim$(lo.name)) = "prixhistory" Then
-                If lo.DataBodyRange Is Nothing Then Exit Function
-                Dim ciD As Long, ciT As Long, ciP As Long
-                ciD = ColIdx(lo, "Date"): ciT = ColIdx(lo, "Type"): ciP = ColIdx(lo, "Prix")
-                If ciD = 0 Or ciT = 0 Or ciP = 0 Then Exit Function
-                Dim a As Variant: a = lo.DataBodyRange.value
-                Dim i As Long, best As Date, bestP As Double
-                best = DateSerial(1900, 1, 1)
-                For i = 1 To UBound(a, 1)
-                    If FuelKeyK(CStr(a(i, ciT))) = "SP98" Then
-                        If IsDate(a(i, ciD)) Then
-                            If CDate(a(i, ciD)) >= best And Nz(a(i, ciP)) > 0 Then
-                                best = CDate(a(i, ciD)): bestP = Nz(a(i, ciP))
-                            End If
-                        End If
-                    End If
-                Next i
-                DernierPrixSP98 = bestP
-                Exit Function
-            End If
-        Next lo
-    Next ws
-Fail:
-End Function
 
 '------------------------------------------------------------
 '  Tri simple (bulle) d'un tableau de chaines
