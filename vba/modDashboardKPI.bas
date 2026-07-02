@@ -102,6 +102,11 @@ Public Function FuelInSel(ByVal fk As String, ByVal sel As String) As Boolean
     Next i
 End Function
 
+' Consommation L/100 km (methode full-to-full du dashboard). distKm <= 0 -> 0.
+Public Function ConsoL100(ByVal litres As Double, ByVal distKm As Double) As Double
+    If distKm > 0 Then ConsoL100 = litres / distKm * 100
+End Function
+
 Private Function surconso() As Double
     ' Surconso E85 (fraction, ex. 0.23) = "Suivi Carburant"!J8 ("Surconsommation E85 (%)").
     ' NB : J7 = "Conso E85 reference (km/L)" (~15) ; ne JAMAIS la lire comme surconso.
@@ -340,7 +345,7 @@ P2NX:
     If haveKm Then dist = kmMax - kmMin
     ds.km = dist
     If dist > 0 Then
-        ds.conso = ds.litres / dist * 100
+        ds.conso = ConsoL100(ds.litres, dist)
         ds.coutKm100 = ds.depense / dist * 100
     End If
     If nVeh > 0 Then ds.pctE85 = nE85 / nVeh

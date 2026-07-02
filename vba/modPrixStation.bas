@@ -298,7 +298,7 @@ Private Function NumP(v As Variant) As Double
     On Error GoTo 0
 End Function
 
-Private Function FuelKeyP(t As String) As String
+Public Function FuelKeyP(t As String) As String
     Dim s As String: s = LCase$(Trim$(t))
     If InStr(s, "e85") > 0 Then FuelKeyP = "E85": Exit Function
     If InStr(s, "gazole") > 0 Or InStr(s, "diesel") > 0 Then FuelKeyP = "GAZOLE": Exit Function

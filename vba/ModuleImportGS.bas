@@ -632,7 +632,7 @@ Fail:
     ToDouble = 0
 End Function
 
-Private Function ParseGoogleDate(s As String) As Date
+Public Function ParseGoogleDate(s As String) As Date
     Dim parts() As String
     Dim a As Long, b As Long, c As Long
     s = Trim(s)

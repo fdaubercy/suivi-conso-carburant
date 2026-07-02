@@ -51,7 +51,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi |
 |---|---|---|
 | X44 | **Modularisation des gros modules VBA** (multi-phases, ✅ **substantiellement terminé**). ✅ Phase 1 (v5.30.2.0) : `modSyncGS` 1663→1420 (`modSyncJson`+`modSyncNet`, dédup `modSyncParametres`). ✅ Phase 2 (v5.30.3.0) : `modSyncCfg`+`modSyncEngine` ; `modSyncGS` 1420→762. ✅ Phase 3 (v5.30.4.0) : `modGraphiques` 1627→**416** (`modGraphCfg`+`modGraphData`+`modGraphRender`), testé live (12 graphiques régénérés). **Reste optionnel** : découpe fine des modules encore > 500 l. (`modGraphData` 690, `modGraphRender` 545, `modSyncEngine` 677, `modSyncGS` 762). | Viole la règle « fichiers < 500 lignes » (CLAUDE.md) ; surface réduite → moins de risque de `Const` mal placée (cf. X40) et navigation plus simple. |
-| X45 | **Tests VBA des fonctions pures** : module `modTests` (`Test_CoutPlein`, `Test_FuelInSel`, `Test_FuelKeyP`, `Test_ParseGoogleDate`, conso L/100 km) exécutable et vérifiable en CI via `check_vba_drift`. | Aucune couverture VBA aujourd'hui (Vitest = JS seul) ; verrouille les régressions de calcul (ex. bug date 6 sept / 9 juin de v5.12.0.0). |
 ---
 
 ## 🔄 Synchronisation Excel ↔ Google Sheets
@@ -94,7 +93,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | Rang | Item | Effort | Bénéfice |
 |---|---|---|---|
 | 1 | **C9** — Service account Google | ~2 h | Auth stable sans renouvellement manuel du token |
-| 2 | **X45** — Tests VBA des fonctions pures (`modTests` + CI `check_vba_drift`) | ~0,5 j | Verrouille les régressions de calcul (aucune couverture VBA aujourd'hui) |
 
 > ✅ S3/S4/S5 (suppression bidir., force resync, conflits par timestamp) implémentés en v4.8.0.0 — voir le tableau ci-dessous.
 
@@ -104,6 +102,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.30.7.0 | **Excel — tests unitaires des fonctions pures VBA (X45)** — module versionné `vba/modTests.bas` (`RunAllTests`, **32/32 OK**) verrouillant les calculs : `FuelKeyK`/`FuelInSel`/`FuelKeyP`/`ParseGoogleDate` (US vs FR)/`CoutPlein`/`ConsoL100`. `ParseGoogleDate`/`FuelKeyP`/`CoutPlein` rendues Public ; helper pur `ConsoL100` câblé dans `ComputeDashboardStats`. Exécution locale (`Alt+F8 → RunAllTests`) ; présence garantie par `check_vba_drift`. Lint VBA 0 violation. |
 | v5.30.6.0 | **Excel — nettoyage code mort économie E85 (X53)** — suite à X47, l'économie E85 n'était plus affichée : suppression de `vEcon` (`modDashboardGraphiques`), du champ `DashStats.eco` + calcul `ds.eco` (`ComputeDashboardStats`), et — constatés morts (0 appelant) — du `Sub ComputeKPIs` entier et de la fonction `DernierPrixSP98`. `essEq`/CO₂ conservés. Lint VBA 0 violation, `MAJ_Dashboard_Graphiques` réexécuté sans erreur. `vba/modDashboardKPI.bas`, `vba/modDashboardGraphiques.bas`. |
 | v5.30.5.0 | **Excel — dates des abscisses du Tableau de bord au format français (X61)** — tous les graphiques temporels affichent les dates en FR : gPrice/gConso `m/d/yyyy` (US) → **`dd/mm/yyyy`** ; gCost/gCo2/gBudget `mmm-yy` → **`mm/yyyy`** ; gEcoDate `mm/yy` → `mm/yyyy` ; gScatterE85 `mmm aa` → `dd/mm/yyyy`. Cause racine : `AddChartXY` posait `Axes.NumberFormat` (sans effet) au lieu de `TickLabels.NumberFormat` + abscisses mensuelles en chaîne coercée. Fix : `MoisDate` (vraies dates 1er du mois) + `catFmt` paramétrable + `TickLabels.NumberFormat`/`NumberFormatLinked=False`. Vérifié programmatiquement. `vba/modGraphData.bas`, `vba/modGraphRender.bas`, `vba/modGraphiques.bas`. |
 | v5.30.4.0 | **Excel — modularisation VBA `modGraphiques` (X44, Phase 3)** — découpe du monolithe dashboard (`modGraphiques` 1627 → **416 l.**, < 500) : **`modGraphCfg`** (config Public : feuilles/cellules/couleurs/CO2/dims + état `mPerDeb`/`mPerFin`), **`modGraphData`** (agrégats `BuildAggregates`+blocs+helpers, 690 l.), **`modGraphRender`** (`Add*Chart`+`Ensure*`/`Style`/`Purge`, 545 l.). Orchestration (`CreerGraphiquesWeb`/`GraphAutoActif`/`ExporterGraphiquesPDF`) conservée. Injecté COM, compilé, `CreerGraphiquesWeb` testé live idempotent (12 graphiques). X40 propre. |

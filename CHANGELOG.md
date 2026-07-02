@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.30.7.0] — 2026-07-02
+
+### Added
+- **Excel — tests unitaires des fonctions pures VBA (X45)** — nouveau module versionné `vba/modTests.bas` (mini-framework d'assertions + `RunAllTests`) verrouillant les régressions de calcul (dont le bug date 6 sept/9 juin de v5.12.0.0). **32 assertions, 32/32 OK** en local. Couvre `FuelKeyK`, `FuelInSel`, `FuelKeyP`, `ParseGoogleDate` (US m/j/a vs FR j/m/a), `CoutPlein`, `ConsoL100`.
+  - Fonctions rendues `Public` pour être testables : `ParseGoogleDate` (`ModuleImportGS`), `FuelKeyP` (`modPrixStation`), `CoutPlein` (`modHistorique`) — noms uniques, aucune collision.
+  - Nouveau helper pur `ConsoL100(litres, distKm)` (`modDashboardKPI`), désormais utilisé par `ComputeDashboardStats` (le test protège le calcul réellement affiché).
+  - Exécution **locale** (`Alt+F8 → RunAllTests`) : le VBA ne tourne pas en CI headless ; la présence/cohérence du module est garantie par `check_vba_drift` (X18). Lint VBA (X40) 0 violation. `vba/modTests.bas`, `vba/modDashboardKPI.bas`, `vba/ModuleImportGS.bas`, `vba/modPrixStation.bas`, `vba/modHistorique.bas`.
+
 ## [5.30.6.0] — 2026-07-02
 
 ### Removed

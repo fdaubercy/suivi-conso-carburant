@@ -329,7 +329,7 @@ Private Function SafeNum(v As Variant) As Variant
     If IsNumeric(v) Then SafeNum = CDbl(v) Else SafeNum = ""
 End Function
 
-Private Function CoutPlein(litres As Variant, prix As Variant, Optional cout As Variant) As Variant
+Public Function CoutPlein(litres As Variant, prix As Variant, Optional cout As Variant) As Variant
     ' W73 : priorite au cout saisi exact (col T) si disponible et positif
     If Not IsMissing(cout) Then
         If IsNumeric(cout) And CDbl(cout) > 0 Then
