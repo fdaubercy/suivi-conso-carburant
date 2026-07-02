@@ -218,6 +218,16 @@ NextLigne:
 
     ' Push des stations vers GS : desormais gere par modSyncGS (SyncOnOpen / SyncManuel).
     ' Ancien Call SyncStationsVersGoogleSheets retire (module synchroniseGoogleForm supprime).
+
+    ' G5 : apres un import reel, reactualiser les listes deroulantes de saisie
+    ' (tbl_vehicule / tbl_stationEssence alimentees depuis les valeurs saisies).
+    ' Tolerant : un echec ne doit jamais casser l'import.
+    If nbImportes > 0 Then
+        On Error Resume Next
+        modValidation.RafraichirListesSaisie
+        On Error GoTo 0
+    End If
+
     VerrouillerSuivi                       ' reverrouille la feuille apres l'import
     Exit Sub
 

@@ -32,6 +32,12 @@ Public Sub InstallerValidationsSaisie()
     ' 1) Table vehicules (source de la dropdown Vehicule)
     EnsureVehiculeTable wsN, wsS
 
+    ' 1b) G5 : auto-maintenance des listes. Alimente tbl_vehicule /
+    '     tbl_stationEssence avec les valeurs deja saisies dans Tableau2 mais
+    '     absentes des tables -> les dropdowns restent a jour sans intervention.
+    SyncTableFromSaisie wsS, TableOrNothing(wsN, T_VEHIC), "V" & ChrW(233) & "hicule"
+    SyncTableFromSaisie wsS, TableOrNothing(wsN, "tbl_stationEssence"), "Station essence"
+
     ' 2) Plages nommees vers le CORPS des tables de reference. Une reference au
     '    nom de table seul (=tbl_xxx) resout son DataBodyRange et SUIT sa taille
     '    -> dynamique, sans fonction ni separateur d'argument (robuste en locale FR).
@@ -50,6 +56,79 @@ relock:
     ModuleImportGS.VerrouillerSuivi
     On Error GoTo 0
     Application.StatusBar = "Listes deroulantes de saisie installees (Type / Station / Vehicule)."
+End Sub
+
+' G5 : point d'entree appele apres un import (ModuleImportGS) pour reactualiser
+' les listes de saisie a partir des nouvelles valeurs. Alias reexecutable.
+Public Sub RafraichirListesSaisie()
+    InstallerValidationsSaisie
+End Sub
+
+' Renvoie le ListObject `nm` de la feuille ws, ou Nothing s'il n'existe pas.
+Private Function TableOrNothing(ws As Worksheet, ByVal nm As String) As ListObject
+    On Error Resume Next
+    Set TableOrNothing = ws.ListObjects(nm)
+    On Error GoTo 0
+End Function
+
+' Ajoute a la table de reference lo (colonne 1) les valeurs distinctes de la
+' colonne `saisieCol` de Tableau2 qui n'y figurent pas encore. Dedup insensible
+' a la casse ; casse d'origine preservee ; valeurs vides ignorees. Idempotent.
+Private Sub SyncTableFromSaisie(wsS As Worksheet, lo As ListObject, ByVal saisieCol As String)
+    If lo Is Nothing Then Exit Sub
+
+    ' Valeurs deja presentes dans la table (colonne 1)
+    Dim seen As Object: Set seen = CreateObject("Scripting.Dictionary")
+    seen.CompareMode = vbTextCompare
+    If Not lo.DataBodyRange Is Nothing Then
+        DictAddColumn seen, lo.DataBodyRange.Columns(1).value
+    End If
+
+    ' Colonne source de la saisie
+    Dim loS As ListObject: Set loS = wsS.ListObjects(T_SAISIE)
+    Dim col As ListColumn
+    On Error Resume Next
+    Set col = loS.ListColumns(saisieCol)
+    On Error GoTo 0
+    If col Is Nothing Then Exit Sub
+    If col.DataBodyRange Is Nothing Then Exit Sub
+
+    ' Valeurs nouvelles a ajouter (ordre d'apparition, dedup casse-insensible)
+    Dim toAdd As Collection: Set toAdd = New Collection
+    Dim a As Variant: a = col.DataBodyRange.value
+    Dim r As Long, v As String
+    If IsArray(a) Then
+        For r = 1 To UBound(a, 1)
+            v = Trim$(CStr(a(r, 1)))
+            If Len(v) > 0 Then
+                If Not seen.Exists(v) Then seen(v) = 1: toAdd.Add v
+            End If
+        Next r
+    Else
+        v = Trim$(CStr(a))
+        If Len(v) > 0 Then If Not seen.Exists(v) Then toAdd.Add v
+    End If
+    If toAdd.count = 0 Then Exit Sub
+
+    ' Ajout en fin de table
+    Dim x As Variant
+    For Each x In toAdd
+        lo.ListRows.Add.Range.Cells(1, 1).value = CStr(x)
+    Next x
+End Sub
+
+' Insere dans le dictionnaire d les valeurs non vides d'un tableau/scalaire.
+Private Sub DictAddColumn(d As Object, ByVal a As Variant)
+    Dim r As Long, v As String
+    If IsArray(a) Then
+        For r = LBound(a, 1) To UBound(a, 1)
+            v = Trim$(CStr(a(r, 1)))
+            If Len(v) > 0 Then d(v) = 1
+        Next r
+    Else
+        v = Trim$(CStr(a))
+        If Len(v) > 0 Then d(v) = 1
+    End If
 End Sub
 
 ' Applique une data validation liste (mode avertissement) sur toute la colonne

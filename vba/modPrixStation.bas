@@ -302,10 +302,10 @@ Public Function FuelKeyP(t As String) As String
     Dim s As String: s = LCase$(Trim$(t))
     If InStr(s, "e85") > 0 Then FuelKeyP = "E85": Exit Function
     If InStr(s, "gazole") > 0 Or InStr(s, "diesel") > 0 Then FuelKeyP = "GAZOLE": Exit Function
-    If InStr(s, "sp98") > 0 Or InStr(s, "s98") > 0 Then FuelKeyP = "SP98": Exit Function
+    If InStr(s, "98") > 0 Then FuelKeyP = "SP98": Exit Function  ' C1 : SP98 / Super 98 / S98
     ' W61 : E10 teste AVANT SP95 (un libelle « SP95-E10 » = E10) et distinct.
     If InStr(s, "e10") > 0 Then FuelKeyP = "E10": Exit Function
-    If InStr(s, "sp95") > 0 Or InStr(s, "s95") > 0 Then FuelKeyP = "SP95": Exit Function
+    If InStr(s, "95") > 0 Then FuelKeyP = "SP95": Exit Function  ' C1 : SP95 / Super 95 / S95
     If InStr(s, "gpl") > 0 Then FuelKeyP = "GPLc": Exit Function
     FuelKeyP = UCase$(s)
 End Function

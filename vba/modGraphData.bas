@@ -670,13 +670,12 @@ Private Function FuelKey(T As String) As String
         FuelKey = "E85"
     ElseIf InStr(u, "GAZOLE") > 0 Or InStr(u, "DIESEL") > 0 Or InStr(u, "GASOIL") > 0 Then
         FuelKey = "GAZOLE"
-    ElseIf InStr(u, "SP98") > 0 Or InStr(u, "S98") > 0 Or _
-           (InStr(u, "SUPER") > 0 And InStr(u, "98") > 0) Then
+    ElseIf InStr(u, "98") > 0 Then          ' C1 : SP98 / Super 98 / S98
         FuelKey = "SP98"
-    ElseIf InStr(u, "SP95") > 0 Or InStr(u, "S95") > 0 Then
-        FuelKey = "SP95"
-    ElseIf InStr(u, "E10") > 0 Then
+    ElseIf InStr(u, "E10") > 0 Then         ' teste avant 95 (un « SP95-E10 » = E10)
         FuelKey = "E10"
+    ElseIf InStr(u, "95") > 0 Then          ' C1 : SP95 / Super 95 / S95
+        FuelKey = "SP95"
     ElseIf InStr(u, "GPL") > 0 Then
         FuelKey = "GPLc"      ' W61 : coherent avec _PrixHistory / modPrixStation
     ElseIf Len(u) > 0 Then

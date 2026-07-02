@@ -221,9 +221,11 @@ function doGet(e) {
     return handleGetParametres(pEmail);
   }
 
-  // G3 — (re)construction de l'onglet « Tableau de bord » natif Sheets.
+  // G3/G4 — (re)construction de l'onglet « Tableau de bord » natif Sheets,
+  // filtré sur le compte propriétaire résolu (idToken → ce compte ; sinon owner).
   if (e.parameter.action === 'buildDashboard') {
-    return jsonResponse(construireDashboard());
+    const pEmail = resolveOwner_(e, null) || OWNER_EMAIL;
+    return jsonResponse(construireDashboard(pEmail));
   }
 
   const isMobile = (e.parameter.v === 'mobile');

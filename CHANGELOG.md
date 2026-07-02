@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.31.0.0] — 2026-07-02
+
+### Added
+- **GAS — dashboard Google Sheets enrichi + filtrage par compte (G4)** — `Dashboard.gs` / `construireDashboard(email)` :
+  - **Filtrage par email (U7)** : le bilan n'agrège plus TOUS les comptes mais uniquement les pleins du propriétaire (`_rowBelongsTo_`, repli `OWNER_EMAIL`). `doGet?action=buildDashboard` résout le compte via `resolveOwner_` (idToken → ce compte, sinon owner). `Code.gs`.
+  - **Graphiques additionnels** : consommation **L/100 km** par mois (méthode full-to-full), **prix moyen par carburant** (barres), **budget vs dépense mensuelle** (si `budget_mensuel` défini dans `Parametres`), en plus des 2 graphiques G3 (dépense mensuelle, CO₂ évité).
+  - **Rafraîchissement** : menu `onOpen` « ⛽ Bilan → Rafraîchir le bilan » (toast de confirmation) + déclencheur quotidien optionnel (`installerTriggerDashboard`/`supprimerTriggerDashboard`, ~6 h).
+  - ⚠️ Redéploiement GAS requis pour activer (Code.gs + Dashboard.gs).
+- **Excel — auto-maintenance des listes de saisie (G5)** — `modValidation` : après un import réel (`ModuleImportGS.ImporterNouveauxPleins`), `RafraichirListesSaisie` alimente `tbl_vehicule` / `tbl_stationEssence` avec les valeurs déjà saisies dans `Tableau2` mais absentes des tables (dedup insensible à la casse, ordre d'apparition, valeurs vides ignorées), puis réinstalle les validations. Les dropdowns (G1) restent à jour sans intervention quand un nouveau véhicule/station apparaît. Idempotent, tolérant (un échec ne casse jamais l'import). `vba/modValidation.bas`, `vba/ModuleImportGS.bas`. Injecté COM + vérifié live (`RafraichirListesSaisie` OK).
+
+### Fixed
+- **Cohérence libellés carburant « Super 95/98 » (C1)** — `modGraphData.FuelKey` (agrégats dashboard) et `modPrixStation.FuelKeyP` reconnaissent désormais « Super 95 »/« Super 98 » (test `95`/`98` nu, avec `E10` prioritaire sur `95`) → un plein saisi « Super 95 » via la dropdown G1 est classé **SP95** (auparavant conservé en libellé brut → mauvais classement). Aligné sur la logique du GAS `statsFuelKey_` (déjà correcte, inchangé). Vérifié live : `FuelKeyP('Super 95')='SP95'`, `('Super 98')='SP98'`, `('E10')='E10'`. `vba/modGraphData.bas`, `vba/modPrixStation.bas`.
+
 ## [5.30.11.0] — 2026-07-02
 
 ### Added

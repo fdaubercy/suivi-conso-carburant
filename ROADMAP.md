@@ -13,6 +13,15 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|---|
 | _(aucune en attente)_ | — | W81 livré en v5.30.8.0 (0 violation a11y grave, gate bloquant) |
 
+### 💡 Propositions (repérées le 2026-07-02, non implémentées)
+
+| # | Idée | Pourquoi | Effort |
+|---|---|---|---|
+| W83 | **Lien « Voir le bilan Google Sheets » dans l'app** — bouton (Stats ou Réglages) qui appelle `?action=buildDashboard&token=&idToken=` (G4 rafraîchit l'onglet natif du compte connecté) puis ouvre le Google Sheet dans un nouvel onglet. | Capitalise sur G4 (dashboard enrichi + filtré par compte) : consultation mobile/web du bilan sans ouvrir le `.xlsm`, en 1 tap. | ~1 h |
+| W84 | **Bouton « Rafraîchir le bilan » (déclenche `buildDashboard`)** — action légère dans l'app pour reconstruire le dashboard Sheets à la demande (complète le menu `onOpen` et le déclencheur quotidien de G4). | L'utilisateur force la MAJ du bilan juste après une saisie, sans attendre le trigger quotidien. | ~30 min |
+
+> ℹ️ W83/W84 dépendent du **déploiement GAS de G4** (v5.31.0.0).
+
 ---
 
 ## 🛠️ Dev / Outillage Claude
@@ -50,7 +59,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| X44 | **Modularisation des gros modules VBA** (multi-phases, ✅ **substantiellement terminé**). ✅ Phase 1 (v5.30.2.0) : `modSyncGS` 1663→1420 (`modSyncJson`+`modSyncNet`, dédup `modSyncParametres`). ✅ Phase 2 (v5.30.3.0) : `modSyncCfg`+`modSyncEngine` ; `modSyncGS` 1420→762. ✅ Phase 3 (v5.30.4.0) : `modGraphiques` 1627→**416** (`modGraphCfg`+`modGraphData`+`modGraphRender`), testé live (12 graphiques régénérés). **Reste optionnel** : découpe fine des modules encore > 500 l. (`modGraphData` 690, `modGraphRender` 545, `modSyncEngine` 677, `modSyncGS` 762). | Viole la règle « fichiers < 500 lignes » (CLAUDE.md) ; surface réduite → moins de risque de `Const` mal placée (cf. X40) et navigation plus simple. |
+| C11 | **Cohérence `FuelKeyK` (KPI) pour E10/GPLc** — `modDashboardKPI.FuelKeyK` replie **E10 → SP95** et rend `GPL` (≠ `GPLc`), par design testé (`modTests` : `FuelKeyK E10 -> SP95`) — divergent de `FuelKey`/`FuelKeyP`/`statsFuelKey_` (qui distinguent E10 et rendent GPLc depuis C1). Aligner `FuelKeyK` (98→E10→95→GPLc), MAJ des tests, puis compléter `tbl_carburant` (E10/GPLc) → E10/GPLc classés correctement dans les **KPI** du dashboard. | Prérequis pour offrir E10/GPLc à la saisie (dropdown G1) sans les compter en SP95. Repéré en réalisant C1 le 2026-07-02. |
+| X44 | **Modularisation des gros modules VBA** (multi-phases, ✅ **substantiellement terminé**). ✅ Phase 1 (v5.30.2.0) : `modSyncGS` 1663→1420 (`modSyncJson`+`modSyncNet`, dédup `modSyncParametres`). ✅ Phase 2 (v5.30.3.0) : `modSyncCfg`+`modSyncEngine` ; `modSyncGS` 1420→762. ✅ Phase 3 (v5.30.4.0) : `modGraphiques` 1627→**416** (`modGraphCfg`+`modGraphData`+`modGraphRender`), testé live (12 graphiques régénérés). **Phase 4 (reste optionnel, à faire) — découpe fine des modules encore > 500 l.** : `modGraphData` 702 (couture nette : extraire `BuildPriceBlockMerged` + helpers → `modGraphPrice`), `modSyncEngine` 678 (extraire l'export Excel→GS : `ExportExcelToGS`/`ExportModificationsToGS`/`RowToJson`/`PushStationsToGS`), `modSyncGS` 763 (extraire `TestConnexion`/`SyncDiagnose`/`RafraichirPrixHistory` → `modSyncDiag`), `modGraphRender` 549 (extraire chrome : `EnsureParamBlock`/`EnsureButtons`/`EnsurePictureButton`/`EnsureHeaderBand` → `modGraphChrome`). ⚠️ Refactor COM à haut risque (cf. leçons #98–#103 : fantômes, portée compile-on-demand, hangs) → faire **1 module à la fois, injecté par `import` remove/import séparés, avec Debug→Compile + run read-only après chacun**, en présence de l'utilisateur. | Viole la règle « fichiers < 500 lignes » (CLAUDE.md) ; surface réduite → moins de risque de `Const` mal placée (cf. X40) et navigation plus simple. |
 ---
 
 ## 🔄 Synchronisation Excel ↔ Google Sheets
@@ -83,9 +93,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| C1 | **Cohérence libellés carburant** : `tbl_carburant` contient « Super 95 » que `FuelKey` ne reconnaît PAS comme SP95 (règle exige `SP95`/`S95`) ; E10/GPLc absents. Ajouter la reconnaissance `SUPER`+`95` → SP95 dans `FuelKey` (côté Excel `modGraphData` **et** GAS `statsFuelKey_`), et compléter `tbl_carburant` (E10/GPLc) si l'utilisateur en a besoin. | Éviter un mauvais classement dashboard si l'utilisateur saisit « Super 95 » via la nouvelle dropdown (G1). |
-| G4 | **Dashboard Sheets (suite de G3)** : enrichir `construireDashboard()` — graphiques additionnels (prix moyen par carburant, conso L/100 km, budget vs objectif), **filtrage par email** (U7 — actuellement le dashboard agrège TOUS les comptes), et rafraîchissement automatique (déclencheur quotidien ou menu `onOpen` « Rafraîchir le bilan »). | Un dashboard complet, à jour et correct en multi-utilisateur, sans appel HTTP manuel. |
-| G5 | **Auto-maintenance des listes de saisie (suite de G1)** : alimenter `tbl_vehicule` / `tbl_stationEssence` automatiquement depuis les valeurs déjà saisies dans `Tableau2` (ou synchro avec les onglets `Vehicules`/`Stations` du Google Sheet). Réexécuter `InstallerValidationsSaisie` via un déclencheur après import. | Les dropdowns restent à jour sans intervention manuelle quand un nouveau véhicule/station apparaît. |
+| _(aucune en attente)_ | — | C1 (libellés « Super 95/98 ») + G4 (dashboard enrichi + filtrage email) livrés en v5.31.0.0. `tbl_carburant` E10/GPLc laissé volontairement hors périmètre (liste = 4 carburants réellement utilisés ; `FuelKeyK` replie E10→SP95 par design testé) → voir proposition C11. |
+| G5 | ✅ **Auto-maintenance des listes de saisie** — livré en v5.31.0.0 (`modValidation.RafraichirListesSaisie` alimente `tbl_vehicule`/`tbl_stationEssence` depuis `Tableau2` après import). |
 
 ---
 
@@ -103,6 +112,9 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.31.0.0 | **GAS — dashboard Sheets enrichi + filtrage par compte (G4)** — `construireDashboard(email)` filtre les pleins du propriétaire (`_rowBelongsTo_`, repli `OWNER_EMAIL` ; `doGet?action=buildDashboard` résout via `resolveOwner_`) au lieu d'agréger tous les comptes ; 3 graphiques ajoutés (conso L/100 km full-to-full, prix moyen par carburant, budget vs dépense si `budget_mensuel`) ; menu `onOpen` « ⛽ Bilan → Rafraîchir » + déclencheur quotidien optionnel (`installerTriggerDashboard`). ⚠️ redéploiement GAS requis. `Dashboard.gs`, `Code.gs`. |
+| v5.31.0.0 | **Excel — auto-maintenance des listes de saisie (G5)** — `modValidation.RafraichirListesSaisie` (appelée après un import réel dans `ModuleImportGS`) alimente `tbl_vehicule`/`tbl_stationEssence` avec les valeurs de `Tableau2` absentes des tables (dedup casse-insensible), puis réinstalle les validations G1. Idempotent, tolérant. Injecté COM (`import`) + vérifié live. `vba/modValidation.bas`, `vba/ModuleImportGS.bas`. |
+| v5.31.0.0 | **Excel — libellés « Super 95/98 » (C1)** — `modGraphData.FuelKey` + `modPrixStation.FuelKeyP` reconnaissent « Super 95/98 » (test `95`/`98` nu, `E10` prioritaire) → « Super 95 » classé **SP95** (avant : libellé brut). GAS `statsFuelKey_` déjà correct (inchangé). Vérifié live (`FuelKeyP('Super 95')='SP95'`). `vba/modGraphData.bas`, `vba/modPrixStation.bas`. |
 | v5.30.11.0 | **GAS — onglet « Tableau de bord » natif Google Sheets (G3)** — `Dashboard.gs`/`construireDashboard()` agrège `_ImportGS` (hors soft-delete) → dépense mensuelle, CO₂ évité (E85), KPIs, dans un onglet dédié avec 2 graphiques natifs (`insertChart`). Idempotent, additif (ne touche pas les données), placé en tête. Déclenchable via `?action=buildDashboard&token=`. Déployé en prod (GAS v60), vérifié via l'API Sheets. `Dashboard.gs`, `Code.gs`. |
 | v5.30.10.0 | **Excel — listes déroulantes de saisie (G1)** — validation de données sur `Suivi Carburant`/`Tableau2` : colonnes **Type** → `tbl_carburant`, **Station essence** → `tbl_stationEssence`, **Véhicule** → `tbl_vehicule` (nouvelle table dans `Notes`, initialisée avec les véhicules distincts). Sources exposées via plages nommées `lst_*` pointant sur le corps des tables (dynamiques). Mode avertissement (guide sans bloquer une valeur nouvelle) ; n'affecte pas les imports programmatiques. Macro versionnée `modValidation.InstallerValidationsSaisie` (réexécutable), feuille protégée déverrouillée le temps de l'opération. `tbl_carburant` nettoyé de ses lignes vides. Vérifié par COM (3 dropdowns actives). `vba/modValidation.bas`. |
 | v5.30.9.0 | **Excel — rebuild ciblé des objectifs (X43c-opt)** — scope `rsCheap` : quand seuls budget (B2) et/ou CO₂ (B3) changent (véhicule/carburant/période/année/source inchangés, jauge budget préservée), `RefreshObjectifs` recalcule uniquement les cellules objectif (col E cumul CO₂, col U budget 6 mois, AD3 jauge) sans re-parcourir les données ni recréer les graphiques. `ClassifyFilterDelta` → `rsNone`/`rsTargeted`/`rsFull`/`rsCheap`. Vérifié par COM. `vba/modFiltres.bas`. |
