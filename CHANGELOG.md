@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.30.4.0] — 2026-07-02
+
+### Changed
+- **Excel — modularisation VBA `modGraphiques` (X44, Phase 3)** — découpe du monolithe dashboard (`modGraphiques.bas` 1627 → 416 l., **< 500** ✓) en trois nouveaux modules versionnés :
+  - **`modGraphCfg.bas`** (~40 l.) — configuration partagée en `Public` : feuilles (`WS_GRAPH`/`WS_CARB`/`WS_DATA`/`T2_NAME`/`GS_SHEET`/`PH_TABLE`), cellules (`CELL_*`), couleurs (`C_*`), CO2/surconso, dimensions, **+ état module `mPerDeb`/`mPerFin`** (bornes de période, écrites par l'orchestrateur, lues par les agrégats).
+  - **`modGraphData.bas`** (~690 l.) — agrégats : `BuildAggregates` + blocs véhicules/conso/prix + helpers (`FuelKey`/`NumOr0`/`FindListObject`/`SheetByName`…). Public : `BuildAggregates`, `EnsureDataSheet`, `EnsurePeriodNames`, `KitCost`, `SheetByName`, `NumOr0`.
+  - **`modGraphRender.bas`** (~545 l.) — rendu : tous les `Add*Chart` + `BuildKPICards` + `Ensure*`/`Style`/`Purge`. Public : les `Add*Chart` + `Ensure(Buttons/HeaderBand/ParamBlock)` + `Delete/Purge` appelés par l'orchestrateur.
+  - `modGraphiques.bas` conserve l'**orchestration** (`CreerGraphiquesWeb`, `GraphAutoActif`, `ExporterGraphiquesPDF`) + `SetStatusG`. Ses appels `SheetByName`/`NumOr0`/`BuildAggregates`… se résolvent vers `modGraphData` ; config via `modGraphCfg`.
+- Injecté en live par COM, **compilé sans erreur**, `CreerGraphiquesWeb` exécuté et **idempotent** en réel (12 graphiques régénérés sur le dashboard). Linter X40 : 0 violation. Classeur enregistré.
+
+_Note : X44 substantiellement avancé — `modGraphiques` (416 l.) et `modSyncGS` (762 l., cible historique) désormais gérables ; `modGraphData` (690), `modGraphRender` (545), `modSyncEngine` (677) restent > 500 l. (découpe fine ultérieure optionnelle)._
+
 ## [5.30.3.0] — 2026-07-01
 
 ### Changed

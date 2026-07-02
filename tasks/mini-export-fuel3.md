@@ -1,4 +1,9 @@
-# Mini-export fin de session — reprise « fuel2 » (2026-07-01)
+# Mini-export fin de session — reprise « fuel2 » (2026-07-01 → 02)
+
+> **MAJ 2026-07-02** : la demande `W78+W82+X40+X44+X47+X48+S13` est **entièrement traitée**.
+> X44 finalisé en 3 phases (v5.30.2.0 / v5.30.3.0 / v5.30.4.0). Ne reste que du **découpage fin optionnel**
+> des modules encore > 500 l. (`modGraphData` 690, `modGraphRender` 545, `modSyncEngine` 677, `modSyncGS` 762).
+> Leçons clés Phase 3 : état module `Private x As Type` sans `Dim` (raté au grep) ; `VBComponents.Remove` différé → fantômes `…1`.
 
 ## Contexte
 Reprise de l'export `session-export-fuel2.zip` (lui-même reprise de fuel1).
