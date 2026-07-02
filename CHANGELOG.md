@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.30.8.0] — 2026-07-02
+
+### Fixed
+- **Web — conformité a11y WCAG AA + gate bloquant (W81)** — correction des violations graves relevées par l'audit axe-core (W79), désormais **0 sur saisie/stats/historique** :
+  - `select-name` (critical) : `#vehiculeSel` (sélecteur véhicule de la saisie) n'avait aucun nom accessible → ajout d'`aria-label="Véhicule du plein"`.
+  - `color-contrast` (serious) : les boutons carburant **inactifs** (`.type-btn`/`.type-btn-sm` — SP98/SP95/E10/GAZOLE/GPLc) et `.scan-hint` utilisaient `--text-muted` (#6B7280 sur fond `--toggle-bg` #e5e7eb ≈ 3,65:1). Nouvelle variable thème-aware `--text-muted-strong` (#4b5563 clair / #cbd5e1 sombre) ≥ 4,5:1.
+- **CI — durcissement du job `a11y` (W81)** — l'audit passe de non-bloquant à **bloquant** : `tests/a11y.spec.js` assère 0 violation grave (quand l'audit s'exécute ; une instabilité de navigation reste tolérée), `continue-on-error` retiré du workflow + `pipefail` pour ne plus masquer l'échec via `| tee`. `index.html`, `css/style.css`, `tests/a11y.spec.js`, `.github/workflows/ci.yml`.
+
 ## [5.30.7.0] — 2026-07-02
 
 ### Added

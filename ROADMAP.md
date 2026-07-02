@@ -11,7 +11,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi | Effort |
 |---|---|---|---|
-| W81 | **Corriger les violations a11y relevées par W79** : `select-name` (critique) sur `#stationSel` (ajouter `aria-label`/`<label>`), et `color-contrast` (sérieux) sur les éléments signalés (saisie/stats/historique). | Mettre l'app en conformité WCAG AA réelle (W79 ne fait que signaler) ; une fois à zéro, durcir le job `a11y` en bloquant. | ~1-2 h |
+| _(aucune en attente)_ | — | W81 livré en v5.30.8.0 (0 violation a11y grave, gate bloquant) |
 
 ---
 
@@ -102,6 +102,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.30.8.0 | **Web — conformité a11y WCAG AA + gate bloquant (W81)** — 0 violation grave axe-core sur saisie/stats/historique : `select-name` corrigé (`aria-label` sur `#vehiculeSel`), `color-contrast` corrigé (nouvelle variable thème-aware `--text-muted-strong` #4b5563/#cbd5e1 pour boutons carburant inactifs + `.scan-hint`). Job CI `a11y` **durci en bloquant** (`tests/a11y.spec.js` assère 0 violation grave, `continue-on-error` retiré + `pipefail`). `index.html`, `css/style.css`, `tests/a11y.spec.js`, `.github/workflows/ci.yml`. |
 | v5.30.7.0 | **Excel — tests unitaires des fonctions pures VBA (X45)** — module versionné `vba/modTests.bas` (`RunAllTests`, **32/32 OK**) verrouillant les calculs : `FuelKeyK`/`FuelInSel`/`FuelKeyP`/`ParseGoogleDate` (US vs FR)/`CoutPlein`/`ConsoL100`. `ParseGoogleDate`/`FuelKeyP`/`CoutPlein` rendues Public ; helper pur `ConsoL100` câblé dans `ComputeDashboardStats`. Exécution locale (`Alt+F8 → RunAllTests`) ; présence garantie par `check_vba_drift`. Lint VBA 0 violation. |
 | v5.30.6.0 | **Excel — nettoyage code mort économie E85 (X53)** — suite à X47, l'économie E85 n'était plus affichée : suppression de `vEcon` (`modDashboardGraphiques`), du champ `DashStats.eco` + calcul `ds.eco` (`ComputeDashboardStats`), et — constatés morts (0 appelant) — du `Sub ComputeKPIs` entier et de la fonction `DernierPrixSP98`. `essEq`/CO₂ conservés. Lint VBA 0 violation, `MAJ_Dashboard_Graphiques` réexécuté sans erreur. `vba/modDashboardKPI.bas`, `vba/modDashboardGraphiques.bas`. |
 | v5.30.5.0 | **Excel — dates des abscisses du Tableau de bord au format français (X61)** — tous les graphiques temporels affichent les dates en FR : gPrice/gConso `m/d/yyyy` (US) → **`dd/mm/yyyy`** ; gCost/gCo2/gBudget `mmm-yy` → **`mm/yyyy`** ; gEcoDate `mm/yy` → `mm/yyyy` ; gScatterE85 `mmm aa` → `dd/mm/yyyy`. Cause racine : `AddChartXY` posait `Axes.NumberFormat` (sans effet) au lieu de `TickLabels.NumberFormat` + abscisses mensuelles en chaîne coercée. Fix : `MoisDate` (vraies dates 1er du mois) + `catFmt` paramétrable + `TickLabels.NumberFormat`/`NumberFormatLinked=False`. Vérifié programmatiquement. `vba/modGraphData.bas`, `vba/modGraphRender.bas`, `vba/modGraphiques.bas`. |

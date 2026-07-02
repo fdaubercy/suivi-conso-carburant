@@ -2,15 +2,14 @@
  * Audit accessibilité (a11y) — Suivi Conso E85  [W79]
  *
  * Passe axe-core (WCAG 2.0/2.1 A & AA) sur les vues principales (saisie, stats,
- * historique). NON BLOQUANT par conception : les violations sont rapportées
- * (console + annotations du test) mais ne font JAMAIS échouer le test — le but
- * est la visibilité d'une régression de contraste/label, pas un gate dur.
- * Le job CI `a11y` est lancé en `continue-on-error: true`.
- *
- * Durcissement futur possible : asserter 0 violation grave une fois à zéro.
+ * historique). BLOQUANT depuis W81 : l'app étant à zéro violation grave, toute
+ * violation critical/serious fait échouer le test (et le job CI `a11y`). Les
+ * violations sont aussi rapportées (console + annotations) avec leurs cibles.
+ * Tolérance : si l'audit ne peut PAS s'exécuter (instabilité de navigation/init),
+ * le test reste neutre (skip) plutôt que d'échouer à tort.
  */
 
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 // ── Patterns d'interception réseau (cf. e2e.spec.js) ─────────────────────────
@@ -69,8 +68,11 @@ const VUES = [
 
 for (const vue of VUES) {
   test(`a11y — ${vue.nom}`, async ({ page }, testInfo) => {
-    // NON BLOQUANT : tout est encapsulé — une erreur de navigation/instabilité
-    // de la vue n'échoue jamais le test, elle est rapportée (W79 = reporter).
+    // W81 : BLOQUANT sur les violations GRAVES (critical/serious) une fois l'app
+    // à zéro. Tolérance conservée : si l'audit ne peut PAS s'exécuter (instabilité
+    // de navigation/init), le test est neutre (skip) au lieu d'échouer à tort.
+    let graves = [];
+    let auditRealise = false;
     try {
       await setupMocks(page);
       await allerVers(page, vue.hash);
@@ -83,20 +85,28 @@ for (const vue of VUES) {
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
         .analyze();
 
-      const graves = results.violations.filter(v => v.impact === 'critical' || v.impact === 'serious');
+      graves = results.violations.filter(v => v.impact === 'critical' || v.impact === 'serious');
+      auditRealise = true;
 
       for (const v of graves) {
-        const msg = `${v.id} (${v.impact}) ×${v.nodes.length} — ${v.help}`;
+        const cibles = v.nodes.map(n => (n.target || []).join(' ')).join(' | ');
+        const msg = `${v.id} (${v.impact}) ×${v.nodes.length} — ${v.help} [${cibles}]`;
         testInfo.annotations.push({ type: 'a11y', description: `[${vue.nom}] ${msg}` });
-        // eslint-disable-next-line no-console
+         
         console.warn(`[a11y:${vue.nom}] ${msg} → ${v.helpUrl}`);
       }
-      // eslint-disable-next-line no-console
+       
       console.warn(`[a11y:${vue.nom}] ${graves.length} violation(s) grave(s) / ${results.violations.length} au total.`);
     } catch (err) {
       testInfo.annotations.push({ type: 'a11y-skip', description: `[${vue.nom}] audit non réalisé : ${err.message}` });
-      // eslint-disable-next-line no-console
+       
       console.warn(`[a11y:${vue.nom}] audit non réalisé (instabilité de la vue) : ${err.message}`);
+    }
+
+    // Gate dur : aucune violation grave tolérée (hors audit non réalisé).
+    if (auditRealise) {
+      const resume = graves.map(v => `${v.id} [${v.nodes.map(n => (n.target || []).join(' ')).join(', ')}]`);
+      expect(resume, `Violations a11y graves sur « ${vue.nom} »`).toEqual([]);
     }
   });
 }

@@ -115,15 +115,16 @@ jobs:
         continue-on-error: true
 
   # ────────────────────────────────────────
-  #  Audit accessibilite (W79)
+  #  Audit accessibilite (W79 + W81)
   #  axe-core via Playwright sur saisie/stats/
-  #  historique. Non-bloquant (continue-on-error)
-  #  — rapporte les violations, aucun gate.
+  #  historique. BLOQUANT depuis W81 (app a zero
+  #  violation grave) : une violation critical/
+  #  serious fait echouer le job. Une instabilite
+  #  de navigation reste toleree (skip cote test).
   # ────────────────────────────────────────
   a11y:
     name: Audit a11y (axe-core)
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -140,9 +141,10 @@ jobs:
       - name: Install Playwright (Chromium)
         run: npx playwright install --with-deps chromium
 
-      - name: Audit accessibilite (non-bloquant)
-        run: npm run test:a11y 2>&1 | tee a11y-output.txt
-        continue-on-error: true
+      - name: Audit accessibilite (bloquant sur violations graves)
+        run: |
+          set -o pipefail
+          npm run test:a11y 2>&1 | tee a11y-output.txt
 
       - name: Resume a11y dans le job
         if: always()
@@ -152,7 +154,7 @@ jobs:
             echo '```'
             grep -E '\[a11y:' a11y-output.txt || echo "(resume indisponible — voir le log du job)"
             echo '```'
-            echo "_Indicateur non-bloquant — violations rapportees, aucun gate impose._"
+            echo "_Gate bloquant (W81) — 0 violation grave exigee sur saisie/stats/historique._"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ────────────────────────────────────────
