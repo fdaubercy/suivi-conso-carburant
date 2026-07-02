@@ -83,7 +83,9 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| C1 | **Cohérence libellés carburant** : `tbl_carburant` contient « Super 95 » que `FuelKey` ne reconnaît PAS comme SP95 (règle exige `SP95`/`S95`) ; E10/GPLc absents. Ajouter la reconnaissance `SUPER`+`95` → SP95 dans `FuelKey`, et compléter `tbl_carburant` (E10/GPLc) si l'utilisateur en a besoin. | Éviter un mauvais classement dashboard si l'utilisateur saisit « Super 95 » via la nouvelle dropdown (G1). |
+| C1 | **Cohérence libellés carburant** : `tbl_carburant` contient « Super 95 » que `FuelKey` ne reconnaît PAS comme SP95 (règle exige `SP95`/`S95`) ; E10/GPLc absents. Ajouter la reconnaissance `SUPER`+`95` → SP95 dans `FuelKey` (côté Excel `modGraphData` **et** GAS `statsFuelKey_`), et compléter `tbl_carburant` (E10/GPLc) si l'utilisateur en a besoin. | Éviter un mauvais classement dashboard si l'utilisateur saisit « Super 95 » via la nouvelle dropdown (G1). |
+| G4 | **Dashboard Sheets (suite de G3)** : enrichir `construireDashboard()` — graphiques additionnels (prix moyen par carburant, conso L/100 km, budget vs objectif), **filtrage par email** (U7 — actuellement le dashboard agrège TOUS les comptes), et rafraîchissement automatique (déclencheur quotidien ou menu `onOpen` « Rafraîchir le bilan »). | Un dashboard complet, à jour et correct en multi-utilisateur, sans appel HTTP manuel. |
+| G5 | **Auto-maintenance des listes de saisie (suite de G1)** : alimenter `tbl_vehicule` / `tbl_stationEssence` automatiquement depuis les valeurs déjà saisies dans `Tableau2` (ou synchro avec les onglets `Vehicules`/`Stations` du Google Sheet). Réexécuter `InstallerValidationsSaisie` via un déclencheur après import. | Les dropdowns restent à jour sans intervention manuelle quand un nouveau véhicule/station apparaît. |
 
 ---
 

@@ -14,9 +14,19 @@ Reprise de `session-export-fuel3.zip` (⚠️ nom trompeur : transcript = sessio
 | 4 | X44 modularisation VBA | ✅ | `3c65b26`+`dbdc51d`+`4f1d481` (phases 1-3) ; découpe fine >500 l. optionnelle |
 | 5 | **W81 a11y WCAG AA + gate CI** | ✅ **finalisé cette reprise** | commit `4e15552` [v5.30.8.0] (graphify 2369→2382 nœuds, 268 tests) |
 | 6 | **X43c-opt rebuild ciblé** | ✅ **livré cette reprise** (option « ciblée sûre ») | commit `9e493fa` [v5.30.9.0], testé COM |
-| 7 | G1 validation données saisie GS | 🔶 **en attente** | cadrage présenté, questions rejetées par l'utilisateur |
-| 8 | G3 dashboard natif Sheets | 🔶 **en attente** | idem |
-| 9 | Propositions → ROADMAP | ✅ (continu) | ROADMAP tenu à jour |
+| 7 | G1 validation données saisie | ✅ **livré** | commit `175308a` [v5.30.10.0] — dropdowns Excel (Notes) vérifiées COM |
+| 8 | G3 dashboard natif Sheets | ✅ **livré + déployé** | commit `c62a7b6` [v5.30.11.0] — GAS v60, onglet vérifié API Sheets |
+| 9 | Propositions → ROADMAP | ✅ (continu) | ROADMAP tenu à jour (+ C1 : fix libellés carburant) |
+
+## Réalisé cette reprise (suite)
+- **G1** (Excel, pas GAS — clarifié par l'utilisateur) : `modValidation.InstallerValidationsSaisie` pose des listes déroulantes sur `Suivi Carburant`/`Tableau2` (Type→`tbl_carburant`, Station→`tbl_stationEssence`, Véhicule→`tbl_vehicule` créée). Noms `lst_*` = corps des tables. Injecté par `import` (après hang de `set-module` → récupération Excel gérée par l'utilisateur). Vérifié COM (3 dropdowns). `tbl_carburant` nettoyé.
+- **G3** (GAS/Sheets, déployé en prod après autorisation explicite) : `Dashboard.gs`/`construireDashboard()` + action `?action=buildDashboard`. Onglet « Tableau de bord » avec dépense mensuelle + CO₂ évité + KPIs + 2 charts natifs. Déployé v60, exécuté via HTTP, vérifié via API Sheets (onglet index 0, 2 charts, 4 mois + KPIs).
+
+## Proposition ajoutée au ROADMAP
+- **C1** : `FuelKey` ne reconnaît pas « Super 95 » comme SP95 (exige `SP95`/`S95`) ; E10/GPLc absents de `tbl_carburant`. À corriger si l'utilisateur saisit « Super 95 » via la dropdown G1.
+
+## Statut final : demande de session ENTIÈREMENT traitée (W81 + X43c-opt + X44 + X45 + X53 + G1 + G3 + dates FR).
+HEAD = `c62a7b6` [v5.30.11.0]. Note : `tasks/lessons.md` et ce mini-export (mis à jour après G3) restent à committer au prochain commit.
 
 ## Réalisé cette reprise
 - **W81** (action interrompue) : gate `/graphify --update` terminé (garde anti-amputation OK, 2369→2382 nœuds), commit + push `4e15552`.
