@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.30.9.0] — 2026-07-02
+
+### Added
+- **Excel — rebuild ciblé des objectifs (X43c-opt)** — nouveau scope de rebuild `rsCheap` : lorsque **seuls le budget (B2) et/ou l'objectif CO₂ (B3)** changent (véhicule/carburant/période/année/source des données inchangés, présence de la jauge budget préservée), le tableau de bord ne recalcule plus que les **cellules objectif** dérivées des paramètres — objectif CO₂ cumulé (col E), objectif budget 6 mois (col U), jauge budget annuel (AD3) — via `RefreshObjectifs`, **sans re-parcourir les données ni recréer les graphiques** (redraw automatique par liaison de plage). Complète le no-op `rsNone` de X43c. `ClassifyFilterDelta` distingue désormais `rsNone(0)`/`rsTargeted(1)`/`rsFull(2)`/`rsCheap(3)`. Vérifié par COM (col E recalculée pour CO₂=240 puis restaurée, col U/AD3 cohérents). `vba/modFiltres.bas`.
+
 ## [5.30.8.0] — 2026-07-02
 
 ### Fixed

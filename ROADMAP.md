@@ -44,7 +44,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi | Effort |
 |---|---|---|---|
-| X43c-opt | **Rebuild incrémental — ciblage par bloc (suite de X43c)** : pour `rsTargeted` (carburant/budget/CO2/année changés), ne recalculer que les blocs `BuildAggregates` impactés au lieu d'un rebuild complet. Exige de découper `BuildAggregates` (monolithe ~240 lignes) en sous-calculs par bloc. | Gagner sur les rares filtres isolables ; X43c livre déjà le **no-op skip** (rsNone) qui couvre le cas dominant (re-clic même filtre). Véhicule/période restent incompressibles. | ~1 j |
+| _(aucune en attente)_ | — | X43c-opt livré en v5.30.9.0 (scope `rsCheap` : budget/CO₂ seuls → objectifs only) |
 
 ### 🛠️ Robustesse
 
@@ -102,6 +102,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.30.9.0 | **Excel — rebuild ciblé des objectifs (X43c-opt)** — scope `rsCheap` : quand seuls budget (B2) et/ou CO₂ (B3) changent (véhicule/carburant/période/année/source inchangés, jauge budget préservée), `RefreshObjectifs` recalcule uniquement les cellules objectif (col E cumul CO₂, col U budget 6 mois, AD3 jauge) sans re-parcourir les données ni recréer les graphiques. `ClassifyFilterDelta` → `rsNone`/`rsTargeted`/`rsFull`/`rsCheap`. Vérifié par COM. `vba/modFiltres.bas`. |
 | v5.30.8.0 | **Web — conformité a11y WCAG AA + gate bloquant (W81)** — 0 violation grave axe-core sur saisie/stats/historique : `select-name` corrigé (`aria-label` sur `#vehiculeSel`), `color-contrast` corrigé (nouvelle variable thème-aware `--text-muted-strong` #4b5563/#cbd5e1 pour boutons carburant inactifs + `.scan-hint`). Job CI `a11y` **durci en bloquant** (`tests/a11y.spec.js` assère 0 violation grave, `continue-on-error` retiré + `pipefail`). `index.html`, `css/style.css`, `tests/a11y.spec.js`, `.github/workflows/ci.yml`. |
 | v5.30.7.0 | **Excel — tests unitaires des fonctions pures VBA (X45)** — module versionné `vba/modTests.bas` (`RunAllTests`, **32/32 OK**) verrouillant les calculs : `FuelKeyK`/`FuelInSel`/`FuelKeyP`/`ParseGoogleDate` (US vs FR)/`CoutPlein`/`ConsoL100`. `ParseGoogleDate`/`FuelKeyP`/`CoutPlein` rendues Public ; helper pur `ConsoL100` câblé dans `ComputeDashboardStats`. Exécution locale (`Alt+F8 → RunAllTests`) ; présence garantie par `check_vba_drift`. Lint VBA 0 violation. |
 | v5.30.6.0 | **Excel — nettoyage code mort économie E85 (X53)** — suite à X47, l'économie E85 n'était plus affichée : suppression de `vEcon` (`modDashboardGraphiques`), du champ `DashStats.eco` + calcul `ds.eco` (`ComputeDashboardStats`), et — constatés morts (0 appelant) — du `Sub ComputeKPIs` entier et de la fonction `DernierPrixSP98`. `essEq`/CO₂ conservés. Lint VBA 0 violation, `MAJ_Dashboard_Graphiques` réexécuté sans erreur. `vba/modDashboardKPI.bas`, `vba/modDashboardGraphiques.bas`. |

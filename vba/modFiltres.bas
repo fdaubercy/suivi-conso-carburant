@@ -137,10 +137,16 @@ Public Sub DebouncedRebuild()
     Application.EnableEvents = False
     Application.Cursor = xlWait
     Application.StatusBar = "Mise a jour du tableau de bord..."
-    ' rsTargeted et rsFull : meme chemin complet pour cet increment ; le ciblage
-    '  par bloc (rsTargeted) est un raffinement ulterieur (cf. ROADMAP X43c-opt).
-    Application.Run "CreerGraphiquesWeb", True    ' rebuild data + graphiques (silencieux)
-    Application.Run "MAJ_Dashboard_Graphiques"    ' restyle + layout + KPI + panneaux + boutons
+    ' X43c-opt : rsCheap -> mini-rebuild des seuls objectifs (budget/CO2), sans
+    '  re-parcourir les donnees ni recreer les graphiques (gain sur ajustement
+    '  budget/CO2 seul). rsTargeted/rsFull : meme chemin complet pour cet increment.
+    If scope = 3 Then
+        Application.StatusBar = "Mise a jour des objectifs..."
+        RefreshObjectifs
+    Else
+        Application.Run "CreerGraphiquesWeb", True    ' rebuild data + graphiques (silencieux)
+        Application.Run "MAJ_Dashboard_Graphiques"    ' restyle + layout + KPI + panneaux + boutons
+    End If
     WriteLastSignature newSig                     ' X43c : enregistre l'etat reconstruit (apres succes)
     Application.StatusBar = False
     Application.Cursor = cur
@@ -215,9 +221,12 @@ Private Sub WriteLastSignature(ByVal sig As String)
     On Error GoTo 0
 End Sub
 
-' rsNone(0)  : signatures identiques -> aucun rebuild.
-' rsFull(2)  : empreinte source OU vehicule OU periode change -> tout en depend.
-' rsTargeted(1) : seuls carburant / budget / CO2 / annee ont change.
+' rsNone(0)     : signatures identiques -> aucun rebuild.
+' rsFull(2)     : empreinte source OU vehicule OU periode change -> tout en depend.
+' rsTargeted(1) : carburant OU annee change (filtre/KPIs) -> chemin complet.
+' rsCheap(3)    : X43c-opt -> SEULS budget/CO2 changent (carburant/annee/source/
+'                 vehicule/periode inchanges, presence jauge budget preservee) ->
+'                 recalcul des seules cellules objectif (cf. RefreshObjectifs).
 Private Function ClassifyFilterDelta(ByVal oldSig As String, ByVal newSig As String) As Long
     If Len(newSig) > 0 And oldSig = newSig Then ClassifyFilterDelta = 0: Exit Function
     Dim o() As String, n() As String
@@ -225,9 +234,61 @@ Private Function ClassifyFilterDelta(ByVal oldSig As String, ByVal newSig As Str
     If UBound(o) <> 7 Or UBound(n) <> 7 Then ClassifyFilterDelta = 2: Exit Function
     If n(7) <> o(7) Or n(0) <> o(0) Or n(2) <> o(2) Or n(3) <> o(3) Then
         ClassifyFilterDelta = 2          ' source / vehicule / periode -> FULL
+    ElseIf n(1) = o(1) And n(6) = o(6) And BudgetSet(o(4)) = BudgetSet(n(4)) Then
+        ClassifyFilterDelta = 3          ' X43c-opt : seuls budget/CO2 -> CHEAP
     Else
-        ClassifyFilterDelta = 1          ' carburant / budget / CO2 / annee -> TARGETED
+        ClassifyFilterDelta = 1          ' carburant ou annee -> TARGETED
     End If
+End Function
+
+' ============================================================
+'  X43c-opt : mini-rebuild CHEAP (objectifs budget / CO2)
+' ============================================================
+' Recalcule uniquement les cellules OBJECTIF derivees des parametres, sans
+'  re-parcourir les donnees ni recreer les graphiques : objectif CO2 cumule
+'  (col E), objectif budget 6 mois (col U), jauge budget annuel (AD3). Les
+'  graphiques lies a ces plages se redessinent seuls (calcul auto). Applicable
+'  seulement quand SEULS B2/B3 ont change (cf. ClassifyFilterDelta = 3).
+Public Sub RefreshObjectifs()
+    Dim wsG As Worksheet: Set wsG = SheetByName(WS_DASH)
+    If wsG Is Nothing Then Exit Sub
+    Dim wsd As Worksheet: Set wsd = EnsureDataSheet()
+    If wsd Is Nothing Then Exit Sub
+
+    Dim budget As Double: budget = 0
+    If IsNumeric(wsG.Range(CELL_BUDGET).value) Then budget = CDbl(wsG.Range(CELL_BUDGET).value)
+    Dim co2Obj As Double: co2Obj = DEFAULT_CO2_OBJ
+    If IsNumeric(wsG.Range(CELL_CO2OBJ).value) Then
+        If wsG.Range(CELL_CO2OBJ).value > 0 Then co2Obj = CDbl(wsG.Range(CELL_CO2OBJ).value)
+    End If
+
+    ' Objectif CO2 cumule (col E) : cibleMois * rang, sur les lignes mensuelles ecrites
+    Dim cibleMois As Double: cibleMois = co2Obj / 12
+    Dim lastMonth As Long: lastMonth = wsd.Cells(wsd.Rows.count, 1).End(xlUp).Row
+    Dim r As Long
+    For r = 2 To lastMonth
+        wsd.Cells(r, 5).value = Round(cibleMois * (r - 1), 1)
+    Next r
+
+    ' Objectif budget (col U) : budget sur les lignes budget existantes (col S)
+    Dim lastBudg As Long: lastBudg = wsd.Cells(wsd.Rows.count, 19).End(xlUp).Row
+    For r = 2 To lastBudg
+        If budget > 0 Then
+            wsd.Cells(r, 21).value = budget
+        Else
+            wsd.Cells(r, 21).ClearContents
+        End If
+    Next r
+
+    ' Jauge budget annuel (AD3 = objectif x 12)
+    wsd.Range("AD3").value = Round(budget * 12, 0)
+End Sub
+
+' X43c-opt : "budget renseigne" = valeur non vide et non nulle. Un franchissement
+'  de ce seuil cree/supprime la jauge budget -> exige un rebuild complet, pas CHEAP.
+Private Function BudgetSet(ByVal s As String) As Boolean
+    s = Trim$(s)
+    BudgetSet = (Len(s) > 0 And s <> "0" And Val(Replace(s, ",", ".")) <> 0)
 End Function
 
 ' CSV des items SELECTIONNES d'un segment ; tous (ou aucun) coches -> "(tous)"
