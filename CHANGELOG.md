@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.30.10.0] — 2026-07-02
+
+### Added
+- **Excel — listes déroulantes de saisie (G1)** — validation de données (listes déroulantes) sur le tableau de saisie `Suivi Carburant`/`Tableau2` :
+  - **Type** → `tbl_carburant` (onglet `Notes`), **Station essence** → `tbl_stationEssence`, **Véhicule** → `tbl_vehicule`.
+  - Nouvelle table `tbl_vehicule` créée dans `Notes` (colonne J), initialisée avec les véhicules distincts déjà saisis.
+  - Sources exposées via plages nommées `lst_carburant`/`lst_station`/`lst_vehicule` référençant le **corps des tables** (=tbl_xxx) → les listes suivent l'ajout de valeurs sans reparamétrage.
+  - Mode **avertissement** (`xlValidAlertWarning`) : la dropdown guide la saisie manuelle sans interdire une valeur nouvelle ; les écritures programmatiques (import GS/Excel) ne sont pas bloquées.
+  - Macro versionnée **`modValidation.InstallerValidationsSaisie`** (idempotente), déverrouille la feuille protégée le temps de l'opération.
+  - `tbl_carburant` nettoyé de ses 2 lignes vides finales. Vérifié par COM (3 dropdowns `xlValidateList` actives). `vba/modValidation.bas`.
+
 ## [5.30.9.0] — 2026-07-02
 
 ### Added
