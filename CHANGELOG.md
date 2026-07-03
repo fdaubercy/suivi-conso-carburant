@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.31.1.0] — 2026-07-03
+
+### Changed
+- **Excel — modularisation VBA `modGraphData` (X44, Phase 4 — module 1/4)** — extraction des constructeurs de blocs du dashboard hors de `modGraphData` (702 → 359 l., < 500) vers **`modGraphBlocks.bas`** (372 l.) : `BuildPriceBlockMerged`, `BuildConsoBlock`, `BuildVehiculesBlock` (Public) + helpers `InCsvSel`/`FindListObject`/`AddToSum` (Private). `modGraphData` conserve l'orchestration `BuildAggregates` + les helpers purs (`FuelKey`, `KitCost`, `EnsureDataSheet`…). Injecté COM (`import` remove/import séparés) + compile-proof live (`CreerGraphiquesWeb` → dashboard régénéré sans erreur). `vba/modGraphData.bas`, `vba/modGraphBlocks.bas`.
+
 ## [5.31.0.0] — 2026-07-02
 
 ### Added
