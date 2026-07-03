@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.31.3.0] — 2026-07-03
+
+### Changed
+- **Excel — modularisation VBA `modSyncEngine` (X44, Phase 4 — module 3/4)** — extraction de l'export Excel→GS hors de `modSyncEngine` (677 → 458 l., < 500) vers **`modSyncExport.bas`** (231 l.) : `ExportExcelToGS` (bulkAdd), `ExportModificationsToGS` (bulkUpdate), `PushStationsToGS` (syncStations) rendus `Public` (appelés par `SyncCore`) + `RowToJson` (Private, sérialisation d'une ligne). `IsGarbageSid` passe `Public` dans `modSyncEngine` (partagé import/export). `modSyncEngine` conserve `SyncCore` + l'import GS→Excel + `ApplyGSDeletions`/`ToNum`/`LogToSyncLog`. Config via `modSyncCfg`, JSON via `modSyncJson`, HTTP via `modSyncNet` (déjà Public). Injecté COM (`import` remove/import séparés) + Debug→Compile + run read-only (`GraphSheetExists`). `vba/modSyncEngine.bas`, `vba/modSyncExport.bas`.
+
 ## [5.31.2.0] — 2026-07-03
 
 ### Changed
