@@ -215,6 +215,11 @@ Public Sub AddKitProjChart(ws As Worksheet, key As String, wsd As Worksheet, rKi
             .MarkerSize = 5
             .Format.fill.ForeColor.RGB = C_E85
             .Format.Line.visible = msoFalse
+            ' purge des tendances existantes (le graphique est reutilise, pas
+            ' recree -> sinon accumulation d'une tendance par reconstruction)
+            Do While .Trendlines.count > 0
+                .Trendlines(1).Delete
+            Loop
             ' tendance lineaire projetee de 5 pleins -> seuil de rentabilite
             Dim tl As Trendline
             Set tl = .Trendlines.Add(Type:=xlLinear, Forward:=5, DisplayEquation:=False, DisplayRSquared:=False)
@@ -371,6 +376,69 @@ Public Sub StyleShape(sh As Shape, txt As String, fillC As Long, fontC As Long, 
     sh.TextFrame2.HorizontalAnchor = msoAnchorCenter
     sh.TextFrame2.VerticalAnchor = msoAnchorMiddle
 End Sub
+
+' ============================================================
+'  Styles des graphiques du Tableau de bord (galerie ChartStyle)
+'  Applique apres la creation de TOUS les graphiques (survit aux
+'  reconstructions de CreerGraphiquesWeb). Cas particuliers :
+'   - gVeh   : titre sur 2 lignes (retour apres "Comparaison vehicules ")
+'   - gKitProj : la courbe de tendance reste en orange (C_OBJ) malgre le style
+' ============================================================
+Public Sub ApplyChartStyles(ws As Worksheet)
+    On Error Resume Next
+    SetChartStyleByName ws, "gCost", 13
+    SetChartStyleByName ws, "gPrice", 9
+    SetChartStyleByName ws, "gVeh", 11
+    SetChartStyleByName ws, "gBudget", 6
+    SetChartStyleByName ws, "gCo2", 9
+    SetChartStyleByName ws, "gKitCumul", 9
+    SetChartStyleByName ws, "gCoutKm", 12
+    SetChartStyleByName ws, "gKitProj", 6
+    SetChartStyleByName ws, "gEcoDate", 10
+    SetChartStyleByName ws, "gScatterE85", 6
+    SetChartStyleByName ws, "gConso", 10
+
+    ' gVeh : titre sur 2 lignes (idempotent : n'ajoute pas 2 fois le saut de ligne)
+    Dim coVeh As ChartObject: Set coVeh = FindChartByName(ws, "gVeh")
+    If Not coVeh Is Nothing Then
+        If coVeh.Chart.HasTitle Then
+            Dim ttl As String: ttl = coVeh.Chart.ChartTitle.text
+            If InStr(ttl, vbLf) = 0 Then
+                ttl = Replace(ttl, "Comparaison vehicules ", "Comparaison vehicules " & vbLf)
+                coVeh.Chart.ChartTitle.text = ttl
+            End If
+        End If
+    End If
+
+    ' gKitProj : conserver la tendance en orange pointille malgre le style applique
+    Dim coKit As ChartObject: Set coKit = FindChartByName(ws, "gKitProj")
+    If Not coKit Is Nothing Then
+        If coKit.Chart.SeriesCollection.count >= 1 Then
+            If coKit.Chart.SeriesCollection(1).Trendlines.count >= 1 Then
+                With coKit.Chart.SeriesCollection(1).Trendlines(1).Format.Line
+                    .ForeColor.RGB = C_OBJ
+                    .DashStyle = msoLineDash
+                End With
+            End If
+        End If
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Sub SetChartStyleByName(ws As Worksheet, key As String, n As Long)
+    Dim co As ChartObject: Set co = FindChartByName(ws, key)
+    If co Is Nothing Then Exit Sub
+    On Error Resume Next
+    co.Chart.ChartStyle = n
+    On Error GoTo 0
+End Sub
+
+Private Function FindChartByName(ws As Worksheet, key As String) As ChartObject
+    Dim co As ChartObject
+    For Each co In ws.ChartObjects
+        If co.name = key Then Set FindChartByName = co: Exit Function
+    Next co
+End Function
 
 Private Function EnsureChart(ws As Worksheet, key As String, _
                              L As Double, T As Double, w As Double, h As Double) As ChartObject

@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.31.6.0] — 2026-07-03
+
+### Changed
+- **Excel — styles de galerie des graphiques du Tableau de bord (X64)** — application d'un `ChartStyle` de galerie à chaque graphique via le nouveau `modGraphRender.ApplyChartStyles`, appelé par `CreerGraphiquesWeb` après création de tous les graphiques (donc **persistant aux reconstructions** déclenchées par un changement de filtre) : gCost=13, gPrice=9, gVeh=11, gBudget=6, gCo2=9, gKitCumul=9, gCoutKm=12, gKitProj=6, gEcoDate=10, gScatterE85=6, gConso=10. Cas particuliers : titre de **gVeh** sur 2 lignes (retour après « Comparaison vehicules », idempotent) ; **gKitProj** conserve sa courbe de tendance en **orange** (`C_OBJ`) pointillé, réappliquée après le style. Injecté COM + `CreerGraphiquesWeb` relancé/vérifié live (11 `ChartStyle` conformes). `vba/modGraphRender.bas`, `vba/modGraphiques.bas`.
+
+### Fixed
+- **Excel — accumulation des courbes de tendance de `gKitProj`** — `AddKitProjChart` ajoutait une tendance à **chaque** reconstruction sans purger les précédentes (graphique réutilisé via `EnsureChart`, jamais recréé) → **45 tendances empilées** constatées en live. Purge des tendances existantes (`Do While .Trendlines.count > 0 … Delete`) avant d'en ajouter une → exactement 1 tendance après rebuild. `vba/modGraphRender.bas`.
+
 ## [5.31.5.0] — 2026-07-03
 
 ### Added

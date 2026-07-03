@@ -253,6 +253,9 @@ Public Sub CreerGraphiquesWeb(Optional silent As Boolean = False)
         DeleteChartByName wsG, "gKitProj"
     End If
 
+    ' -- Styles de galerie des graphiques (survit aux reconstructions) --
+    ApplyChartStyles wsG
+
     ' -- Purge des objets inconnus (anciennes versions) + boutons --
     PurgeUnknown wsG
     EnsureButtons wsG
