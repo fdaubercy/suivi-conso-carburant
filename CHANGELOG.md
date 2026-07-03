@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.31.4.0] — 2026-07-03
+
+### Changed
+- **Excel — modularisation VBA `modSyncGS` (X44, Phase 4 — module 4/4, fin de phase)** — extraction du diagnostic + rafraîchissement prix hors de `modSyncGS` (763 → 521 l.) vers **`modSyncDiag.bas`** (259 l.) : `TestConnexion` (HTTP GET brut), `SyncDiagnose` (comparaison GS↔Excel), `RafraichirPrixHistory` (refresh Power Query marché), toutes `Public`. Helpers `SetStatus`/`SetStatusBlock` **dupliqués `Private`** dans `modSyncDiag` (et non rendus Public : `SetStatus` est déjà `Public` dans `ModuleImportGS` → collision « Nom ambigu » évitée) ; `SetStatusBlock` retiré de `modSyncGS` (devenu code mort après extraction). `SyncSecretQS` reste `Public` dans `modSyncGS`. Config via `modSyncCfg`, HTTP via `modSyncNet`, JSON via `modSyncJson`. Injecté COM (`import` remove/import séparés) + Debug→Compile + run read-only (`GraphSheetExists`). `vba/modSyncGS.bas`, `vba/modSyncDiag.bas`.
+- **X44 Phase 4 terminée** (4/4 modules) : tous les gros modules dashboard/sync découpés (`modGraphData`→`modGraphBlocks`, `modGraphRender`→`modGraphChrome`, `modSyncEngine`→`modSyncExport`, `modSyncGS`→`modSyncDiag`).
+
 ## [5.31.3.0] — 2026-07-03
 
 ### Changed
