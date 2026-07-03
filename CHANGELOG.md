@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.31.5.0] — 2026-07-03
+
+### Added
+- **ROADMAP — propositions web app (W85–W88)** : W85 icônes PWA raster PNG 192/512 + maskable (manifest ne référence que `icon.svg`), W86 `screenshots` dans le manifest (invite d'installation enrichie), W87 modularisation des modules JS > 500 l. (`stats.js` 1184, `ticket.js` 759, `historique.js` 739, `stationsmap.js` 566), W88 raccourcis d'app supplémentaires (Carte, Stats). Aucune implémentation — propositions seules. `ROADMAP.md`.
+
 ## [5.31.4.0] — 2026-07-03
 
 ### Changed
