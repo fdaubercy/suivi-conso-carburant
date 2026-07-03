@@ -16,11 +16,9 @@ Demande unique de l'export : **W44+C1+G4+G5** + propositions ROADMAP. `W44` dés
 
 Découpe fine des modules VBA > 500 lignes, **1 module à la fois par injection COM à haut risque** (leçons #98–#103 : fantômes, portée compile-on-demand, hangs). Exige Excel ouvert **normalement** (macros actives) + présence utilisateur.
 
-- **Module 1 — `modGraphData` → `modGraphBlocks`** : ✅ **codé sur disque + injecté COM + vérifié live** (`CreerGraphiquesWeb` OK), **mais NON COMMITÉ**.
-  - Working tree : `M vba/modGraphData.bas` (702 → 359 l.), `?? vba/modGraphBlocks.bas` (372 l.).
-  - Contenu extrait : `BuildPriceBlockMerged`, `BuildConsoBlock`, `BuildVehiculesBlock` (Public) + `InCsvSel`/`FindListObject`/`AddToSum` (Private). Split propre (1 seul `Attribute VB_` en L1 sur chaque fichier).
-  - **Décision utilisateur 2026-07-03 : NE RIEN COMMITTER pour l'instant.** Le split reste sur disque, à finaliser plus tard.
-  - Si reprise pour committer : bump `APP_VERSION` (js/config.js L2, **à la main** — leçon #86/#87 récurrente) + package.json + CHANGELOG + ROADMAP (passer module-1 en « implémenté ») + `graphify --update` (garde anti-amputation) → `commit.sh`.
+- **Module 1 — `modGraphData` → `modGraphBlocks`** : ✅ **LIVRÉ ET POUSSÉ** — commit `a136492` (v5.31.1.0, 2026-07-03), origin/main à jour.
+  - Contenu extrait : `BuildPriceBlockMerged`, `BuildConsoBlock`, `BuildVehiculesBlock` (Public) + `InCsvSel`/`FindListObject`/`AddToSum` (Private). `modGraphData` 702 → 359 l., `modGraphBlocks` 372 l.
+  - Finalisé à la reprise « fuel5 » (2026-07-03) : APP_VERSION+package.json+CHANGELOG+ROADMAP + `graphify --update` (2451 → 2468 nœuds, pas d'amputation) + `commit.sh`.
 
 - **Modules 2-4 — NON COMMENCÉS** (session coupée en lisant `modGraphRender`) :
   - `modGraphRender` 549 → extraire chrome (`EnsureParamBlock`/`EnsureButtons`/`EnsurePictureButton`/`EnsureHeaderBand`) → **`modGraphChrome`** (`StyleShape` à passer Public, vérifier anti-collision `BuildKPICards`).

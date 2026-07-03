@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.31.2.0] — 2026-07-03
+
+### Changed
+- **Excel — modularisation VBA `modGraphRender` (X44, Phase 4 — module 2/4)** — extraction du « chrome » du dashboard (bloc paramètres + bandeau + boutons image) hors de `modGraphRender` (550 → 432 l., < 500) vers **`modGraphChrome.bas`** (126 l.) : `EnsureParamBlock`, `EnsureHeaderBand`, `EnsureButtons` (Public) + `EnsurePictureButton` (Private). `StyleShape` passe `Public` dans `modGraphRender` (partagé entre `BuildKPICards` resté et `EnsurePictureButton` déplacé). `modGraphRender` conserve les `Add*Chart` + `BuildKPICards` + `EnsureChart`/`EnsureShape`/`DeleteChartByName`/`PurgeUnknown`. Config via `modGraphCfg` (consts Public). Injecté COM (`import` remove/import séparés) + Debug→Compile + compile-proof live (`CreerGraphiquesWeb` → dashboard régénéré). `vba/modGraphRender.bas`, `vba/modGraphChrome.bas`.
+
 ## [5.31.1.0] — 2026-07-03
 
 ### Changed
