@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.31.10.0] — 2026-07-26
+
+### Fixed
+- **Excel — export PNG fiable des graphiques du Tableau de bord (X66)** — nouvel utilitaire `modGraphiques.ExportChartPNG(chartName, [filePath])` : `Chart.Export(…, "PNG")` renvoyait **0 octet** sur `gKitProj` (nuage `xlXYScatter` + courbe de tendance) tant que le graphique n'était pas **activé** au préalable (quirk Excel confirmé live : sans `Activate` → 0 o ; avec → ~10 Ko). La fonction active le graphe, exporte, puis **vérifie la taille du fichier** et renvoie `True`/`False` → plus d'échec silencieux qui troue un rapport. Déployé COM + prouvé live (`ExportChartPNG("gKitProj")` → **9890 octets**, `True`). Utilitaire `Public` appelable ; aucun pipeline d'export PNG ne l'invoque encore (`ExporterGraphiquesPDF` exporte la feuille entière en PDF, mécanisme distinct). `vba/modGraphiques.bas`.
+
 ## [5.31.9.0] — 2026-07-26
 
 ### Added
