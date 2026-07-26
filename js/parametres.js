@@ -18,12 +18,16 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 import { GAS_URL, APP_TOKEN, KIT_PRIX_KEY, BUDGET_KEY, CO2_OBJECTIF_KEY,
-         SURCONSO_KEY, PARAMS_META_KEY } from './config.js';
+         SURCONSO_KEY, PARAMS_META_KEY,
+         COUT_POSE_KEY, COUT_CARTEGRISE_KEY, COUT_ENTRETIEN_KEY,
+         SURCOUT_ASSURANCE_KEY, AIDE_DEDUITE_KEY,
+         CARBURANT_REF_KEY, ECART_REF_KEY, PROJ_NB_RECENTS_KEY } from './config.js';
 import { getIdToken, isAuthed, authEnabled, getUser, signOut } from './auth.js';
 
 /* Mapping clé Sheet ↔ clé localStorage.
    kind : 'num'  → valeur numérique (chaîne) ; absente = non définie
-          'bool' → '1' présent = activé ; clé absente = désactivé (0) */
+          'bool' → '1' présent = activé ; clé absente = désactivé (0)
+          'str'  → chaîne libre (ex. carburant de référence) */
 const DEFS = [
   { cle: 'kit_prix',            local: KIT_PRIX_KEY,           kind: 'num'  },
   { cle: 'budget_mensuel',      local: BUDGET_KEY,             kind: 'num'  },
@@ -35,6 +39,15 @@ const DEFS = [
   { cle: 'seuil_E85_enabled',   local: 'notif_E85_enabled',    kind: 'bool' },
   { cle: 'seuil_GAZOLE_enabled', local: 'notif_GAZOLE_enabled', kind: 'bool' },
   { cle: 'seuil_SP98_enabled',  local: 'notif_SP98_enabled',   kind: 'bool' },
+  // X67/X68/X69 — rentabilité honnête (partagés avec Excel N6:N14)
+  { cle: 'cout_pose',           local: COUT_POSE_KEY,          kind: 'num'  },
+  { cle: 'cout_carte_grise',    local: COUT_CARTEGRISE_KEY,    kind: 'num'  },
+  { cle: 'cout_entretien',      local: COUT_ENTRETIEN_KEY,     kind: 'num'  },
+  { cle: 'surcout_assurance',   local: SURCOUT_ASSURANCE_KEY,  kind: 'num'  },
+  { cle: 'aide_deduite',        local: AIDE_DEDUITE_KEY,       kind: 'num'  },
+  { cle: 'ecart_ref',           local: ECART_REF_KEY,          kind: 'num'  },
+  { cle: 'proj_nb_recents',     local: PROJ_NB_RECENTS_KEY,    kind: 'num'  },
+  { cle: 'carburant_ref',       local: CARBURANT_REF_KEY,      kind: 'str'  },
 ];
 const DEF_BY_CLE  = Object.fromEntries(DEFS.map(d => [d.cle, d]));
 /** Clés métier exposées (utilisé par les modules appelants). */
@@ -58,6 +71,7 @@ function _readLocal(cle) {
   const raw = localStorage.getItem(d.local);
   if (d.kind === 'bool') return raw === '1' ? 1 : 0;
   if (raw == null || raw === '') return null;
+  if (d.kind === 'str') return raw;
   const n = Number(raw);
   return isFinite(n) ? n : null;
 }
@@ -67,6 +81,11 @@ function _writeLocal(cle, valeur) {
   if (d.kind === 'bool') {
     if (Number(valeur) === 1) localStorage.setItem(d.local, '1');
     else                      localStorage.removeItem(d.local);
+    return;
+  }
+  if (d.kind === 'str') {
+    if (valeur == null || valeur === '') localStorage.removeItem(d.local);
+    else localStorage.setItem(d.local, String(valeur));
     return;
   }
   const n = Number(valeur);

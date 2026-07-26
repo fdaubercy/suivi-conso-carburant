@@ -3,18 +3,50 @@ import { state } from './state.js';
 import { FUEL_CONFIG, DEFAULT_SURCONSO, KIT_PRIX_KEY, DEFAULT_KIT_PRIX,
          BUDGET_KEY, CO2_ESSENCE_PER_L, CO2_E85_PER_L,
          CO2_OBJECTIF_KEY, DEFAULT_CO2_OBJECTIF, CO2_THERMIQUE_PER_KM, CO2_ARBRE_PAR_AN,
-         SURCONSO_KEY } from './config.js';
+         SURCONSO_KEY, SURCONSO_MIN, SURCONSO_MAX,
+         COUT_POSE_KEY, COUT_CARTEGRISE_KEY, COUT_ENTRETIEN_KEY,
+         SURCOUT_ASSURANCE_KEY, AIDE_DEDUITE_KEY, ECART_REF_KEY, DEFAULT_ECART_REF,
+         CARBURANT_REF_KEY, DEFAULT_CARBURANT_REF, PROJ_NB_RECENTS_KEY } from './config.js';
 import { pushParam } from './parametres.js';
 import { getAllRecords, forceRefreshHistorique } from './historique.js';
 import { renderComparatif } from './comparatif.js';
 import { getCachedServerStats, getServerStats } from './statsApi.js';
 import { getSectorSeries, loadSectorPricesFor } from './secteur.js';
 
-/* ─── Prix du kit de conversion (localStorage, défaut = cellule B5 Excel) ─── */
+/* ─── Prix du boîtier (kit) de conversion (localStorage, défaut = B6 Excel) ─── */
 export function getKitPrix() {
   const raw = localStorage.getItem(KIT_PRIX_KEY);
   const n = Number(raw);
   return raw != null && raw !== '' && isFinite(n) && n >= 0 ? n : DEFAULT_KIT_PRIX;
+}
+
+/* ─── X68 — Poste de coût one-off (≥ 0, défaut 0) ─── */
+function getCoutPoste(key) {
+  const n = Number(localStorage.getItem(key));
+  return isFinite(n) && n > 0 ? n : 0;
+}
+
+/* ─── X68 — Coût TOTAL de conversion (= COUT_TOTAL Excel) ───
+   boîtier + pose + carte grise + entretien + assurance − aide (borné ≥ 0). */
+export function getCoutTotalConversion() {
+  const total = getKitPrix()
+    + getCoutPoste(COUT_POSE_KEY)
+    + getCoutPoste(COUT_CARTEGRISE_KEY)
+    + getCoutPoste(COUT_ENTRETIEN_KEY)
+    + getCoutPoste(SURCOUT_ASSURANCE_KEY)
+    - getCoutPoste(AIDE_DEDUITE_KEY);
+  return Math.max(0, total);
+}
+
+/* ─── X67 — Écart €/L retranché au prix SP98 pour la référence (≥ 0, défaut 0) ─── */
+export function getEcartRef() {
+  const n = Number(localStorage.getItem(ECART_REF_KEY));
+  return isFinite(n) && n >= 0 ? n : DEFAULT_ECART_REF;
+}
+
+/* ─── X70 — Borne de plausibilité de la surconso E85 (= clamp Excel J8) ─── */
+export function clampSurconso(s) {
+  return Math.min(SURCONSO_MAX, Math.max(SURCONSO_MIN, s));
 }
 
 /* ─── W39 — Objectif de budget carburant mensuel (€, localStorage) ───
@@ -73,7 +105,8 @@ function computeSurconso(records) {
   if (!consoE85.length || !consoS98.length) return getSurconsoFallback();
   const avg = a => a.reduce((s, v) => s + v, 0) / a.length;
   const s = avg(consoE85) / avg(consoS98) - 1;
-  return isFinite(s) && s > 0 ? s : getSurconsoFallback();
+  // X70 — borne de plausibilité [0,15 ; 0,40] (échantillon S98 souvent faible).
+  return isFinite(s) && s > 0 ? clampSurconso(s) : getSurconsoFallback();
 }
 
 const MONTHS_WINDOW = 6;
@@ -354,18 +387,23 @@ function computeStats() {
     ? sp98Connus.reduce((s, p) => s + p, 0) / sp98Connus.length
     : 0;
 
+  // X67 — carburant de référence : prix de référence = prix SP98 − écart (≥ 0).
+  const ecartRef = getEcartRef();
   let totCoutE85 = 0, totCoutSP98Equiv = 0;
   e85Pleins.forEach(r => {
     const prix = Number(r['Prix €/L']);
     const lit  = Number(r['Nb. Litres']);
     const sp98 = (Number(r['SP98 station (€/L)']) || 0) || sp98Moyen;
+    const ref  = Math.max(0, sp98 - ecartRef);
     totCoutE85      += lit * prix;
-    totCoutSP98Equiv += (lit / (1 + surconso)) * sp98;
+    totCoutSP98Equiv += (lit / (1 + surconso)) * ref;
   });
 
   const econBrute = totCoutSP98Equiv - totCoutE85;   // = J30 (J29 − B35)
-  const kitPrix   = getKitPrix();                    // = B5
-  const econNette = econBrute - kitPrix;             // = J31
+  const kitPrix   = getKitPrix();                    // = B6 (boîtier seul)
+  // X68 — économie nette sur le COÛT TOTAL de conversion (pas le boîtier seul).
+  const coutTotalConversion = getCoutTotalConversion();
+  const econNette = econBrute - coutTotalConversion; // = J31 (sur COUT_TOTAL)
 
   // W40 — CO₂ évité par l'E85 vs essence, à distance égale (cumul tous pleins E85).
   //   litres essence équivalents = litres E85 / (1 + surconso) ;
@@ -384,6 +422,7 @@ function computeStats() {
     econBrute,
     econNette,
     kitPrix,
+    coutTotalConversion,
     surconso,
     co2Evite,
     totLitresE85,
@@ -546,7 +585,7 @@ export function renderStats() {
     <div class="econ-net ${netClass}">
       <span class="econ-net-label">💰 Économie nette</span>
       <span class="econ-net-val">${netSign}${s.econNette.toFixed(0)} €</span>
-      <span class="econ-net-sub">brute ${s.econBrute.toFixed(0)} € − kit ${s.kitPrix.toFixed(2)} € · surconso +${Math.round(s.surconso * 100)}% · total</span>
+      <span class="econ-net-sub">brute ${s.econBrute.toFixed(0)} € − conversion ${(s.coutTotalConversion ?? s.kitPrix).toFixed(2)} € · surconso +${Math.round(s.surconso * 100)}% · total</span>
     </div>
     ${buildCO2Tile(s)}
     ${buildCo2Annuel()}
@@ -1138,6 +1177,45 @@ export function initKitSetting() {
     pushParam('kit_prix');   // P1 — propage vers le Sheet (et Excel)
     renderStats();
   });
+}
+
+/**
+ * X67/X68/X69 — Câble les champs de rentabilité (postes de coût, carburant de
+ * référence, écart, N pleins récents). Persiste + propage (P1) + rafraîchit.
+ */
+export function initRentabiliteSettings() {
+  const numFields = [
+    ['coutPose',         COUT_POSE_KEY,         'cout_pose'],
+    ['coutCarteGrise',   COUT_CARTEGRISE_KEY,   'cout_carte_grise'],
+    ['coutEntretien',    COUT_ENTRETIEN_KEY,    'cout_entretien'],
+    ['surcoutAssurance', SURCOUT_ASSURANCE_KEY, 'surcout_assurance'],
+    ['aideDeduite',      AIDE_DEDUITE_KEY,      'aide_deduite'],
+    ['ecartRef',         ECART_REF_KEY,         'ecart_ref'],
+    ['projNbRecents',    PROJ_NB_RECENTS_KEY,   'proj_nb_recents'],
+  ];
+  numFields.forEach(([id, key, cle]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const raw = localStorage.getItem(key);
+    const n = Number(raw);
+    el.value = (raw != null && raw !== '' && isFinite(n) && n >= 0) ? n : '';
+    el.addEventListener('change', () => {
+      const v = Number(el.value);
+      if (el.value === '' || !isFinite(v) || v < 0) { localStorage.removeItem(key); el.value = ''; }
+      else localStorage.setItem(key, String(v));
+      pushParam(cle);      // P1 — propage vers le Sheet (et Excel)
+      renderStats();
+    });
+  });
+  const sel = document.getElementById('carburantRef');
+  if (sel) {
+    sel.value = localStorage.getItem(CARBURANT_REF_KEY) || DEFAULT_CARBURANT_REF;
+    sel.addEventListener('change', () => {
+      localStorage.setItem(CARBURANT_REF_KEY, sel.value);
+      pushParam('carburant_ref');
+      renderStats();
+    });
+  }
 }
 
 /**

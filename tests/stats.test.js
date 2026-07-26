@@ -12,7 +12,8 @@ vi.mock('../js/historique.js', () => ({
 }));
 vi.mock('../js/comparatif.js', () => ({ renderComparatif: () => {} }));
 
-import { computeBudgetForecast } from '../js/stats.js';
+import { computeBudgetForecast, getCoutTotalConversion, getEcartRef,
+         clampSurconso } from '../js/stats.js';
 
 describe('computeBudgetForecast (W56)', () => {
   it('prévoit la date de dépassement au rythme du mois en cours', () => {
@@ -45,5 +46,50 @@ describe('computeBudgetForecast (W56)', () => {
   it('exige des arguments valides (budget et dépense > 0)', () => {
     expect(computeBudgetForecast(0, 10, 30, 200)).toBeNull();
     expect(computeBudgetForecast(100, 10, 30, 0)).toBeNull();
+  });
+});
+
+describe('getCoutTotalConversion (X68)', () => {
+  it('boîtier seul par défaut (postes vides = 0)', () => {
+    localStorage.clear();
+    localStorage.setItem('suivi_e85_kit_prix', '500');
+    expect(getCoutTotalConversion()).toBe(500);
+  });
+
+  it('somme des postes − aide, 0 € accepté', () => {
+    localStorage.clear();
+    localStorage.setItem('suivi_e85_kit_prix', '500');
+    localStorage.setItem('suivi_e85_cout_pose', '200');
+    localStorage.setItem('suivi_e85_cout_carte_grise', '50');
+    localStorage.setItem('suivi_e85_aide_deduite', '100');
+    // 500 + 200 + 50 + 0 + 0 − 100 = 650
+    expect(getCoutTotalConversion()).toBe(650);
+  });
+
+  it('borné à 0 si l\'aide dépasse les coûts', () => {
+    localStorage.clear();
+    localStorage.setItem('suivi_e85_kit_prix', '100');
+    localStorage.setItem('suivi_e85_aide_deduite', '500');
+    expect(getCoutTotalConversion()).toBe(0);
+  });
+});
+
+describe('getEcartRef (X67)', () => {
+  it('0 par défaut', () => {
+    localStorage.clear();
+    expect(getEcartRef()).toBe(0);
+  });
+  it('lit la valeur saisie', () => {
+    localStorage.clear();
+    localStorage.setItem('suivi_e85_ecart_ref', '0.15');
+    expect(getEcartRef()).toBeCloseTo(0.15, 5);
+  });
+});
+
+describe('clampSurconso (X70)', () => {
+  it('borne dans [0.15 ; 0.40]', () => {
+    expect(clampSurconso(0.05)).toBeCloseTo(0.15, 5);
+    expect(clampSurconso(0.9)).toBeCloseTo(0.40, 5);
+    expect(clampSurconso(0.25)).toBeCloseTo(0.25, 5);
   });
 });

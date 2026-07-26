@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.31.9.0] — 2026-07-26
+
+### Added
+- **Web — paramétrage de la rentabilité dans Réglages (X67/X68/X69)** — la carte « 🔧 Conversion E85 » expose désormais tous les postes de coût one-off (**boîtier, pose, carte grise, entretiens supplémentaires, surcoût d'assurance, aide déduite**, 0 € accepté), le **carburant de référence** (SP98/SP95/E10) et l'**écart €/L vs SP98**, plus le **nombre de pleins récents** pour la projection. Champs `aria-label`és (a11y), câblés par `stats.js:initRentabiliteSettings` (persistance localStorage + propagation P1 `pushParam` vers le Sheet/Excel + `renderStats`). Sync : 8 nouveaux paramètres ajoutés à `parametres.js` (dont un type `str` pour `carburant_ref`). `index.html`, `js/stats.js`, `js/parametres.js`, `js/config.js`, `js/main.js`.
+
+### Changed
+- **Web — économie nette sur le coût total de conversion (X68)** — `stats.js` : nouveau `getCoutTotalConversion()` (boîtier + postes − aide, borné ≥ 0) ; l'économie nette se calcule sur ce total au lieu du seul boîtier. Le sous-texte de la tuile « Économie nette » indique « − conversion » au lieu de « − kit ». `js/stats.js`.
+- **Web — carburant de référence configurable (X67)** — l'économie brute compare chaque plein E85 à `max(0 ; prix SP98 − écart)` (`getEcartRef()`, défaut 0 = SP98). `js/stats.js`.
+- **Web — seuil de rentabilité temps réel dynamique (X67)** — la bannière station (`rentabilite.js`) n'utilise plus le seuil figé 0,66 : `seuilRentable(surconso) = 1/(1+surconso)` (+ marge « limite » de 0,04), surconso lue de la valeur synchronisée bornée. `js/rentabilite.js`.
+
+### Fixed
+- **Web — fiabilité de la surconso (X70)** — `computeSurconso` borne la surconso mesurée à `[0,15 ; 0,40]` (`clampSurconso`, aligné sur le clamp Excel J8) pour absorber un échantillon de pleins SP98 trop faible. `js/stats.js`.
+
 ## [5.31.8.0] — 2026-07-26
 
 ### Changed
