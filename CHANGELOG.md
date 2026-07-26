@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.31.7.0] — 2026-07-26
+
+### Added
+- **Excel — bloc « COÛT DE CONVERSION » paramétrable (X68, structure)** — nouveau module versionné et idempotent `vba/modRentabilite.bas` (`InstallerParametresRentabilite`) posant sur « Suivi Carburant » (colonnes M/N/O, lignes 5-14) les postes de coût one-off (**pose, carte grise, entretiens supplémentaires, surcoût d'assurance, aide/subvention déduite**, tous 0 € par défaut), la cellule **COÛT TOTAL** (`=MAX(0 ; boîtier + postes − aide)`), le carburant de référence (écart €/L) et le N de pleins récents pour la projection. 10 Names classeur associés (`COUT_BOITIER`→B6, `COUT_POSE`, `COUT_CARTEGRISE`, `COUT_ENTRETIEN`, `SURCOUT_ASSURANCE`, `AIDE_DEDUITE`, `COUT_TOTAL`, `CARBURANT_REF`, `ECART_REF`, `PROJ_NB_RECENTS`). **Strictement additif** : valeurs par défaut écrites uniquement si la cellule est vide (préserve les saisies au re-run) ; aucune donnée de plein touchée (Tableau2 : 25 lignes avant/après) ; feuille déprotégée/reprotégée. B6 relabelé « Coût du boîtier (kit) », valeur 514,54 € conservée. Déployé COM + exécuté live (compile-proof, idempotent). `vba/modRentabilite.bas`.
+
 ## [5.31.6.0] — 2026-07-03
 
 ### Changed
