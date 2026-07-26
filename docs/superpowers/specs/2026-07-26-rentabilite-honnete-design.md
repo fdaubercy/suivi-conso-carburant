@@ -25,7 +25,7 @@ Biais (tous « trop tôt ») : (a) référence SP98 au lieu d'E10/SP95 réel ; (
 1. **C9 reporté** → branche = X67/X68/X69/X70 + X66.
 2. **X67** : écart €/L configurable vs SP98 (garde la finesse prix-par-plein-au-jour).
 3. **X68** : tous les coûts en **one-off** (0 € permis).
-4. **X68 postes** : boîtier, pose/main-d'œuvre, modification carte grise, entretiens supplémentaires, − aide/subvention (déduite). **Assurance non retenue.**
+4. **X68 postes** : boîtier, pose/main-d'œuvre, modification carte grise, entretiens supplémentaires, surcoût d'assurance (0 € actuellement), − aide/subvention (déduite).
 5. **X69** : **date unique « prudente » = milieu** de [date_min ; date_max], annotée **« ± N j »** avec N = (date_max − date_min)/2.
 
 ---
@@ -40,13 +40,14 @@ Source de vérité = onglet GS « Parametres » ; miroir local = onglet « Notes
 | `cout_pose` | (nouvelle) | pose / main-d'œuvre | 0 |
 | `cout_carte_grise` | (nouvelle) | démarches ANTS | 0 |
 | `cout_entretien` | (nouvelle) | entretiens supplémentaires (estimation one-off) | 0 |
+| `surcout_assurance` | (nouvelle) | surcoût d'assurance (one-off) | 0 |
 | `aide_deduite` | (nouvelle) | subvention perçue (**soustraite**) | 0 |
 | `carburant_ref` | (nouvelle) | libellé SP98 / SP95 / E10 | SP98 |
 | `ecart_ref` | (nouvelle) | € /L retranché au prix SP98 du jour | 0 |
 | `proj_nb_recents` | (nouvelle) | N derniers pleins E85 pour le rythme récent (0 = tout) | 6 |
 
 - **Rétro-compat** : `kit_prix` reste la clé de sync de B6 (renommée en libellé seulement). Les nouveaux params sont additifs ; un ancien Sheet sans ces clés → défauts appliqués.
-- **Placement Excel** : nouveau sous-bloc « COÛT DE CONVERSION » dans la zone PARAMÈTRES de « Suivi Carburant » (cellules libres à déterminer à l'implémentation via inspection COM ; feuille protégée → encadrer par `DeverrouillerSuivi`/`VerrouillerSuivi`). Cellule dérivée **`COUT_TOTAL`** = `MAX(0 ; B6 + cout_pose + cout_carte_grise + cout_entretien − aide_deduite)`.
+- **Placement Excel** : nouveau sous-bloc « COÛT DE CONVERSION » dans la zone PARAMÈTRES de « Suivi Carburant » (cellules libres à déterminer à l'implémentation via inspection COM ; feuille protégée → encadrer par `DeverrouillerSuivi`/`VerrouillerSuivi`). Cellule dérivée **`COUT_TOTAL`** = `MAX(0 ; B6 + cout_pose + cout_carte_grise + cout_entretien + surcout_assurance − aide_deduite)`.
 
 ## 2. X67 — Carburant de référence
 
