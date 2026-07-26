@@ -68,7 +68,20 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | X66 | **Export PNG de `gKitProj` (nuage XY) renvoie 0 octet** — `Chart.Export(...,"PNG")` échoue silencieusement (fichier 0 o, même après retries) sur le seul `gKitProj` (les autres graphiques s'exportent bien). Vérifier l'impact sur `ExporterGraphiquesPDF` (le nuage de points pourrait manquer/être vide dans le PDF exporté) et investiguer la cause (type `xlXYScatter` + tendance ? déprotection ? sélection). Repéré en réalisant X64 le 2026-07-03. | Un export de graphique qui échoue en silence peut trouer le PDF/rapport sans alerte. |
 | X62 | **`modSyncGS` sous 500 lignes** — extraire le bandeau d'historique de versions (~74 l. de commentaires en tête de module) vers le CHANGELOG (ou un `.md` dédié), faisant passer `modSyncGS` de 521 → ~447 l. Aucune logique touchée (commentaires seuls) → risque COM quasi nul. | Achève la conformité « fichiers < 500 lignes » (CLAUDE.md) laissée en reliquat par X44 Phase 4 ; dernier module dashboard/sync encore au-dessus du seuil. | ~20 min |
 | C11 | **Cohérence `FuelKeyK` (KPI) pour E10/GPLc** — `modDashboardKPI.FuelKeyK` replie **E10 → SP95** et rend `GPL` (≠ `GPLc`), par design testé (`modTests` : `FuelKeyK E10 -> SP95`) — divergent de `FuelKey`/`FuelKeyP`/`statsFuelKey_` (qui distinguent E10 et rendent GPLc depuis C1). Aligner `FuelKeyK` (98→E10→95→GPLc), MAJ des tests, puis compléter `tbl_carburant` (E10/GPLc) → E10/GPLc classés correctement dans les **KPI** du dashboard. | Prérequis pour offrir E10/GPLc à la saisie (dropdown G1) sans les compter en SP95. Repéré en réalisant C1 le 2026-07-02. |
-| X44 | **Modularisation des gros modules VBA** (multi-phases, ✅ **substantiellement terminé**). ✅ Phase 1 (v5.30.2.0) : `modSyncGS` 1663→1420 (`modSyncJson`+`modSyncNet`, dédup `modSyncParametres`). ✅ Phase 2 (v5.30.3.0) : `modSyncCfg`+`modSyncEngine` ; `modSyncGS` 1420→762. ✅ Phase 3 (v5.30.4.0) : `modGraphiques` 1627→**416** (`modGraphCfg`+`modGraphData`+`modGraphRender`), testé live (12 graphiques régénérés). **Phase 4 (reste optionnel, en cours) — découpe fine des modules encore > 500 l.** : ✅ **module 1/4 (v5.31.1.0)** `modGraphData` 702→359 (`BuildPriceBlockMerged`/`BuildConsoBlock`/`BuildVehiculesBlock` + helpers → **`modGraphBlocks`**). ✅ **module 2/4 (v5.31.2.0)** `modGraphRender` 550→432 (chrome `EnsureParamBlock`/`EnsureButtons`/`EnsurePictureButton`/`EnsureHeaderBand` → **`modGraphChrome`**, `StyleShape` → Public). ✅ **module 3/4 (v5.31.3.0)** `modSyncEngine` 677→458 (export Excel→GS `ExportExcelToGS`/`ExportModificationsToGS`/`PushStationsToGS`/`RowToJson` → **`modSyncExport`**, `IsGarbageSid` → Public). ✅ **module 4/4 (v5.31.4.0)** `modSyncGS` 763→521 (diagnostic `TestConnexion`/`SyncDiagnose`/`RafraichirPrixHistory` → **`modSyncDiag`**, `SetStatus`/`SetStatusBlock` dupliqués Private). **✅ Phase 4 TERMINÉE (4/4).** Reliquat mineur : `modSyncGS` reste à 521 l. (excédent = bandeau d'historique de versions ~74 l., déplaçable vers le CHANGELOG si l'on veut passer sous 500 — cosmétique, non bloquant). ⚠️ Refactor COM à haut risque (cf. leçons #98–#103 : fantômes, portée compile-on-demand, hangs) → faire **1 module à la fois, injecté par `import` remove/import séparés, avec Debug→Compile + run read-only après chacun**, en présence de l'utilisateur. | Viole la règle « fichiers < 500 lignes » (CLAUDE.md) ; surface réduite → moins de risque de `Const` mal placée (cf. X40) et navigation plus simple. |
+
+> ℹ️ X44 (modularisation VBA, Phases 1→4) **terminé** → déplacé dans « Idées déjà implémentées » (v5.31.1.0 → v5.31.4.0). Reliquat sous-500 l. de `modSyncGS` suivi séparément par **X62**.
+
+### 🎯 Rentabilité du kit (fiabilité de la projection J11/J12)
+
+> Repéré le 2026-07-26 en auditant la date de rentabilisation annoncée (`Suivi Carburant`!J11 ≈ **03/10/2026**, « amorti 54 % »). La date est **arithmétiquement juste** mais repose sur des hypothèses **optimistes** : elle sortirait plus tard une fois ces biais corrigés. Détail méthodo dans l'analyse de session.
+
+| # | Idée | Pourquoi | Effort |
+|---|---|---|---|
+| X67 | **Carburant de référence configurable (E10/SP95/SP98)** — l'économie (`Tableau2[Coût Plein équiv. S98]`, B11, J11/J12) est **toujours** comparée au **Super 98**, l'essence la plus chère (prix S98 « jour » moyen relevé : **2,04 €/L**). Ajouter un paramètre « essence de référence » (feuille `Suivi Carburant` + `js/config.js`) : si le véhicule roulerait sinon au SP95-E10 (cas le plus courant), recalculer l'équivalent sur ce prix. | C'est le **biais dominant** : comparer au SP98 surestime l'économie de ~0,10-0,25 €/L d'équivalent → repousse la vraie date de rentabilité de plusieurs mois. | ~1-2 h |
+| X68 | **Coût total de conversion dans B6 (pas seulement le boîtier)** — `Suivi Carburant`!B6 = **514,54 €** = prix du kit seul. Y intégrer (ou saisir séparément puis sommer) : pose/main-d'œuvre, modification carte grise (mention superéthanol), éventuel surcoût d'assurance et de sur-entretien — **et déduire une éventuelle aide régionale** (certaines régions subventionnent le kit). | Le « reste à amortir » (B12) et la date (J11) sont calés sur un coût sous-estimé → date trop précoce (ou trop tardive si une aide a été perçue et non déduite). | ~30 min |
+| X69 | **Projeter sur le rythme récent + afficher une fourchette** — J11/J12 extrapolent le **taux d'économie moyen** (B13 €/km) et le **rythme km/jour moyen** sur tout l'historique. Or l'écart de prix E85/SP98 s'est **resserré** (E85 relevé jusqu'à 0,85 €/L). Utiliser les **N derniers pleins** pour le taux marginal, et afficher J11 comme un **intervalle** (min/attendu/max) plutôt qu'une date sèche. | L'extrapolation du taux moyen surestime les économies futures ; une date unique donne une **fausse précision**. | ~1-2 h |
+| X70 | **Fiabilité de la surconso (J8) sur petit échantillon** — surconso = 22,76 % calculée sur **3 pleins Super 98 seulement** (22 pleins E85). Ajouter un garde-fou/indicateur de confiance : si trop peu de pleins de référence, afficher un avertissement et/ou borner la surconso à une plage plausible (E85 ≈ +20-35 %). | Une surconso sous-estimée gonfle l'« équivalent S98 » donc l'économie → date trop précoce. Prolonge le garde-fou de plausibilité de la leçon #60. | ~45 min |
+
 ---
 
 ## 🔄 Synchronisation Excel ↔ Google Sheets
@@ -101,8 +114,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | # | Idée | Pourquoi |
 |---|---|---|
-| _(aucune en attente)_ | — | C1 (libellés « Super 95/98 ») + G4 (dashboard enrichi + filtrage email) livrés en v5.31.0.0. `tbl_carburant` E10/GPLc laissé volontairement hors périmètre (liste = 4 carburants réellement utilisés ; `FuelKeyK` replie E10→SP95 par design testé) → voir proposition C11. |
-| G5 | ✅ **Auto-maintenance des listes de saisie** — livré en v5.31.0.0 (`modValidation.RafraichirListesSaisie` alimente `tbl_vehicule`/`tbl_stationEssence` depuis `Tableau2` après import). |
+| _(aucune en attente)_ | — | C1 (libellés « Super 95/98 ») + G4 (dashboard enrichi + filtrage email) + G5 (auto-maintenance des listes de saisie) livrés en v5.31.0.0. `tbl_carburant` E10/GPLc laissé volontairement hors périmètre (liste = 4 carburants réellement utilisés ; `FuelKeyK` replie E10→SP95 par design testé) → voir proposition C11. |
 
 ---
 
@@ -110,8 +122,13 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Rang | Item | Effort | Bénéfice |
 |---|---|---|---|
-| 1 | **C9** — Service account Google | ~2 h | Auth stable sans renouvellement manuel du token |
+| 1 | **X67** — Carburant de référence configurable (E10/SP95/SP98) | ~1-2 h | Corrige le biais dominant de la date de rentabilité (surestimation vs SP98) |
+| 2 | **X68** — Coût total de conversion dans B6 (pose/carte grise/aide) | ~30 min | Date de rentabilité calée sur le vrai investissement, pas le boîtier seul |
+| 3 | **X69** — Projection sur rythme récent + fourchette (min/attendu/max) | ~1-2 h | Supprime la fausse précision d'une date sèche extrapolée du taux moyen |
+| 4 | **C9** — Service account Google | ~2 h | Auth stable sans renouvellement manuel du token |
+| 5 | **X66** — Export PNG `gKitProj` 0 octet (bug silencieux) | ~1 h | Évite un trou non signalé dans le PDF/rapport de graphiques |
 
+> Classement révisé le 2026-07-26 : les 3 premiers items corrigent la **date de rentabilité trop optimiste** (audit de session). Anciennement le Top 5 ne listait que C9.
 > ✅ S3/S4/S5 (suppression bidir., force resync, conflits par timestamp) implémentés en v4.8.0.0 — voir le tableau ci-dessous.
 
 ---
