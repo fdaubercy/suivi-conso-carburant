@@ -4,6 +4,19 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.31.8.0] — 2026-07-26
+
+### Changed
+- **Excel — carburant de référence configurable (X67)** — la colonne `Tableau2[Coût Plein équiv. S98]` compare désormais chaque plein E85 à `MAX(0 ; prix SP98 du jour − ECART_REF)` (au lieu du prix SP98 brut). `ECART_REF` (€/L, cellule N13, défaut 0) permet de comparer à un carburant réellement utilisé (E10/SP95 ≈ SP98 − écart). Écart 0 = comportement d'origine. `vba/modRentabilite.bas` (`EnsureEquivRefFormula`).
+- **Excel — reste à amortir & progression sur le coût total (X68)** — `B12` = `MAX(0 ; COUT_TOTAL − B11)` et `J13` = `MIN(B11/COUT_TOTAL ; 1)` s'appuient sur **COÛT TOTAL de conversion** (boîtier + pose + carte grise + entretien + assurance − aide) au lieu du seul boîtier B6. `vba/modRentabilite.bas` (`EnsureCoutTotalWiring`).
+- **Excel — date de rentabilité médiane + marge (X69)** — `J11` n'est plus une date sèche extrapolée du taux moyen : deux projections (taux **moyen** tout-historique `DATE_A` et taux **récent** sur les `PROJ_NB_RECENTS` derniers pleins E85 `DATE_B`) → `J11` = **médiane** des deux, annotée **« ± N j »** (cellule L11). Cellules auxiliaires nommées en zone technique (R4:S12). `vba/modRentabilite.bas` (`EnsureProjection`).
+
+### Added
+- **Excel — sync des paramètres de rentabilité (X67/X68/X69)** — `modSyncParametres.ParamDefs` mappe 8 nouveaux paramètres (`cout_pose`, `cout_carte_grise`, `cout_entretien`, `surcout_assurance`, `aide_deduite`, `carburant_ref`, `ecart_ref`, `proj_nb_recents`) entre « Suivi Carburant » (N6:N14), le miroir « Notes » et l'onglet Google Sheet « Parametres ». Round-trip vérifié (`SyncParametresManuel`). `vba/modSyncParametres.bas`.
+
+### Fixed
+- **Excel — fiabilité de la surconso (X70)** — `J8` borne la surconso à `[0,15 ; 0,40]` (`MEDIAN`) pour absorber un échantillon de pleins SP98 trop faible/bruité ; nouvel avertissement (L8) « ⚠ surconso peu fiable (n<4 pleins SP98) » quand moins de 4 pleins de référence. `vba/modRentabilite.bas` (`EnsureSurconsoGuard`).
+
 ## [5.31.7.0] — 2026-07-26
 
 ### Added
