@@ -376,6 +376,41 @@ EH:
     MsgBox "Erreur export PDF " & Err.Number & " : " & Err.Description, vbCritical, "modGraphiques"
 End Sub
 
+' X66 : export PNG FIABLE d'un graphique du Tableau de bord.
+'  Chart.Export renvoie 0 octet sur un nuage XY + tendance (ex. gKitProj) s'il
+'  n'est pas ACTIVE au prealable (quirk Excel, confirme live : sans Activate 0 o,
+'  avec Activate ~10 Ko). Cette fonction active le graphique, exporte, puis
+'  VERIFIE la taille du fichier (>0) et renvoie True/False -> jamais d'echec
+'  silencieux (concern X66 : un export muet troue le rapport sans alerte).
+'  filePath vide -> a cote du classeur, nom = <chartName>.png.
+Public Function ExportChartPNG(chartName As String, Optional filePath As String = "") As Boolean
+    ExportChartPNG = False
+    Dim ws As Worksheet: Set ws = SheetByName(WS_GRAPH)
+    If ws Is Nothing Then Exit Function
+    Dim c As ChartObject, found As ChartObject
+    For Each c In ws.ChartObjects
+        If StrComp(c.name, chartName, vbTextCompare) = 0 Then Set found = c: Exit For
+    Next c
+    If found Is Nothing Then Exit Function
+    If Len(filePath) = 0 Then
+        Dim base As String: base = ThisWorkbook.path
+        If base = "" Then base = Environ$("USERPROFILE") & "\Documents"
+        filePath = base & Application.PathSeparator & chartName & ".png"
+    End If
+    On Error Resume Next
+    If Dir(filePath) <> "" Then Kill filePath
+    found.Activate                 ' indispensable : sans activation -> 0 octet
+    DoEvents
+    found.Chart.Export filePath, "PNG"
+    ws.Range("A1").Select
+    On Error GoTo 0
+    Dim sz As Long: sz = 0
+    On Error Resume Next
+    If Dir(filePath) <> "" Then sz = FileLen(filePath)
+    On Error GoTo 0
+    ExportChartPNG = (sz > 0)
+End Function
+
 ' ============================================================
 '  HELPERS
 ' ============================================================

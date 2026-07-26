@@ -260,7 +260,7 @@ End Function
 ' ============================================================
 Private Function ParamDefs() As ParamDef()
     Dim d() As ParamDef
-    ReDim d(0 To 9)
+    ReDim d(0 To 17)
     d(0) = Mk("kit_prix", WS_CARB, "B6", False)
     d(1) = Mk("budget_mensuel", WS_GRAPH, "B2", False)
     d(2) = Mk("objectif_co2", WS_GRAPH, "B3", False)
@@ -271,6 +271,16 @@ Private Function ParamDefs() As ParamDef()
     d(7) = Mk("seuil_E85_enabled", "", "", True)
     d(8) = Mk("seuil_GAZOLE_enabled", "", "", True)
     d(9) = Mk("seuil_SP98_enabled", "", "", True)
+    ' X67/X68/X69 : postes de cout de conversion + reference + projection
+    ' (cellules posees par modRentabilite.InstallerParametresRentabilite)
+    d(10) = Mk("cout_pose", WS_CARB, "N6", False)
+    d(11) = Mk("cout_carte_grise", WS_CARB, "N7", False)
+    d(12) = Mk("cout_entretien", WS_CARB, "N8", False)
+    d(13) = Mk("surcout_assurance", WS_CARB, "N9", False)
+    d(14) = Mk("aide_deduite", WS_CARB, "N10", False)
+    d(15) = Mk("carburant_ref", WS_CARB, "N12", False)   ' texte (SP98/SP95/E10)
+    d(16) = Mk("ecart_ref", WS_CARB, "N13", False)
+    d(17) = Mk("proj_nb_recents", WS_CARB, "N14", False)
     ParamDefs = d
 End Function
 

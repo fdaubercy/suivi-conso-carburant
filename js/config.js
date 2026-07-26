@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '5.31.6.0';
+export const APP_VERSION       = '5.31.10.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 
 // ─── U7 — Authentification « Se connecter avec Google » (Google Identity Services) ───
@@ -75,6 +75,20 @@ export const LAST_VIEW_KEY     = 'suivi_e85_last_view';      // U4/U5 — derni�
 export const COLLAPSE_PREFIX   = 'suivi_e85_collapse_';      // U6 — état replié des blocs Réglages (préfixe + clé de bloc)
 export const SURCONSO_KEY      = 'suivi_e85_surconso';      // P1 — surconso métier partagée (Excel J7) : défaut quand pas de données S98
 export const PARAMS_META_KEY   = 'suivi_e85_params_meta';   // P1 — horodatages locaux par clé pour la synchro LWW des paramètres
+// X67/X68/X69 — Rentabilité honnête : postes de coût de conversion (one-off, €),
+// carburant de référence (écart €/L vs SP98) et fenêtre de projection.
+// Partagés avec Excel (« Suivi Carburant » N6:N14) via le même mécanisme P1.
+export const COUT_POSE_KEY         = 'suivi_e85_cout_pose';
+export const COUT_CARTEGRISE_KEY   = 'suivi_e85_cout_carte_grise';
+export const COUT_ENTRETIEN_KEY    = 'suivi_e85_cout_entretien';
+export const SURCOUT_ASSURANCE_KEY = 'suivi_e85_surcout_assurance';
+export const AIDE_DEDUITE_KEY      = 'suivi_e85_aide_deduite';
+export const CARBURANT_REF_KEY     = 'suivi_e85_carburant_ref';
+export const ECART_REF_KEY         = 'suivi_e85_ecart_ref';
+export const PROJ_NB_RECENTS_KEY   = 'suivi_e85_proj_nb_recents';
+export const DEFAULT_ECART_REF        = 0;      // €/L retranché au prix SP98 (0 = comparer au SP98)
+export const DEFAULT_CARBURANT_REF    = 'SP98'; // libellé informatif de la référence
+export const DEFAULT_PROJ_NB_RECENTS  = 6;      // N derniers pleins E85 pour le taux récent
 
 // U4 — vue d'ouverture par défaut quand aucune préférence n'est enregistrée.
 export const DEFAULT_START_VIEW = 'accueil';
@@ -103,6 +117,10 @@ export const CO2_ARBRE_PAR_AN       = 25;   // kg CO₂ absorbés par un arbre/a
 // Surconsommation calculée dynamiquement (conso E85 / conso S98 − 1, cellule J7) ;
 // la valeur ci-dessous sert de défaut quand il n'y a pas de données S98.
 export const DEFAULT_SURCONSO  = 0.20;   // +20% par défaut (Excel J7)
+// X70 — bornes de plausibilité de la surconso E85 (garde-fou petit échantillon).
+// Aligné sur le clamp Excel J8 (MEDIAN 0,15 … 0,40).
+export const SURCONSO_MIN = 0.15;
+export const SURCONSO_MAX = 0.40;
 export const DEFAULT_KIT_PRIX  = 514.54; // prix du kit de conversion (cellule B5 Excel)
 
 export const FUEL_CONFIG = {

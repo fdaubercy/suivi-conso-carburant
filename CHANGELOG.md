@@ -4,6 +4,42 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.31.10.0] — 2026-07-26
+
+### Fixed
+- **Excel — export PNG fiable des graphiques du Tableau de bord (X66)** — nouvel utilitaire `modGraphiques.ExportChartPNG(chartName, [filePath])` : `Chart.Export(…, "PNG")` renvoyait **0 octet** sur `gKitProj` (nuage `xlXYScatter` + courbe de tendance) tant que le graphique n'était pas **activé** au préalable (quirk Excel confirmé live : sans `Activate` → 0 o ; avec → ~10 Ko). La fonction active le graphe, exporte, puis **vérifie la taille du fichier** et renvoie `True`/`False` → plus d'échec silencieux qui troue un rapport. Déployé COM + prouvé live (`ExportChartPNG("gKitProj")` → **9890 octets**, `True`). Utilitaire `Public` appelable ; aucun pipeline d'export PNG ne l'invoque encore (`ExporterGraphiquesPDF` exporte la feuille entière en PDF, mécanisme distinct). `vba/modGraphiques.bas`.
+
+## [5.31.9.0] — 2026-07-26
+
+### Added
+- **Web — paramétrage de la rentabilité dans Réglages (X67/X68/X69)** — la carte « 🔧 Conversion E85 » expose désormais tous les postes de coût one-off (**boîtier, pose, carte grise, entretiens supplémentaires, surcoût d'assurance, aide déduite**, 0 € accepté), le **carburant de référence** (SP98/SP95/E10) et l'**écart €/L vs SP98**, plus le **nombre de pleins récents** pour la projection. Champs `aria-label`és (a11y), câblés par `stats.js:initRentabiliteSettings` (persistance localStorage + propagation P1 `pushParam` vers le Sheet/Excel + `renderStats`). Sync : 8 nouveaux paramètres ajoutés à `parametres.js` (dont un type `str` pour `carburant_ref`). `index.html`, `js/stats.js`, `js/parametres.js`, `js/config.js`, `js/main.js`.
+
+### Changed
+- **Web — économie nette sur le coût total de conversion (X68)** — `stats.js` : nouveau `getCoutTotalConversion()` (boîtier + postes − aide, borné ≥ 0) ; l'économie nette se calcule sur ce total au lieu du seul boîtier. Le sous-texte de la tuile « Économie nette » indique « − conversion » au lieu de « − kit ». `js/stats.js`.
+- **Web — carburant de référence configurable (X67)** — l'économie brute compare chaque plein E85 à `max(0 ; prix SP98 − écart)` (`getEcartRef()`, défaut 0 = SP98). `js/stats.js`.
+- **Web — seuil de rentabilité temps réel dynamique (X67)** — la bannière station (`rentabilite.js`) n'utilise plus le seuil figé 0,66 : `seuilRentable(surconso) = 1/(1+surconso)` (+ marge « limite » de 0,04), surconso lue de la valeur synchronisée bornée. `js/rentabilite.js`.
+
+### Fixed
+- **Web — fiabilité de la surconso (X70)** — `computeSurconso` borne la surconso mesurée à `[0,15 ; 0,40]` (`clampSurconso`, aligné sur le clamp Excel J8) pour absorber un échantillon de pleins SP98 trop faible. `js/stats.js`.
+
+## [5.31.8.0] — 2026-07-26
+
+### Changed
+- **Excel — carburant de référence configurable (X67)** — la colonne `Tableau2[Coût Plein équiv. S98]` compare désormais chaque plein E85 à `MAX(0 ; prix SP98 du jour − ECART_REF)` (au lieu du prix SP98 brut). `ECART_REF` (€/L, cellule N13, défaut 0) permet de comparer à un carburant réellement utilisé (E10/SP95 ≈ SP98 − écart). Écart 0 = comportement d'origine. `vba/modRentabilite.bas` (`EnsureEquivRefFormula`).
+- **Excel — reste à amortir & progression sur le coût total (X68)** — `B12` = `MAX(0 ; COUT_TOTAL − B11)` et `J13` = `MIN(B11/COUT_TOTAL ; 1)` s'appuient sur **COÛT TOTAL de conversion** (boîtier + pose + carte grise + entretien + assurance − aide) au lieu du seul boîtier B6. `vba/modRentabilite.bas` (`EnsureCoutTotalWiring`).
+- **Excel — date de rentabilité médiane + marge (X69)** — `J11` n'est plus une date sèche extrapolée du taux moyen : deux projections (taux **moyen** tout-historique `DATE_A` et taux **récent** sur les `PROJ_NB_RECENTS` derniers pleins E85 `DATE_B`) → `J11` = **médiane** des deux, annotée **« ± N j »** (cellule L11). Cellules auxiliaires nommées en zone technique (R4:S12). `vba/modRentabilite.bas` (`EnsureProjection`).
+
+### Added
+- **Excel — sync des paramètres de rentabilité (X67/X68/X69)** — `modSyncParametres.ParamDefs` mappe 8 nouveaux paramètres (`cout_pose`, `cout_carte_grise`, `cout_entretien`, `surcout_assurance`, `aide_deduite`, `carburant_ref`, `ecart_ref`, `proj_nb_recents`) entre « Suivi Carburant » (N6:N14), le miroir « Notes » et l'onglet Google Sheet « Parametres ». Round-trip vérifié (`SyncParametresManuel`). `vba/modSyncParametres.bas`.
+
+### Fixed
+- **Excel — fiabilité de la surconso (X70)** — `J8` borne la surconso à `[0,15 ; 0,40]` (`MEDIAN`) pour absorber un échantillon de pleins SP98 trop faible/bruité ; nouvel avertissement (L8) « ⚠ surconso peu fiable (n<4 pleins SP98) » quand moins de 4 pleins de référence. `vba/modRentabilite.bas` (`EnsureSurconsoGuard`).
+
+## [5.31.7.0] — 2026-07-26
+
+### Added
+- **Excel — bloc « COÛT DE CONVERSION » paramétrable (X68, structure)** — nouveau module versionné et idempotent `vba/modRentabilite.bas` (`InstallerParametresRentabilite`) posant sur « Suivi Carburant » (colonnes M/N/O, lignes 5-14) les postes de coût one-off (**pose, carte grise, entretiens supplémentaires, surcoût d'assurance, aide/subvention déduite**, tous 0 € par défaut), la cellule **COÛT TOTAL** (`=MAX(0 ; boîtier + postes − aide)`), le carburant de référence (écart €/L) et le N de pleins récents pour la projection. 10 Names classeur associés (`COUT_BOITIER`→B6, `COUT_POSE`, `COUT_CARTEGRISE`, `COUT_ENTRETIEN`, `SURCOUT_ASSURANCE`, `AIDE_DEDUITE`, `COUT_TOTAL`, `CARBURANT_REF`, `ECART_REF`, `PROJ_NB_RECENTS`). **Strictement additif** : valeurs par défaut écrites uniquement si la cellule est vide (préserve les saisies au re-run) ; aucune donnée de plein touchée (Tableau2 : 25 lignes avant/après) ; feuille déprotégée/reprotégée. B6 relabelé « Coût du boîtier (kit) », valeur 514,54 € conservée. Déployé COM + exécuté live (compile-proof, idempotent). `vba/modRentabilite.bas`.
+
 ## [5.31.6.0] — 2026-07-03
 
 ### Changed

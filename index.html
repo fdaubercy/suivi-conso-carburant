@@ -432,20 +432,89 @@
   <div id="notifFuelRows"></div>
 </div>
 
-<!-- ─── Prix du kit E85 (seul) ─── -->
+<!-- ─── Conversion E85 : coût total + référence + projection (X67/X68/X69) ─── -->
 <div class="card collapsible" data-collapse="kit">
   <p class="section-title">🔧 Conversion E85</p>
   <div class="param-group">
     <div class="seuil-row" id="kitPrixRow">
-      <label for="kitPrix" class="notif-label">Prix du kit E85</label>
+      <label for="kitPrix" class="notif-label">Boîtier (kit)</label>
       <div style="display:flex;align-items:center;gap:6px">
-        <input type="number" id="kitPrix" class="seuil-input"
-               step="1" min="0" placeholder="514.54"
-               inputmode="decimal">
+        <input type="number" id="kitPrix" class="seuil-input" aria-label="Coût du boîtier (kit) en euros"
+               step="1" min="0" placeholder="514.54" inputmode="decimal">
         <span class="seuil-unit">€</span>
       </div>
     </div>
-    <p class="notif-sub" style="margin-top:4px">Sert au calcul de l'économie nette (brute − prix du kit). Défaut : 514,54 € (cellule B5 Excel).</p>
+    <div class="seuil-row">
+      <label for="coutPose" class="notif-label">Pose / main-d'œuvre</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="coutPose" class="seuil-input" aria-label="Coût de pose en euros"
+               step="1" min="0" placeholder="0" inputmode="decimal">
+        <span class="seuil-unit">€</span>
+      </div>
+    </div>
+    <div class="seuil-row">
+      <label for="coutCarteGrise" class="notif-label">Modification carte grise</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="coutCarteGrise" class="seuil-input" aria-label="Coût de modification de la carte grise en euros"
+               step="1" min="0" placeholder="0" inputmode="decimal">
+        <span class="seuil-unit">€</span>
+      </div>
+    </div>
+    <div class="seuil-row">
+      <label for="coutEntretien" class="notif-label">Entretiens supplémentaires</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="coutEntretien" class="seuil-input" aria-label="Coût des entretiens supplémentaires en euros"
+               step="1" min="0" placeholder="0" inputmode="decimal">
+        <span class="seuil-unit">€</span>
+      </div>
+    </div>
+    <div class="seuil-row">
+      <label for="surcoutAssurance" class="notif-label">Surcoût d'assurance</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="surcoutAssurance" class="seuil-input" aria-label="Surcoût d'assurance en euros"
+               step="1" min="0" placeholder="0" inputmode="decimal">
+        <span class="seuil-unit">€</span>
+      </div>
+    </div>
+    <div class="seuil-row">
+      <label for="aideDeduite" class="notif-label">Aide / subvention (déduite)</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="aideDeduite" class="seuil-input" aria-label="Aide ou subvention déduite en euros"
+               step="1" min="0" placeholder="0" inputmode="decimal">
+        <span class="seuil-unit">€</span>
+      </div>
+    </div>
+    <p class="notif-sub" style="margin-top:4px"><strong>Coût total de conversion</strong> = boîtier + pose + carte grise + entretiens + assurance − aide. Sert au calcul de l'économie nette et de la date de rentabilité. 0 € accepté.</p>
+
+    <div class="seuil-row" style="margin-top:8px">
+      <label for="carburantRef" class="notif-label">Carburant de référence</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <select id="carburantRef" class="seuil-input" aria-label="Carburant de référence pour le calcul de l'économie">
+          <option value="SP98">SP98</option>
+          <option value="SP95">SP95</option>
+          <option value="E10">E10</option>
+        </select>
+      </div>
+    </div>
+    <div class="seuil-row">
+      <label for="ecartRef" class="notif-label">Écart de prix vs SP98</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="ecartRef" class="seuil-input" aria-label="Écart de prix par litre entre le carburant de référence et le SP98"
+               step="0.01" min="0" placeholder="0" inputmode="decimal">
+        <span class="seuil-unit">€/L</span>
+      </div>
+    </div>
+    <p class="notif-sub" style="margin-top:4px">Compare l'E85 à un carburant réellement utilisé : prix de référence = prix SP98 − écart. Écart 0 = comparer au SP98 (par défaut).</p>
+
+    <div class="seuil-row" style="margin-top:8px">
+      <label for="projNbRecents" class="notif-label">Pleins récents (projection)</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="projNbRecents" class="seuil-input" aria-label="Nombre de pleins récents pour la projection de rentabilité"
+               step="1" min="0" placeholder="6" inputmode="numeric">
+        <span class="seuil-unit">pleins</span>
+      </div>
+    </div>
+    <p class="notif-sub" style="margin-top:4px">Nombre de derniers pleins E85 pris en compte pour le rythme récent d'économie (date de rentabilité côté Excel).</p>
   </div>
 </div>
 

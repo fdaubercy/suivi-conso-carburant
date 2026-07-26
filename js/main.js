@@ -20,7 +20,7 @@ import { onStationChange, onKmInput, submitForm, checkDuplicate, saveDraft, rest
 import { chargerStations, mergeHistoryStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
 import { chargerHistorique, dupliquerDernier, voirTout, exportHistoriqueCSV, exportHistoriqueAllCSV, initCsvSepSetting, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords, rerenderHistorique, renderFullHistory } from './historique.js';
-import { renderStats, initSparkToggles, getNextKmPrediction, initKitSetting, initBudgetSetting, initCo2ObjectifSetting, initRapport } from './stats.js';
+import { renderStats, initSparkToggles, getNextKmPrediction, initKitSetting, initRentabiliteSettings, initBudgetSetting, initCo2ObjectifSetting, initRapport } from './stats.js';
 import { initComparatifExport } from './comparatif.js';
 import { prewarmServerStats, getServerStats } from './statsApi.js';
 import { loadSectorPrices, renderSectorBestCard, applyHistPriceToForm } from './secteur.js';
@@ -269,7 +269,8 @@ initHistoireShare();   // historique.js — W26 Web Share API
 initHistoireDelete();  // historique.js — suppression d'un plein (UI + GoogleSheet)
 initComparatifExport(); // comparatif.js — W52 export CSV du comparatif véhicules
 initSparkToggles();    // stats.js — W34 filtres sparkline multi-carburant
-initKitSetting();      // stats.js — prix du kit pour l'economie nette
+initKitSetting();      // stats.js — prix du boitier (kit) pour l'economie nette
+initRentabiliteSettings(); // stats.js — X67/X68/X69 postes de cout + reference + projection
 initBudgetSetting();   // stats.js — W39 objectif budget carburant mensuel
 initCo2ObjectifSetting(); // stats.js — W51 objectif CO₂ annuel évité
 initRapport();         // stats.js — rapport mensuel consultable (sélecteur de mois)
