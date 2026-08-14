@@ -71,7 +71,12 @@ const TICKET_FOLDER_NAME = 'Suivi E85 - Tickets';
 const PARAM_KEYS = [
   'kit_prix', 'budget_mensuel', 'objectif_co2', 'surconso',
   'seuil_E85', 'seuil_GAZOLE', 'seuil_SP98',
-  'seuil_E85_enabled', 'seuil_GAZOLE_enabled', 'seuil_SP98_enabled'
+  'seuil_E85_enabled', 'seuil_GAZOLE_enabled', 'seuil_SP98_enabled',
+  // X67/X68/X69 — rentabilité honnête (partagés avec Excel N6:N14)
+  'cout_pose', 'cout_carte_grise', 'cout_entretien', 'surcout_assurance',
+  'aide_deduite', 'carburant_ref', 'ecart_ref', 'proj_nb_recents',
+  // W89 — comparaison E85 vs diesel (carburant de référence Gazole)
+  'conso_diesel_ref', 'vehicule_diesel_ref'
 ];
 
 // U7 — colonne « email » de l'onglet Parametres (multi-utilisateur). En DERNIÈRE

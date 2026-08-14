@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.32.1.0] — 2026-08-14
+
+### Fixed
+- **GAS — whitelist `PARAM_KEYS` étendue (W89 Phase 2 partielle + correctif latent)** — `handleSetParametres` filtre les clés entrantes par `PARAM_KEYS` (anti-pollution, `Code.gs:1079`) ; la liste ne contenait que les 10 clés d'origine. Conséquence : les **8 clés de rentabilité X67-X70** (`cout_pose`, `cout_carte_grise`, `cout_entretien`, `surcout_assurance`, `aide_deduite`, `carburant_ref`, `ecart_ref`, `proj_nb_recents`) — pourtant poussées par l'app et Excel depuis v5.31.9.0 — étaient **silencieusement rejetées côté serveur** (jamais persistées → pas de sync cross-appareil). Ajout de ces 8 clés **+ `conso_diesel_ref`, `vehicule_diesel_ref`** (comparaison E85 vs diesel). Déployé en prod (GAS **v62**, URL `/exec` inchangée). `Code.gs`.
+
+### Notes
+- **W89 côté Excel (dashboard rentabilité en mode diesel) : différé.** Les écritures COM `vba-agent set-module` ont hangé (machine chargée) ; le calcul dashboard Excel en mode gazole exige de surcroît un changement structurel (colonne « Prix Gazole jour » à ajouter à `Tableau2`, qui n'expose pas le prix gazole). La fonctionnalité **fonctionne intégralement web↔GS** sans ce lot. Repris via tâche dédiée + `docs/superpowers/plans/2026-08-14-comparaison-e85-diesel.md` (Tasks 8-9).
+
 ## [5.32.0.0] — 2026-08-14
 
 ### Added
