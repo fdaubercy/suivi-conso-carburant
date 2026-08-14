@@ -1,12 +1,15 @@
 /* ─── Stats live : conso, coût, économies E85 vs SP98 + sparkline prix multi-carburant + prédiction ─── */
 import { state } from './state.js';
 import { FUEL_CONFIG, DEFAULT_SURCONSO, KIT_PRIX_KEY, DEFAULT_KIT_PRIX,
-         BUDGET_KEY, CO2_ESSENCE_PER_L, CO2_E85_PER_L,
+         BUDGET_KEY, CO2_E85_PER_L,
          CO2_OBJECTIF_KEY, DEFAULT_CO2_OBJECTIF, CO2_THERMIQUE_PER_KM, CO2_ARBRE_PAR_AN,
          SURCONSO_KEY, SURCONSO_MIN, SURCONSO_MAX,
          COUT_POSE_KEY, COUT_CARTEGRISE_KEY, COUT_ENTRETIEN_KEY,
          SURCOUT_ASSURANCE_KEY, AIDE_DEDUITE_KEY, ECART_REF_KEY, DEFAULT_ECART_REF,
-         CARBURANT_REF_KEY, DEFAULT_CARBURANT_REF, PROJ_NB_RECENTS_KEY } from './config.js';
+         CARBURANT_REF_KEY, DEFAULT_CARBURANT_REF, PROJ_NB_RECENTS_KEY,
+         CONSO_DIESEL_REF_KEY, VEHICULE_DIESEL_REF_KEY } from './config.js';
+import { computeConsoMoy, buildRefModel } from './refmodel.js';
+import { getVehicules } from './vehicules.js';
 import { pushParam } from './parametres.js';
 import { getAllRecords, forceRefreshHistorique } from './historique.js';
 import { renderComparatif } from './comparatif.js';
@@ -42,6 +45,39 @@ export function getCoutTotalConversion() {
 export function getEcartRef() {
   const n = Number(localStorage.getItem(ECART_REF_KEY));
   return isFinite(n) && n >= 0 ? n : DEFAULT_ECART_REF;
+}
+
+/* ─── Carburant de référence courant (SP98 par défaut) ─── */
+export function getCarburantRef() {
+  return localStorage.getItem(CARBURANT_REF_KEY) || DEFAULT_CARBURANT_REF;
+}
+/** Libellé court d'un carburant (ex. 'GAZOLE' → 'Gazole', repli sur la clé). */
+export function refShortOf(refKey) {
+  return (FUEL_CONFIG[refKey] && FUEL_CONFIG[refKey].short) || refKey;
+}
+
+/* ─── Modèle de référence pour la comparaison (essence ou diesel) ───
+   Lit les réglages localStorage puis délègue au module pur refmodel.js.
+   La conso diesel est mesurée sur TOUT l'historique (le véhicule diesel de
+   référence est distinct du véhicule E85 courant). */
+function getRefModelForStats(byVeh, surconso) {
+  return buildRefModel({
+    refKey:   getCarburantRef(),
+    consoE85: computeConsoMoy(byVeh, 'E85'),
+    surconso,
+    ecartRef: getEcartRef(),
+    allRecords: getAllRecords(),
+    vehiculeDieselRef:   localStorage.getItem(VEHICULE_DIESEL_REF_KEY) || '',
+    consoDieselManuelle: Number(localStorage.getItem(CONSO_DIESEL_REF_KEY)) || 0,
+  });
+}
+/** Colonne « prix station » du carburant de référence, par plein E85. */
+function refPriceCol(isDiesel) {
+  return isDiesel ? 'Gazole station (€/L)' : 'SP98 station (€/L)';
+}
+/** Surconso E85 exprimée vs le carburant de référence (pour l'affichage). */
+function surconsoVsRef(ratioConso) {
+  return ratioConso > 0 ? (1 / ratioConso - 1) : 0;
 }
 
 /* ─── X70 — Borne de plausibilité de la surconso E85 (= clamp Excel J8) ─── */
@@ -379,38 +415,37 @@ function computeStats() {
   const e85Pleins = byVeh.filter(r =>
     matchType(r.Type, 'E85') && Number(r['Prix €/L']) > 0 && Number(r['Nb. Litres']) > 0
   );
-  // Prix SP98 moyen sur les pleins E85 qui en ont un (repli pour les autres)
-  const sp98Connus = e85Pleins
-    .map(r => Number(r['SP98 station (€/L)']) || 0)
-    .filter(p => p > 0);
-  const sp98Moyen = sp98Connus.length
-    ? sp98Connus.reduce((s, p) => s + p, 0) / sp98Connus.length
+
+  // Modèle de référence : essence (SP98/SP95/E10 − écart) ou diesel (gazole).
+  const rm     = getRefModelForStats(byVeh, surconso);
+  const refCol = refPriceCol(rm.isDiesel);
+  // Prix de référence moyen sur les pleins E85 qui en ont un (repli pour les autres).
+  const refConnus = e85Pleins.map(r => Number(r[refCol]) || 0).filter(p => p > 0);
+  const refMoyen  = refConnus.length
+    ? refConnus.reduce((s, p) => s + p, 0) / refConnus.length
     : 0;
 
-  // X67 — carburant de référence : prix de référence = prix SP98 − écart (≥ 0).
-  const ecartRef = getEcartRef();
-  let totCoutE85 = 0, totCoutSP98Equiv = 0;
+  // Économie à parité de coût/km : litres réf. équivalents = litres E85 × ratioConso.
+  let totCoutE85 = 0, totCoutRefEquiv = 0;
   e85Pleins.forEach(r => {
     const prix = Number(r['Prix €/L']);
     const lit  = Number(r['Nb. Litres']);
-    const sp98 = (Number(r['SP98 station (€/L)']) || 0) || sp98Moyen;
-    const ref  = Math.max(0, sp98 - ecartRef);
     totCoutE85      += lit * prix;
-    totCoutSP98Equiv += (lit / (1 + surconso)) * ref;
+    totCoutRefEquiv += lit * rm.ratioConso * rm.refPriceFromFill(r, refMoyen);
   });
 
-  const econBrute = totCoutSP98Equiv - totCoutE85;   // = J30 (J29 − B35)
+  const econBrute = totCoutRefEquiv - totCoutE85;    // = J30 (J29 − B35)
   const kitPrix   = getKitPrix();                    // = B6 (boîtier seul)
   // X68 — économie nette sur le COÛT TOTAL de conversion (pas le boîtier seul).
   const coutTotalConversion = getCoutTotalConversion();
   const econNette = econBrute - coutTotalConversion; // = J31 (sur COUT_TOTAL)
 
-  // W40 — CO₂ évité par l'E85 vs essence, à distance égale (cumul tous pleins E85).
-  //   litres essence équivalents = litres E85 / (1 + surconso) ;
-  //   CO₂ évité = essenceEquiv × CO2_ESSENCE − litresE85 × CO2_E85.
+  // W40 — CO₂ évité par l'E85 vs le carburant de référence, à distance égale.
+  //   litres réf. équivalents = litres E85 × ratioConso ;
+  //   CO₂ évité = réfEquiv × CO2_réf − litresE85 × CO2_E85.
   const totLitresE85 = e85Pleins.reduce((s, r) => s + (Number(r['Nb. Litres']) || 0), 0);
-  const essenceEquivL = totLitresE85 / (1 + surconso);
-  const co2Evite = essenceEquivL * CO2_ESSENCE_PER_L - totLitresE85 * CO2_E85_PER_L;
+  const refEquivL = totLitresE85 * rm.ratioConso;
+  const co2Evite  = refEquivL * rm.co2RefPerL - totLitresE85 * CO2_E85_PER_L;
 
   return {
     fuelKey,
@@ -424,6 +459,10 @@ function computeStats() {
     kitPrix,
     coutTotalConversion,
     surconso,
+    refKey: rm.refKey,
+    refShort: refShortOf(rm.refKey),
+    isDieselRef: rm.isDiesel,
+    surconsoVsRef: surconsoVsRef(rm.ratioConso),
     co2Evite,
     totLitresE85,
     nbPleins: recent.length,
@@ -578,14 +617,14 @@ export function renderStats() {
       </div>
       <div class="stat ${bruteClass}">
         <div class="stat-val">${bruteSign}${s.econBrute.toFixed(0)} €</div>
-        <div class="stat-unit">éco. brute E85</div>
+        <div class="stat-unit">éco. brute vs ${s.refShort}</div>
       </div>
     </div>
     <div class="stats-sub">${s.nbPleins} plein(s) · ${s.vehiculeName} · ${MONTHS_WINDOW} derniers mois</div>
     <div class="econ-net ${netClass}">
       <span class="econ-net-label">💰 Économie nette</span>
       <span class="econ-net-val">${netSign}${s.econNette.toFixed(0)} €</span>
-      <span class="econ-net-sub">brute ${s.econBrute.toFixed(0)} € − conversion ${(s.coutTotalConversion ?? s.kitPrix).toFixed(2)} € · surconso +${Math.round(s.surconso * 100)}% · total</span>
+      <span class="econ-net-sub">brute ${s.econBrute.toFixed(0)} € − conversion ${(s.coutTotalConversion ?? s.kitPrix).toFixed(2)} € · surconso +${Math.round(s.surconsoVsRef * 100)}% vs ${s.refShort} · total</span>
     </div>
     ${buildCO2Tile(s)}
     ${buildCo2Annuel()}
@@ -708,8 +747,8 @@ function computeCo2Annuel() {
   });
 
   const totLitresE85 = e85Annee.reduce((s, r) => s + (Number(r['Nb. Litres']) || 0), 0);
-  const essenceEquivL = totLitresE85 / (1 + surconso);
-  const co2 = essenceEquivL * CO2_ESSENCE_PER_L - totLitresE85 * CO2_E85_PER_L;
+  const rm = getRefModelForStats(byVeh, surconso);
+  const co2 = totLitresE85 * rm.ratioConso * rm.co2RefPerL - totLitresE85 * CO2_E85_PER_L;
 
   return { year, co2, totLitresE85 };
 }
@@ -773,8 +812,9 @@ function computeCo2Monthly() {
     litresParMois[d.getMonth()] += lit;
   });
 
+  const rm = getRefModelForStats(byVeh, surconso);
   const co2ParMois = litresParMois.map(L =>
-    (L / (1 + surconso)) * CO2_ESSENCE_PER_L - L * CO2_E85_PER_L);
+    L * rm.ratioConso * rm.co2RefPerL - L * CO2_E85_PER_L);
 
   return { year, co2ParMois, surconso };
 }
@@ -1027,35 +1067,39 @@ export function buildMonthlyReport(monthKey) {
   const kmParcourus = (kmMax > kmMin) ? (kmMax - kmMin) : 0;
   const consoMoy = kmParcourus > 0 ? (totalLitres / kmParcourus) * 100 : 0;
 
-  // Prix SP98 de repli sur TOUT l'historique : pleins E85 avec prix SP98 relevé
-  // + prix payé des pleins Super 98 (dont le prix EST un prix SP98).
-  const surconso = computeSurconso(byVeh);
-  const sp98Refs = [];
+  // Prix de référence de repli sur TOUT l'historique : pleins E85 avec prix réf.
+  // relevé (colonne station) + prix payé des pleins du carburant de référence.
+  const surconso   = computeSurconso(byVeh);
+  const rm         = getRefModelForStats(byVeh, surconso);
+  const refCol     = refPriceCol(rm.isDiesel);
+  const refFuelKey = rm.isDiesel ? 'GAZOLE' : 'SP98';
+  const refRefs = [];
   byVeh.forEach(r => {
     if (matchType(r.Type, 'E85')) {
-      const s = Number(r['SP98 station (€/L)']) || 0;
-      if (s > 0) sp98Refs.push(s);
-    } else if (matchType(r.Type, 'SP98')) {
+      const s = Number(r[refCol]) || 0;
+      if (s > 0) refRefs.push(s);
+    } else if (matchType(r.Type, refFuelKey)) {
       const p = Number(r['Prix €/L']) || 0;
-      if (p > 0) sp98Refs.push(p);
+      if (p > 0) refRefs.push(p);
     }
   });
-  const sp98Moyen = sp98Refs.length ? sp98Refs.reduce((s, p) => s + p, 0) / sp98Refs.length : 0;
+  const refMoyen = refRefs.length ? refRefs.reduce((s, p) => s + p, 0) / refRefs.length : 0;
 
-  let coutE85 = 0, coutSp98Equiv = 0;
+  let coutE85 = 0, coutRefEquiv = 0;
   rows.forEach(r => {
     if (!matchType(r.Type, 'E85')) return;
     const lit  = Number(r['Nb. Litres']) || 0;
     const prix = Number(r['Prix €/L']) || 0;
     if (lit <= 0 || prix <= 0) return;
-    const sp98 = (Number(r['SP98 station (€/L)']) || 0) || sp98Moyen;
+    const refPrice = rm.refPriceFromFill(r, refMoyen);
     coutE85 += lit * prix;
-    if (sp98 > 0) coutSp98Equiv += (lit / (1 + surconso)) * sp98;
+    if (refPrice > 0) coutRefEquiv += lit * rm.ratioConso * refPrice;
   });
-  const econBrute = coutSp98Equiv - coutE85;
+  const econBrute = coutRefEquiv - coutE85;
 
   return { monthKey, label: _monthLabel(monthKey), nbPleins, nbE85,
-           totalCout, totalLitres, kmParcourus, consoMoy, econBrute, surconso };
+           totalCout, totalLitres, kmParcourus, consoMoy, econBrute, surconso,
+           refShort: refShortOf(rm.refKey) };
 }
 
 /** Affiche le rapport mensuel dans #rapportBox et (re)peuple le sélecteur de mois. */
@@ -1088,7 +1132,7 @@ export function renderRapportMensuel() {
   const ecoSign  = s.econBrute > 0 ? '+' : '';
   const ecoCell  = s.nbE85
     ? `<div class="stat-val">${ecoSign}${s.econBrute.toFixed(0)} €</div>
-       <div class="stat-unit">éco. E85 vs SP98</div>`
+       <div class="stat-unit">éco. E85 vs ${s.refShort}</div>`
     : `<div class="stat-val">—</div>
        <div class="stat-unit">aucun plein E85</div>`;
 
@@ -1207,11 +1251,54 @@ export function initRentabiliteSettings() {
       renderStats();
     });
   });
+  // Bloc diesel : affiché quand le carburant de référence est le gazole.
+  //   • véhicule diesel de référence (conso mesurée sur ses pleins gazole) ;
+  //   • conso diesel manuelle de repli (L/100) ;
+  //   • l'écart €/L (spécifique essence) est masqué en mode diesel.
+  const dieselBlock = document.getElementById('dieselRefBlock');
+  const ecartRow    = document.getElementById('ecartRefRow');
+  function toggleDieselUI(refKey) {
+    const diesel = refKey === 'GAZOLE';
+    if (dieselBlock) dieselBlock.classList.toggle('hidden', !diesel);
+    if (ecartRow)    ecartRow.classList.toggle('hidden', diesel);
+  }
+
+  const vehSel = document.getElementById('vehiculeDieselRef');
+  if (vehSel) {
+    const cur = localStorage.getItem(VEHICULE_DIESEL_REF_KEY) || '';
+    vehSel.innerHTML = '';
+    vehSel.add(new Option('— auto / défaut berline —', ''));
+    getVehicules().forEach(nom => vehSel.add(new Option(nom, nom)));
+    if (Array.from(vehSel.options).some(o => o.value === cur)) vehSel.value = cur;
+    vehSel.addEventListener('change', () => {
+      if (vehSel.value) localStorage.setItem(VEHICULE_DIESEL_REF_KEY, vehSel.value);
+      else              localStorage.removeItem(VEHICULE_DIESEL_REF_KEY);
+      pushParam('vehicule_diesel_ref');
+      renderStats();
+    });
+  }
+
+  const consoInput = document.getElementById('consoDieselRef');
+  if (consoInput) {
+    const raw = localStorage.getItem(CONSO_DIESEL_REF_KEY);
+    const n = Number(raw);
+    consoInput.value = (raw != null && raw !== '' && isFinite(n) && n > 0) ? n : '';
+    consoInput.addEventListener('change', () => {
+      const v = Number(consoInput.value);
+      if (consoInput.value === '' || !isFinite(v) || v <= 0) { localStorage.removeItem(CONSO_DIESEL_REF_KEY); consoInput.value = ''; }
+      else localStorage.setItem(CONSO_DIESEL_REF_KEY, String(v));
+      pushParam('conso_diesel_ref');
+      renderStats();
+    });
+  }
+
   const sel = document.getElementById('carburantRef');
   if (sel) {
     sel.value = localStorage.getItem(CARBURANT_REF_KEY) || DEFAULT_CARBURANT_REF;
+    toggleDieselUI(sel.value);
     sel.addEventListener('change', () => {
       localStorage.setItem(CARBURANT_REF_KEY, sel.value);
+      toggleDieselUI(sel.value);
       pushParam('carburant_ref');
       renderStats();
     });

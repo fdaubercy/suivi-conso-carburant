@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '5.31.10.0';
+export const APP_VERSION       = '5.32.0.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 
 // ─── U7 — Authentification « Se connecter avec Google » (Google Identity Services) ───
@@ -90,6 +90,13 @@ export const DEFAULT_ECART_REF        = 0;      // €/L retranché au prix SP98
 export const DEFAULT_CARBURANT_REF    = 'SP98'; // libellé informatif de la référence
 export const DEFAULT_PROJ_NB_RECENTS  = 6;      // N derniers pleins E85 pour le taux récent
 
+// Comparaison E85 vs diesel — le carburant de référence peut être le gazole
+// (moteur d'un AUTRE véhicule → conso mesurée sur un véhicule diesel choisi par
+// l'utilisateur, sinon défaut « berline »). Partagés P1 avec Excel/GS.
+export const CONSO_DIESEL_REF_KEY     = 'suivi_e85_conso_diesel_ref';   // L/100 km (saisie manuelle de repli)
+export const VEHICULE_DIESEL_REF_KEY  = 'suivi_e85_vehicule_diesel_ref'; // nom du véhicule diesel de référence
+export const DEFAULT_CONSO_DIESEL     = 5.5;    // L/100 km — berline diesel moyenne (repli final)
+
 // U4 — vue d'ouverture par défaut quand aucune préférence n'est enregistrée.
 export const DEFAULT_START_VIEW = 'accueil';
 
@@ -104,6 +111,9 @@ export const FAVORITE_MIN_PLEINS = 4;
 export const CO2_ESSENCE_PER_L = 2.21;                       // kg CO₂/L (SP95-E10)
 export const CO2_E85_RATIO     = 0.50;                       // E85 ≈ −50 % à la combustion
 export const CO2_E85_PER_L     = CO2_ESSENCE_PER_L * CO2_E85_RATIO; // ≈ 1,105 kg CO₂/L
+// Diesel (gazole) : ≈ 2,68 kg CO₂/L à la combustion (tank-to-wheel) — utilisé
+// comme facteur de référence quand la comparaison se fait vs diesel.
+export const CO2_GAZOLE_PER_L  = 2.68;                              // kg CO₂/L (gazole)
 
 // W51 — Objectif CO₂ / éco-score annuel.
 // Objectif par défaut (kg CO₂ évités sur l'année), modifiable dans ⚙️.

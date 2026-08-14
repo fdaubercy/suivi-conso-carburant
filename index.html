@@ -493,18 +493,39 @@
           <option value="SP98">SP98</option>
           <option value="SP95">SP95</option>
           <option value="E10">E10</option>
+          <option value="GAZOLE">Gazole (diesel)</option>
         </select>
       </div>
     </div>
-    <div class="seuil-row">
-      <label for="ecartRef" class="notif-label">Écart de prix vs SP98</label>
-      <div style="display:flex;align-items:center;gap:6px">
-        <input type="number" id="ecartRef" class="seuil-input" aria-label="Écart de prix par litre entre le carburant de référence et le SP98"
-               step="0.01" min="0" placeholder="0" inputmode="decimal">
-        <span class="seuil-unit">€/L</span>
+    <div id="ecartRefRow">
+      <div class="seuil-row">
+        <label for="ecartRef" class="notif-label">Écart de prix vs SP98</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="number" id="ecartRef" class="seuil-input" aria-label="Écart de prix par litre entre le carburant de référence et le SP98"
+                 step="0.01" min="0" placeholder="0" inputmode="decimal">
+          <span class="seuil-unit">€/L</span>
+        </div>
       </div>
+      <p class="notif-sub" style="margin-top:4px">Compare l'E85 à un carburant réellement utilisé : prix de référence = prix SP98 − écart. Écart 0 = comparer au SP98 (par défaut).</p>
     </div>
-    <p class="notif-sub" style="margin-top:4px">Compare l'E85 à un carburant réellement utilisé : prix de référence = prix SP98 − écart. Écart 0 = comparer au SP98 (par défaut).</p>
+
+    <div id="dieselRefBlock" class="hidden">
+      <div class="seuil-row">
+        <label for="vehiculeDieselRef" class="notif-label">Véhicule diesel de référence</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <select id="vehiculeDieselRef" class="seuil-input" aria-label="Véhicule diesel servant de référence pour la comparaison"></select>
+        </div>
+      </div>
+      <div class="seuil-row">
+        <label for="consoDieselRef" class="notif-label">Conso diesel (repli)</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="number" id="consoDieselRef" class="seuil-input" aria-label="Consommation diesel de référence en litres aux 100 km"
+                 step="0.1" min="0" placeholder="5.5" inputmode="decimal">
+          <span class="seuil-unit">L/100</span>
+        </div>
+      </div>
+      <p class="notif-sub" style="margin-top:4px">Compare l'E85 au gazole (moteur d'un autre véhicule). La conso diesel est mesurée sur les pleins gazole du véhicule choisi ; sinon la valeur de repli, sinon 5,5 L/100 par défaut. Prix de référence = prix gazole de la station.</p>
+    </div>
 
     <div class="seuil-row" style="margin-top:8px">
       <label for="projNbRecents" class="notif-label">Pleins récents (projection)</label>

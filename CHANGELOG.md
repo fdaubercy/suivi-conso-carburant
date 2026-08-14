@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.32.0.0] — 2026-08-14
+
+### Added
+- **Web — comparaison E85 vs carburant au choix, dont le diesel (Phase 1)** — le sélecteur « Carburant de référence » (⚙️ Réglages → Conversion E85) accepte désormais **Gazole (diesel)** en plus de SP98/SP95/E10. Le choix pilote **toute** la rentabilité affichée : économie brute/nette, CO₂ évité, bannière temps réel de station et rapport mensuel. Nouveau module pur **`js/refmodel.js`** (modèle de référence unifié : `litresEquiv = litres_E85 × ratioConso`, `ratioConso = consoRef/consoE85` — essence `1/(1+surconso)`, diesel `consoDiesel/consoE85`), couvert par `tests/refmodel.test.js` (13 tests). En mode diesel, un **sélecteur de véhicule diesel de référence** apparaît : la conso L/100 est **mesurée sur ses pleins gazole**, sinon une conso de repli saisie, sinon **5,5 L/100** (berline). Prix de référence = prix gazole de la station ; facteur **CO₂ gazole = 2,68 kg/L**. Le calcul essence existant (SP98 − écart) est **strictement préservé**. Sync P1 étendue (clés `conso_diesel_ref`, `vehicule_diesel_ref`). Non-régression : 83 tests OK. `js/config.js`, `js/refmodel.js`, `js/stats.js`, `js/rentabilite.js`, `js/parametres.js`, `index.html`, `tests/refmodel.test.js`.
+- ℹ️ **Parité Excel / Google Sheets (Phase 2)** à suivre : whitelist GAS `PARAM_KEYS` + `modRentabilite`/`modSyncParametres` (voir `docs/superpowers/plans/2026-08-14-comparaison-e85-diesel.md`).
+
 ## [5.31.10.0] — 2026-07-26
 
 ### Fixed
