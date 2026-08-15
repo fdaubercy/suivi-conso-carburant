@@ -30,6 +30,8 @@ Private Const DEFAULT_SURCONSO As Double = 0.2
 ' Constantes CO2 (alignees sur js/config.js et modGraphiques).
 Private Const CO2_ESSENCE_PER_L As Double = 2.21
 Private Const CO2_E85_PER_L     As Double = 1.105
+Private Const CO2_GAZOLE_PER_L  As Double = 2.68   ' W89 : facteur diesel (mode GAZOLE)
+Private Const DEFAULT_CONSO_DIESEL As Double = 5.5 ' L/100 km (repli berline)
 
 ' Valeur sentinelle � tous � (pas de filtre carburant).
 Public Const KPI_TOUS As String = "(tous)"
@@ -232,6 +234,47 @@ End Function
 '  Methode conso/cout : full-to-full (exclut le plein de reference),
 '  (Type DashStats + constantes CO2 declares en tete.)
 '------------------------------------------------------------
+' W89 : carburant de reference courant (N12 : SP98/SP95/E10 ou GAZOLE).
+Private Function CarburantRef() As String
+    CarburantRef = "SP98"
+    On Error Resume Next
+    Dim ws As Worksheet: Set ws = ThisWorkbook.Worksheets(WS_CARB)
+    If Not ws Is Nothing Then
+        Dim s As String: s = Trim$(CStr(ws.Range("N12").value))
+        If Len(s) > 0 Then CarburantRef = UCase$(s)
+    End If
+    On Error GoTo 0
+End Function
+
+' W89 : conso diesel EFFECTIVE de reference (R15, Name CONSO_DIESEL_REF),
+' mesuree/repli posee par modRentabilite ; defaut berline si absente.
+Private Function ConsoDieselRef() As Double
+    ConsoDieselRef = DEFAULT_CONSO_DIESEL
+    On Error Resume Next
+    Dim ws As Worksheet: Set ws = ThisWorkbook.Worksheets(WS_CARB)
+    If Not ws Is Nothing Then
+        If IsNumeric(ws.Range("R15").value) Then
+            Dim v As Double: v = CDbl(ws.Range("R15").value)
+            If v > 0 Then ConsoDieselRef = v
+        End If
+    End If
+    On Error GoTo 0
+End Function
+
+' W89 : conso E85 de reference = conso S98 ref (B7) * (1 + surconso).
+Private Function ConsoE85Ref(ByVal sc As Double) As Double
+    ConsoE85Ref = 0
+    On Error Resume Next
+    Dim ws As Worksheet: Set ws = ThisWorkbook.Worksheets(WS_CARB)
+    If Not ws Is Nothing Then
+        If IsNumeric(ws.Range("B7").value) Then
+            Dim b7 As Double: b7 = CDbl(ws.Range("B7").value)
+            If b7 > 0 Then ConsoE85Ref = b7 * (1 + sc)
+        End If
+    End If
+    On Error GoTo 0
+End Function
+
 Public Sub ComputeDashboardStats(ByVal veh As String, ByVal fuel As String, _
                                  ByRef ds As DashStats)
     Dim zeroDs As DashStats: ds = zeroDs
@@ -254,6 +297,20 @@ Public Sub ComputeDashboardStats(ByVal veh As String, ByVal fuel As String, _
     Dim filtVeh As Boolean: filtVeh = (Len(veh) > 0 And veh <> KPI_TOUS)
     Dim filtFuel As Boolean: filtFuel = (Len(fuel) > 0 And fuel <> KPI_TOUS)
     Dim sc As Double: sc = surconso()
+
+    ' W89 : modele de reference pour le CO2 evite (essence ou diesel selon N12).
+    '   litres reference equivalents = li * ratioConso ; CO2 evite = refEq * co2Ref - li * CO2_E85.
+    '   essence : ratioConso = 1/(1+surconso), co2Ref = 2,21 (identique a l'existant) ;
+    '   diesel  : ratioConso = consoDiesel/consoE85, co2Ref = 2,68.
+    Dim ratioConso As Double, co2RefPerL As Double
+    If CarburantRef() = "GAZOLE" Then
+        Dim cE85 As Double: cE85 = ConsoE85Ref(sc)
+        ratioConso = IIf(cE85 > 0, ConsoDieselRef() / cE85, 0)
+        co2RefPerL = CO2_GAZOLE_PER_L
+    Else
+        ratioConso = 1 / (1 + sc)
+        co2RefPerL = CO2_ESSENCE_PER_L
+    End If
 
     Dim a As Variant: a = lo.DataBodyRange.value
     Dim i As Long
@@ -334,8 +391,8 @@ P1NX:
             ds.nbPleins = ds.nbPleins + 1
 
             If fk = "E85" And li > 0 Then
-                Dim essEq As Double: essEq = li / (1 + sc)
-                ds.co2 = ds.co2 + (essEq * CO2_ESSENCE_PER_L) - (li * CO2_E85_PER_L)
+                Dim refEq As Double: refEq = li * ratioConso
+                ds.co2 = ds.co2 + (refEq * co2RefPerL) - (li * CO2_E85_PER_L)
             End If
 P2NX:
         Next i

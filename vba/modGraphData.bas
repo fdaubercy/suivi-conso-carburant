@@ -9,6 +9,31 @@ Attribute VB_Name = "modGraphData"
 '  SheetByName, NumOr0, LCIdx, NumDict, FuelKey, TriStr.
 Option Explicit
 
+' W89 : modele de reference pour le CO2 evite (aligne sur modDashboardKPI / web).
+'   essence : ratioConso = 1/(1+surconso), co2Ref = 2,21 (identique a l'existant) ;
+'   diesel  : ratioConso = consoDiesel/consoE85, co2Ref = 2,68.
+Private Sub RefModelCO2(ByVal sc As Double, ByRef ratioConso As Double, ByRef co2RefPerL As Double)
+    Dim carbRef As String: carbRef = "SP98"
+    Dim consoDiesel As Double: consoDiesel = 5.5
+    Dim consoE85 As Double: consoE85 = 0
+    On Error Resume Next
+    Dim ws As Worksheet: Set ws = ThisWorkbook.Worksheets("Suivi Carburant")
+    If Not ws Is Nothing Then
+        Dim s As String: s = Trim$(CStr(ws.Range("N12").value))
+        If Len(s) > 0 Then carbRef = UCase$(s)
+        If IsNumeric(ws.Range("R15").value) Then If CDbl(ws.Range("R15").value) > 0 Then consoDiesel = CDbl(ws.Range("R15").value)
+        If IsNumeric(ws.Range("B7").value) Then If CDbl(ws.Range("B7").value) > 0 Then consoE85 = CDbl(ws.Range("B7").value) * (1 + sc)
+    End If
+    On Error GoTo 0
+    If carbRef = "GAZOLE" Then
+        ratioConso = IIf(consoE85 > 0, consoDiesel / consoE85, 0)
+        co2RefPerL = CO2_GAZOLE_PER_L
+    Else
+        ratioConso = 1 / (1 + sc)
+        co2RefPerL = CO2_ESSENCE_PER_L
+    End If
+End Sub
+
 Public Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsd As Worksheet, _
                             surconso As Double, co2Obj As Double, budget As Double, _
                             anneeSel As Long, coutKit As Double, _
@@ -23,6 +48,10 @@ Public Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsd As Worksheet
     ' X36 : filtre v?hicule / carburant (sentinelle "(tous)" ou vide = pas de filtre)
     Dim filtVeh As Boolean: filtVeh = (Len(selVeh) > 0 And selVeh <> FILTER_ALL)
     Dim filtFuel As Boolean: filtFuel = (Len(selFuel) > 0 And selFuel <> FILTER_ALL)
+
+    ' W89 : modele de reference CO2 (essence ou diesel selon "Suivi Carburant"!N12).
+    Dim ratioCO2 As Double, co2RefPerL As Double
+    RefModelCO2 surconso, ratioCO2, co2RefPerL
 
     ' En-tetes des blocs
     Dim eu As String: eu = ChrW(8364)
@@ -119,8 +148,7 @@ Public Sub BuildAggregates(t2 As ListObject, gsT As ListObject, wsd As Worksheet
         ' -- mensuel cout + CO2 --
         moisCost(mKey) = NumDict(moisCost, mKey) + cout
         If fk = "E85" And litres > 0 Then
-            Dim essEq As Double: essEq = litres / (1 + surconso)
-            Dim co2 As Double: co2 = essEq * CO2_ESSENCE_PER_L - litres * CO2_E85_PER_L
+            Dim co2 As Double: co2 = litres * ratioCO2 * co2RefPerL - litres * CO2_E85_PER_L
             moisCO2(mKey) = NumDict(moisCO2, mKey) + co2
         End If
         If Not moisOrder.Exists(mKey) Then moisOrder(mKey) = 1

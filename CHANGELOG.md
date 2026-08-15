@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.32.3.0] — 2026-08-14
+
+### Added
+- **Excel — CO₂ évité diesel-aware (W89, tuiles + graphique)** — le CO₂ évité du dashboard Excel honore désormais `carburant_ref = GAZOLE` (avant : toujours essence). Généralisé sur le modèle du web (`refEq = litres × ratioConso ; CO₂ = refEq × co2Ref − litres × CO2_E85`) :
+  - **`modDashboardKPI.ComputeDashboardStats`** (tuile KPI CO₂) : `ratioConso`/`co2RefPerL` selon N12 — essence `1/(1+surconso)`×2,21 (**inchangé**), diesel `consoDiesel/consoE85`×2,68 avec `consoDiesel = CONSO_DIESEL_REF (R15)` et `consoE85 = B7×(1+J8)`. Helpers `CarburantRef`/`ConsoDieselRef`/`ConsoE85Ref`. Vérifié live : SP98 **261,78 kg** (baseline inchangée) → GAZOLE **422,94 kg**.
+  - **`modGraphData.BuildAggregates`** (graphique gCo2, série mensuelle) : même généralisation via helper `RefModelCO2`. Recompilé + `CreerGraphiquesWeb` relancé sans erreur.
+  - Constante `CO2_GAZOLE_PER_L = 2,68` ajoutée (`modGraphCfg` + `modDashboardKPI`). `vba/modDashboardKPI.bas`, `vba/modGraphData.bas`, `vba/modGraphCfg.bas`.
+
 ## [5.32.2.0] — 2026-08-14
 
 ### Added

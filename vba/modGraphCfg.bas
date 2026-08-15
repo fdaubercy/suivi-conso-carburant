@@ -15,6 +15,7 @@ Public Const T2_NAME  As String = "Tableau2"
 Public Const GS_SHEET As String = "GS_Pleins"
 Public Const CO2_ESSENCE_PER_L As Double = 2.21    ' kg CO2/L SP95-E10
 Public Const CO2_E85_PER_L     As Double = 1.105   ' E85 ? -50 %
+Public Const CO2_GAZOLE_PER_L  As Double = 2.68    ' W89 : diesel (mode GAZOLE)
 Public Const DEFAULT_CO2_OBJ   As Double = 200     ' kg CO2/an
 Public Const DEFAULT_SURCONSO  As Double = 0.2     ' +20 %
 Public Const CELL_BUDGET     As String = "B2"
