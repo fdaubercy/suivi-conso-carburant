@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.32.2.0] — 2026-08-14
+
+### Added
+- **Excel — dashboard rentabilité en mode diesel (W89 Phase 2, complète)** — le calcul d'économie du classeur honore désormais `carburant_ref = GAZOLE`. `modRentabilite` :
+  - **`EnsureDieselRefParams`** (nouveau) pose la zone auxiliaire diesel sur « Suivi Carburant » : `R13` conso diesel manuelle (Name `CONSO_DIESEL_MANUEL`, défaut 5,5), `R14` véhicule diesel de référence (Name `VEHICULE_DIESEL_REF`), `R15` conso diesel **effective** (Name `CONSO_DIESEL_REF`) = mesurée sur les pleins gazole du véhicule choisi (`AVERAGEIFS … "*azole*"`), sinon manuelle, sinon 5,5.
+  - **`EnsureEquivRefFormula`** rendue **conditionnelle** : branche essence (X67, `litres/(1+surconso)×(Prix S98 − ECART_REF)`) **strictement préservée** ; branche diesel = `litres × (CONSO_DIESEL_REF / consoE85) × prix gazole du plein`, avec `consoE85 = B7×(1+J8)` et le prix gazole récupéré **inline** via `INDEX(GS_Pleins[Gazole station], …)` (aucune colonne ajoutée à `Tableau2`). Plein sans prix gazole relevé → équiv vide (dégradation propre).
+  - **`modSyncParametres`** transporte `conso_diesel_ref` → `R13` et `vehicule_diesel_ref` → `R14` (P1, LWW). Déployé COM + `InstallerParametresRentabilite` exécuté (compile OK), vérifié live (essence somme 567,42 inchangée ; diesel somme 440,38 ; N12 restauré). `vba/modRentabilite.bas`, `vba/modSyncParametres.bas`.
+- **Limite connue** : la tuile CO₂ du dashboard Excel reste basée sur l'essence (le CO₂ évité vs diesel est calculé côté app web). Le facteur CO₂ gazole (2,68) n'est pas encore câblé dans les tuiles Excel.
+
 ## [5.32.1.0] — 2026-08-14
 
 ### Fixed

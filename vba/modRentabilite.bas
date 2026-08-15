@@ -34,7 +34,8 @@ Public Sub InstallerParametresRentabilite()
 
     EnsureCostBlock ws          ' X68 : bloc cout + Names + COUT_TOTAL
     EnsureSurconsoGuard ws      ' X70 : J8 borne + avertissement
-    EnsureEquivRefFormula ws    ' X67 : colonne equiv avec ECART_REF
+    EnsureDieselRefParams ws    ' W89 : conso/vehicule diesel de reference (R13/R14/R15)
+    EnsureEquivRefFormula ws    ' X67/W89 : colonne equiv (essence ECART_REF ou diesel)
     EnsureCoutTotalWiring ws    ' X68 : B12 / J13 sur COUT_TOTAL
     EnsureProjection ws         ' X69 : J11/J12 mediane + marge
 
@@ -114,10 +115,35 @@ Private Sub EnsureSurconsoGuard(ws As Worksheet)
         q & ChrW(9888) & " surconso peu fiable (n<4 pleins SP98)" & q & "," & q & q & ")"
 End Sub
 
-'--- Task 3 (X67) : colonne "Cout Plein equiv." avec ecart de reference --------
+'--- W89 : parametres de comparaison au diesel (zone auxiliaire Q/R) -----------
+Private Sub EnsureDieselRefParams(ws As Worksheet)
+    ' R13 = conso diesel manuelle (synchronisee app, repli berline 5,5) ;
+    ' R14 = vehicule diesel de reference (texte, synchronise) ;
+    ' R15 = conso diesel EFFECTIVE (mesuree sur les pleins gazole du vehicule
+    '       choisi, sinon manuelle, sinon 5,5) -> Name CONSO_DIESEL_REF.
+    SetLabel ws, 13, 17, "conso diesel manuel", False    ' Q13
+    SetLabel ws, 14, 17, "vehicule diesel ref", False    ' Q14
+    SetLabel ws, 15, 17, "conso diesel eff.", False       ' Q15
+    SetDefaultNum ws, 13, 18, 5.5                          ' R13 (si vide)
+    EnsureName "CONSO_DIESEL_MANUEL", "$R$13"
+    EnsureName "VEHICULE_DIESEL_REF", "$R$14"
+    EnsureName "CONSO_DIESEL_REF", "$R$15"
+
+    Dim conso As String: conso = "Tableau2[Conso. (L/100km)]"
+    Dim veh As String:   veh = "Tableau2[V" & ChrW(233) & "hicule]"
+    Dim typ As String:   typ = "Tableau2[Type]"
+    Dim mesure As String
+    mesure = "AVERAGEIFS(" & conso & "," & veh & ",VEHICULE_DIESEL_REF," & typ & ",""*azole*"")"
+    Dim repli As String: repli = "IF(CONSO_DIESEL_MANUEL>0,CONSO_DIESEL_MANUEL,5.5)"
+    ws.Range("R15").Formula2 = _
+        "=IF(VEHICULE_DIESEL_REF=""""," & repli & _
+        ",IFERROR(IF(" & mesure & ">0," & mesure & "," & repli & ")," & repli & "))"
+End Sub
+
+'--- Task 3 (X67/W89) : colonne "Cout Plein equiv." (essence ecart OU diesel) --
 Private Sub EnsureEquivRefFormula(ws As Worksheet)
     Dim lo As ListObject: Set lo = ws.ListObjects("Tableau2")
-    Dim lc As ListColumn, idx As Long: idx = 0
+    Dim idx As Long: idx = 0
     Dim i As Long
     For i = 1 To lo.ListColumns.count
         If InStr(1, lo.ListColumns(i).name, "quiv", vbTextCompare) > 0 Then idx = i: Exit For
@@ -125,10 +151,23 @@ Private Sub EnsureEquivRefFormula(ws As Worksheet)
     If idx = 0 Then Exit Sub
     Dim eu As String: eu = ChrW(8364)
     Dim prixS98 As String: prixS98 = "[@[Prix S98 jour (" & eu & "/L)]]"
-    ' Coeff litres equivalents / (1+surconso) * (prix reference = prix S98 - ecart, borne >=0)
+    Dim lit As String: lit = "[@[Nb. Litres]]"
+    ' Prix gazole du plein : INDEX aligne sur GS_Pleins (comme colonnes O/P).
+    Dim gaz As String
+    gaz = "IFERROR(INDEX(GS_Pleins[Gazole station],ROW()-ROW(Tableau2[#Headers])),0)"
+    ' consoE85 = conso S98 ref (B7) * (1 + surconso J8).
+    Dim consoE85 As String: consoE85 = "($B$7*(1+$J$8))"
+    ' Branche essence (X67) : litres/(1+surconso) * (prix S98 - ecart, >=0).
+    Dim essence As String
+    essence = "IF(OR(" & lit & "=""""," & prixS98 & "=""""),""""," & _
+              lit & "/(1+$J$8)*MAX(0," & prixS98 & "-ECART_REF))"
+    ' Branche diesel (W89) : litres * (consoDiesel/consoE85) * prix gazole du plein.
+    Dim diesel As String
+    diesel = "IF(OR(" & lit & "=""""," & consoE85 & "<=0," & gaz & "<=0),""""," & _
+             lit & "*(CONSO_DIESEL_REF/" & consoE85 & ")*" & gaz & ")"
     lo.ListColumns(idx).DataBodyRange.Formula2 = _
-        "=IF(OR([@Type]<>""SuperEthanol E85"",[@[Nb. Litres]]=""""," & prixS98 & "=""""),""""," & _
-        "[@[Nb. Litres]]/(1+$J$8)*MAX(0," & prixS98 & "-ECART_REF))"
+        "=IF([@Type]<>""SuperEthanol E85"",""""," & _
+        "IF(CARBURANT_REF=""GAZOLE""," & diesel & "," & essence & "))"
 End Sub
 
 '--- Task 4 (X68) : reste a amortir & progression sur COUT_TOTAL ---------------

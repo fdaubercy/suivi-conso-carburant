@@ -260,7 +260,7 @@ End Function
 ' ============================================================
 Private Function ParamDefs() As ParamDef()
     Dim d() As ParamDef
-    ReDim d(0 To 17)
+    ReDim d(0 To 19)
     d(0) = Mk("kit_prix", WS_CARB, "B6", False)
     d(1) = Mk("budget_mensuel", WS_GRAPH, "B2", False)
     d(2) = Mk("objectif_co2", WS_GRAPH, "B3", False)
@@ -278,9 +278,15 @@ Private Function ParamDefs() As ParamDef()
     d(12) = Mk("cout_entretien", WS_CARB, "N8", False)
     d(13) = Mk("surcout_assurance", WS_CARB, "N9", False)
     d(14) = Mk("aide_deduite", WS_CARB, "N10", False)
-    d(15) = Mk("carburant_ref", WS_CARB, "N12", False)   ' texte (SP98/SP95/E10)
+    d(15) = Mk("carburant_ref", WS_CARB, "N12", False)   ' texte (SP98/SP95/E10/GAZOLE)
     d(16) = Mk("ecart_ref", WS_CARB, "N13", False)
     d(17) = Mk("proj_nb_recents", WS_CARB, "N14", False)
+    ' Comparaison E85 vs diesel (W89) : conso diesel de repli + vehicule diesel
+    ' de reference. Mappes sur la zone auxiliaire "Suivi Carburant" R13/R14
+    ' (hors emprise Tableau2 A16:P45 ; posees par modRentabilite avec Names
+    ' CONSO_DIESEL_REF / VEHICULE_DIESEL_REF).
+    d(18) = Mk("conso_diesel_ref", WS_CARB, "R13", False)      ' L/100 km (repli)
+    d(19) = Mk("vehicule_diesel_ref", WS_CARB, "R14", False)   ' texte (nom vehicule diesel)
     ParamDefs = d
 End Function
 
