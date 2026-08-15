@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.32.4.0] — 2026-08-14
+
+### Added
+- **Excel — liste déroulante « Carburant de référence » sur N12 (W89)** — `modRentabilite.EnsureCarburantRefDropdown` pose une validation de données de type **liste** intégrée à la cellule `Suivi Carburant`!N12 (**SP98 / SP95 / E10 / GAZOLE**), avec message d'aide, et **déverrouille N12** (`Locked = False`) pour la rendre éditable même feuille protégée. Idempotent (re-posé par `InstallerParametresRentabilite`). L'utilisateur choisit le carburant de comparaison directement dans la cellule (flèche déroulante), `GAZOLE` activant le mode diesel. Vérifié live (Type=xlValidateList, InCellDropdown, N12 déverrouillée). `vba/modRentabilite.bas`.
+
 ## [5.32.3.0] — 2026-08-14
 
 ### Added

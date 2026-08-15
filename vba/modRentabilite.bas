@@ -33,6 +33,7 @@ Public Sub InstallerParametresRentabilite()
     UnprotectSuivi ws
 
     EnsureCostBlock ws          ' X68 : bloc cout + Names + COUT_TOTAL
+    EnsureCarburantRefDropdown ws ' W89 : liste deroulante N12 (SP98/SP95/E10/GAZOLE)
     EnsureSurconsoGuard ws      ' X70 : J8 borne + avertissement
     EnsureDieselRefParams ws    ' W89 : conso/vehicule diesel de reference (R13/R14/R15)
     EnsureEquivRefFormula ws    ' X67/W89 : colonne equiv (essence ECART_REF ou diesel)
@@ -113,6 +114,26 @@ Private Sub EnsureSurconsoGuard(ws As Worksheet)
     ws.Range("L8").Formula2 = _
         "=IF(COUNTIFS(" & typ & "," & s98 & "," & veh & "," & selV & ")<4," & _
         q & ChrW(9888) & " surconso peu fiable (n<4 pleins SP98)" & q & "," & q & q & ")"
+End Sub
+
+'--- W89 : liste deroulante du carburant de reference sur N12 -----------------
+Private Sub EnsureCarburantRefDropdown(ws As Worksheet)
+    ' Validation "liste" integree a la cellule N12 : SP98/SP95/E10/GAZOLE.
+    ' N12 deverrouillee pour rester editable quand la feuille est protegee.
+    On Error Resume Next
+    ws.Range("N12").Locked = False
+    With ws.Range("N12").Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
+             Operator:=xlBetween, Formula1:="SP98,SP95,E10,GAZOLE"
+        .IgnoreBlank = True
+        .InCellDropdown = True
+        .ShowInput = True
+        .ShowError = True
+        .InputTitle = "Carburant de reference"
+        .InputMessage = "Choisir le carburant auquel comparer l'E85 (GAZOLE = diesel)."
+    End With
+    On Error GoTo 0
 End Sub
 
 '--- W89 : parametres de comparaison au diesel (zone auxiliaire Q/R) -----------
