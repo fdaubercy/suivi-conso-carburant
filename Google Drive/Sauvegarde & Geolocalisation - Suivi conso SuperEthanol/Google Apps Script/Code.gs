@@ -1,5 +1,9 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend               v3.8.0.0
+//  SUIVI CONSO E85 — Web App Backend               v3.9.0.0
+//
+//  v3.9.0.0 — W92 Modification d'un plein : action `updatePlein` (met à jour la
+//  ligne _ImportGS par sync_id + estampille Modifié_le pour la resync Excel).
+//  ⚠️ Nécessite un REDÉPLOIEMENT de la Web App (nouvelle version).
 //
 //  v3.8.0.0 — S3 / S5 Sync : suppression bidirectionnelle + conflits
 //  ⚠️ Nécessite un REDÉPLOIEMENT de la Web App (nouvelle version).
@@ -412,6 +416,16 @@ function doPost(e) {
     return handleDeletePlein(ss, payload.sync_id, delEmail);
   }
 
+  // ── W92 — Modification d'un plein existant par sync_id (col O) ──
+  // Met à jour les champs saisis (date, type, km, litres, prix, station,
+  // véhicule, prix station, coût) + estampille Modifié_le (col Q) pour que la
+  // resync bidirectionnelle (Excel) détecte la modification.
+  if (payload.action === 'updatePlein') {
+    const upEmail = resolveOwner_(e, payload);
+    if (!upEmail) return unauthorizedResponse_();
+    return handleUpdatePlein(ss, payload, upEmail);
+  }
+
   // U7 — suppression de compte (RGPD) : exige un idToken vérifié (jamais le repli propriétaire).
   if (payload.action === 'deleteAccount') {
     const daEmail = requireUser_(e, payload);
@@ -618,6 +632,67 @@ function handleDeletePlein(ss, syncId, email) {
       sheet.getRange(i + 1, IDX_MODIFIED + 1).setValue(stamp);
       return jsonResponse({ success: true });
     }
+  }
+  return jsonResponse({ success: false, error: 'Plein introuvable (sync_id inconnu)' });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  W92 — handleUpdatePlein
+//  Modifie un plein existant (retrouvé par sync_id, col O). Met à jour les
+//  champs saisissables + estampille Modifié_le (col Q) pour la resync Excel.
+//  Ne touche NI au sync_id, NI à l'Horodatage de création (A), NI à la photo
+//  (P), NI à l'email propriétaire (S), NI au tombstone (R).
+// ─────────────────────────────────────────────────────────────
+function handleUpdatePlein(ss, payload, email) {
+  const syncId = payload && payload.sync_id;
+  if (!syncId) return jsonResponse({ success: false, error: 'sync_id manquant' });
+
+  const sheet = getOrCreateSheet(ss);
+  ensureSyncColumns_(sheet);
+  const data  = sheet.getDataRange().getValues();
+  if (data.length <= 1) return jsonResponse({ success: false, error: 'Aucun plein enregistré' });
+
+  // Retrouve la colonne sync_id par en-tête (comme handleExport), repli sur O.
+  const headers = data[0].map(String);
+  let   syncIdx = headers.indexOf('sync_id');
+  if (syncIdx < 0) syncIdx = IDX_SYNC;
+
+  const target = String(syncId).trim();
+  const stamp  = nowIso_(ss);
+  const sp     = payload.stationPrices || {};
+
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (String(data[i][syncIdx]).trim() !== target) continue;
+
+    // U7 — défense en profondeur : on ne modifie QUE ses propres pleins.
+    if (email && !_rowBelongsTo_(data[i][IDX_EMAIL], email)) {
+      return jsonResponse({ success: false, error: 'forbidden', code: 403 });
+    }
+
+    const row = i + 1;  // 1-based
+    // B — Date · C — Type · D — Km · E — Litres · F — Prix · G — Station · H — Véhicule
+    if (payload.date != null && payload.date !== '') sheet.getRange(row, 2).setValue(new Date(payload.date));
+    sheet.getRange(row, 3).setValue(payload.type || '');
+    sheet.getRange(row, 4).setValue(Number(payload.km));
+    sheet.getRange(row, 5).setValue(Number(payload.litres));
+    sheet.getRange(row, 6).setValue(Number(payload.prix));
+    sheet.getRange(row, 7).setValue(payload.station || '');
+    sheet.getRange(row, 8).setValue(payload.vehicule || '');
+    // I..N — prix station des 6 carburants (ne réécrire que si fournis)
+    if (Object.keys(sp).length) {
+      sheet.getRange(row, 9 ).setValue(sp.E85    ? Number(sp.E85)    : '');
+      sheet.getRange(row, 10).setValue(sp.SP98   ? Number(sp.SP98)   : '');
+      sheet.getRange(row, 11).setValue(sp.SP95   ? Number(sp.SP95)   : '');
+      sheet.getRange(row, 12).setValue(sp.E10    ? Number(sp.E10)    : '');
+      sheet.getRange(row, 13).setValue(sp.GAZOLE ? Number(sp.GAZOLE) : '');
+      sheet.getRange(row, 14).setValue(sp.GPLC   ? Number(sp.GPLC)   : '');
+    }
+    // T — coût exact (W71)
+    sheet.getRange(row, IDX_COUT + 1).setValue(payload.cout ? Number(payload.cout) : '');
+    // Q — Modifié_le (S5) : horodatage pour la resync bidirectionnelle.
+    sheet.getRange(row, IDX_MODIFIED + 1).setValue(stamp);
+
+    return jsonResponse({ success: true, sync_id: target });
   }
   return jsonResponse({ success: false, error: 'Plein introuvable (sync_id inconnu)' });
 }

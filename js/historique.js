@@ -187,6 +187,25 @@ export function getAllRecords() {
   return _allRecords;
 }
 
+/** W92 — Retrouve un enregistrement par sa clé stable (_recordKey), ou null. */
+export function getRecordByKey(key) {
+  if (!key) return null;
+  return _allRecords.find(r => _recordKey(r) === key) || null;
+}
+
+/** W92 — Applique une modification à un enregistrement du cache (édition d'un
+ *  plein) : fusionne `patch`, persiste le cache, invalide la conso mémoïsée et
+ *  réaffiche les listes. Utilisé après un updatePlein serveur réussi ET pour les
+ *  pleins purement locaux (sans sync_id). */
+export function updateLocalRecord(record, patch) {
+  if (!record || !patch) return false;
+  Object.assign(record, patch);
+  _saveCache(_allRecords);
+  _consoSrc = null;   // force le recalcul de la conso plein-à-plein
+  _renderLists();
+  return true;
+}
+
 /** U5 — Résumé du plein le plus récent pour la tuile « reprendre » de l'accueil.
  *  Lit la mémoire vive si disponible, sinon le cache localStorage (fonctionne
  *  donc avant même le 1er chargement réseau). Retourne null si aucun plein. */
@@ -606,6 +625,56 @@ export function initHistoireDelete() {
   document.getElementById('histoireFullList')?.addEventListener('click', handler);
 }
 
+/* ═══════════════════════════════════════
+   W92 — Édition d'un plein (déclencheur UI)
+   ═══════════════════════════════════════ */
+
+/** Émet la demande d'édition d'un plein (traitée par main.js → beginEditPlein). */
+function _requestEdit(item) {
+  if (!item) return;
+  const rowKey = String(item.dataset.rowKey || '');
+  if (!rowKey) return;
+  window.dispatchEvent(new window.CustomEvent('plein-edit-request', { detail: { rowKey } }));
+}
+
+/**
+ * W92 — Câble l'ouverture de l'édition sur les deux listes :
+ *  • clic sur le bouton ✏️ « Modifier » (dans le tiroir d'actions) ;
+ *  • tap / clic sur le corps de la ligne (sauf juste après un swipe, ou quand
+ *    le tiroir est ouvert → le tap le referme, géré par histSwipe).
+ */
+export function initHistoireEdit() {
+  const handler = (e) => {
+    const editBtn = e.target.closest('.hist-edit');
+    if (editBtn) { _requestEdit(editBtn.closest('.hist-item')); return; }
+
+    const content = e.target.closest('.hist-swipe-content');
+    if (!content) return;
+    const item = content.closest('.hist-item');
+    if (!item) return;
+    // Tiroir ouvert : le tap sert à refermer (histSwipe le gère) → pas d'édition.
+    if (item.classList.contains('open')) { item.classList.remove('open'); return; }
+    // Clic « fantôme » qui suit un swipe-drag → ignoré (drapeau posé par histSwipe).
+    if (item.dataset.swiped === '1') { item.dataset.swiped = ''; return; }
+    _requestEdit(item);
+  };
+  // Accès clavier (desktop / lecteurs d'écran) : Entrée ou Espace sur la ligne.
+  const keyHandler = (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const content = e.target.closest('.hist-swipe-content');
+    if (!content) return;
+    e.preventDefault();
+    _requestEdit(content.closest('.hist-item'));
+  };
+
+  ['historiqueList', 'histoireFullList'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('click', handler);
+    el.addEventListener('keydown', keyHandler);
+  });
+}
+
 /* ─── Helpers ─── */
 function setSelectValue(id, value) {
   const sel = document.getElementById(id);
@@ -727,20 +796,14 @@ function renderItem(r) {
     ? ` · <span class="hist-conso${c.level ? ' ' + c.level : ''}" title="Consommation depuis le plein précédent (${c.conso.toFixed(1)} L/100 km)${c.level === 'eco' ? ' — économe vs vos pleins de ce carburant' : c.level === 'high' ? ' — gourmand vs vos pleins de ce carburant' : c.level === 'mid' ? ' — dans la normale de ce carburant' : ''}">${c.conso.toFixed(1)} L/100</span>`
     : '';
 
-  // Poubelle rendue pour TOUTES les lignes : avec sync_id → suppression serveur ;
-  // sans sync_id (plein local / doublon fantôme) → purge locale du cache.
-  const deleteBtn =
-    `<button class="hist-delete" type="button"
-        data-sync-id="${escapeHtml(syncId)}"
-        data-row-key="${escapeHtml(rowKey)}"
-        aria-label="Supprimer ce plein">🗑️</button>`;
-
+  // Tiroir d'actions révélé par swipe-gauche (iOS-style) : Modifier / Partager /
+  // Supprimer. La poubelle est rendue pour TOUTES les lignes : avec sync_id →
+  // suppression serveur ; sans sync_id (plein local / doublon fantôme) → purge
+  // locale du cache. Idem pour l'édition (updatePlein serveur ou cache local).
   return `
-    <div class="hist-item">
-      <div class="hist-row1">
-        <span class="hist-icon">${icon}</span>
-        <span class="hist-date">${date}</span>
-        <span class="hist-total">${total} €</span>
+    <div class="hist-item" data-sync-id="${escapeHtml(syncId)}" data-row-key="${escapeHtml(rowKey)}">
+      <div class="hist-drawer" aria-hidden="true">
+        <button class="hist-edit" type="button" aria-label="Modifier ce plein">✏️</button>
         <button class="hist-share" type="button"
           data-share-litres="${litres}"
           data-share-prix="${prix}"
@@ -748,17 +811,27 @@ function renderItem(r) {
           data-share-date="${date}"
           data-share-type="${type}"
           aria-label="Partager ce plein">📤</button>
-        ${deleteBtn}
+        <button class="hist-delete" type="button"
+          data-sync-id="${escapeHtml(syncId)}"
+          data-row-key="${escapeHtml(rowKey)}"
+          aria-label="Supprimer ce plein">🗑️</button>
       </div>
-      <div class="hist-row2">
-        <span>${litres} L · ${prix} €/L</span>
-        <span class="hist-km">${km} km${consoHtml}</span>
+      <div class="hist-swipe-content" role="button" tabindex="0" aria-label="Modifier ce plein — ${date}">
+        <div class="hist-row1">
+          <span class="hist-icon">${icon}</span>
+          <span class="hist-date">${date}</span>
+          <span class="hist-total">${total} €</span>
+        </div>
+        <div class="hist-row2">
+          <span>${litres} L · ${prix} €/L</span>
+          <span class="hist-km">${km} km${consoHtml}</span>
+        </div>
+        <div class="hist-row3">
+          <img class="brand-ico" src="${escapeHtml(brand.icon)}" alt="${escapeHtml(brand.label || 'Station')}" width="18" height="18" loading="lazy" decoding="async">
+          <span>${escapeHtml(station)}</span>
+        </div>
+        ${secteur}
       </div>
-      <div class="hist-row3">
-        <img class="brand-ico" src="${escapeHtml(brand.icon)}" alt="${escapeHtml(brand.label || 'Station')}" width="18" height="18" loading="lazy" decoding="async">
-        <span>${escapeHtml(station)}</span>
-      </div>
-      ${secteur}
     </div>
   `;
 }

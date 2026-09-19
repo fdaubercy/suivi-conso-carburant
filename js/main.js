@@ -16,10 +16,10 @@ import { _buildTypeToggle, setType, registerPriceCallback, initTypeToggle } from
 import { fetchPricesNearUser, fetchPricesByCP } from './prix.js';
 import { geolocate, pickStation, highlightNearbyItem, initNearbyList } from './geo.js';
 import { onAutreInput, setRadius } from './recherche.js';
-import { onStationChange, onKmInput, submitForm, checkDuplicate, saveDraft, restoreDraft, initVoiceKm } from './formulaire.js';
+import { onStationChange, onKmInput, submitForm, checkDuplicate, saveDraft, restoreDraft, initVoiceKm, beginEditPlein, cancelEditPlein } from './formulaire.js';
 import { chargerStations, mergeHistoryStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
-import { chargerHistorique, dupliquerDernier, voirTout, exportHistoriqueCSV, exportHistoriqueAllCSV, initCsvSepSetting, initHistoireFilters, initHistoireShare, initHistoireDelete, getMaxKmForVehicule, getAllRecords, rerenderHistorique, renderFullHistory } from './historique.js';
+import { chargerHistorique, dupliquerDernier, voirTout, exportHistoriqueCSV, exportHistoriqueAllCSV, initCsvSepSetting, initHistoireFilters, initHistoireShare, initHistoireDelete, initHistoireEdit, getRecordByKey, getMaxKmForVehicule, getAllRecords, rerenderHistorique, renderFullHistory } from './historique.js';
 import { renderStats, getNextKmPrediction, initBilanSheet } from './stats.js';
 import { initSparkToggles, initKitSetting, initRentabiliteSettings, initBudgetSetting, initCo2ObjectifSetting, initRapport, refreshConversionInputs } from './statsSettings.js';
 import { initDepensesUI, renderDepenses, syncDepenses } from './depenses.js';
@@ -35,6 +35,7 @@ import { syncParametres, initCompteUI } from './parametres.js';
 import { initRouter, navigate } from './router.js';
 import { initPullRefresh } from './pullrefresh.js';
 import { initSwipe } from './swipe.js';
+import { initHistSwipe } from './histSwipe.js';
 import { initBadges, refreshBadges } from './badges.js';
 import { initPreferences, renderHomeResume } from './preferences.js';
 import { initAuth, renderAuthSlot, authEnabled, isAuthed } from './auth.js';
@@ -237,6 +238,16 @@ function initStaticHandlers() {
   // Submit
   document.getElementById('submitBtn')?.addEventListener('click', submitForm);
 
+  // W92 — Édition d'un plein : ouverture du formulaire pré-rempli sur demande
+  // (émise par historique.js / histSwipe.js), puis bouton « Annuler la modification ».
+  window.addEventListener('plein-edit-request', e => {
+    const rec = getRecordByKey(e.detail?.rowKey || '');
+    if (!rec) return;
+    navigate('saisie');
+    beginEditPlein(rec);
+  });
+  document.getElementById('editCancelBtn')?.addEventListener('click', cancelEditPlein);
+
   // W43 — accueil à tuiles : bouton 🏠 + tuiles + raccourcis
   document.getElementById('homeBtn')?.addEventListener('click', () => navigate('accueil'));
   document.getElementById('view-accueil')?.addEventListener('click', e => {
@@ -279,6 +290,8 @@ initHistoireFilters(); // historique.js — filtres historique complet (W32)
 initCsvSepSetting();   // historique.js — W54 choix du séparateur CSV (persisté)
 initHistoireShare();   // historique.js — W26 Web Share API
 initHistoireDelete();  // historique.js — suppression d'un plein (UI + GoogleSheet)
+initHistoireEdit();    // historique.js — W92 déclencheur d'édition (bouton ✏️ + tap/clavier)
+initHistSwipe();       // histSwipe.js — W92 swipe-gauche → tiroir d'actions (tactile)
 initComparatifExport(); // comparatif.js — W52 export CSV du comparatif véhicules
 initSparkToggles();    // stats.js — W34 filtres sparkline multi-carburant
 initKitSetting();      // stats.js — prix du boitier (kit) pour l'economie nette

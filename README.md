@@ -61,7 +61,7 @@ L'application est organisée en **5 vues** (pages) accessibles via une **barre d
 | ⛽ **Saisie** | Formulaire, véhicule, carburant, scan ticket, station, comparateur, secteur, « Enregistrer » |
 | 📊 **Stats** | Statistiques live, **budget mensuel** (W39) + **tendance 6 mois** (W50) + **alerte de dépassement anticipée** (W56), **CO₂ évité** (W40) + **objectif CO₂ annuel** (W51) + **cumul mensuel** (W55), **comparatif véhicules** (W41) + **export CSV** (W52), rapport mensuel, bilan annuel « Wrapped » |
 | 🗺️ **Carte** | **Stations les moins chères autour de moi** (W64/D3 — **sélecteur E85/Gazole/SP98**, rayon réglable **5/10/15/20 km**, top‑3 au-dessus de la carte + reste en liste défilante, marqueurs enseigne + prix, zoom/plein écran), puis carte des stations habituelles + prix moyens, **sélecteur E85/Gazole/SP98** (W47), **épinglage manuel 📌** (W53) |
-| 📜 **Historique** | 5 derniers pleins + historique complet filtrable + **export CSV filtré / global, séparateur `;` ou `,`** (W25 + W54) |
+| 📜 **Historique** | 10 derniers pleins + historique complet filtrable + **édition d'un plein par swipe/tap** (W92) + **export CSV filtré / global, séparateur `;` ou `,`** (W25 + W54) |
 | ⚙️ **Réglages** | Réglages **regroupés par bloc repliable** (v4.1/v4.2) : **🚀 démarrage** (vue d'ouverture), alertes prix par carburant (alerte + seuil groupés), **conversion E85** (coût total **par véhicule** : boîtier + pose + carte grise + surcoût assurance − aide **+ dépenses d'entretien**, **carburant de référence** SP98/SP95/E10 **ou Gazole/diesel** + écart €/L, nb pleins récents pour la projection — X67/X68/X69/X70, W89, W91 ; en mode diesel : véhicule diesel de référence + conso L/100 de repli), **budget mensuel**, **objectif CO₂ annuel** |
 
 - **Routeur par hash** (`js/router.js`) : chaque vue a son URL (`#/saisie`, `#/stats`, `#/carte`, `#/historique`, `#/params`) → le **bouton retour** du navigateur et de l'OS fonctionne nativement, et l'URL est partageable. Aucun fallback serveur nécessaire (compatible GitHub Pages).
@@ -230,6 +230,9 @@ Au prochain chargement, le brouillon est restauré automatiquement (après 800 m
 - Validation des champs obligatoires avant envoi
 - Feedback visuel succès / erreur ; remise à zéro automatique du formulaire
 - **Scroll-to-top automatique (W24)** après enregistrement réussi ou mise en file hors-ligne — le formulaire repasse en vue sans geste manuel
+
+### ✏️ Modifier un plein — swipe iOS (W92)
+Chaque ligne d'historique (10 derniers **et** historique complet) est **éditable** : un **balayage gauche « iOS »** fait glisser la carte et révèle un tiroir d'actions **✏️ Modifier · 📤 Partager · 🗑️ Supprimer** ; un **tap** sur la ligne (ou **Entrée** au clavier) ouvre l'édition. Le formulaire de saisie est alors réutilisé en **mode édition** (pré-rempli, bandeau « ✏️ Modification en cours » + bouton **Annuler**) : la validation **met à jour** la ligne existante — tous les champs modifiables (date, véhicule, type, km, litres, prix, station, coût). Backend : action `updatePlein` (retrouve la ligne par `sync_id`, estampille `Modifié_le` pour la resync Excel). Geste **tactile uniquement** (`js/histSwipe.js`) ; les pleins sans `sync_id` (locaux) sont mis à jour dans le cache local.
 
 ### 📤 Web Share API (W26)
 Bouton **📤** sur chaque entrée de l'historique (recent et complet) → partage les détails d'un plein via le menu natif iOS/Android (WhatsApp, SMS, mail…).

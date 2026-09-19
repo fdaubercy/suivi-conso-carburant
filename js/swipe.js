@@ -22,6 +22,7 @@ const NO_SWIPE = [
   'input', 'select', 'textarea', 'button', 'a',
   '.static-map', '#staticStationMap', '#stationMap', '.leaflet-container',
   '.smap-fuel-sel', '.smap-sort', '.switch', '.radius-row',
+  '.hist-item',   // W92 — swipe de ligne (tiroir d'actions) géré par histSwipe.js
   '[data-no-swipe]'
 ].join(',');
 

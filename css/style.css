@@ -1131,12 +1131,52 @@ header h1 {
 .hist-header--stack { flex-direction: column; align-items: stretch; gap: 8px; }
 .hist-header--stack .hist-actions { justify-content: flex-start; flex-wrap: wrap; }
 
+/* W92 — carte de plein « swipe iOS » : contenu coulissant + tiroir d'actions.
+   overflow:hidden clippe le tiroir tant que la carte n'est pas balayée. */
 .hist-item {
-  padding: 8px 0;
+  position: relative;
+  overflow: hidden;
   border-bottom: 1px solid var(--border);
 }
-.hist-item:last-child { border-bottom: none; padding-bottom: 0; }
-.hist-item:first-child { padding-top: 0; }
+.hist-item:last-child { border-bottom: none; }
+
+/* Tiroir d'actions révélé par swipe-gauche (sous le contenu, à droite). */
+.hist-drawer {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 2px;
+  padding: 0 6px;
+}
+.hist-drawer button {
+  background: transparent; border: none;
+  font-size: 16px; line-height: 1;
+  width: 40px; height: 40px;
+  border-radius: 8px;
+  color: var(--text-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0; flex-shrink: 0;
+  transition: background .15s;
+}
+.hist-drawer button:active { background: var(--toggle-bg); }
+.hist-drawer .hist-delete:disabled { opacity: .4; cursor: default; }
+body.no-share .hist-drawer .hist-share { display: none; }
+
+/* Contenu opaque qui glisse pour dévoiler le tiroir. */
+.hist-swipe-content {
+  position: relative; z-index: 1;
+  background: var(--white);
+  padding: 8px 0;
+  transform: translateX(0);
+  transition: transform .22s ease;
+  touch-action: pan-y;             /* le scroll vertical reste natif */
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hist-item.open .hist-swipe-content { transform: translateX(-132px); }
+.hist-swipe-content:focus-visible { outline: 2px solid var(--blue-mid); outline-offset: -2px; border-radius: 6px; }
+.hist-item:first-child .hist-swipe-content { padding-top: 0; }
+.hist-item:last-child  .hist-swipe-content { padding-bottom: 0; }
 
 .hist-row1 {
   display: flex; align-items: center; gap: 8px;
@@ -1146,35 +1186,23 @@ header h1 {
 .hist-date { flex: 1; }
 .hist-total { color: var(--blue-mid); font-weight: 700; }
 
-/* W26 — bouton Partager dans hist-row1 */
-.hist-share {
-  background: transparent; border: none;
-  font-size: 13px; line-height: 1;
-  width: 24px; height: 24px;
-  border-radius: 4px;
-  color: var(--text-muted); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  -webkit-tap-highlight-color: transparent;
-  padding: 0; flex-shrink: 0;
-  transition: background .15s;
+/* W92 — bandeau « modification en cours » en tête du formulaire de saisie. */
+.edit-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-bottom: 12px; padding: 8px 12px;
+  background: var(--card-alt, rgba(59, 130, 246, .10));
+  border: 1px solid var(--blue-mid);
+  border-radius: 8px;
+  font-size: 13px; font-weight: 600; color: var(--text);
 }
-.hist-share:active { background: var(--toggle-bg); }
-body.no-share .hist-share { display: none; }
-
-/* Bouton Supprimer dans hist-row1 */
-.hist-delete {
-  background: transparent; border: none;
-  font-size: 13px; line-height: 1;
-  width: 24px; height: 24px;
-  border-radius: 4px;
-  color: var(--text-muted); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+.edit-banner-cancel {
+  background: transparent; border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 10px;
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  cursor: pointer; flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
-  padding: 0; flex-shrink: 0;
-  transition: background .15s;
 }
-.hist-delete:active { background: var(--toggle-bg); }
-.hist-delete:disabled { opacity: .4; cursor: default; }
+.edit-banner-cancel:active { background: var(--toggle-bg); }
 
 .hist-row2 {
   display: flex; align-items: center; justify-content: space-between;

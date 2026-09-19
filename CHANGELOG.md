@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.34.0.0] — 2026-09-19
+
+### Added
+- **Modifier un plein depuis l'historique (W92)** — chaque ligne d'historique (10 derniers pleins **et** historique complet) est désormais éditable : un **swipe-gauche « iOS »** fait glisser la carte et révèle un tiroir d'actions **✏️ Modifier · 📤 Partager · 🗑️ Supprimer** ; un **tap** (ou Entrée au clavier) ouvre l'édition. Le formulaire de saisie est réutilisé en **mode édition** (pré-rempli, bandeau « ✏️ Modification en cours » + bouton **Annuler**) : à la validation, la ligne existante est **mise à jour** au lieu d'en créer une nouvelle. Tous les champs sont modifiables (date, véhicule, type, km, litres, prix, station, coût). Nouveau module `js/histSwipe.js` (geste tactile) ; `js/historique.js` (`initHistoireEdit`, `getRecordByKey`, `updateLocalRecord`, `renderItem` restructuré en contenu coulissant + tiroir) ; `js/formulaire.js` (`beginEditPlein`, `cancelEditPlein`, branche `updatePlein` dans `submitForm`) ; `js/swipe.js` (`.hist-item` exclu du swipe inter-onglets) ; `js/main.js`, `index.html`, `css/style.css`. Tests : `tests/historiqueEdit.test.js`.
+- **Backend — action `updatePlein` (`Code.gs` v3.9.0.0)** — met à jour la ligne `_ImportGS` retrouvée par `sync_id` (date, type, km, litres, prix, station, véhicule, prix station, coût) et **estampille `Modifié_le`** (col Q) pour que la resync bidirectionnelle Excel détecte la modification. Défense en profondeur U7 (on ne modifie que ses propres pleins). Les pleins **sans `sync_id`** (locaux / doublons fantômes) sont mis à jour dans le **cache local** uniquement. ⚠️ **Nécessite un REDÉPLOIEMENT de la Web App.**
+
+> ℹ️ Périmètre : édition **web → Google Sheet** (l'app écrit la modif, Excel se resynchronise ensuite via son mécanisme existant grâce à `Modifié_le`). Le geste de swipe est **tactile uniquement** ; le tap et le clavier restent les accès universels.
+
 ## [5.33.8.0] — 2026-09-05
 
 ### Added

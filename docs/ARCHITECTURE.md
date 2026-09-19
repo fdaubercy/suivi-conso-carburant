@@ -37,7 +37,7 @@ Un classeur **Excel `.xlsm`** se synchronise de façon bidirectionnelle avec le 
 | `pwa.js` | Bannière install + détection SW en attente (`SKIP_WAITING`) |
 
 ## Backend GAS (`Google Drive/.../Google Apps Script/`)
-- `Code.gs` — actions `doPost` : enregistrement plein, `addStation`, `syncStations`, `bulkAdd`, `bulkUpdate`, `bulkDelete`, `deletePlein`, `scanTicket`, `saveLastGeo`, `setParametres`. Actions `doGet` : `export` (+ `deleted:[]`), `lowprice`, `sectorPrices`, `stats`, `getParametres`.
+- `Code.gs` — actions `doPost` : enregistrement plein, `addStation`, `syncStations`, `bulkAdd`, `bulkUpdate`, `bulkDelete`, `deletePlein`, `updatePlein` (W92 — MAJ d'un plein par `sync_id` + `Modifié_le`), `scanTicket`, `saveLastGeo`, `setParametres`, `setDepenses`. Actions `doGet` : `export` (+ `deleted:[]`), `lowprice`, `sectorPrices`, `stats`, `getParametres`.
 - `Auth.gs` — U7 : vérifie l'`idToken` Google (`tokeninfo`), résout l'email propriétaire (`resolveOwner_`), `SYNC_SECRET` pour les outils propriétaire (Excel/PQ).
 - Token optionnel `APP_TOKEN` : activer en posant la propriété dans GAS **et** dans `js/config.js`.
 
