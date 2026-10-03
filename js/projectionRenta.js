@@ -87,7 +87,7 @@ export function computeProjectionRenta(records, { econBrute, cout, n, ecoOf }) {
   const dB = dayMax + (reste / tauxRecent / rythmeKmJ) * DAY_MS;
   return {
     atteint: false,
-    date: new Date(Math.round((dA + dB) / 2 / DAY_MS) * DAY_MS),   // jour le plus proche
+    date: new Date(Math.floor((dA + dB) / 2 / DAY_MS) * DAY_MS),   // jour entamé (= affichage Excel J11)
     margeJours: Math.round(Math.abs(dA - dB) / 2 / DAY_MS),
     kmCible: kmMax + ((reste / tauxMoyen) + (reste / tauxRecent)) / 2,
     tauxMoyen, tauxRecent, rythmeKmJ, n,

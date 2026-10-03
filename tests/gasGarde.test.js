@@ -258,3 +258,18 @@ describe('Audit.gs — auditDepenses_ (fonction pure)', () => {
     expect(r.issues[0].message).toMatch(/^Supprimée le 28\/09\/2026, restaurable$/);
   });
 });
+
+// v5.37.1 — `new Date('yyyy-mm-dd')` = minuit UTC = 02:00 à Paris : toutes les dates
+// de pleins écrites par le GAS étaient stockées à 02:00. Interdit hors de dateJour_.
+describe('garde statique — dates « jour » écrites à minuit local', () => {
+  it('aucun `new Date(payload.date)` dans les .gs (utiliser dateJour_)', () => {
+    GS_FILES.forEach(f => {
+      expect(src(f), f).not.toMatch(/new Date\(\s*payload\.date\s*\)/);
+    });
+  });
+  it('dateJour_ existe et utilise le fuseau du classeur', () => {
+    const code = src('Code.gs');
+    expect(code).toMatch(/function dateJour_\(/);
+    expect(code).toMatch(/getSpreadsheetTimeZone\(\)[\s\S]{0,200}Utilities\.parseDate/);
+  });
+});

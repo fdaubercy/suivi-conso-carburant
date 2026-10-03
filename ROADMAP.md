@@ -130,6 +130,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.37.1.0 | **Dates des pleins à minuit local (X74)** — le GAS stockait les dates de pleins à 02:00 (`new Date('yyyy-mm-dd')` = minuit UTC) ; helper `dateJour_`, 59 dates du Sheet + 11 lignes Excel réparées, `modSyncEngine.JourSeul`, garde statique. Projection W94 tronquée au jour comme Excel J11. GAS v68. |
 | v5.37.0.0 | **Projection de rentabilité au rythme récent (W94)** — le réglage « Nb pleins récents » (`proj_nb_recents`) pilote la date de rentabilité de l'app, calculée comme l'Excel `J11 ± L11` / `J12` (médiane taux moyen / N derniers pleins E85, rythme km/j) — parité vérifiée sur données réelles. Surconso inchangée (option écartée). `js/projectionRenta.js`, `tests/projectionRenta.test.js`. |
 | v5.36.0.0 | **Véhicules communs + dépenses protégées (W95)** — liste des véhicules synchronisée via `Parametres.vehicules` (union + déduction depuis pleins/dépenses, suppressions volontaires LWW), dates des dépenses normalisées (GAS/app/Excel), confirmation + Annuler + corbeille restaurable, journal `Depenses_journal` append-only, tests de non-régression (`gasGarde`, `depensesProtection`, `vehiculesSync`). GAS v67. |
 | v5.36.0.0 | **Contrôle d'intégrité des dépenses (X72)** — section `depenses` de l'audit GAS (`auditDepenses_`), carte app avec Restaurer, module Excel `modIntegriteDep` (doublons, dates/montants, suppressions récentes, écart Excel ↔ Sheet). |

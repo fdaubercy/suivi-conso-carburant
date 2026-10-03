@@ -4,6 +4,12 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.37.1.0] — 2026-10-03
+
+### Fixed
+- **Dates des pleins stockées à 02:00 (X74)** — le GAS écrivait la date d'un plein avec `new Date('yyyy-mm-dd')` (= minuit **UTC** = 02:00 à Paris) à l'ajout (`appendRow`) et à la modification (W92). Nouveau helper `dateJour_` (minuit dans le fuseau du classeur, `Utilities.parseDate`). **Données réparées** : 59 dates du Google Sheet (`_ImportGS!B`) et 11 lignes de `GS_Pleins` dans l'Excel ramenées à minuit ; l'export renvoie désormais `… 00:00:00` pour tous les pleins. Excel : `modSyncEngine.JourSeul` retire toute heure parasite à l'import d'une date de plein. Garde statique (`tests/gasGarde.test.js`) : `new Date(payload.date)` interdit dans les `.gs`. GAS v68.
+- **Projection de rentabilité (W94)** — la date affichée est tronquée au jour (comme l'affichage Excel `J11`) au lieu d'être arrondie : app et Excel affichent la même date (24/04/2027 ± 7 j sur les données réelles).
+
 ## [5.37.0.0] — 2026-10-03
 
 ### Added

@@ -256,7 +256,7 @@ Public Function ImportGSToExcel(ws As Worksheet, gsRecs() As String, _
             End If
 
             rng(1).value = ParseDt(JsonGet(rec, "Horodatage"))
-            rng(2).value = ParseDt(JsonGet(rec, "Date"))
+            rng(2).value = JourSeul(ParseDt(JsonGet(rec, "Date")))
             rng(3).value = JsonGet(rec, "Type")
             rng(4).value = ToNum(JsonGet(rec, "Km compteur"))
             rng(5).value = ToNum(JsonGet(rec, "Nb. Litres"))
@@ -364,7 +364,7 @@ End Function
 Private Sub UpdateRowFromGS(ws As Worksheet, r As Long, rec As String)
     Application.EnableEvents = False
     On Error Resume Next
-    ws.Cells(r, 2).value = ParseDt(JsonGet(rec, "Date"))
+    ws.Cells(r, 2).value = JourSeul(ParseDt(JsonGet(rec, "Date")))
     ws.Cells(r, 3).value = JsonGet(rec, "Type")
     ws.Cells(r, 4).value = ToNum(JsonGet(rec, "Km compteur"))
     ws.Cells(r, 5).value = ToNum(JsonGet(rec, "Nb. Litres"))
@@ -424,6 +424,16 @@ Private Function ApplyGSDeletions(ws As Worksheet, delIds() As String) As Long
 done:
     Application.EnableEvents = True
     ApplyGSDeletions = cnt
+End Function
+
+' Date de plein = un JOUR : on retire toute heure parasite (le Google Sheet a
+' longtemps stocke les dates a 02:00 = minuit UTC ; corrige v5.37.1).
+Private Function JourSeul(v As Variant) As Variant
+    If VarType(v) = vbDate Then
+        JourSeul = DateSerial(Year(v), Month(v), Day(v))
+    Else
+        JourSeul = v
+    End If
 End Function
 
 Private Function ToNum(s As String) As Variant

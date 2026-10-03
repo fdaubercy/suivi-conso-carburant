@@ -77,6 +77,18 @@
 //  Appliqué sur l'enregistrement d'un plein (doPost principal).
 // ============================================================
 const SPREADSHEET_ID    = '1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE';
+
+// Date « jour » ('yyyy-mm-dd', éventuellement suivie d'une heure) → Date à MINUIT
+// dans le fuseau du classeur. `new Date('2026-10-01')` vaut minuit UTC = 02:00 à
+// Paris : les pleins saisis depuis l'app étaient stockés à 02:00 (corrigé v5.37.1).
+function dateJour_(v, sheet) {
+  if (v instanceof Date) return v;
+  const m = String(v == null ? '' : v).trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return new Date(v);
+  let tz;
+  try { tz = sheet.getParent().getSpreadsheetTimeZone(); } catch (e) { tz = Session.getScriptTimeZone(); }
+  return Utilities.parseDate(m[1] + '-' + m[2] + '-' + m[3], tz, 'yyyy-MM-dd');
+}
 const SHEET_NAME        = '_ImportGS';
 const STATIONS_SHEET    = 'Stations';
 const VEHICULES_SHEET   = 'Vehicules';
@@ -557,7 +569,7 @@ function appendPleinRow_(sheet, payload, sp, syncId, ownerEmail) {
 
   sheet.appendRow([
     new Date(),                                         // A — Horodatage
-    new Date(payload.date),                             // B — Date
+    dateJour_(payload.date, sheet),                     // B — Date (minuit local, v5.37.1)
     payload.type,                                       // C — Type
     Number(payload.km),                                 // D — Km compteur
     Number(payload.litres),                             // E — Nb. Litres
@@ -763,7 +775,7 @@ function handleUpdatePlein(ss, payload, email) {
 
     const row = i + 1;  // 1-based
     // B — Date · C — Type · D — Km · E — Litres · F — Prix · G — Station · H — Véhicule
-    if (payload.date != null && payload.date !== '') sheet.getRange(row, 2).setValue(new Date(payload.date));
+    if (payload.date != null && payload.date !== '') sheet.getRange(row, 2).setValue(dateJour_(payload.date, sheet));
     sheet.getRange(row, 3).setValue(payload.type || '');
     sheet.getRange(row, 4).setValue(Number(payload.km));
     sheet.getRange(row, 5).setValue(Number(payload.litres));
