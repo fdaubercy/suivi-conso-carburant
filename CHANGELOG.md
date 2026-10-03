@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.37.0.0] — 2026-10-03
+
+### Added
+- **Projection de rentabilité au rythme récent, alignée sur l'Excel (W94)** — le réglage **« Nb pleins récents »** (`proj_nb_recents`, synchronisé avec Excel `N14`) est désormais utilisé par l'app : la jauge « 📈 Atteinte de rentabilité » affiche **« rentable vers 25 avril 2027 ± 7 j · médiane rythme moyen / 6 derniers pleins E85 · ≈ 31 530 km »**, calculée exactement comme l'Excel (`J11`/`L11`/`J12`) : taux d'économie €/km moyen (depuis la pose du kit) et sur les N derniers pleins E85, rythme km/jour, médiane des deux dates ± demi-écart. Parité vérifiée sur les données réelles (même date, même marge, même km cible). Repli sur l'ancienne estimation mensuelle (W89) si la projection n'est pas calculable. Surconso E85 inchangée (tous les pleins). Nouveau module pur `js/projectionRenta.js` ; `js/stats.js` (économie par plein), `js/statsCharts.js` (`buildRentaBar`). Tests : `tests/projectionRenta.test.js`.
+
 ## [5.36.0.0] — 2026-10-03
 
 ### Fixed

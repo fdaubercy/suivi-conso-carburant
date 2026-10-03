@@ -21,6 +21,7 @@ import { buildRentaBar, buildCO2Tile, buildCo2Annuel, buildCo2Monthly,
          buildBudgetBar, buildBudgetTrend,
          getReportMonths, buildMonthlyReport } from './statsCharts.js';
 import { buildPrixSparkline, buildPrediction } from './statsSparkline.js';
+import { computeProjectionRenta, getProjNbRecents } from './projectionRenta.js';
 
 // ─── Ré-exports : API publique préservée après le découpage W87 ───
 export { getKitPrix, getCoutTotalConversion, refShortOf, getReportMonths, buildMonthlyReport };
@@ -93,11 +94,14 @@ function computeStats() {
 
   // Économie à parité de coût/km : litres réf. équivalents = litres E85 × ratioConso.
   let totCoutE85 = 0, totCoutRefEquiv = 0;
+  const ecoParPlein = new Map();   // W94 — économie de chaque plein (projection au taux récent)
   e85Pleins.forEach(r => {
     const prix = Number(r['Prix €/L']);
     const lit  = Number(r['Nb. Litres']);
+    const refEquiv = lit * rm.ratioConso * rm.refPriceFromFill(r, refMoyen);
     totCoutE85      += lit * prix;
-    totCoutRefEquiv += lit * rm.ratioConso * rm.refPriceFromFill(r, refMoyen);
+    totCoutRefEquiv += refEquiv;
+    ecoParPlein.set(r, refEquiv - lit * prix);
   });
 
   const econBrute = totCoutRefEquiv - totCoutE85;    // = J30 (J29 − B35)
@@ -106,6 +110,10 @@ function computeStats() {
   // rattaché au véhicule courant (postes fixes + dépenses d'entretien).
   const coutTotalConversion = getCoutTotalConversion(veh);
   const econNette = econBrute - coutTotalConversion; // = J31 (sur COUT_TOTAL)
+  // W94 — date de rentabilité = médiane rythme moyen / N derniers pleins E85 (= Excel J11).
+  const projection = computeProjectionRenta(byVeh, {
+    econBrute, cout: coutTotalConversion, n: getProjNbRecents(), ecoOf: r => ecoParPlein.get(r),
+  });
 
   // W89 (A1) — durée d'usage E85 (1er → dernier plein E85), en mois, pour projeter
   // la date d'atteinte de rentabilité au rythme moyen d'économie brute observé.
@@ -143,6 +151,7 @@ function computeStats() {
     co2Evite,
     totLitresE85,
     e85SpanMonths,
+    projection,
     nbPleins: recent.length,
     vehiculeName: veh || 'tous véhicules'
   };

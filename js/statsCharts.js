@@ -31,10 +31,24 @@ export function buildRentaBar(s) {
     ? `<span class="renta-done">🎉 rentabilité atteinte</span>`
     : `<span class="renta-left">reste ${(cout - brute).toFixed(0)} € à amortir</span>`;
 
+  // W94 — projection alignée sur l'Excel (J11 ± L11) : médiane des dates au taux
+  //   moyen et au taux des N derniers pleins E85. Repli A1 (W89) si non calculable.
+  let etaHtml = '';
+  const p = s.projection;
+  if (!atteint && p && !p.atteint) {
+    if (p.date.getTime() - Date.now() <= 3650 * 86400000) {
+      const quand = p.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+      const marge = p.margeJours > 0 ? ` <span class="renta-eta-marge">± ${p.margeJours} j</span>` : '';
+      const km = Math.round(p.kmCible).toLocaleString('fr-FR');
+      const base = p.n > 0 ? `rythme moyen / ${p.n} derniers pleins E85` : 'rythme moyen';
+      etaHtml = `<div class="renta-eta">⏳ rentable vers <strong>${quand}</strong>${marge} <span class="renta-eta-sub">médiane ${base} · ≈ ${km} km</span></div>`;
+    } else {
+      etaHtml = `<div class="renta-eta">⏳ rentabilité à <strong>plus de 10 ans</strong> au rythme actuel</div>`;
+    }
+  }
   // A1 — extrapolation : économie brute par mois × mois restants → date estimée.
   //   rythme = brute cumulée / durée d'usage E85 ; seulement si assez de recul (≥ 2 mois).
-  let etaHtml = '';
-  if (!atteint) {
+  if (!atteint && !etaHtml) {
     const rateMois = s.e85SpanMonths >= 2 ? brute / s.e85SpanMonths : 0;
     if (rateMois > 0) {
       const moisRestants = (cout - brute) / rateMois;
