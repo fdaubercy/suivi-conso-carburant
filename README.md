@@ -189,10 +189,9 @@ Si OSM ne retourne pas de résultat (ou trop loin), l'adresse de l'API gouvernem
 Le raccourci **« Dupliquer le dernier »** (accueil / onglet) pré-remplit le formulaire depuis le dernier plein (véhicule, type, station) et **relance une requête de prix** sur la station. Depuis la v4.14.0.0, la sélection d'une station connue (donc la duplication) relève les prix **à la position réelle de la station** — coordonnées mémorisées (`js/stationsmap.js` `getStationCoords`) — au lieu de chercher autour du GPS courant. Cela garantit que **les prix de tous les carburants (E85/SP98/SP95/E10/Gazole/GPLc, colonnes I→N)** sont bien enregistrés pour la bonne station, y compris en dupliquant loin de la pompe.
 
 ### Gestion des véhicules
-- Liste stockée **100 % en localStorage** (aucune donnée envoyée côté serveur)
-- **Import initial** au premier lancement depuis l'onglet `vehicules` du Google Sheet (si localStorage vide)
-- **Ajout / suppression** directement depuis le sélecteur (local uniquement)
-- **Dernier véhicule utilisé** auto-sélectionné au démarrage
+- Liste **commune à tous les appareils** (W95) : clé `vehicules` de l'onglet `Parametres`, **fusion par union** (local ∪ Sheet ∪ véhicules **déduits des pleins et des dépenses**) — un appareil neuf retrouve ses véhicules sans saisie ; une suppression volontaire est propagée (LWW par nom) — `js/vehiculesSync.js`
+- **Ajout / suppression** directement depuis le sélecteur (propagés aux autres appareils)
+- **Dernier véhicule utilisé** auto-sélectionné au démarrage ; véhicule unique (ou du plein le plus récent sur un appareil vierge) sélectionné automatiquement
 
 ### Carte interactive des résultats (W63 — Google Maps, repli OpenStreetMap)
 La carte de **recherche / géoloc** dispose de **deux moteurs de rendu** derrière le même point d'entrée `showMap()` (`js/carte.js` + `js/gmap.js`) :
@@ -385,6 +384,7 @@ suivi-conso-carburant/
 │   ├── utils.js                     # Fonctions pures (haversine, odsUrl…)
 │   ├── ui.js                        # Helpers DOM
 │   ├── vehicules.js                 # Gestion véhicules (localStorage)
+│   ├── vehiculesSync.js             # W95 fusion des véhicules entre appareils (clé Parametres `vehicules`)
 │   ├── osm.js                       # Enrichissement Overpass (nom enseigne)
 │   ├── carte.js                     # Carte des résultats : Google Maps (W63) ou repli tuiles OSM
 │   ├── gmap.js                      # W63 chargeur Google Maps JS API + clustering (tolérant aux pannes)
@@ -404,6 +404,7 @@ suivi-conso-carburant/
 │   ├── statsSparkline.js            # W87 sparkline prix multi-carburant W28+W34 (W64/D2) + prédiction W33 + getNextKmPrediction W35
 │   ├── statsSettings.js             # W87 câblage des champs de réglages (init* : kit, rentabilité, budget, objectif CO₂)
 │   ├── depenses.js                  # W91 dépenses d'entretien + coûts de conversion PAR VÉHICULE (liste + total + repli global)
+│   ├── depensesUI.js                # W95 rendu dépenses : confirmation, Annuler, corbeille restaurable
 │   ├── dashboardApi.js              # W83/W84 client GAS buildDashboard (rafraîchir le bilan) + URL du Google Sheet
 │   ├── statsApi.js                  # W59/S12 client agrégats serveur (cache 1 h) + résumé annuel ⚡
 │   ├── theme.js                     # U8 thème clair/sombre (prefers-color-scheme + persistance)
@@ -591,7 +592,8 @@ Depuis **v4.10.0.0**, les paramètres **métier** modifiables par l'utilisateur 
 **Dépenses d'entretien par véhicule (W91)** — liste éditable (intitulé + montant + date + catégorie) rattachée au véhicule, dont le **total alimente le coût total de conversion** (rentabilité). Synchro **par ligne, last-write-wins sur `id`** (tombstone `supprime`) :
 - **App** : `js/depenses.js` (`syncDepenses()`/`pushDepenses()`, événement `depenses-synced`) ; stockage `suivi_e85_depenses`. Les postes de conversion fixes (boîtier/pose/…) sont aussi par véhicule (`suivi_e85_conversion_veh`, repli global).
 - **Excel** : `modSyncDepenses` (feuille masquée `_Depenses` + table `tblDepenses`), appelé en fin de `SyncCore`. `modRentabilite` intègre `SUMIFS(tblDepenses[montant]…)` du véhicule (B3) dans `COÛT TOTAL` (N11).
-- **Endpoints GAS** : `?action=getDepenses` / `action=setDepenses` (onglet `Depenses`). ⚠️ Nécessite un **redéploiement** du Web App.
+- **Endpoints GAS** : `?action=getDepenses` / `action=setDepenses` (onglet `Depenses`, `Depenses.gs`). ⚠️ Nécessite un **redéploiement** du Web App.
+- **Protections (W95/X72, v5.36)** : suppression avec confirmation + **Annuler** (10 s) + **corbeille restaurable** (`js/depensesUI.js`) ; **journal serveur append-only** `Depenses_journal` (avant/après, source `app`/`excel`) ; dates stockées en texte `yyyy-MM-dd` ; **contrôle d'intégrité** des dépenses (audit GAS `depenses`, carte app, module Excel `modIntegriteDep`) ; tests de non-régression bloquants (`gasGarde`, `depensesProtection`, `vehiculesSync`).
 
 > Note de migration : les réglages saisis dans l'app **avant** la v4.10.0.0 n'ont pas d'horodatage ; ils ne sont pas écrasés mais ne remontent au Sheet qu'à leur **prochaine modification**. Idem pour les valeurs par défaut des cellules Excel (seedées avec un horodatage `0`, donc l'app/le Sheet font foi).
 

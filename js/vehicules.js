@@ -1,5 +1,9 @@
-/* ─── Gestion des véhicules (localStorage) ─── */
-import { GS_SHEET_ID, VEHICULES_KEY, LAST_VEHICULE_KEY } from './config.js';
+/* ─── Gestion des véhicules (localStorage) ───
+   La liste est commune à tous les appareils : chaque ajout / suppression
+   VOLONTAIRE est horodaté (VEHICULES_META_KEY) puis signalé par l'événement
+   'vehicules-modifies' ; vehiculesSync.js fusionne (union) et pousse la liste
+   vers l'onglet Parametres (clé « vehicules »). */
+import { GS_SHEET_ID, VEHICULES_KEY, LAST_VEHICULE_KEY, VEHICULES_META_KEY } from './config.js';
 import { authEnabled } from './auth.js';
 import { state } from './state.js';
 import { setVehiculeStatus } from './ui.js';
@@ -10,6 +14,30 @@ export function getVehicules() {
 }
 export function sauvegarderVehicules(liste) {
   localStorage.setItem(VEHICULES_KEY, JSON.stringify(liste));
+}
+
+/** Horodatages des ajouts / suppressions volontaires : { ajoutes:{nom:ts}, supprimes:{nom:ts} }. */
+export function getVehiculesMeta() {
+  let m = null;
+  try { m = JSON.parse(localStorage.getItem(VEHICULES_META_KEY) || 'null'); } catch { m = null; }
+  const obj = v => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+  return { ajoutes: obj(m && m.ajoutes), supprimes: obj(m && m.supprimes) };
+}
+export function saveVehiculesMeta(meta) {
+  try {
+    localStorage.setItem(VEHICULES_META_KEY, JSON.stringify({
+      ajoutes: meta?.ajoutes || {}, supprimes: meta?.supprimes || {},
+    }));
+  } catch { /* quota */ }
+}
+
+/** Mémorise un ajout ('ajoutes') ou une suppression ('supprimes') volontaire puis notifie la synchro. */
+function _marquerVehicule(nom, kind) {
+  const m = getVehiculesMeta();
+  m[kind][nom] = Date.now();
+  saveVehiculesMeta(m);
+  try { window.dispatchEvent(new window.CustomEvent('vehicules-modifies', { detail: { vehicule: nom, kind } })); }
+  catch { /* non bloquant */ }
 }
 
 export function _populateVehiculeSelect(liste) {
@@ -120,6 +148,7 @@ export function onVehiculeChange() {
     if (confirm('Supprimer "' + state.currentVehiculeNom + '" ?')) {
       const nom = state.currentVehiculeNom;
       sauvegarderVehicules(getVehicules().filter(v => v !== nom));
+      _marquerVehicule(nom, 'supprimes');   // suppression volontaire propagée aux autres appareils
       _populateVehiculeSelect(getVehicules());
       _populateGlobalVehiculeSelect(getVehicules());   // U9
       setVehiculeStatus('', '');
@@ -143,6 +172,7 @@ export async function confirmerAjoutVehicule() {
   if (!nom) { setVehiculeStatus('err', 'Nom requis.'); return; }
   const liste = getVehicules();
   if (!liste.includes(nom)) { liste.push(nom); sauvegarderVehicules(liste); }
+  _marquerVehicule(nom, 'ajoutes');   // ré-ajout explicite : l'emporte sur une suppression plus ancienne
   _populateVehiculeSelect(getVehicules());
   _populateGlobalVehiculeSelect(getVehicules());   // U9
   setCurrentVehicule(nom);   // U9 — sélectionne le nouveau véhicule partout + notifie les vues

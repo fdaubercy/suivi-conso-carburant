@@ -2494,6 +2494,40 @@ body.map-fs-open { overflow: hidden; }
 .depense-del:hover, .depense-del:active { opacity: 1; background: var(--red-light); }
 .depenses-total-row { margin-top: 8px; text-align: right; font-size: 14px; color: var(--text-muted); }
 .depenses-total-row strong { color: var(--blue-mid); font-size: 15px; }
+/* Bandeau « Dépense supprimée — Annuler » (~10 s) : blanc sur bleu nuit (AA dans les 2 thèmes). */
+.depense-undo {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 8px; padding: 8px 10px; border-radius: var(--radius);
+  background: #1B3A5C; color: #ffffff; font-size: 13.5px;
+}
+.depense-undo-msg { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+.depense-undo-btn {
+  flex: none; min-height: 36px; padding: 6px 14px; border-radius: 8px;
+  border: 1.5px solid #ffffff; background: transparent; color: #ffffff;
+  font: inherit; font-weight: 700; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.depense-undo-btn:hover, .depense-undo-btn:focus-visible { background: rgba(255, 255, 255, .16); }
+[data-theme="dark"] .depense-undo { background: #0f1e30; border: 1px solid #334155; color: #f1f5f9; }
+[data-theme="dark"] .depense-undo-btn { border-color: #f1f5f9; color: #f1f5f9; }
+/* Corbeille repliable des dépenses supprimées (restauration). */
+.depenses-corbeille { margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 6px; }
+.depenses-corbeille > summary {
+  cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-muted-strong);
+  padding: 6px 2px; min-height: 32px; list-style-position: inside;
+}
+.depense-item--suppr .depense-titre { color: var(--text-muted-strong); }
+.depense-item--suppr .depense-montant { color: var(--text-muted-strong); font-weight: 600; }
+.depense-restore {
+  flex: none; border: 1px solid var(--blue-mid); background: transparent; color: var(--blue-mid);
+  border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent;
+}
+.depense-restore:hover, .depense-restore:active { background: var(--blue-light); }
+.integ-fix.integ-restore { border-color: var(--blue-mid); color: var(--blue-mid); }
+.integ-fix.integ-restore:hover, .integ-fix.integ-restore:active { background: var(--blue-light); }
+[data-theme="dark"] .integ-fix.integ-restore { border-color: var(--blue-mid); color: var(--blue-mid); }
+[data-theme="dark"] .integ-fix.integ-restore:hover, [data-theme="dark"] .integ-fix.integ-restore:active { color: #bfdbfe; }
+.integ-section { font-size: 14px; font-weight: 700; color: var(--text); margin: 14px 0 2px; }
 
 /* ─── Contrôle d'intégrité des pleins (⚙️ Réglages, js/integrite.js) ───
    Couleurs AA (≥ 4.5:1) dans les deux thèmes. */

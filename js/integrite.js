@@ -7,12 +7,16 @@
        → renderAuditHtml()   : résumé + liste des anomalies (fonction PURE)
      bouton « Supprimer cette copie » (dup_contenu / dup_sync_id uniquement)
        → confirm() → deletePlein (sync_id + n° de ligne) → nouvel audit
+     section « Dépenses d'entretien » (audit.depenses, onglet Depenses) ;
+     bouton « Restaurer » (dep_suppression_recente)
+       → confirm() → restoreDepense + push setDepenses → nouvel audit
    Mode « signaler + proposer » : aucune correction automatique.
 ═══════════════════════════════════════════════════════════════════════ */
 
 import { GAS_URL, APP_TOKEN } from './config.js';
 import { getIdToken } from './auth.js';
 import { showFeedback } from './ui.js';
+import { restoreDepense, pushDepenses, syncDepenses } from './depenses.js';
 
 /** Libellés français des types d'anomalie renvoyés par le GAS. */
 export const AUDIT_TYPE_LABELS = {
@@ -23,6 +27,11 @@ export const AUDIT_TYPE_LABELS = {
   km_non_croissant: 'Kilométrage incohérent',
   date_future:      'Date dans le futur',
   champ_manquant:   'Champ manquant',
+  // Dépenses d'entretien (audit.depenses)
+  dep_doublon:             'Dépense en double',
+  dep_date_invalide:       'Date de dépense invalide',
+  dep_montant_invalide:    'Montant de dépense invalide',
+  dep_suppression_recente: 'Dépense supprimée récemment',
 };
 
 /** Types pour lesquels la suppression d'une copie est proposée. */
@@ -83,9 +92,70 @@ export async function deleteCopie(syncId, row) {
   return result;
 }
 
+function fmtEur(n) {
+  const v = Number(n);
+  return n !== null && n !== '' && isFinite(v)
+    ? v.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' €' : '';
+}
+
+/** HTML de la section « Dépenses d'entretien » (audit.depenses) — fonction PURE. */
+export function renderDepensesAuditHtml(dep) {
+  if (!dep || typeof dep !== 'object') return '';
+  const issues = Array.isArray(dep.issues) ? dep.issues : [];
+  const nAct = Number(dep.actives) || 0;
+  const nSup = Number(dep.supprimees) || 0;
+  const analysed = plural(nAct, 'dépense') + ' active' + (nAct > 1 ? 's' : '')
+    + ', ' + nSup + ' supprimée' + (nSup > 1 ? 's' : '');
+  const html = '<p class="integ-section">Dépenses d’entretien</p>';
+  if (!issues.length) {
+    return html + '<p class="integ-summary integ-ok">✓ Aucune anomalie</p>'
+      + '<p class="notif-sub">' + esc(analysed) + '.</p>';
+  }
+  const nErr = issues.filter(i => i.severity === 'error').length;
+  const nWarn = issues.length - nErr;
+  const detail = [];
+  if (nErr)  detail.push(plural(nErr, 'erreur'));
+  if (nWarn) detail.push(plural(nWarn, 'avertissement'));
+  const items = issues.map(i => {
+    const sev   = i.severity === 'error' ? 'error' : 'warn';
+    const label = AUDIT_TYPE_LABELS[i.type] || i.type;
+    const meta  = [fmtDay(i.date), i.vehicule, i.intitule, fmtEur(i.montant)]
+      .filter(Boolean).map(esc).join(' · ');
+    const fix = i.type === 'dep_suppression_recente' && i.id
+      ? '<button type="button" class="integ-fix integ-restore" data-dep-id="' + esc(i.id) + '"'
+        + ' data-desc="' + esc([i.intitule, fmtEur(i.montant)].filter(Boolean).join(' · ')) + '">Restaurer</button>'
+      : '';
+    return '<li class="integ-item integ-' + sev + '">'
+      + '<div class="integ-main">'
+      + '<span class="integ-type"><span class="integ-sev">' + (sev === 'error' ? 'Erreur' : 'Avert.') + '</span>' + esc(label) + '</span>'
+      + (meta ? '<span class="integ-meta">' + meta + '</span>' : '')
+      + '<span class="integ-msg">' + esc(i.message) + '</span>'
+      + '</div>' + fix + '</li>';
+  }).join('');
+  return html + '<p class="integ-summary integ-ko">' + esc(plural(issues.length, 'anomalie')) + ' — ' + esc(detail.join(', ')) + '</p>'
+    + '<p class="notif-sub">' + esc(analysed) + '.</p>'
+    + '<ul class="integ-list">' + items + '</ul>';
+}
+
+/** Restaure une dépense supprimée (tombstone) depuis l'audit, puis la pousse.
+ *  Si elle est absente de la liste locale, une synchro préalable la récupère. */
+export async function restaurerDepenseAudit(id) {
+  let it = restoreDepense(id);
+  if (!it) { await syncDepenses(); it = restoreDepense(id); }
+  if (!it) throw new Error('dépense introuvable sur cet appareil');
+  await pushDepenses([it]);
+  try { window.dispatchEvent(new window.CustomEvent('depenses-synced', { detail: { changed: true } })); }
+  catch { /* non bloquant */ }
+  return it;
+}
+
 /** HTML du résultat d'audit (fonction PURE, toute valeur issue du Sheet échappée). */
 export function renderAuditHtml(audit) {
   if (!audit) return '';
+  return renderPleinsAuditHtml(audit) + renderDepensesAuditHtml(audit.depenses);
+}
+
+function renderPleinsAuditHtml(audit) {
   const issues = Array.isArray(audit.issues) ? audit.issues : [];
   const nActive = Number(audit.active) || 0;
   const analysed = plural(nActive, 'plein') + ' actif' + (nActive > 1 ? 's' : '') + ' analysé' + (nActive > 1 ? 's' : '');
@@ -150,6 +220,22 @@ export function initIntegriteUI() {
   btn.addEventListener('click', () => runAudit(btn, out));
 
   out.addEventListener('click', async (e) => {
+    const rest = e.target.closest('.integ-restore');
+    if (rest) {
+      const id = String(rest.dataset.depId || '');
+      const desc = rest.dataset.desc ? ' « ' + rest.dataset.desc + ' »' : '';
+      if (!id || !window.confirm('Restaurer la dépense' + desc + ' ?')) return;
+      rest.disabled = true;
+      try {
+        await restaurerDepenseAudit(id);
+        showFeedback('success', 'Dépense restaurée ✓', 'Elle est de nouveau comptée dans les coûts du véhicule.');
+        await runAudit(btn, out);
+      } catch (err) {
+        rest.disabled = false;
+        showFeedback('error', 'Restauration échouée', err.message || 'erreur réseau');
+      }
+      return;
+    }
     const fix = e.target.closest('.integ-fix');
     if (!fix) return;
     const sid  = String(fix.dataset.syncId || '');

@@ -85,6 +85,7 @@ Public Function SyncDepenses() As Long
     Set dRow = CreateObject("Scripting.Dictionary")
     Set dMod = CreateObject("Scripting.Dictionary")
     ReadLocal lo, dRow, dMod
+    NormaliserDatesDepenses lo
 
     ' 1) Etat serveur
     resp = HttpGet(GAS_URL & "?action=getDepenses&token=" & APP_TOKEN & SyncSecretQS())
@@ -236,7 +237,7 @@ Private Sub WriteRow(lo As ListObject, sheetRow As Long, id As String, obj As St
     Dim ws As Worksheet: Set ws = lo.Range.Worksheet
     ws.Cells(sheetRow, C_ID).value = id
     ws.Cells(sheetRow, C_VEH).value = JsonGet(obj, "vehicule")
-    ws.Cells(sheetRow, C_DATE).value = JsonGet(obj, "date")
+    ws.Cells(sheetRow, C_DATE).value = NormDateDep(JsonGet(obj, "date"))
     ws.Cells(sheetRow, C_CAT).value = JsonGet(obj, "categorie")
     ws.Cells(sheetRow, C_LIB).value = JsonGet(obj, "intitule")
     ws.Cells(sheetRow, C_MNT).value = ToNum(JsonGet(obj, "montant"))
@@ -275,9 +276,89 @@ End Function
 Private Sub PushDepenses(objsCsv As String)
     Dim body As String
     body = "{""action"":""setDepenses"",""token"":""" & APP_TOKEN & """" & _
-           SyncSecretJson() & ",""depenses"":[" & objsCsv & "]}"
+           SyncSecretJson() & ",""source"":""excel"",""depenses"":[" & objsCsv & "]}"
     HttpPost GAS_URL, body
 End Sub
+
+' ============================================================
+'  DATES (v5.36) : le Sheet renvoyait des dates ISO UTC
+'  ("2026-09-04T22:00:00.000Z" = 05/09 minuit Paris). Une date de
+'  depense est un jour local : on arrondit l'instant UTC a la minuit
+'  la plus proche (exact pour tout fuseau entre -11h et +11h).
+' ============================================================
+Public Function NormDateDep(ByVal s As String) As String
+    s = Trim$(s)
+    NormDateDep = s
+    If Len(s) < 10 Then Exit Function
+    If Mid$(s, 5, 1) <> "-" Or Mid$(s, 8, 1) <> "-" Then Exit Function
+    If Not IsNumeric(Left$(s, 4)) Or Not IsNumeric(Mid$(s, 6, 2)) Or Not IsNumeric(Mid$(s, 9, 2)) Then Exit Function
+    Dim d As Date
+    d = DateSerial(CInt(Left$(s, 4)), CInt(Mid$(s, 6, 2)), CInt(Mid$(s, 9, 2)))
+    If Len(s) >= 16 And Mid$(s, 11, 1) = "T" Then
+        If IsNumeric(Mid$(s, 12, 2)) And IsNumeric(Mid$(s, 15, 2)) Then
+            If CInt(Mid$(s, 12, 2)) * 60 + CInt(Mid$(s, 15, 2)) >= 720 Then d = d + 1
+        End If
+    End If
+    NormDateDep = Format$(d, "yyyy-mm-dd")
+End Function
+
+' Repare les dates deja stockees au format ISO (idempotent, sans toucher
+' a modifie_le : la correction est purement locale, le GAS normalise aussi).
+Private Sub NormaliserDatesDepenses(lo As ListObject)
+    If lo.ListRows.count = 0 Then Exit Sub
+    Dim c As Range, v As String, n As String
+    For Each c In lo.ListColumns(C_DATE).DataBodyRange.Cells
+        v = CStr(c.value)
+        n = NormDateDep(v)
+        If n <> v Then
+            c.NumberFormat = "@"
+            c.value = n
+        End If
+    Next c
+End Sub
+
+' ============================================================
+'  CONTROLE D'INTEGRITE (modIntegriteDep) : etat serveur + restauration
+' ============================================================
+' Dictionnaire id -> supprime (0/1) des depenses du Google Sheet ;
+' Nothing si le serveur est injoignable.
+Public Function EtatServeurDepenses() As Object
+    Dim resp As String, objs() As String, i As Long, id As String
+    Dim d As Object
+    On Error GoTo fail
+    resp = HttpGet(GAS_URL & "?action=getDepenses&token=" & APP_TOKEN & SyncSecretQS())
+    If InStr(resp, """depenses""") = 0 Then Exit Function
+    Set d = CreateObject("Scripting.Dictionary")
+    objs = ParseArrayObjects(resp, "depenses")
+    For i = LBound(objs) To UBound(objs)
+        id = JsonGet(objs(i), "id")
+        If id <> "" Then d(id) = IIf(Val(JsonGet(objs(i), "supprime")) = 1, 1, 0)
+    Next i
+    Set EtatServeurDepenses = d
+    Exit Function
+fail:
+    Set EtatServeurDepenses = Nothing
+End Function
+
+' Restaure une depense supprimee (supprime=0, modifie_le=maintenant) + push.
+Public Function RestaurerDepense(id As String) As Boolean
+    Dim lo As ListObject, dRow As Object, dMod As Object
+    On Error GoTo fail
+    Set lo = EnsureDepensesTable()
+    If lo Is Nothing Then Exit Function
+    Set dRow = CreateObject("Scripting.Dictionary")
+    Set dMod = CreateObject("Scripting.Dictionary")
+    ReadLocal lo, dRow, dMod
+    If Not dRow.Exists(id) Then Exit Function
+    Dim ws As Worksheet: Set ws = lo.Range.Worksheet
+    ws.Cells(dRow(id), C_SUP).value = 0
+    ws.Cells(dRow(id), C_MOD).value = Format(NowUtcMs(), "0")
+    PushDepenses AppendPushObj("", RowToJson(lo, dRow(id)))
+    RestaurerDepense = True
+    Exit Function
+fail:
+    RestaurerDepense = False
+End Function
 
 ' Decoupe "<tag>":[ {..},{..} ] en objets JSON individuels.
 Private Function ParseArrayObjects(jsonStr As String, tag As String) As String()

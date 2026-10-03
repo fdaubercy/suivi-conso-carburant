@@ -5,10 +5,11 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-vi.mock('../js/auth.js', () => ({ getIdToken: () => 'ID.TOK' }));
+vi.mock('../js/auth.js', () => ({ getIdToken: () => 'ID.TOK', isAuthed: () => true, authEnabled: () => false }));
 vi.mock('../js/ui.js', () => ({ showFeedback: vi.fn() }));
 
-import { renderAuditHtml, fetchAudit, deleteCopie, initIntegriteUI, AUDIT_TYPE_LABELS } from '../js/integrite.js';
+import { renderAuditHtml, renderDepensesAuditHtml, fetchAudit, deleteCopie, initIntegriteUI, AUDIT_TYPE_LABELS } from '../js/integrite.js';
+import { DEPENSES_KEY } from '../js/config.js';
 import { showFeedback } from '../js/ui.js';
 
 const issue = (o = {}) => ({
@@ -142,5 +143,87 @@ describe('initIntegriteUI', () => {
     await vi.waitFor(() => expect(document.querySelector('.integ-fix')).not.toBeNull());
     document.querySelector('.integ-fix').click();
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+/* ─── Section « Dépenses d'entretien » (audit.depenses) ─── */
+const depIssue = (o = {}) => ({
+  type: 'dep_suppression_recente', severity: 'warn', id: 'dep1', vehicule: 'Clio',
+  date: '2026-09-05', intitule: 'Vidange', montant: 80,
+  message: 'Supprimée le 28/09/2026, restaurable', ...o,
+});
+
+describe('renderDepensesAuditHtml', () => {
+  it('absente du rendu si la réponse n’a pas de section depenses (contrat historique)', () => {
+    expect(renderDepensesAuditHtml(undefined)).toBe('');
+    expect(renderAuditHtml({ active: 1, issues: [] })).not.toContain('Dépenses');
+  });
+
+  it('section sans anomalie : compte actives / supprimées', () => {
+    const div = document.createElement('div');
+    div.innerHTML = renderAuditHtml({ active: 1, issues: [], depenses: { total: 3, actives: 2, supprimees: 1, issues: [] } });
+    expect(div.querySelector('.integ-section').textContent).toContain('Dépenses');
+    expect(div.textContent).toContain('2 dépenses actives, 1 supprimée');
+  });
+
+  it('liste les anomalies ; « Restaurer » uniquement pour dep_suppression_recente ; valeurs échappées', () => {
+    const div = document.createElement('div');
+    div.innerHTML = renderDepensesAuditHtml({ total: 4, actives: 3, supprimees: 1, issues: [
+      depIssue({ intitule: '<b>Vidange</b>' }),
+      depIssue({ type: 'dep_doublon', severity: 'error', id: 'dep2', message: 'Doublon.' }),
+      depIssue({ type: 'dep_montant_invalide', severity: 'error', id: 'dep3', montant: 0 }),
+    ] });
+    const items = div.querySelectorAll('.integ-item');
+    expect(items).toHaveLength(3);
+    expect(div.textContent).toContain(AUDIT_TYPE_LABELS.dep_doublon);
+    expect(div.querySelectorAll('.integ-restore')).toHaveLength(1);
+    expect(div.querySelector('.integ-restore').dataset.depId).toBe('dep1');
+    expect(div.querySelector('b')).toBeNull();
+    expect(items[0].textContent).toContain('05/09/2026');
+  });
+});
+
+describe('initIntegriteUI — restauration d’une dépense supprimée', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '<button id="integriteBtn">Vérifier</button><div id="integriteResult"></div>';
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it('confirm() puis restoreDepense + POST setDepenses (source app) puis nouvel audit', async () => {
+    localStorage.setItem(DEPENSES_KEY, JSON.stringify([{ id: 'dep1', vehicule: 'Clio', date: '2026-09-05',
+      categorie: 'Entretien', intitule: 'Vidange', montant: 80, modifie_le: 1000, supprime: 1 }]));
+    const audit1 = { success: true, active: 1, issues: [], depenses: { total: 1, actives: 0, supprimees: 1, issues: [depIssue()] } };
+    const audit2 = { success: true, active: 1, issues: [], depenses: { total: 1, actives: 1, supprimees: 0, issues: [] } };
+    const responses = [audit1, { success: true }, audit2];
+    globalThis.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(responses.shift()) }));
+    window.confirm = vi.fn(() => true);
+    const synced = vi.fn();
+    window.addEventListener('depenses-synced', synced);
+    initIntegriteUI();
+
+    document.getElementById('integriteBtn').click();
+    await vi.waitFor(() => expect(document.querySelector('.integ-restore')).not.toBeNull());
+    document.querySelector('.integ-restore').click();
+    await vi.waitFor(() => expect(document.getElementById('integriteResult').textContent).toContain('1 dépense active'));
+    window.removeEventListener('depenses-synced', synced);
+
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('Restaurer la dépense'));
+    const post = JSON.parse(globalThis.fetch.mock.calls[1][1].body);
+    expect(post).toMatchObject({ action: 'setDepenses', source: 'app' });
+    expect(post.depenses[0]).toMatchObject({ id: 'dep1', supprime: 0, montant: 80 });
+    expect(JSON.parse(localStorage.getItem(DEPENSES_KEY))[0].supprime).toBe(0);
+    expect(synced).toHaveBeenCalled();
+  });
+
+  it('ne restaure rien si l’utilisateur annule', async () => {
+    globalThis.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(
+      { success: true, active: 0, issues: [], depenses: { total: 1, actives: 0, supprimees: 1, issues: [depIssue()] } }) }));
+    window.confirm = vi.fn(() => false);
+    initIntegriteUI();
+    document.getElementById('integriteBtn').click();
+    await vi.waitFor(() => expect(document.querySelector('.integ-restore')).not.toBeNull());
+    document.querySelector('.integ-restore').click();
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 });

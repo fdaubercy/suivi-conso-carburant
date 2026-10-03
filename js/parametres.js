@@ -9,7 +9,8 @@
    Périmètre (métier uniquement — pas les préférences d'affichage locales) :
      kit_prix · budget_mensuel · objectif_co2 · surconso
      seuil_E85/GAZOLE/SP98 (+ _enabled)
-   Les véhicules conservent leur propre mécanisme (onglet « Vehicules »).
+   La liste des véhicules passe aussi par ici (clé « vehicules », blob JSON),
+   mais sa fusion (union, jamais de perte) est faite par vehiculesSync.js.
 
    Flux :
      • Au démarrage (et sur demande) : syncParametres() — pull serveur,
@@ -22,7 +23,8 @@ import { GAS_URL, APP_TOKEN, KIT_PRIX_KEY, BUDGET_KEY, CO2_OBJECTIF_KEY,
          COUT_POSE_KEY, COUT_CARTEGRISE_KEY, COUT_ENTRETIEN_KEY,
          SURCOUT_ASSURANCE_KEY, AIDE_DEDUITE_KEY,
          CARBURANT_REF_KEY, ECART_REF_KEY, PROJ_NB_RECENTS_KEY,
-         CONSO_DIESEL_REF_KEY, VEHICULE_DIESEL_REF_KEY, CONV_BY_VEH_KEY } from './config.js';
+         CONSO_DIESEL_REF_KEY, VEHICULE_DIESEL_REF_KEY, CONV_BY_VEH_KEY,
+         VEHICULES_SYNC_KEY } from './config.js';
 import { getIdToken, isAuthed, authEnabled, getUser, signOut } from './auth.js';
 
 /* Mapping clé Sheet ↔ clé localStorage.
@@ -55,6 +57,10 @@ const DEFS = [
   // W91d — coûts de conversion PAR VÉHICULE (map JSON) synchronisés cross-appareils.
   // Blob opaque (LWW sur l'ensemble) : petite map éditée rarement.
   { cle: 'conversion_veh',      local: CONV_BY_VEH_KEY,        kind: 'str' },
+  // Liste des véhicules commune à tous les appareils. Le blob local n'est qu'un
+  // TAMPON d'échange : la fusion par UNION (jamais de perte) est faite par
+  // vehiculesSync.js, qui repousse le résultat s'il diffère du serveur.
+  { cle: 'vehicules',           local: VEHICULES_SYNC_KEY,     kind: 'str' },
 ];
 const DEF_BY_CLE  = Object.fromEntries(DEFS.map(d => [d.cle, d]));
 /** Clés métier exposées (utilisé par les modules appelants). */
@@ -198,7 +204,9 @@ export async function syncParametres() {
   _saveMeta(meta);
   if (toPush.length) _post(toPush);
 
-  try { window.dispatchEvent(new window.CustomEvent('parametres-synced', { detail: { changed } })); }
+  // serveur : valeurs brutes lues (ex. « vehicules », fusionné par union côté vehiculesSync.js).
+  const serveur = Object.fromEntries(Object.keys(srvMap).map(k => [k, srvMap[k].valeur]));
+  try { window.dispatchEvent(new window.CustomEvent('parametres-synced', { detail: { changed, serveur } })); }
   catch { /* non bloquant */ }
   return changed;
 }

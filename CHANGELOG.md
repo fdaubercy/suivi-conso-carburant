@@ -4,6 +4,22 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.36.0.0] — 2026-10-03
+
+### Fixed
+- **Dépenses d'entretien « disparues » sur le PC (W95)** — aucune donnée perdue (les 3 dépenses étaient présentes dans le Google Sheet, l'Excel et sur chaque appareil) : la **liste des véhicules était stockée par appareil** ; sur le PC elle était vide → aucun véhicule courant → liste des dépenses (filtrée par véhicule) vide.
+- **Dates des dépenses décalées d'un jour** (`2026-09-04T22:00:00.000Z` au lieu de `2026-09-05`, affichage « 05T22:00:00.000Z/09/2026 ») : le Sheet convertissait la chaîne en Date, renvoyée en ISO UTC. GAS : date normalisée `yyyy-MM-dd` dans le fuseau du classeur, colonne écrite en **texte**, anciennes cellules réparées à la lecture ; app : normalisation à la réception + réparation de la liste locale ; Excel : `NormDateDep` (synchro + réparation de `tblDepenses`).
+
+### Added
+- **Véhicules communs à tous les appareils (W95)** — nouvelle clé `vehicules` dans l'onglet `Parametres` (`{v, actifs, ajoutes, supprimes}`), **fusion par union** (local ∪ Sheet ∪ véhicules **déduits des pleins et des dépenses**), suppression volontaire respectée (LWW par nom) ; sélection automatique du véhicule unique (ou du plus récent sur un appareil vierge). `js/vehiculesSync.js`, `js/vehicules.js`, `js/parametres.js`, `Code.gs` (`PARAM_KEYS`).
+- **Suppression protégée des dépenses (W95)** — confirmation, bandeau « Dépense supprimée — **Annuler** » (10 s), **corbeille** repliable « 🗑️ Dépenses supprimées (N) » avec **Restaurer** ; la pierre tombale conserve désormais le montant (`restoreDepense`). `js/depensesUI.js` (extrait de `depenses.js`), `css/style.css`, `index.html`.
+- **Journal des dépenses côté serveur (W95)** — onglet `Depenses_journal` en **ajout seul** (`horodatage | email | id | action | source | avant | apres` ; actions `creation`, `mise_a_jour`, `suppression`, `restauration`, `ignore_ancien`), `setDepenses` sous `LockService`, champ `source` (`app` / `excel`). Bloc dépenses déplacé dans `Depenses.gs`.
+- **Contrôle d'intégrité étendu aux dépenses (X72)** — GAS : section `depenses` de `?action=audit` (`auditDepenses_` : doublons, date/montant invalides, suppressions < 30 j restaurables) ; app : section « Dépenses d'entretien » de la carte Contrôle d'intégrité avec **Restaurer** ; Excel : nouveau module `modIntegriteDep` (mêmes contrôles + écart Excel ↔ Sheet, propositions « Restaurer » / « Synchroniser » sur confirmation), `modSyncDepenses.RestaurerDepense`.
+- **Tests de non-régression bloquants** — `tests/depensesProtection.test.js` (la synchro ne retire jamais une dépense locale, tombstone ancienne sans effet, dates), `tests/vehiculesSync.test.js` (l'union ne perd aucun véhicule), `tests/gasGarde.test.js` (garde statique : aucun `deleteRow`/`clear*` dans les `.gs` hors liste blanche justifiée ; `Depenses.gs`/`Audit.gs` sans suppression, journal en ajout seul).
+
+### Changed
+- GAS déployé en **v67**.
+
 ## [5.35.0.0] — 2026-10-03
 
 ### Added

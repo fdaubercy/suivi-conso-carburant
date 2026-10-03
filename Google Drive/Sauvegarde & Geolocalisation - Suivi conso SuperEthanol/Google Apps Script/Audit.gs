@@ -14,14 +14,20 @@
 //   { success, version, generatedAt, total, active,
 //     counts:{ error, warn },
 //     issues:[{ type, severity, sync_id, row, date, km, litres, prix, vehicule,
-//               message, related:[sync_id…], relatedRows:[n° ligne…] }] }
+//               message, related:[sync_id…], relatedRows:[n° ligne…] }],
+//     depenses:{ total, actives, supprimees,                  ← ajout (dépenses)
+//                issues:[{ type, severity, id, vehicule, date, intitule,
+//                          montant, message }] } }
+//  Les champs historiques (total/active/counts/issues = PLEINS) sont inchangés ;
+//  `depenses` est calculé par la fonction PURE auditDepenses_ sur l'onglet
+//  « Depenses » du compte.
 //
 //  La détection est une fonction PURE (auditRows_) sans accès au Sheet.
 //  Lecture seule : aucune correction automatique.
 //
 //  Dépend de (Code.gs / Auth.gs) : SPREADSHEET_ID, getOrCreateSheet,
 //  ensureSyncColumns_, _rowBelongsTo_, resolveOwner_, OWNER_EMAIL,
-//  unauthorizedResponse_, jsonResponse.
+//  unauthorizedResponse_, jsonResponse, DEPENSES_SHEET, IDX_DEP_EMAIL.
 // ============================================================
 
 var AUDIT_VERSION = '5.35.0.0';
@@ -52,7 +58,107 @@ function handleAudit(e) {
   }
 
   const res = auditRows_(headers, rows, new Date(), rowNums);
+  res.depenses = auditDepensesDuCompte_(ss, email);
   return jsonResponse(Object.assign({ success: true, version: AUDIT_VERSION, generatedAt: new Date().toISOString() }, res));
+}
+
+// Lignes de l'onglet Depenses du compte → auditDepenses_ (lecture seule).
+// Une erreur ici ne casse jamais l'audit des pleins.
+function auditDepensesDuCompte_(ss, email) {
+  try {
+    const sh = ss.getSheetByName(DEPENSES_SHEET);
+    const data = sh ? sh.getDataRange().getValues() : [];
+    const rows = [];
+    for (let i = 1; i < data.length; i++) {
+      if (!String(data[i][0] || '').trim()) continue;
+      if (_rowBelongsTo_(data[i][IDX_DEP_EMAIL], email)) rows.push(data[i]);
+    }
+    return auditDepenses_(rows, new Date());
+  } catch (e) {
+    return { total: 0, actives: 0, supprimees: 0, issues: [], error: String(e && e.message || e) };
+  }
+}
+
+var DEP_SUPPR_RECENTE_MS = 30 * 86400000;   // 30 jours
+
+// ─────────────────────────────────────────────────────────────
+//  auditDepenses_ — FONCTION PURE (aucun accès Sheet / service GAS).
+//   rows : lignes de l'onglet Depenses (getValues(), sans en-tête) :
+//          A id · B vehicule · C date · D categorie · E intitule · F montant
+//          G modifie_le · H supprime · I email
+//   now  : Date de référence (règle dep_suppression_recente)
+//  Retourne { total, actives, supprimees, issues:[{ type, severity, id,
+//            vehicule, date, intitule, montant, message }] }.
+//  Types : dep_doublon (error) · dep_date_invalide (error) ·
+//          dep_montant_invalide (error) · dep_suppression_recente (warn).
+// ─────────────────────────────────────────────────────────────
+function auditDepenses_(rows, now) {
+  const nowMs = (now instanceof Date ? now : new Date()).getTime();
+  const fmtJour = d => { const p = n => (n < 10 ? '0' : '') + n; return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear(); };
+  const issues = [];
+  let actives = 0, supprimees = 0;
+  const recs = [];
+
+  (rows || []).forEach(r => {
+    r = r || [];
+    const id = String(r[0] == null ? '' : r[0]).trim();
+    if (!id) return;
+    const d = auditDate_(r[2]);
+    const montant = auditNum_(r[5]);
+    const rec = {
+      id: id,
+      vehicule: String(r[1] == null ? '' : r[1]).trim(),
+      dateRaw:  r[2] instanceof Date ? '' : String(r[2] == null ? '' : r[2]).trim(),
+      date:     d,
+      intitule: String(r[4] == null ? '' : r[4]).trim(),
+      montant:  montant,
+      modif:    Number(r[6]) || 0,
+      supprime: Number(r[7]) ? 1 : 0,
+    };
+    if (rec.supprime) supprimees++; else actives++;
+    recs.push(rec);
+  });
+
+  const issue = (rec, type, severity, message) => issues.push({
+    type: type, severity: severity, id: rec.id, vehicule: rec.vehicule,
+    date: rec.date ? auditIsoDay_(rec.date) : rec.dateRaw,
+    intitule: rec.intitule, montant: isFinite(rec.montant) ? rec.montant : null,
+    message: message,
+  });
+
+  const act = recs.filter(x => !x.supprime);
+  act.forEach(rec => {
+    if (!rec.date) issue(rec, 'dep_date_invalide', 'error',
+      rec.dateRaw ? 'Date illisible : « ' + rec.dateRaw + ' ».' : 'Date manquante.');
+    if (!isFinite(rec.montant) || rec.montant <= 0) issue(rec, 'dep_montant_invalide', 'error',
+      'Montant nul, négatif ou non numérique sur une dépense active.');
+  });
+
+  // Doublons : même véhicule + date + intitulé + montant, ids différents, actives.
+  const groups = {};
+  act.forEach(rec => {
+    if (!rec.date || !isFinite(rec.montant)) return;
+    const key = rec.vehicule.toLowerCase() + '|' + auditIsoDay_(rec.date) + '|' +
+                rec.intitule.toLowerCase() + '|' + Math.round(rec.montant * 100);
+    (groups[key] = groups[key] || []).push(rec);
+  });
+  Object.keys(groups).forEach(key => {
+    const g = groups[key].slice().sort((a, b) => (a.modif - b.modif) || (a.id < b.id ? -1 : 1));
+    const ids = {};
+    const uniq = g.filter(x => (ids[x.id] ? false : (ids[x.id] = true)));
+    if (uniq.length < 2) return;
+    uniq.slice(1).forEach(rec => issue(rec, 'dep_doublon', 'error',
+      'Doublon de la dépense « ' + (uniq[0].intitule || 'sans intitulé') + ' » (même véhicule, date et montant).'));
+  });
+
+  // Suppressions récentes (< 30 jours) : restaurables depuis l'app.
+  recs.filter(x => x.supprime && x.modif > 0 && nowMs - x.modif < DEP_SUPPR_RECENTE_MS && x.modif <= nowMs + 86400000)
+    .sort((a, b) => b.modif - a.modif)
+    .forEach(rec => issue(rec, 'dep_suppression_recente', 'warn',
+      'Supprimée le ' + fmtJour(new Date(rec.modif)) + ', restaurable'));
+
+  issues.sort((a, b) => (a.severity === 'error' ? 0 : 1) - (b.severity === 'error' ? 0 : 1));
+  return { total: recs.length, actives: actives, supprimees: supprimees, issues: issues };
 }
 
 // Ligne « écho d'en-tête » : sync_id === 'sync_id' ou Type === 'Type' (insensible à la casse).

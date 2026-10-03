@@ -23,7 +23,9 @@ import { chargerHistorique, dupliquerDernier, voirTout, exportHistoriqueCSV, exp
 import { computeEcoByFill } from './statsParams.js';
 import { renderStats, getNextKmPrediction, initBilanSheet } from './stats.js';
 import { initSparkToggles, initKitSetting, initRentabiliteSettings, initBudgetSetting, initCo2ObjectifSetting, initRapport, refreshConversionInputs } from './statsSettings.js';
-import { initDepensesUI, renderDepenses, syncDepenses } from './depenses.js';
+import { syncDepenses, getAllDepenses } from './depenses.js';
+import { initDepensesUI, renderDepenses } from './depensesUI.js';
+import { reconcilierVehicules } from './vehiculesSync.js';
 import { initComparatifExport } from './comparatif.js';
 import { prewarmServerStats, getServerStats } from './statsApi.js';
 import { loadSectorPrices, renderSectorBestCard, applyHistPriceToForm } from './secteur.js';
@@ -54,9 +56,21 @@ document.getElementById('appVersion').textContent = 'v' + APP_VERSION;
 /* ─── Câblage callback (rompt la dépendance circulaire carburant ↔ prix) ─── */
 registerPriceCallback(fetchPricesNearUser);
 
+/* ─── Véhicules communs à tous les appareils : union local ∪ Sheet (clé
+   Parametres « vehicules ») ∪ véhicules déduits des pleins et des dépenses.
+   Appelée au démarrage, après chaque synchro (paramètres, historique,
+   dépenses) et après un ajout / une suppression de véhicule. */
+function syncVehicules(serveur) {
+  try {
+    const r = reconcilierVehicules({ pleins: getAllRecords(), depenses: getAllDepenses(), serveur });
+    if (r.changed) _refreshVehBar();
+  } catch (e) { console.warn('[Véhicules] réconciliation échouée :', e?.message || e); }
+}
+window.addEventListener('vehicules-modifies', () => syncVehicules());
+
 /* ─── Chargement asynchrone des données ─── */
 chargerStations();
-chargerVehicules();
+chargerVehicules().then(() => syncVehicules());
 
 /* ─── U7 — Les données PERSONNELLES (stats, historique, paramètres, file
    hors-ligne) ne se chargent au démarrage QUE si l'auth est inactive (legacy)
@@ -81,6 +95,7 @@ setTimeout(() => {
 if (persoAllowed()) chargerHistorique().then(() => {
   // Fusionne les stations vues dans l'historique avec la liste curée (GS)
   mergeHistoryStations(getAllRecords().map(r => r['Station essence']));
+  syncVehicules();   // véhicules déduits des pleins (appareil neuf : liste vide)
 
   // W37 — bilan annuel (les enregistrements sont disponibles)
   initWrapped();
@@ -126,6 +141,7 @@ initNotifications();
    Pull serveur + réconciliation LWW au démarrage ; sur changement appliqué
    localement, on rafraîchit les stats et l'UI des alertes. */
 window.addEventListener('parametres-synced', e => {
+  syncVehicules(e.detail?.serveur?.vehicules);   // union, même si rien n'a changé (déduction)
   const changed = e.detail?.changed || [];
   if (!changed.length) return;
   if (changed.some(c => c.startsWith('seuil_'))) {
@@ -140,6 +156,7 @@ window.addEventListener('parametres-synced', e => {
 
 /* W91b — Synchro des dépenses d'entretien (LWW par id). Re-rendu à l'application. */
 window.addEventListener('depenses-synced', e => {
+  syncVehicules();   // véhicules déduits des dépenses
   if (!e.detail?.changed) return;
   renderDepenses();
   renderStats();
@@ -162,6 +179,7 @@ window.addEventListener('auth-changed', () => {
   if (typeof window.renderStats === 'function') window.renderStats();
   if (!navigator.onLine) return;
   chargerHistorique().then(() => {
+    syncVehicules();
     initWrapped();
     refreshBadges();
     renderHomeResume();

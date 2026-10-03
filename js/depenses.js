@@ -13,8 +13,11 @@
       catégorie), ajoutable au fil de l'eau. Total automatique par véhicule,
       intégré au coût total de conversion (calcul de rentabilité).
 
-   Stockage local uniquement (Phase A). La synchro Sheet/Excel viendra en
-   Phase B/C (id + tombstone `supprime` déjà prévus pour un LWW par ligne).
+   Stockage local + synchro Sheet (LWW par `id`, tombstone `supprime`).
+   Protections : la suppression garde le MONTANT sur la tombstone (restauration
+   sans perte, cf. restoreDepense) ; toute date reçue en ISO UTC (« …T22:00:00.000Z »,
+   cellule Date du Sheet) est ramenée à une date LOCALE yyyy-mm-dd.
+   Rendu UI : js/depensesUI.js.
    ═══════════════════════════════════════════════════════════════════════ */
 
 import { DEPENSES_KEY, CONV_BY_VEH_KEY, DEPENSE_CATEGORIES,
@@ -95,10 +98,47 @@ export function setConvField(field, veh, value) {
   _saveConvMap(m);
 }
 
+/* ─── Dates : normalisation en date LOCALE yyyy-mm-dd ─── */
+const _p2 = n => String(n).padStart(2, '0');
+const _localDay = d => d.getFullYear() + '-' + _p2(d.getMonth() + 1) + '-' + _p2(d.getDate());
+
+/**
+ * Ramène une date de dépense à 'yyyy-mm-dd' (jour LOCAL).
+ *   '2026-09-05'               → inchangée
+ *   '2026-09-04T22:00:00.000Z' → '2026-09-05' (en Europe/Paris : composants locaux)
+ *   '05/09/2026'               → '2026-09-05'
+ *   Date                       → composants locaux
+ * Valeur vide → '' ; valeur illisible → renvoyée telle quelle (jamais perdue).
+ */
+export function normaliserDateDepense(v) {
+  if (v == null || v === '') return '';
+  if (v instanceof Date) return isNaN(v.getTime()) ? '' : _localDay(v);
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const fr = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (fr) return fr[3] + '-' + _p2(fr[2]) + '-' + _p2(fr[1]);
+  if (/^\d{4}-\d{2}-\d{2}[T ]/.test(s)) {
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return _localDay(d);
+  }
+  return s;
+}
+
 /* ─── Dépenses d'entretien (liste) ─── */
+/** Lit la liste locale ; répare au passage les dates ISO héritées (persisté une fois). */
 function _list() {
-  try { const a = JSON.parse(localStorage.getItem(DEPENSES_KEY) || '[]'); return Array.isArray(a) ? a : []; }
+  let a;
+  try { a = JSON.parse(localStorage.getItem(DEPENSES_KEY) || '[]'); }
   catch { return []; }
+  if (!Array.isArray(a)) return [];
+  let repaired = false;
+  a.forEach(d => {
+    if (!d || d.date == null || d.date === '') return;
+    const n = normaliserDateDepense(d.date);
+    if (n !== d.date) { d.date = n; repaired = true; }
+  });
+  if (repaired) _saveList(a);
+  return a;
 }
 function _saveList(a) {
   try { localStorage.setItem(DEPENSES_KEY, JSON.stringify(a)); } catch { /* quota */ }
@@ -145,16 +185,37 @@ export function addDepense({ vehicule, date, categorie, intitule, montant }) {
   return item;
 }
 
-/** Suppression logique (tombstone) — propagation sync par `id`. Renvoie l'item. */
+/** Horodatage strictement postérieur au précédent (LWW : la nouvelle action doit gagner). */
+const _nextTs = it => Math.max(Date.now(), (Number(it.modifie_le) || 0) + 1);
+
+/** Suppression logique (tombstone) — propagation sync par `id`. Renvoie l'item.
+ *  Le MONTANT est conservé (les totaux filtrent `!supprime`) → restauration sans perte. */
 export function removeDepense(id) {
   const a = _list();
   const it = a.find(d => d.id === id);
   if (!it) return null;
   it.supprime = 1;
-  it.montant = 0;
-  it.modifie_le = Date.now();
+  it.modifie_le = _nextTs(it);
   _saveList(a);
   return it;
+}
+
+/** Restaure une dépense supprimée (tombstone → active). Renvoie l'item, ou null. */
+export function restoreDepense(id) {
+  const a = _list();
+  const it = a.find(d => d.id === id);
+  if (!it) return null;
+  it.supprime = 0;
+  it.modifie_le = _nextTs(it);
+  _saveList(a);
+  return it;
+}
+
+/** Tombstones d'un véhicule (corbeille), suppression la plus récente en tête. */
+export function getDepensesSupprimees(veh = state.currentVehiculeNom) {
+  return _list()
+    .filter(d => d.supprime && (d.vehicule || '') === (veh || ''))
+    .sort((a, b) => (Number(b.modifie_le) || 0) - (Number(a.modifie_le) || 0));
 }
 
 /* ─── W91b — Synchronisation Sheet (LWW par `id`, tombstone) ─── */
@@ -173,17 +234,18 @@ async function _post(body) {
 /** Normalise une dépense venue du serveur (types cohérents). */
 function _fromServer(s) {
   return {
-    id: String(s.id), vehicule: String(s.vehicule || ''), date: String(s.date || ''),
+    id: String(s.id), vehicule: String(s.vehicule || ''), date: normaliserDateDepense(s.date),
     categorie: DEPENSE_CATEGORIES.includes(s.categorie) ? s.categorie : DEPENSE_CATEGORIES[0],
     intitule: String(s.intitule || ''), montant: Math.max(0, Number(s.montant) || 0),
     modifie_le: Number(s.modifie_le) || 0, supprime: Number(s.supprime) ? 1 : 0,
   };
 }
 
-/** Pousse des dépenses (déjà écrites en local) vers le Sheet. */
+/** Pousse des dépenses (déjà écrites en local) vers le Sheet.
+ *  `source: 'app'` est tracé par le journal GAS (onglet Depenses_journal). */
 export function pushDepenses(items) {
-  if (!items || !items.length) return;
-  _post({ action: 'setDepenses', depenses: items, token: APP_TOKEN, idToken: getIdToken() });
+  if (!items || !items.length) return null;
+  return _post({ action: 'setDepenses', depenses: items, source: 'app', token: APP_TOKEN, idToken: getIdToken() });
 }
 
 /**
@@ -218,7 +280,12 @@ export async function syncDepenses() {
     const s = _fromServer(srv[id]);
     const l = byId[id];
     if (!l) { local.push(s); changed = true; }
-    else if (s.modifie_le > (Number(l.modifie_le) || 0)) { Object.assign(l, s); changed = true; }
+    else if (s.modifie_le > (Number(l.modifie_le) || 0)) {
+      // Ancienne tombstone serveur à montant 0 (avant la conservation du montant) :
+      // on garde le montant local connu pour qu'une restauration ne le perde pas.
+      if (s.supprime && !s.montant && Number(l.montant) > 0) s.montant = Number(l.montant);
+      Object.assign(l, s); changed = true;
+    }
     else if ((Number(l.modifie_le) || 0) > s.modifie_le) { toPush.push(l); }
   });
   local.forEach(l => { if (l && l.id != null && !srv[String(l.id)]) toPush.push(l); });
@@ -229,132 +296,4 @@ export async function syncDepenses() {
   try { window.dispatchEvent(new window.CustomEvent('depenses-synced', { detail: { changed } })); }
   catch { /* non bloquant */ }
   return changed;
-}
-
-/* ─── Rendu UI ─── */
-const _fmtEur = n => (Math.round(n * 100) / 100).toLocaleString('fr-FR', {
-  minimumFractionDigits: 0, maximumFractionDigits: 2,
-}) + ' €';
-
-function _fmtDate(iso) {
-  const [y, m, d] = String(iso || '').split('-');
-  return (d && m && y) ? `${d}/${m}/${y}` : (iso || '');
-}
-
-function _row(dep) {
-  const li = document.createElement('li');
-  li.className = 'depense-item';
-
-  const cat = document.createElement('span');
-  cat.className = 'depense-cat depense-cat-' + (dep.categorie || 'Autre').toLowerCase();
-  cat.textContent = dep.categorie || 'Autre';
-
-  const main = document.createElement('div');
-  main.className = 'depense-main';
-  const titre = document.createElement('span');
-  titre.className = 'depense-titre';
-  titre.textContent = dep.intitule || '(sans intitulé)';
-  const date = document.createElement('span');
-  date.className = 'depense-date';
-  date.textContent = _fmtDate(dep.date);
-  main.append(titre, date);
-
-  const montant = document.createElement('span');
-  montant.className = 'depense-montant';
-  montant.textContent = _fmtEur(Number(dep.montant) || 0);
-
-  const del = document.createElement('button');
-  del.type = 'button';
-  del.className = 'depense-del';
-  del.dataset.delId = dep.id;
-  del.setAttribute('aria-label', 'Supprimer cette dépense');
-  del.textContent = '🗑';
-
-  li.append(cat, main, montant, del);
-  return li;
-}
-
-/** (Re)dessine la liste des dépenses + le total pour un véhicule. */
-export function renderDepenses(veh = state.currentVehiculeNom) {
-  const list    = document.getElementById('depensesList');
-  const totalEl = document.getElementById('depensesTotal');
-  const vehLbl  = document.getElementById('depensesVehLabel');
-  const addBox  = document.getElementById('depenseAdd');
-
-  if (vehLbl) vehLbl.textContent = veh ? '— ' + veh : '— aucun véhicule sélectionné';
-  if (addBox) addBox.classList.toggle('hidden', !veh);
-
-  if (list) {
-    list.innerHTML = '';
-    const items = getDepenses(veh);
-    if (!items.length) {
-      const li = document.createElement('li');
-      li.className = 'depense-empty';
-      li.textContent = veh
-        ? 'Aucune dépense enregistrée pour ce véhicule.'
-        : 'Sélectionnez un véhicule pour saisir ses dépenses.';
-      list.appendChild(li);
-    } else {
-      items.forEach(d => list.appendChild(_row(d)));
-    }
-  }
-  if (totalEl) totalEl.textContent = _fmtEur(getDepensesTotal(veh));
-}
-
-function _refreshStats() {
-  if (typeof window.renderStats === 'function') window.renderStats();
-}
-
-/** Câble le mini-formulaire d'ajout + la suppression (délégation). À appeler une fois. */
-export function initDepensesUI() {
-  const cat = document.getElementById('depCategorie');
-  if (cat && !cat.options.length) {
-    DEPENSE_CATEGORIES.forEach(c => cat.add(new Option(c, c)));
-  }
-  const dateEl = document.getElementById('depDate');
-  if (dateEl && !dateEl.value) dateEl.value = todayISO();
-
-  const addBtn = document.getElementById('depAddBtn');
-  if (addBtn && addBtn.dataset.wired !== '1') {
-    addBtn.dataset.wired = '1';
-    addBtn.addEventListener('click', () => {
-      const veh = state.currentVehiculeNom;
-      if (!veh) return;
-      const intituleEl = document.getElementById('depIntitule');
-      const montantEl  = document.getElementById('depMontant');
-      const montant = Number(montantEl?.value);
-      if (!intituleEl?.value.trim() || !isFinite(montant) || montant <= 0) {
-        montantEl?.focus();
-        return;
-      }
-      const created = addDepense({
-        vehicule:  veh,
-        date:      dateEl?.value || todayISO(),
-        categorie: cat?.value,
-        intitule:  intituleEl.value,
-        montant,
-      });
-      pushDepenses([created]);   // W91b — propage vers le Sheet
-      intituleEl.value = '';
-      if (montantEl) montantEl.value = '';
-      if (dateEl) dateEl.value = todayISO();
-      renderDepenses(veh);
-      _refreshStats();   // met à jour l'économie nette / rentabilité
-    });
-  }
-
-  const list = document.getElementById('depensesList');
-  if (list && list.dataset.wired !== '1') {
-    list.dataset.wired = '1';
-    list.addEventListener('click', e => {
-      const btn = e.target.closest('[data-del-id]');
-      if (!btn) return;
-      const removed = removeDepense(btn.dataset.delId);
-      if (removed) pushDepenses([removed]);   // W91b — propage le tombstone
-      renderDepenses(state.currentVehiculeNom);
-      _refreshStats();
-    });
-  }
-
-  renderDepenses(state.currentVehiculeNom);
 }

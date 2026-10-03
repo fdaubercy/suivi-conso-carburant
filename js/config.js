@@ -1,5 +1,5 @@
 /* ─── Configuration globale ─── */
-export const APP_VERSION       = '5.35.0.0';
+export const APP_VERSION       = '5.36.0.0';
 export const GAS_URL           = 'https://script.google.com/macros/s/AKfycbwIyCfZVTpDOGBANtFcHECcCdbg4J4t377pKQjIJ0NJYFT9FMjZm5_6XOsyQAas8jeTyA/exec';
 
 // ─── U7 — Authentification « Se connecter avec Google » (Google Identity Services) ───
@@ -53,6 +53,11 @@ export const PRIX_API          = 'https://data.economie.gouv.fr/api/explore/v2.1
 export const BAN_API           = 'https://api-adresse.data.gouv.fr/search/';
 export const VEHICULES_KEY     = 'suivi_e85_vehicules';
 export const LAST_VEHICULE_KEY = 'suivi_e85_last_vehicule';
+// Véhicules communs à tous les appareils (clé Parametres « vehicules », fusion par union) :
+//   • VEHICULES_META_KEY : horodatages locaux { ajoutes:{nom:ts}, supprimes:{nom:ts} }
+//   • VEHICULES_SYNC_KEY : dernier blob JSON échangé avec le Sheet (clé Parametres « vehicules »)
+export const VEHICULES_META_KEY = 'suivi_e85_vehicules_meta';
+export const VEHICULES_SYNC_KEY = 'suivi_e85_vehicules_sync';
 export const HIST_CACHE_KEY    = 'suivi_e85_hist_cache';
 export const HIST_SINCE_KEY    = 'suivi_e85_hist_since';
 export const DRAFT_KEY         = 'suivi_e85_draft';

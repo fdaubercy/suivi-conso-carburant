@@ -19,6 +19,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 |---|---|---|---|
 | W85 | **Icônes PWA raster PNG (192/512 + maskable)** — `public/manifest.json` ne référence que `icons/icon.svg` (`sizes:"any"`). Ajouter des PNG rasterisés 192×192 et 512×512 (dont une variante `purpose:"maskable"` avec zone de sécurité) générés depuis le SVG. | iOS (écran d'accueil/splash), anciens Android et le splash Windows privilégient un raster PNG dimensionné : meilleure qualité d'icône installée et d'écran de démarrage, moins de flou. | ~45 min |
 | W86 | **`screenshots` dans le manifest** — ajouter le tableau `screenshots` (captures mobile + `form_factor:"wide"` desktop) au manifest. | Chrome (Android + desktop) affiche ces captures dans l'invite d'installation → fiche d'install plus riche et plus incitative. | ~30 min |
+| W94 | **Utiliser « N pleins récents » (`proj_nb_recents`) dans l'app** — le paramètre est saisi dans l'app et synchronisé (localStorage ↔ onglet `Parametres` ↔ Excel `N14`/`PROJ_NB_RECENTS`), mais **seul l'Excel s'en sert** (`R6`, projection de rentabilité au taux récent). Dans l'app : (1) projeter la date de rentabilité au **taux d'économie des N derniers pleins E85** (comme Excel), avec repli sur le rythme moyen W89 si moins de N+1 pleins ou N = 0 ; (2) option : surconso E85 calculée sur les N derniers pleins E85 (vs tous aujourd'hui, `computeSurconso` / Excel `J8`), même borne [0,15 ; 0,40] — à aligner côté Excel si retenue. | Cohérence app ↔ Excel (même projection affichée des deux côtés) ; un paramètre réglable dans l'app doit avoir un effet visible ; la projection suit l'évolution récente des prix plutôt qu'une moyenne historique. | ~1 h 30 |
+| W96 | **Liste des véhicules par compte sur un appareil partagé** — la liste locale (`suivi_e85_vehicules`) est propre à l'appareil : si deux comptes Google se succèdent sur le même appareil, la fusion W95 pousse les véhicules du 1er dans la clé `vehicules` du 2nd. Préfixer le stockage local par email (ou vider la liste à la déconnexion). | Évite le mélange de véhicules entre comptes (cas rare mais silencieux). | ~45 min |
 
 > ℹ️ W83/W84/W87/W88 **livrés en v5.33.0.0** → « Idées déjà implémentées ». Reste W85/W86 (assets PWA).
 
@@ -98,6 +100,10 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 ### 🎯 Backend (GAS)
 
+| # | Idée | Pourquoi |
+|---|---|---|
+| X73 | **Purge RGPD du journal des dépenses** — `handleDeleteAccount` efface les lignes `Depenses` du compte mais pas `Depenses_journal` (append-only par conception, v5.36). Ajouter la purge des lignes du compte au seul cas de la suppression de compte (et l'inscrire dans la liste blanche de `tests/gasGarde.test.js`). | Le journal contient l'email et le détail des dépenses : la suppression de compte doit être complète. |
+
 ### 📋 Onglets Google Sheets
 
 | # | Idée | Pourquoi |
@@ -125,6 +131,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.36.0.0 | **Véhicules communs + dépenses protégées (W95)** — liste des véhicules synchronisée via `Parametres.vehicules` (union + déduction depuis pleins/dépenses, suppressions volontaires LWW), dates des dépenses normalisées (GAS/app/Excel), confirmation + Annuler + corbeille restaurable, journal `Depenses_journal` append-only, tests de non-régression (`gasGarde`, `depensesProtection`, `vehiculesSync`). GAS v67. |
+| v5.36.0.0 | **Contrôle d'intégrité des dépenses (X72)** — section `depenses` de l'audit GAS (`auditDepenses_`), carte app avec Restaurer, module Excel `modIntegriteDep` (doublons, dates/montants, suppressions récentes, écart Excel ↔ Sheet). |
 | v5.35.0.0 | **Économie par plein dans l'historique (W93)** — badge « 💶 +X € vs SP98 » (vert/rouge) sur chaque plein E85, même modèle que les Stats (surconso, prix de référence du jour − écart, carburant de référence configurable). `js/statsParams.js` (`computeEcoByFill`), `js/historique.js` (`setEcoProvider`), `css/style.css`, `tests/ecoplein*.test.js`. |
 | v5.35.0.0 | **Contrôle d'intégrité des pleins + correctif du doublon Excel (X71)** — audit GAS `?action=audit` (`Audit.gs`), carte Réglages (`js/integrite.js`), module Excel `modIntegrite` (rapport « Contrôle intégrité », tuile Accueil, contrôle silencieux à l'ouverture) en mode « signaler + proposer ». Cause racine du plein 45 = 43 corrigée : l'ancien import CSV n'écrit plus dans `Tableau2`, recalage automatique (`Tableau2ARecaler`), envoi idempotent app+GAS (`sync_id` client, `duplicate:true`). GAS v66. |
 | v5.34.0.0 | **Modifier un plein depuis l'historique (W92)** — swipe-gauche « iOS » sur une ligne (10 derniers **et** historique complet) révèle un tiroir **✏️ Modifier · 📤 Partager · 🗑️ Supprimer** ; tap/Entrée ouvre l'édition dans le formulaire réutilisé en **mode édition** (bandeau + Annuler), qui **met à jour** la ligne (tous champs). Backend : action `updatePlein` (`Code.gs` v3.9.0.0, MAJ `_ImportGS` par `sync_id` + `Modifié_le` pour la resync Excel). Geste tactile ; pleins sans `sync_id` → cache local. `js/histSwipe.js` (nouveau), `js/historique.js`, `js/formulaire.js`, `js/swipe.js`, `js/main.js`, `index.html`, `css/style.css`, `tests/historiqueEdit.test.js`. ⚠️ **GAS à redéployer.** |

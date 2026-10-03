@@ -107,7 +107,12 @@ Private Function Analyser() As String
     Dim nGS As Long
     nGS = AnalyserLocal()
     AnalyserTableau2 nGS
-    Analyser = AnalyserGS()
+    Dim dep As New Collection, it As Variant, depMsg As String
+    depMsg = modIntegriteDep.AnalyserDepenses(dep)
+    For Each it In dep
+        AddIssue CStr(it(0)), CStr(it(1)), CStr(it(2)), it(3), it(4), it(5), CStr(it(6)), CStr(it(7)), CStr(it(8))
+    Next it
+    Analyser = AnalyserGS() & " " & depMsg
 End Function
 
 Private Sub AddIssue(src As String, grav As String, typ As String, ligne As Variant, _
@@ -449,6 +454,8 @@ Private Function LibelleFix(fx As String) As String
         Case FX_REALIGN: LibelleFix = "Recaler Suivi Carburant sur GS_Pleins"
         Case FX_DELLOC:  LibelleFix = "Supprimer la ligne locale en trop"
         Case FX_DELCOPY: LibelleFix = "Supprimer cette copie (Excel + Google Sheet)"
+        Case modIntegriteDep.FX_RESTDEP: LibelleFix = "Restaurer la d" & eA & "pense (Excel + Google Sheet)"
+        Case modIntegriteDep.FX_SYNCDEP: LibelleFix = "Synchroniser les d" & eA & "penses"
         Case Else:       LibelleFix = ""
     End Select
 End Function
@@ -467,7 +474,7 @@ Private Sub EcrireRapport(gsMsg As String)
     ws.Cells.Clear
 
     With ws.Range("A1")
-        .Value = Titre() & " des pleins"
+        .Value = Titre() & " des pleins et d" & eA & "penses"
         .Font.Bold = True: .Font.Size = 14
     End With
     ws.Range("A2").Value = "Analyse du " & Format$(Now, "dd/mm/yyyy hh:nn") & " : " & mN & _
@@ -523,15 +530,16 @@ End Sub
 '  CORRECTIONS PROPOSEES (confirmation a chaque etape)
 ' ============================================================
 Private Function ProposerCorrections() As Boolean
-    Dim i As Long, nRe As Long, nLoc As Long, nCop As Long, lst As String
+    Dim i As Long, nRe As Long, nLoc As Long, nCop As Long, nDep As Long, lst As String
     For i = 1 To mN
         Select Case mIss(8, i)
             Case FX_REALIGN: nRe = nRe + 1
             Case FX_DELLOC:  nLoc = nLoc + 1: lst = lst & IIf(Len(lst) > 0, ", ", "") & mIss(3, i)
             Case FX_DELCOPY: nCop = nCop + 1
+            Case modIntegriteDep.FX_RESTDEP, modIntegriteDep.FX_SYNCDEP: nDep = nDep + 1
         End Select
     Next i
-    If nRe + nLoc + nCop = 0 Then
+    If nRe + nLoc + nCop + nDep = 0 Then
         MsgBox mN & " anomalie(s) signal" & eA & "e(s), sans correction automatique s" & ChrW(251) & "re." & _
                vbCrLf & "D" & eA & "tail dans l'onglet '" & RapportNom() & "'.", vbExclamation, Titre()
         Exit Function
@@ -581,6 +589,24 @@ Private Function ProposerCorrections() As Boolean
             ProposerCorrections = True
         End If
     End If
+
+    ' 4. Depenses : synchro puis restaurations (une confirmation chacune)
+    For i = 1 To mN
+        If mIss(8, i) = modIntegriteDep.FX_SYNCDEP Then
+            If MsgBox(mIss(7, i) & vbCrLf & vbCrLf & "Lancer la synchronisation des d" & eA & "penses ?", _
+                      vbYesNo + vbQuestion, Titre()) = vbYes Then
+                If modSyncDepenses.SyncDepenses() >= 0 Then ProposerCorrections = True
+            End If
+        ElseIf mIss(8, i) = modIntegriteDep.FX_RESTDEP Then
+            rep = MsgBox("D" & eA & "pense supprim" & eA & "e :" & vbCrLf & mIss(7, i) & vbCrLf & vbCrLf & _
+                         "La restaurer (Excel + Google Sheet) ?" & vbCrLf & _
+                         "(Annuler = arr" & ChrW(234) & "ter les propositions)", vbYesNoCancel + vbQuestion, Titre())
+            If rep = vbCancel Then Exit For
+            If rep = vbYes Then
+                If modSyncDepenses.RestaurerDepense(CStr(mIss(6, i))) Then ProposerCorrections = True
+            End If
+        End If
+    Next i
 End Function
 
 Private Sub SupprimerLignesLocales()
