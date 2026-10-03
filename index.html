@@ -599,6 +599,16 @@
   </div>
 </div>
 
+<!-- ─── Contrôle d'intégrité des pleins (action GAS audit) ─── -->
+<div class="card collapsible" data-collapse="integrite">
+  <p class="section-title">🛡️ Contrôle d'intégrité</p>
+  <div class="param-group">
+    <p class="notif-sub" style="margin-top:8px">Analyse vos pleins enregistrés dans Google Sheets : doublons, kilométrages incohérents, champs manquants, dates futures. Rien n'est corrigé automatiquement ; une copie en double peut être supprimée après confirmation.</p>
+    <button type="button" id="integriteBtn" class="submit-btn integ-run-btn">Vérifier l'intégrité des données</button>
+    <div id="integriteResult" class="integ-result" aria-live="polite"></div>
+  </div>
+</div>
+
 <!-- ─── U7 — Mon compte (connexion Google + suppression RGPD) ─── -->
 <div class="card collapsible" data-collapse="compte" data-auth-only hidden>
   <p class="section-title">👤 Mon compte</p>

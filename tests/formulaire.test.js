@@ -36,7 +36,7 @@ vi.mock('../js/auth.js', () => ({
 
 import {
   saveDraft, restoreDraft, clearDraft, checkDuplicate, onKmInput,
-  _parseSpeechToNumber, submitForm,
+  _parseSpeechToNumber, submitForm, _newSyncId,
 } from '../js/formulaire.js';
 import { state } from '../js/state.js';
 import { DRAFT_KEY } from '../js/config.js';
@@ -236,5 +236,36 @@ describe('submitForm', () => {
     fillValidPlein();
     await submitForm();
     expect(fetchStationPricesSilent).not.toHaveBeenCalled();
+  });
+});
+
+describe('Envoi idempotent — sync_id client', () => {
+  it('_newSyncId produit un UUID v4 unique (avec ou sans crypto.randomUUID)', () => {
+    const re = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const a = _newSyncId(), b = _newSyncId();
+    expect(a).toMatch(re);
+    expect(a).not.toBe(b);
+    const spy = vi.spyOn(crypto, 'randomUUID').mockImplementation(() => { throw new Error('insecure'); });
+    try {
+      const c = _newSyncId();
+      expect(c).toMatch(re);
+    } finally { spy.mockRestore(); }
+  });
+
+  it('un nouveau plein part avec un sync_id client, identique dans la file hors-ligne', async () => {
+    global.fetch = vi.fn(() => Promise.reject(new TypeError('Failed to fetch')));
+    fillValidPlein();
+    await submitForm();
+    const sent = JSON.parse(global.fetch.mock.calls[0][1].body);
+    expect(sent.sync_id).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(queuePlein).toHaveBeenCalledWith(expect.objectContaining({ sync_id: sent.sync_id }));
+  });
+
+  it('une réponse duplicate:true du GAS est traitée comme un succès', async () => {
+    global.fetch = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true, duplicate: true, message: 'Plein déjà enregistré' }) }));
+    fillValidPlein();
+    await submitForm();
+    expect(queuePlein).not.toHaveBeenCalled();
+    expect(showFeedback).toHaveBeenCalledWith('success', expect.stringContaining('enregistré'), 'Plein déjà enregistré');
   });
 });

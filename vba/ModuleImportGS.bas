@@ -8,249 +8,22 @@ Private Const CELL_LAST_IMPORT As String = "Z1"
 Private Const GS_SHEET_ID As String = "1uN170kt_n45sBRwqs2krTYfhapU3dMKjTguD-qSUqCE"
 
 '=========================================================================
-'  Macro principale — bouton "Importer pleins"
-'=========================================================================
-'=========================================================================
-'  Macro principale — bouton "Importer pleins"
+'  Bouton "Importer pleins" / activation de l'onglet "Suivi Carburant"
+'  Audit 03/10/2026 : l'ancien import CSV (gviz) AJOUTAIT des lignes en
+'  VALEURS figees a la fin de Tableau2 (dedup par contenu km|litres|prix).
+'  Or Tableau2 est une vue DERIVEE de GS_Pleins (formules INDEX par position) :
+'  des que Tableau2 etait en retard (import a +2 s AVANT la sync a +5 s,
+'  suppression Excel sans recalage), il recopiait des pleins deja presents
+'  -> doublons fantomes (plein 45 = plein 43). Desormais Tableau2 n'est
+'  alimente QUE par la sync (sync_id) + SyncTableau2DepuisGS.
+'    bSilent = True  : recalage local seul (aucun appel reseau)
+'    bSilent = False : synchronisation complete puis recalage
 '=========================================================================
 Public Sub ImporterNouveauxPleins(Optional bSilent As Boolean = False)
-
-    Dim wsSuivi As Worksheet, wsImport As Worksheet
-    Dim tbl As ListObject, tblImport As ListObject
-    Dim cellLastImport As Range
-    Dim dernierHorodatage As Date, maxHorodatage As Date
-    Dim ligneSrc As ListRow, nouvLigne As ListRow
-    Dim horodatageTxt As String, horodatage As Date
-    Dim dateValue As Date, typeStr As String
-    Dim kmVal As Long, litresVal As Double, prixVal As Double
-    Dim prixS98Val As Variant
-    Dim stationVal As String
-    Dim nbImportes As Long, nbTotal As Long, i As Long
-    Dim colStation As Long
-
-    On Error GoTo GestionErreur
-    Application.ScreenUpdating = False
-
-    SetStatus "Démarrage de l'import…"
-
-    Set wsSuivi = ThisWorkbook.Worksheets(SHEET_SUIVI)
-    Set tbl = wsSuivi.ListObjects(TABLE_SUIVI)
-    Set cellLastImport = wsSuivi.Range(CELL_LAST_IMPORT)
-
-    ' -- 1. Télécharger le CSV et peupler _ImportGS -----------------------
-    SetStatus "[1/4] Téléchargement des données depuis Google Sheets…"
-    If Not ChargerCSVDansFeuilleImport() Then
-        ResetStatus
-        Application.ScreenUpdating = True
-        Exit Sub
-    End If
-
-    ' Deverrouille "Suivi Carburant" pour autoriser ListRows.Add (sinon 1004).
-    ' Reverrouille a la sortie normale ET sur erreur (voir GestionErreur).
-    DeverrouillerSuivi
-
-    ' -- 2. Dernier horodatage importé ------------------------------------
-    SetStatus "[2/4] Lecture du dernier horodatage importé…"
-    If IsDate(cellLastImport.value) Then
-        On Error Resume Next
-        dernierHorodatage = CDate(cellLastImport.value)
-        If Err.Number <> 0 Then Err.Clear: dernierHorodatage = DateSerial(1900, 1, 1)
-        On Error GoTo GestionErreur
-    Else
-        dernierHorodatage = DateSerial(1900, 1, 1)
-    End If
-    maxHorodatage = dernierHorodatage
-
-    ' -- 3. Vérifier la feuille de staging --------------------------------
-    SetStatus "[3/4] Analyse des pleins reçus…"
-    Set wsImport = ThisWorkbook.Worksheets(SHEET_IMPORT)
-    If wsImport.ListObjects.count = 0 Then
-        ResetStatus
-        SetStatus "[Import E85] " & ChrW(9888) & " Aucun tableau trouvé dans '" & SHEET_IMPORT & "'."
-        Application.ScreenUpdating = True
-        Exit Sub
-    End If
-    Set tblImport = wsImport.ListObjects(1)
-
-    ' Cherche les colonnes par en-tete (l'ordre du Google Sheet peut varier)
-    colStation = 0
-    Dim colSP98 As Long
-    colSP98 = 0
-    Dim colSupprime As Long
-    colSupprime = 0
-    Dim colNom As String, kk As Long
-    For kk = 1 To tblImport.ListColumns.count
-        colNom = LCase(Trim(tblImport.ListColumns(kk).name))
-        If colNom = "station essence" Then colStation = kk
-        If InStr(colNom, "sp98 station") > 0 Then colSP98 = kk
-        If InStr(colNom, "supprim") > 0 Then colSupprime = kk
-    Next kk
-
-    If colStation = 0 Then
-        ResetStatus
-        SetStatus "[Import E85] " & ChrW(9888) & " Colonne 'Station essence' absente du Google Sheet."
-        Application.ScreenUpdating = True
-        Exit Sub
-    End If
-
-    If tblImport.DataBodyRange Is Nothing Then
-        ResetStatus
-        If Not bSilent Then SetStatus "[Import E85] Aucun plein dans le Google Sheet pour le moment."
-        Application.ScreenUpdating = True
-        Exit Sub
-    End If
-
-    ' Index des pleins déjà présents (déduplication robuste par contenu : date|km|litres)
-    Dim existing As Object
-    Set existing = CreateObject("Scripting.Dictionary")
-    existing.CompareMode = vbTextCompare
-    Dim rrSuivi As ListRow, cleEx As String
-    If Not tbl.DataBodyRange Is Nothing Then
-        For Each rrSuivi In tbl.ListRows
-            cleEx = PleinKey(rrSuivi.Range.Cells(1, 4).value, _
-                             rrSuivi.Range.Cells(1, 6).value, _
-                             rrSuivi.Range.Cells(1, 7).value)
-            If Len(cleEx) > 0 Then existing(cleEx) = True
-        Next rrSuivi
-    End If
-
-    nbTotal = tblImport.ListRows.count
-    nbImportes = 0
-    i = 0
-
-    ' -- 4. Importer les nouvelles lignes ---------------------------------
-    For Each ligneSrc In tblImport.ListRows
-        i = i + 1
-        SetStatus "[4/4] Examen du plein " & i & " / " & nbTotal & "…"
-
-        ' S3 — Soft-delete : ignorer les pleins marqués supprimés côté GAS
-        ' (colonne « Supprimé » = horodatage). Sans ce filtre, un plein effacé
-        ' (app ou Excel) était réimporté dans « Suivi Carburant » à chaque
-        ' activation de l'onglet (Worksheet_Activate -> ImporterNouveauxPleinsAuto).
-        If colSupprime > 0 Then
-            If Len(Trim(CStr(ligneSrc.Range.Cells(1, colSupprime).value))) > 0 Then GoTo NextLigne
-        End If
-
-        ' Ignorer horodatage vide
-        horodatageTxt = CStr(ligneSrc.Range.Cells(1, 1).value)
-        If Len(Trim(horodatageTxt)) = 0 Then GoTo NextLigne
-
-        ' Parser l'horodatage — skip si invalide
-        On Error Resume Next
-        horodatage = ParseGoogleDateTime(horodatageTxt)
-        If Err.Number <> 0 Then Err.Clear: GoTo NextLigne
-        On Error GoTo GestionErreur
-
-        ' (Déduplication par contenu plus bas — l'horodatage du Google Sheet
-        '  est peu fiable : certaines lignes n'ont pas d'heure.)
-
-        ' Parser les champs obligatoires — skip si erreur
-        On Error Resume Next
-        ' X41 fix date : la cellule _ImportGS!Date est une VRAIE date (PQ) -> l'utiliser
-        '  telle quelle (serial, locale-independant). NE PAS la stringifier puis re-parser :
-        '  CStr donne "09/06/2026" (locale FR) et ParseGoogleDate, croyant lire du M/J/A US,
-        '  interpretait 09 comme un mois (jour<=12) -> 6 sept au lieu du 9 juin. Repli
-        '  ParseGoogleDate seulement si la cellule n'est pas deja une date (texte ISO/gviz brut).
-        If IsDate(ligneSrc.Range.Cells(1, 2).value) Then
-            dateValue = CDate(ligneSrc.Range.Cells(1, 2).value)
-        Else
-            dateValue = ParseGoogleDate(CStr(ligneSrc.Range.Cells(1, 2).value))
-        End If
-        typeStr = Trim(CStr(ligneSrc.Range.Cells(1, 3).value))
-        kmVal = CLng(ToDouble(ligneSrc.Range.Cells(1, 4).value))
-        litresVal = ToDouble(ligneSrc.Range.Cells(1, 5).value)
-        prixVal = ToDouble(ligneSrc.Range.Cells(1, 6).value)
-        If Err.Number <> 0 Then Err.Clear: GoTo NextLigne
-        On Error GoTo GestionErreur
-
-        ' Ignorer les lignes poubelles (syncStations parasite, action sans données, etc.)
-        If kmVal = 0 Or litresVal = 0 Or prixVal = 0 Then GoTo NextLigne
-
-        ' Déjà présent ? Déduplication robuste par contenu (km|litres|prix)
-        Dim cle As String
-        cle = PleinKey(kmVal, litresVal, prixVal)
-        If existing.Exists(cle) Then GoTo NextLigne
-        existing(cle) = True   ' évite aussi les doublons au sein du même lot
-
-        ' Prix SP98 station (optionnel) — colonne detectee par en-tete, jamais la 7 (= Station essence)
-        prixS98Val = Empty
-        If colSP98 > 0 Then
-            If Len(Trim(CStr(ligneSrc.Range.Cells(1, colSP98).value))) > 0 Then
-                prixS98Val = ToDouble(ligneSrc.Range.Cells(1, colSP98).value)
-            End If
-        End If
-
-        stationVal = Trim(CStr(ligneSrc.Range.Cells(1, colStation).value))
-
-        ' Ajouter la ligne dans Tableau2
-        Set nouvLigne = tbl.ListRows.Add
-        With nouvLigne.Range
-            .Cells(1, 2).value = dateValue
-            .Cells(1, 3).value = typeStr
-            .Cells(1, 4).value = kmVal
-            .Cells(1, 6).value = litresVal
-            .Cells(1, 7).value = prixVal
-            If Not IsEmpty(prixS98Val) Then .Cells(1, 11).value = prixS98Val
-            If stationVal <> "" Then .Cells(1, 15).value = stationVal
-        End With
-
-        If stationVal <> "" Then Call AjouterStationSiInconnue(stationVal)
-        If horodatage > maxHorodatage Then maxHorodatage = horodatage
-        nbImportes = nbImportes + 1
-
-NextLigne:
-    Next ligneSrc
-
-    ' -- 5. Fin -----------------------------------------------------------
-    If nbImportes > 0 Then
-        cellLastImport.value = maxHorodatage
-        cellLastImport.NumberFormat = "dd/mm/yyyy hh:mm:ss"
-    End If
-
-    ResetStatus
-    Application.ScreenUpdating = True
-
-    If nbImportes = 0 Then
-        If Not bSilent Then SetStatus "[Import E85] Aucun nouveau plein à importer."
-    Else
-        SetStatus nbImportes & " plein(s) importé(s) avec succès."
-    End If
-
-    ' Push des stations vers GS : desormais gere par modSyncGS (SyncOnOpen / SyncManuel).
-    ' Ancien Call SyncStationsVersGoogleSheets retire (module synchroniseGoogleForm supprime).
-
-    ' G5 : apres un import reel, reactualiser les listes deroulantes de saisie
-    ' (tbl_vehicule / tbl_stationEssence alimentees depuis les valeurs saisies).
-    ' Tolerant : un echec ne doit jamais casser l'import.
-    If nbImportes > 0 Then
-        On Error Resume Next
-        modValidation.RafraichirListesSaisie
-        On Error GoTo 0
-    End If
-
-    VerrouillerSuivi                       ' reverrouille la feuille apres l'import
-    Exit Sub
-
-GestionErreur:
-    Dim errNum As Long, eDesc As String
-    errNum = Err.Number: eDesc = Err.Description
-    ' Recuperation : sur erreur 1004 (tableau/feuille protegee), on VIDE Z1 pour
-    ' forcer un import COMPLET au prochain lancement. Deverrouillage prealable
-    ' (Z1 est sur la feuille protegee), puis reverrouillage systematique.
     On Error Resume Next
-    DeverrouillerSuivi
-    If errNum = 1004 Then ThisWorkbook.Worksheets(SHEET_SUIVI).Range(CELL_LAST_IMPORT).ClearContents
-    VerrouillerSuivi
+    If Not bSilent Then modSyncGS.SyncManuel
+    If modFeatures.Tableau2ARecaler() Then modFeatures.SyncTableau2DepuisGS
     On Error GoTo 0
-    ResetStatus
-    Application.ScreenUpdating = True
-    If errNum = 1004 Then
-        SetStatus "[Import E85] " & ChrW(9888) & " Erreur 1004 (feuille protegee) : '" & _
-                  CELL_LAST_IMPORT & "' vide -> relancez l'import (il sera complet)."
-    Else
-        SetStatus "[Import E85] " & ChrW(9888) & " Erreur " & errNum & " : " & eDesc & _
-                  " (vider '" & CELL_LAST_IMPORT & "' pour forcer un import complet)."
-    End If
 End Sub
 
 Public Sub ImporterNouveauxPleinsAuto()
@@ -297,54 +70,13 @@ Public Sub ReinitialiserImport()
 End Sub
 
 '=========================================================================
-'  Nettoyage des doublons existants dans le tableau Suivi Carburant
-'  Cle = km|litres|prix. Conserve la PREMIERE occurrence (la plus haute,
-'  donc la ligne d'origine), supprime les copies plus bas (ex. lignes
-'  reimportees avec une mauvaise date par l'ancien module).
+'  Nettoyage des doublons -> delegue au controle d'integrite (modIntegrite)
 '=========================================================================
 Public Sub NettoyerDoublons()
-    Dim wsSuivi As Worksheet, tbl As ListObject
-    Dim seen As Object, toDelete As Collection
-    Dim i As Long, k As Long, cle As String, nbSupp As Long
-
-    On Error GoTo Erreur
-    Set wsSuivi = ThisWorkbook.Worksheets(SHEET_SUIVI)
-    Set tbl = wsSuivi.ListObjects(TABLE_SUIVI)
-    If tbl Is Nothing Then SetStatus "[Nettoyage E85] " & ChrW(9888) & " Tableau introuvable.": Exit Sub
-    If tbl.DataBodyRange Is Nothing Then SetStatus "[Nettoyage E85] Aucun plein dans le tableau.": Exit Sub
-
-    Set seen = CreateObject("Scripting.Dictionary")
-    seen.CompareMode = vbTextCompare
-    Set toDelete = New Collection
-
-    ' Parcours du haut vers le bas : on garde la 1ere occurrence de chaque cle
-    For i = 1 To tbl.ListRows.count
-        With tbl.ListRows(i).Range
-            cle = PleinKey(.Cells(1, 4).value, .Cells(1, 6).value, .Cells(1, 7).value)
-        End With
-        If cle <> "0|0.00|0.000" Then
-            If seen.Exists(cle) Then
-                toDelete.Add i
-            Else
-                seen(cle) = True
-            End If
-        End If
-    Next i
-
-    Application.ScreenUpdating = False
-    nbSupp = 0
-    ' Suppression du bas vers le haut pour ne pas decaler les index restants
-    For k = toDelete.count To 1 Step -1
-        tbl.ListRows(toDelete(k)).Delete
-        nbSupp = nbSupp + 1
-    Next k
-    Application.ScreenUpdating = True
-
-    SetStatus "[Nettoyage E85] " & ChrW(10003) & " " & nbSupp & " doublon(s) supprimé(s)."
-    Exit Sub
-Erreur:
-    Application.ScreenUpdating = True
-    SetStatus "[Nettoyage E85] " & ChrW(9888) & " Erreur " & Err.Number & " : " & Err.Description
+    ' Audit 03/10/2026 : ne supprime plus de lignes au milieu de Tableau2 (vue
+    ' positionnelle de GS_Pleins -> une suppression decale tous les pleins).
+    ' Les doublons sont detectes et corriges par le controle d'integrite.
+    modIntegrite.ControleIntegrite
 End Sub
 
 '=========================================================================
@@ -575,8 +307,14 @@ Public Sub DiagnosticImport()
                     wsLog.Cells(ligne, 4) = "IGNORÉE - horodatage vide"
                     GoTo Suite
                 End If
+                ' Vraie date (cellule PQ) lue telle quelle : CStr + re-parse inversait
+                ' jour/mois (11/09 -> 9 novembre, cf. Z1 du 03/10/2026, lecon #27).
                 On Error Resume Next
-                horodatage = ParseGoogleDateTime(horodatageTxt)
+                If IsDate(ligneSrc.Range.Cells(1, 1).value) Then
+                    horodatage = CDate(ligneSrc.Range.Cells(1, 1).value)
+                Else
+                    horodatage = ParseGoogleDateTime(horodatageTxt)
+                End If
                 On Error GoTo Erreur
                 wsLog.Cells(ligne, 3) = Format(horodatage, "dd/mm/yyyy hh:mm:ss")
                 If horodatage <= dernierHorodatage Then

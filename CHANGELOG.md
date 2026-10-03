@@ -4,6 +4,23 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.35.0.0] — 2026-10-03
+
+### Added
+- **Économie par plein dans l'historique (W93)** — chaque plein E85 affiche **« 💶 +X,XX € vs SP98 »** (vert) ou un surcoût (rouge), calculé avec **le même modèle que l'onglet Stats** : litres × ratio de conso (surconso E85, ou conso diesel) × prix de référence du jour (SP98 station − écart €/L, repli sur le prix moyen du véhicule) − coût du plein. La référence suit le **carburant de référence configuré** (SP98 par défaut). Rien n'est affiché sur les pleins non E85. `js/statsParams.js` (`computeEcoByFill`, par véhicule), `js/historique.js` (`setEcoProvider`, badge `.hist-eco` ; injection par `main.js` pour éviter le cycle d'import), `css/style.css`. Tests : `tests/ecoplein.test.js`, `tests/ecopleinRender.test.js`.
+- **Contrôle d'intégrité des pleins (X71)** — détection des **doublons** (même `sync_id` ou même contenu véhicule/km/litres/prix), lignes fantômes (écho d'en-tête), **km non croissants**, **dates futures**, champs manquants, `sync_id` absent ; mode **« signaler + proposer »** (aucune correction silencieuse) :
+  - **GAS** : nouvelle action `?action=audit` (`Audit.gs`, fonction pure `auditRows_`, même authentification que `export`).
+  - **App web** : carte **« Contrôle d'intégrité »** dans ⚙️ Réglages (`js/integrite.js`) — liste des anomalies, bouton **« Supprimer cette copie »** avec confirmation pour les doublons.
+  - **Excel** : nouveau module `modIntegrite` — contrôle de `GS_Pleins`, de la vue `Suivi Carburant` (désalignement, valeurs figées) **et** du Google Sheet ; rapport dans l'onglet **« Contrôle intégrité »**, état sur la nouvelle **tuile Accueil**, exécution silencieuse à l'ouverture (après la sync), corrections sûres proposées une par une.
+
+### Fixed
+- **Doublon du plein n° 45 (= n° 43) dans `Suivi Carburant` (Excel)** — cause : l'ancien import CSV (`ImporterNouveauxPleins`, lancé à l'ouverture **avant** la sync et à **chaque activation** de l'onglet) ajoutait des lignes en **valeurs figées** à la fin de `Tableau2`, vue pourtant dérivée de `GS_Pleins` par formules `INDEX` positionnelles ; dès que `Tableau2` était en retard (import à +2 s avant la sync à +5 s, suppression Excel sans recalage), il recopiait des pleins déjà présents. L'import n'écrit plus dans `Tableau2` (délégation à la sync), `SupprimerPleinExcel` recale la vue, la sync recale aussi si `Tableau2` est désaligné ou figé (`modFeatures.Tableau2ARecaler`), et les valeurs figées sont remplacées par les formules de colonne (graine N° préservée). `NettoyerDoublons` délègue au contrôle d'intégrité.
+- **Prix S98 décalé** sur le plein n° 42 (2,259 € au lieu de 2,297 €) — valeur figée déplacée par l'ajout puis la suppression de lignes ; colonne repassée en formule. Classeur réparé (lignes 45-46 supprimées, sauvegarde préalable hors dépôt).
+- **Doublons à la source (app)** — un plein envoyé dont la réponse se perdait partait en file hors-ligne puis était **rejoué avec un nouveau `sync_id`** (ex. 25/09 20:59 puis 26/09 04:28). L'app génère désormais le `sync_id` (`js/formulaire.js`) et le GAS ignore un `sync_id` déjà connu (`duplicate:true`, verrou `LockService`). `deletePlein` accepte un n° de ligne pour cibler une copie ; `export` ne renvoie plus dans `deleted` un `sync_id` encore actif.
+- **`Z1` (dernier horodatage importé) au 09/11/2026** — horodatage stringifié puis re-parsé (jour/mois inversés, cf. leçon #27) ; lecture de la vraie date. Accents corrompus des messages VBA (`ModuleImportGS`, `modSyncGS`…) réparés au passage (réimport en CP1252).
+
+> ℹ️ **GAS redéployé (v66).** VBA déployé dans le classeur (`ModuleImportGS`, `modFeatures`, `modSyncEngine`, `modSyncGS`, `modWorkbook`, `Feuil2`, nouveau `modIntegrite`) et vérifié : scénario du doublon rejoué → détecté puis recalé.
+
 ## [5.34.0.0] — 2026-09-19
 
 ### Added

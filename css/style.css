@@ -1214,6 +1214,16 @@ body.no-share .hist-drawer .hist-share { display: none; }
 .hist-conso.mid  { color: #f59e0b; }   /* dans la normale (orange) */
 .hist-conso.high { color: #ef4444; }   /* gourmand (rouge) */
 
+/* W93 — économie du plein E85 vs carburant de référence (contraste ≥ 4.5:1 dans les 2 thèmes) */
+.hist-eco {
+  font-size: 12px; font-weight: 600; margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.hist-eco.pos { color: #15803d; }
+.hist-eco.neg { color: #dc2626; }
+[data-theme="dark"] .hist-eco.pos { color: #34d399; }
+[data-theme="dark"] .hist-eco.neg { color: #f87171; }
+
 .hist-row3 {
   font-size: 11px; color: var(--text-muted);
   margin-top: 2px;
@@ -2484,3 +2494,41 @@ body.map-fs-open { overflow: hidden; }
 .depense-del:hover, .depense-del:active { opacity: 1; background: var(--red-light); }
 .depenses-total-row { margin-top: 8px; text-align: right; font-size: 14px; color: var(--text-muted); }
 .depenses-total-row strong { color: var(--blue-mid); font-size: 15px; }
+
+/* ─── Contrôle d'intégrité des pleins (⚙️ Réglages, js/integrite.js) ───
+   Couleurs AA (≥ 4.5:1) dans les deux thèmes. */
+.integ-run-btn { height: 44px; font-size: 15px; margin-top: 10px; }
+.integ-result:empty { display: none; }
+.integ-result { margin-top: 10px; }
+.integ-summary { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+.integ-ok { color: #15803d; }
+.integ-ko { color: #b91c1c; }
+.integ-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.integ-item {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 8px 2px 8px 10px; border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--amber);
+}
+.integ-item.integ-error { border-left-color: var(--red); }
+.integ-main { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.integ-type { font-size: 14px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.integ-sev {
+  flex: none; font-size: 11px; font-weight: 700; white-space: nowrap;
+  padding: 1px 7px; border-radius: 999px; background: #fef3c7; color: #92400e;
+}
+.integ-error .integ-sev { background: #fcebeb; color: #b91c1c; }
+.integ-meta { font-size: 12px; color: var(--text-muted-strong); font-variant-numeric: tabular-nums; }
+.integ-msg { font-size: 12.5px; color: var(--text); line-height: 1.4; overflow-wrap: anywhere; }
+.integ-fix {
+  flex: none; border: 1px solid #b91c1c; background: transparent; color: #b91c1c;
+  border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent;
+}
+.integ-fix:hover, .integ-fix:active { background: var(--red-light); }
+.integ-fix:disabled { opacity: .55; cursor: default; }
+[data-theme="dark"] .integ-ok { color: #34d399; }
+[data-theme="dark"] .integ-ko { color: #f87171; }
+[data-theme="dark"] .integ-sev { background: #78350f; color: #fcd34d; }
+[data-theme="dark"] .integ-error .integ-sev { background: #7f1d1d; color: #fca5a5; }
+[data-theme="dark"] .integ-fix { border-color: #f87171; color: #f87171; }
+[data-theme="dark"] .integ-fix:hover, [data-theme="dark"] .integ-fix:active { color: #fca5a5; }

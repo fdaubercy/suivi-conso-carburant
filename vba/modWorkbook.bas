@@ -350,6 +350,9 @@ Public Sub OpenTask_Sync()
     On Error Resume Next
     modSplash.SplashMarkSync
     On Error GoTo 0
+    ' Controle d'integrite (audit 03/10/2026) APRES la sync : rapport + tuile
+    ' Accueil mis a jour, aucune boite de dialogue a l'ouverture.
+    RunSilentTask "ControleIntegriteSilencieux"
 End Sub
 
 

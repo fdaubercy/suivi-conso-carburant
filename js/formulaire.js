@@ -27,6 +27,21 @@ function _getClientId() {
   } catch { return ''; }
 }
 
+/** Identifiant unique d'un NOUVEAU plein, généré côté client AVANT l'envoi :
+ *  le même sync_id accompagne le payload mis en file hors-ligne puis rejoué,
+ *  ce qui rend l'enregistrement idempotent côté GAS (pas de doublon si la
+ *  1re requête avait abouti malgré une réponse perdue).
+ *  Exporté (préfixe `_`) pour les tests unitaires — usage interne uniquement. */
+export function _newSyncId() {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch { /* contexte non sécurisé : repli ci-dessous */ }
+  const hex = n => Array.from({ length: n }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+  return hex(8) + '-' + hex(4) + '-4' + hex(3) + '-' + (8 + Math.floor(Math.random() * 4)).toString(16) + hex(3) + '-' + hex(12);
+}
+
 /* ═══════════════════════════════════════
    W15 — Auto-save brouillon
    ═══════════════════════════════════════ */
@@ -400,8 +415,12 @@ export async function submitForm() {
     return;
   }
 
+  // Envoi idempotent : sync_id fixé côté client avant l'envoi (cf. _newSyncId).
+  payload.sync_id = _newSyncId();
+
   /* ── Envoi réseau ────────────────────────────────────────────────────
    * Hors-ligne (NetworkError / TypeError) → file d'attente localStorage
+   * (même payload, donc même sync_id, rejoué à l'identique)
    * ─────────────────────────────────────────────────────────────────── */
   try {
     const json = await fetch(GAS_URL, {

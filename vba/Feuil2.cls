@@ -53,9 +53,9 @@ Cleanup:
 End Sub
 
 Private Sub Worksheet_Activate()
-    ' X41 : un echec d import (reseau/GAS) ne doit jamais bloquer la navigation.
+    ' X41 : un echec de recalage ne doit jamais bloquer la navigation.
     On Error Resume Next
-    Call ImporterNouveauxPleinsAuto
+    If modFeatures.Tableau2ARecaler() Then modFeatures.SyncTableau2DepuisGS   ' audit 03/10/2026 : plus d'import CSV
     On Error GoTo 0
 End Sub
 

@@ -104,6 +104,40 @@ export function getRefModelForStats(byVeh, surconso) {
 export function refPriceCol(isDiesel) {
   return isDiesel ? 'Gazole station (€/L)' : 'SP98 station (€/L)';
 }
+/* ─── W93 — Économie par plein E85 vs carburant de référence (historique) ───
+   Même modèle que computeStats (économie brute à parité de coût/km), appliqué
+   plein par plein et PAR VÉHICULE (surconso, conso E85 et prix réf. moyen propres
+   au véhicule) : Σ des économies d'un véhicule = économie brute des stats.
+   Un plein sans prix de référence exploitable (ni station, ni moyenne) est ignoré.
+   Renvoie Map(record → { eco, ref }) keyée par IDENTITÉ d'objet. */
+export function computeEcoByFill(records) {
+  const map = new Map();
+  const byVeh = {};
+  (records || []).forEach(r => {
+    const v = r['Véhicule'] || r['Vehicule'] || '';
+    (byVeh[v] || (byVeh[v] = [])).push(r);
+  });
+  const ref = refShortOf(getCarburantRef());
+  Object.values(byVeh).forEach(list => {
+    const e85 = list.filter(r =>
+      matchType(r.Type, 'E85') && Number(r['Prix €/L']) > 0 && Number(r['Nb. Litres']) > 0
+    );
+    if (!e85.length) return;
+    const rm = getRefModelForStats(list, computeSurconso(list));
+    if (!(rm.ratioConso > 0)) return;
+    const col = refPriceCol(rm.isDiesel);
+    const connus = e85.map(r => Number(r[col]) || 0).filter(p => p > 0);
+    const refMoyen = connus.length ? connus.reduce((s, p) => s + p, 0) / connus.length : 0;
+    e85.forEach(r => {
+      const refPrix = rm.refPriceFromFill(r, refMoyen);
+      if (!(refPrix > 0)) return;
+      const lit = Number(r['Nb. Litres']);
+      map.set(r, { eco: lit * rm.ratioConso * refPrix - lit * Number(r['Prix €/L']), ref });
+    });
+  });
+  return map;
+}
+
 /** Surconso E85 exprimée vs le carburant de référence (pour l'affichage). */
 export function surconsoVsRef(ratioConso) {
   return ratioConso > 0 ? (1 / ratioConso - 1) : 0;

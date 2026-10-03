@@ -19,7 +19,8 @@ import { onAutreInput, setRadius } from './recherche.js';
 import { onStationChange, onKmInput, submitForm, checkDuplicate, saveDraft, restoreDraft, initVoiceKm, beginEditPlein, cancelEditPlein } from './formulaire.js';
 import { chargerStations, mergeHistoryStations } from './stations.js';
 import { initTheme, toggleTheme } from './theme.js';
-import { chargerHistorique, dupliquerDernier, voirTout, exportHistoriqueCSV, exportHistoriqueAllCSV, initCsvSepSetting, initHistoireFilters, initHistoireShare, initHistoireDelete, initHistoireEdit, getRecordByKey, getMaxKmForVehicule, getAllRecords, rerenderHistorique, renderFullHistory } from './historique.js';
+import { chargerHistorique, dupliquerDernier, voirTout, exportHistoriqueCSV, exportHistoriqueAllCSV, initCsvSepSetting, initHistoireFilters, initHistoireShare, initHistoireDelete, initHistoireEdit, getRecordByKey, getMaxKmForVehicule, getAllRecords, rerenderHistorique, renderFullHistory, setEcoProvider } from './historique.js';
+import { computeEcoByFill } from './statsParams.js';
 import { renderStats, getNextKmPrediction, initBilanSheet } from './stats.js';
 import { initSparkToggles, initKitSetting, initRentabiliteSettings, initBudgetSetting, initCo2ObjectifSetting, initRapport, refreshConversionInputs } from './statsSettings.js';
 import { initDepensesUI, renderDepenses, syncDepenses } from './depenses.js';
@@ -32,6 +33,7 @@ import { initPWA }           from './pwa.js';
 import { initOffline, syncQueue } from './offline.js';
 import { initNotifications, updateNotifUI, registerPushSubscription } from './notifications.js';
 import { syncParametres, initCompteUI } from './parametres.js';
+import { initIntegriteUI } from './integrite.js';
 import { initRouter, navigate } from './router.js';
 import { initPullRefresh } from './pullrefresh.js';
 import { initSwipe } from './swipe.js';
@@ -133,6 +135,7 @@ window.addEventListener('parametres-synced', e => {
   }
   refreshConversionInputs();      // W91 — les valeurs globales legacy servent de repli
   renderStats();                  // kit / budget / objectif CO₂ / surconso
+  rerenderHistorique();           // W93 — économie par plein (surconso / écart / référence)
 });
 
 /* W91b — Synchro des dépenses d'entretien (LWW par id). Re-rendu à l'application. */
@@ -286,6 +289,7 @@ initMapInteractions(); // carte.js — délégation sur #stationMap
 initMapFullscreen();   // mapfullscreen.js — W63 bouton ⛶ plein écran des cartes
 initStationsMapInteractions(); // stationsmap.js — clic marqueur favori → popup itinéraire (S11)
 initAlentour();        // cartealentour.js — D3 sélecteur de rayon (stations alentour)
+setEcoProvider(computeEcoByFill); // W93 — économie par plein E85 vs carburant de référence
 initHistoireFilters(); // historique.js — filtres historique complet (W32)
 initCsvSepSetting();   // historique.js — W54 choix du séparateur CSV (persisté)
 initHistoireShare();   // historique.js — W26 Web Share API
@@ -329,6 +333,7 @@ initSwipe();           // swipe.js — W44 balayage gauche/droite entre onglets
 initBadges();          // badges.js — W45 pastilles de notification sur les onglets
 initPreferences();     // preferences.js — U4 vue de départ · U5 tuile reprendre · U6 blocs repliables
 initCompteUI();        // parametres.js — U7 « Mon compte » + suppression RGPD
+initIntegriteUI();     // integrite.js — contrôle d'intégrité des pleins (action GAS audit)
 
 /* U9 — Changement de véhicule GLOBAL (barre header, select saisie, ajout/suppression)
    → re-render de toutes les vues filtrées par véhicule (source : 'vehicule-changed'). */

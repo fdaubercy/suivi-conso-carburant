@@ -336,6 +336,12 @@ Public Sub SupprimerPleinExcel()
     ws.rows(r).Delete
     Application.EnableEvents = True
 
+    ' Audit 03/10/2026 : realigne la vue derivee Tableau2 (sinon une ligne de
+    ' trop subsiste et l'ancien import y recopiait un plein -> doublon).
+    On Error Resume Next
+    modFeatures.SyncTableau2DepuisGS
+    On Error GoTo 0
+
     SetStatus "Plein supprime (local" & IIf(sid <> "", " + GS", "") & ")."
 End Sub
 

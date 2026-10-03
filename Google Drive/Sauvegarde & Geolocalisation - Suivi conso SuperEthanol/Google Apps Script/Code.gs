@@ -1,5 +1,18 @@
 // ============================================================
-//  SUIVI CONSO E85 — Web App Backend               v3.9.0.0
+//  SUIVI CONSO E85 — Web App Backend               v5.35.0.0
+//
+//  v5.35.0.0 — Intégrité des pleins (anti-doublons + audit)
+//  ⚠️ Nécessite un REDÉPLOIEMENT de la Web App (nouvelle version).
+//  • Enregistrement idempotent : le client fournit payload.sync_id ; si une
+//    ligne _ImportGS porte déjà ce sync_id (même supprimée), aucune ligne n'est
+//    créée → { success:true, sync_id, duplicate:true }. Verrou LockService
+//    autour du contrôle + appendRow (course entre 2 requêtes simultanées).
+//  • action=audit (GET, même auth que export : token + idToken | syncSecret) :
+//    contrôle d'intégrité des lignes du compte (auditRows_, fonction pure).
+//  • deletePlein : `row` optionnel (n° de ligne Sheet) pour cibler UNE copie
+//    précise d'un sync_id dupliqué ; sinon dernière ligne ACTIVE du sync_id.
+//  • handleExport : un sync_id encore porté par une ligne active n'est plus
+//    renvoyé dans « deleted » (suppression d'une copie ≠ suppression du plein).
 //
 //  v3.9.0.0 — W92 Modification d'un plein : action `updatePlein` (met à jour la
 //  ligne _ImportGS par sync_id + estampille Modifié_le pour la resync Excel).
@@ -198,6 +211,12 @@ function doGet(e) {
     return handleExport(e);
   }
 
+  // v5.35 — contrôle d'intégrité de _ImportGS (même auth/périmètre que export)
+  //   ?action=audit&token=…&idToken=… (app) | &syncSecret=… (Excel)
+  if (e.parameter.action === 'audit') {
+    return handleAudit(e);
+  }
+
   // U7 — debug : confirme la vérification serveur de l'idToken (?action=whoami&idToken=…&token=…)
   if (e.parameter.action === 'whoami') {
     return handleWhoami(e);
@@ -310,6 +329,16 @@ function handleExport(e) {
     .map(row => String(row[IDX_SYNC] || '').trim())
     .filter(Boolean);
 
+  // v5.35 — un sync_id encore porté par une ligne ACTIVE du compte n'est pas
+  // « supprimé » : seule une copie en double l'a été (sinon les clients
+  // purgeraient le plein restant).
+  const activeIds = new Set(rows
+    .filter(row => String(row[IDX_DELETED] || '').trim() === '')
+    .filter(row => _rowBelongsTo_(row[IDX_EMAIL], email))
+    .map(row => String(row[IDX_SYNC] || '').trim())
+    .filter(Boolean));
+  const deletedIds = deleted.filter(id => !activeIds.has(id));
+
   // records — lignes ACTIVES uniquement (col R vide)
   const records = rows
     .filter(row => String(row[IDX_DELETED] || '').trim() === '')
@@ -333,7 +362,7 @@ function handleExport(e) {
 
   // Ordre des clés : « records » EN DERNIER (le parseur VBA ParseRecords
   // vise la dernière « ] » via InStrRev ; deleted doit donc précéder).
-  return jsonResponse({ since: sinceParam || null, deleted, records });
+  return jsonResponse({ since: sinceParam || null, deleted: deletedIds, records });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -413,7 +442,7 @@ function doPost(e) {
   if (payload.action === 'deletePlein') {
     const delEmail = resolveOwner_(e, payload);
     if (!delEmail) return unauthorizedResponse_();
-    return handleDeletePlein(ss, payload.sync_id, delEmail);
+    return handleDeletePlein(ss, payload.sync_id, delEmail, payload.row);
   }
 
   // ── W92 — Modification d'un plein existant par sync_id (col O) ──
@@ -462,10 +491,50 @@ function doPost(e) {
   }
 
   // ── Enregistrement d'un plein depuis l'app web (A→S, 19 col) ──
-  const sp     = payload.stationPrices || {};
-  const syncId = payload.sync_id || Utilities.getUuid();
-  const sheet  = getOrCreateSheet(ss);
+  const sp       = payload.stationPrices || {};
+  const clientId = String(payload.sync_id || '').trim();
+  const syncId   = clientId || Utilities.getUuid();
+  const sheet    = getOrCreateSheet(ss);
 
+  // v5.35 — Idempotence : un sync_id fourni par le client et déjà présent dans
+  // _ImportGS (requête rejouée depuis la file hors-ligne alors que la 1re avait
+  // abouti) ne crée PAS de nouvelle ligne. Verrou pour sérialiser contrôle +
+  // appendRow entre deux requêtes simultanées portant le même sync_id.
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+  } catch (lockErr) {
+    return jsonResponse({ success: false, error: 'Serveur occupé, réessayez dans un instant.' });
+  }
+  try {
+    if (clientId && syncIdExists_(sheet, clientId)) {
+      return jsonResponse({ success: true, sync_id: clientId, duplicate: true, message: 'Plein déjà enregistré' });
+    }
+    return appendPleinRow_(sheet, payload, sp, syncId, ownerEmail);
+  } finally {
+    SpreadsheetApp.flush();   // ligne visible de la requête suivante avant de rendre le verrou
+    lock.releaseLock();
+  }
+}
+
+// v5.35 — Un sync_id existe-t-il déjà dans _ImportGS (ligne active OU supprimée) ?
+// Colonne retrouvée par en-tête (comme handleDeletePlein), repli sur O (index 14).
+function syncIdExists_(sheet, syncId) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return false;
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(String);
+  let syncIdx = headers.indexOf('sync_id');
+  if (syncIdx < 0) syncIdx = IDX_SYNC;
+  const target = String(syncId).trim();
+  const col = sheet.getRange(2, syncIdx + 1, lastRow - 1, 1).getValues();
+  for (let i = 0; i < col.length; i++) {
+    if (String(col[i][0]).trim() === target) return true;
+  }
+  return false;
+}
+
+// Écrit la ligne d'un nouveau plein (A→T) ; upload éventuel de la photo ticket.
+function appendPleinRow_(sheet, payload, sp, syncId, ownerEmail) {
   // W9 — Upload photo ticket vers Drive si fournie
   let photoUrl = '';
   if (payload.ticketPhoto) {
@@ -603,7 +672,7 @@ function handleScanTicket(imageBase64, mimeType) {
 //  handleDeletePlein — supprime la ligne dont sync_id (col O = index 14)
 //  correspond. Parcourt de la dernière ligne vers la 1ère (saute l'en-tête).
 // ─────────────────────────────────────────────────────────────
-function handleDeletePlein(ss, syncId, email) {
+function handleDeletePlein(ss, syncId, email, rowHint) {
   if (!syncId) return jsonResponse({ success: false, error: 'sync_id manquant' });
 
   const sheet = getOrCreateSheet(ss);
@@ -616,24 +685,43 @@ function handleDeletePlein(ss, syncId, email) {
   let   syncIdx  = headers.indexOf('sync_id');
   if (syncIdx < 0) syncIdx = IDX_SYNC;
 
-  const target = String(syncId).trim();
-  const stamp  = nowIso_(ss);
+  const target   = String(syncId).trim();
+  const stamp    = nowIso_(ss);
+  const isActive = i => String(data[i][IDX_DELETED] || '').trim() === '';
+  const matches  = i => String(data[i][syncIdx]).trim() === target;
 
-  for (let i = data.length - 1; i >= 1; i--) {
-    if (String(data[i][syncIdx]).trim() === target) {
-      // U7 — défense en profondeur : on ne supprime QUE ses propres pleins.
-      if (email && !_rowBelongsTo_(data[i][IDX_EMAIL], email)) {
-        return jsonResponse({ success: false, error: 'forbidden', code: 403 });
-      }
-      // S3 — soft-delete : pose le tombstone (col R) + horodatage modif (col Q)
-      // au lieu de supprimer physiquement la ligne, pour que la suppression
-      // se propage aux autres clients (Excel, app web) via handleExport.
-      sheet.getRange(i + 1, IDX_DELETED  + 1).setValue(stamp);
-      sheet.getRange(i + 1, IDX_MODIFIED + 1).setValue(stamp);
-      return jsonResponse({ success: true });
+  // v5.35 — ligne visée : `row` (n° Sheet 1-based, copie précise d'un sync_id
+  // dupliqué — contrôle d'intégrité) si elle porte bien ce sync_id et est
+  // active ; sinon la dernière ligne ACTIVE du sync_id ; sinon (déjà supprimé)
+  // la dernière ligne du sync_id (comportement historique, idempotent).
+  let idx = -1;
+  const hint = Number(rowHint);
+  if (Number.isInteger(hint) && hint >= 2 && hint <= data.length &&
+      matches(hint - 1) && isActive(hint - 1)) {
+    idx = hint - 1;
+  }
+  if (idx < 0) {
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (matches(i) && isActive(i)) { idx = i; break; }
     }
   }
-  return jsonResponse({ success: false, error: 'Plein introuvable (sync_id inconnu)' });
+  if (idx < 0) {
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (matches(i)) { idx = i; break; }
+    }
+  }
+  if (idx < 0) return jsonResponse({ success: false, error: 'Plein introuvable (sync_id inconnu)' });
+
+  // U7 — défense en profondeur : on ne supprime QUE ses propres pleins.
+  if (email && !_rowBelongsTo_(data[idx][IDX_EMAIL], email)) {
+    return jsonResponse({ success: false, error: 'forbidden', code: 403 });
+  }
+  // S3 — soft-delete : pose le tombstone (col R) + horodatage modif (col Q)
+  // au lieu de supprimer physiquement la ligne, pour que la suppression
+  // se propage aux autres clients (Excel, app web) via handleExport.
+  sheet.getRange(idx + 1, IDX_DELETED  + 1).setValue(stamp);
+  sheet.getRange(idx + 1, IDX_MODIFIED + 1).setValue(stamp);
+  return jsonResponse({ success: true });
 }
 
 // ─────────────────────────────────────────────────────────────

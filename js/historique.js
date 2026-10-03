@@ -11,6 +11,8 @@ let _lastRecord  = null;   // memorise le plein le plus recent pour dupliquerDer
 let _allRecords  = [];     // memorise TOUS les enregistrements pour validation km retrograde
 let _consoByKey  = new Map();   // conso L/100 par plein (méthode plein-à-plein), cf. _consoFor
 let _consoSrc    = null;        // référence de _allRecords ayant servi au dernier calcul
+let _ecoProvider = null;        // W93 — calcul de l'économie par plein (injecté par main.js)
+let _ecoByRec    = new Map();   // W93 — record → { eco, ref }, recalculé à chaque rendu de liste
 
 const RECENT_COUNT = 10;        // nb de pleins affichés dans la liste « derniers pleins »
 
@@ -151,7 +153,7 @@ export async function chargerHistorique() {
       .slice(0, RECENT_COUNT);
 
     _lastRecord = recent[0];
-    el.innerHTML = recent.map(renderItem).join('');
+    el.innerHTML = _renderItems(recent);
     renderStationsCard();
 
     // W32 — Rafraîchir l'historique complet s'il est ouvert
@@ -172,7 +174,7 @@ export async function chargerHistorique() {
         .sort((a, b) => (b.Horodatage || '').localeCompare(a.Horodatage || ''))
         .slice(0, RECENT_COUNT);
       _lastRecord = recent[0];
-      el.innerHTML = recent.map(renderItem).join('');
+      el.innerHTML = _renderItems(recent);
       renderStationsCard();
     } else {
       el.innerHTML = '<div class="hist-msg err">Erreur — ' + (e.message || 'réseau') + '</div>';
@@ -356,7 +358,7 @@ export function renderFullHistory(vehFilter, typeFilter) {
   }
 
   if (countEl) countEl.textContent = filtered.length + ' plein' + (filtered.length > 1 ? 's' : '');
-  listEl.innerHTML = filtered.map(renderItem).join('');
+  listEl.innerHTML = _renderItems(filtered);
 }
 
 /**
@@ -557,7 +559,7 @@ function _renderLists() {
         .sort((a, b) => (b.Horodatage || '').localeCompare(a.Horodatage || ''))
         .slice(0, RECENT_COUNT);
       _lastRecord = recent[0];
-      el.innerHTML = recent.map(renderItem).join('');
+      el.innerHTML = _renderItems(recent);
     }
   }
   renderStationsCard();
@@ -778,6 +780,30 @@ function _consoFor(r) {
   return _consoByKey.get(r);
 }
 
+/** W93 — Injecte le calcul d'économie par plein (statsParams.computeEcoByFill).
+ *  Injection plutôt qu'import : statsParams importe déjà ce module (cycle évité). */
+export function setEcoProvider(fn) {
+  _ecoProvider = typeof fn === 'function' ? fn : null;
+}
+
+/** Rend une liste de pleins ; recalcule d'abord les économies (les réglages de
+ *  référence — carburant, surconso, écart — ont pu changer depuis le dernier rendu). */
+function _renderItems(list) {
+  try { _ecoByRec = _ecoProvider ? _ecoProvider(_allRecords) : new Map(); }
+  catch { _ecoByRec = new Map(); }
+  return list.map(renderItem).join('');
+}
+
+/** W93 — Badge « économie vs carburant de référence » d'un plein E85 ('' sinon). */
+function ecoHtml(r) {
+  const e = _ecoByRec.get(r);
+  if (!e || !isFinite(e.eco)) return '';
+  const pos = e.eco >= 0;
+  const val = Math.abs(e.eco).toFixed(2).replace('.', ',');
+  const ref = escapeHtml(e.ref);
+  return `<div class="hist-eco ${pos ? 'pos' : 'neg'}" title="${pos ? 'Économie' : 'Surcoût'} de ce plein E85 par rapport au ${ref}, à distance parcourue égale (surconsommation E85 incluse)">💶 ${pos ? '+' : '−'}${val} € vs ${ref}</div>`;
+}
+
 function renderItem(r) {
   const icon    = iconForType(r.Type);
   const date    = fmtDate(r.Date || r.Horodatage);
@@ -830,6 +856,7 @@ function renderItem(r) {
           <img class="brand-ico" src="${escapeHtml(brand.icon)}" alt="${escapeHtml(brand.label || 'Station')}" width="18" height="18" loading="lazy" decoding="async">
           <span>${escapeHtml(station)}</span>
         </div>
+        ${ecoHtml(r)}
         ${secteur}
       </div>
     </div>

@@ -128,7 +128,9 @@ Public Sub SyncCore(ByRef addedFromGS As Long, ByRef sentToGS As Long, _
     ' Sans cela, un plein importe depuis Google Sheets reste dans GS_Pleins sans
     ' apparaitre dans "Suivi Carburant". Le nb de lignes change si ajout/suppr
     ' -> on realigne Tableau2 et on tire les colonnes brutes par formules INDEX.
-    If (addedFromGS + delFromGS) > 0 Then
+    ' Audit 03/10/2026 : recale AUSSI si Tableau2 est desaligne ou contient des
+    ' valeurs figees (ancien import CSV, suppression sans recalage).
+    If (addedFromGS + delFromGS) > 0 Or modFeatures.Tableau2ARecaler() Then
         On Error Resume Next
         modFeatures.SyncTableau2DepuisGS
         On Error GoTo ErrHandler

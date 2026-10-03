@@ -519,6 +519,10 @@ Public Sub SyncTableau2DepuisGS()
     SetT2ColFromGS t2, "Prix " & ChrW(8364) & "/L", "PrixL", t2Name
     SetT2ColFromGS t2, "Station essence", "Station essence", t2Name
 
+    ' Audit 03/10/2026 : aucune cellule figee ne doit subsister (une valeur figee
+    ' se decale lors d'un ajout/suppression de ligne -> mauvais plein affiche).
+    HomogeneiserFormulesT2 t2
+
     ' Format date lisible sur la colonne Date
     On Error Resume Next
     t2.ListColumns("Date").DataBodyRange.NumberFormat = "dd/mm/yyyy"
@@ -535,6 +539,76 @@ done:
     On Error GoTo 0
     Application.Calculation = xlCalculationAutomatic
     Application.ScreenUpdating = True
+End Sub
+
+' Vrai si Tableau2 doit etre recale sur GS_Pleins : nombre de lignes different
+' OU au moins une cellule figee (valeur au lieu de formule). Test leger (pas de
+' boucle cellule par cellule : HasFormula renvoie Null si le corps est mixte).
+Public Function Tableau2ARecaler() As Boolean
+    On Error GoTo fail
+    Dim gsT As ListObject, t2 As ListObject
+    Set gsT = ThisWorkbook.Sheets(WS_GS).ListObjects(1)
+    Set t2 = ThisWorkbook.Sheets(WS_CARB).ListObjects("Tableau2")
+    Dim nGS As Long, nT2 As Long
+    If Not gsT.DataBodyRange Is Nothing Then nGS = gsT.DataBodyRange.Rows.Count
+    If Not t2.DataBodyRange Is Nothing Then nT2 = t2.DataBodyRange.Rows.Count
+    If nGS <> nT2 Then Tableau2ARecaler = True: Exit Function
+    If nT2 = 0 Then Exit Function
+    Dim hf As Variant: hf = t2.DataBodyRange.HasFormula
+    If Not IsNull(hf) Then
+        If hf = True Then Exit Function
+    End If
+    Dim i As Long, c As Long
+    For i = 1 To nT2
+        For c = 1 To t2.ListColumns.Count
+            If T2CelluleFigeeAnormale(t2, i, c) Then Tableau2ARecaler = True: Exit Function
+        Next c
+    Next i
+    Exit Function
+fail:
+    Tableau2ARecaler = False
+End Function
+
+' Vrai si la cellule (i, c) du corps de Tableau2 est une valeur figee ANORMALE.
+' Exceptions : colonne sans aucune formule (colonne de saisie) et GRAINE de
+' 1re ligne dont la formule de colonne lit la ligne precedente (R[-1] :
+' ex. N = precedent + 1 -> la 1re ligne vaut 1 en dur, c'est voulu).
+Public Function T2CelluleFigeeAnormale(t2 As ListObject, i As Long, c As Long) As Boolean
+    On Error GoTo fail
+    If t2.DataBodyRange.Cells(i, c).HasFormula Then Exit Function
+    Dim ref As String: ref = T2FormuleColonne(t2, c)
+    If Len(ref) = 0 Then Exit Function
+    If i = 1 And InStr(ref, "R[-1]") > 0 Then Exit Function
+    T2CelluleFigeeAnormale = True
+    Exit Function
+fail:
+    T2CelluleFigeeAnormale = False
+End Function
+
+' Formule (R1C1, independante de la ligne) de la colonne c : 1re cellule a
+' formule a partir de la 2e ligne (la 1re peut etre une graine). "" si aucune.
+Private Function T2FormuleColonne(t2 As ListObject, c As Long) As String
+    Dim i As Long, cell As Range
+    For i = 2 To t2.DataBodyRange.Rows.Count
+        Set cell = t2.DataBodyRange.Cells(i, c)
+        If cell.HasFormula Then T2FormuleColonne = cell.Formula2R1C1: Exit Function
+    Next i
+End Function
+
+' Remplace toute cellule figee ANORMALE de Tableau2 par la formule de sa
+' colonne (R1C1). Colonnes de saisie et graine de 1re ligne preservees.
+Private Sub HomogeneiserFormulesT2(t2 As ListObject)
+    On Error Resume Next
+    If t2.DataBodyRange Is Nothing Then Exit Sub
+    Dim i As Long, c As Long
+    For c = 1 To t2.ListColumns.Count
+        For i = 1 To t2.DataBodyRange.Rows.Count
+            If T2CelluleFigeeAnormale(t2, i, c) Then
+                t2.DataBodyRange.Cells(i, c).Formula2R1C1 = T2FormuleColonne(t2, c)
+            End If
+        Next i
+    Next c
+    On Error GoTo 0
 End Sub
 
 ' Pose sur toute la colonne t2ColName une formule INDEX qui tire la
