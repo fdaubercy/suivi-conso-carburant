@@ -26,17 +26,32 @@ function validerImagesScan_(images) {
   return null;
 }
 
-/** "16,14" → 16.14 ; "19 719" → 19719 ; vide ou non numérique → null. */
-function scanNum_(v) {
+/** "16,14 L" → 16.14 ; "19 719" / "19.719" (km) → 19719 ; "1.234,56 €" → 1234.56 ;
+ *  sans chiffre ou non numérique → null. `entier` (km) : point/virgule = milliers. */
+function scanNum_(v, entier) {
   if (v === null || v === undefined || v === '') return null;
-  const n = typeof v === 'number' ? v : Number(String(v).replace(/[\s  ]/g, '').replace(',', '.'));
+  if (typeof v === 'number') {
+    if (!isFinite(v)) return null;
+    // km renvoyé en nombre avec un point de milliers : 19.719 → 19719
+    if (entier && !Number.isInteger(v) && /^\d{1,3}\.\d{3}$/.test(String(v))) return Math.round(v * 1000);
+    return v;
+  }
+  let s = String(v).replace(/[^\d.,-]/g, '');
+  if (entier && /^\d{1,3}([.,]\d{3})+$/.test(s)) s = s.replace(/[.,]/g, '');
+  if (s.indexOf('.') >= 0 && s.indexOf(',') >= 0) {
+    // le dernier séparateur est la décimale, l'autre les milliers
+    s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '') : s.replace(/,/g, '');
+  }
+  s = s.replace(',', '.');
+  if (!/\d/.test(s)) return null;
+  const n = Number(s);
   return isFinite(n) ? n : null;
 }
 
 function scanValeurs_(source) {
   const s = source || {};
   const o = {};
-  SCAN_NUM_KEYS.forEach(k => { o[k] = scanNum_(s[k]); });
+  SCAN_NUM_KEYS.forEach(k => { o[k] = scanNum_(s[k], k === 'km'); });
   if (o.km !== null) o.km = Math.round(o.km);
   SCAN_TXT_KEYS.forEach(k => { o[k] = (s[k] === null || s[k] === undefined || s[k] === '') ? null : String(s[k]).trim(); });
   return o;
@@ -76,11 +91,12 @@ function scanPromptPhotos_(n) {
     '- pompe : "Litres" / "Volume" → litres ; "Prix au litre" / "Prix/L" / "€/L" → prix_litre ; ' +
     '"Montant" / "À payer" / "Prix" en euros → montant_total. Afficheurs à segments : distingue bien 1/7, 5/6, 8/0. ' +
     'type_carburant UNIQUEMENT s\'il est lisible (étiquette du pistolet, voyant ou bouton du produit choisi), sinon null.\n' +
-    '- compteur : km = le TOTAL kilométrique (ODO), JAMAIS un compteur journalier (TRIP, TRIP A, TRIP B) ni l\'autonomie ; entier, en km.\n' +
+    '- compteur : km = le TOTAL kilométrique (ODO), JAMAIS un compteur journalier (TRIP, TRIP A, TRIP B) ni l\'autonomie ; entier en km, SANS séparateur de milliers (ex. 19719).\n' +
     '- ticket : "Quantité" / "Volume" → litres ; "Prix unitaire" / "P.U." / "Prix/L" → prix_litre (jamais la TVA) ; ' +
     '"Montant" / "Total" / "Net à payer" → montant_total ; date au format YYYY-MM-DD ("26" = 2026) ; ' +
     'enseigne = nom commercial seul ; ville = commune seule ; station = enseigne + ville.\n' +
     '- Carburants possibles : E85, SP98, SP95, E10, Gazole, GPLc.\n' +
+    '- Nombres : chiffres seuls, sans unité (pas de "L", "€" ni "km").\n' +
     '- Une valeur illisible vaut null : ne JAMAIS deviner ni recalculer une valeur.\n' +
     '- lisible = false si la photo ne permet de lire aucune valeur utile ; remarque = courte explication (ex. "photo floue") ou null.\n\n' +
     'Réponds UNIQUEMENT avec ce JSON :\n' +

@@ -112,7 +112,7 @@ contexte = { stationPrices, historiqueVehicule, dernierKm, consoMoy, typeCourant
 - **Limite de fréquence** : « Trop d'analyses, réessayez dans une minute. »
 - **Réponse sans tableau `photos`** : erreur, rien n'est rempli.
 - **Ordre de mise en service** : script Google (avec `Scan.gs`) **avant** l'app.
-- **Photo jointe au plein (W9)** : seule l'image classée `ticket` devient `state._ticketPhoto` ; sans ticket reconnu, aucune photo n'est jointe.
+- **Photo jointe au plein (W9)** : seule l'image classée `ticket` devient `state._ticketPhoto` ; sans ticket reconnu, aucune nouvelle photo n'est jointe et une photo de ticket déjà jointe est conservée (W98).
 - **Poids** : envoi refusé côté app au-delà d'environ 6 Mo au total.
 
 ## 6. Tests et vérification

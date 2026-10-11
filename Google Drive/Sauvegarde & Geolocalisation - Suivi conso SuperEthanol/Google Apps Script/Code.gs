@@ -510,6 +510,12 @@ function doPost(e) {
     return handleScanPhotos(payload);
   }
 
+  // ── W98 — Action inconnue : refus explicite. Seul un payload SANS action est un
+  //    enregistrement de plein ; une action non gérée ne doit jamais créer de ligne.
+  if (payload.action) {
+    return jsonResponse({ success: false, error: 'Action inconnue : ' + String(payload.action) });
+  }
+
   // ── U7 — Identité : email du compte (idToken vérifié) ou propriétaire (mode souple) ──
   const ownerEmail = resolveOwner_(e, payload);
   if (!ownerEmail) return unauthorizedResponse_();   // auth obligatoire et idToken absent/invalide

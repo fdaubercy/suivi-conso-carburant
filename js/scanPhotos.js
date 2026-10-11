@@ -99,13 +99,21 @@ export async function remplirDepuisScan(resultat) {
   return remplis;
 }
 
-/** W9 — seule l'image classée « ticket » est jointe au plein. */
+/** W9 — seule l'image classée « ticket » est jointe au plein. Sans ticket
+ *  reconnu, une photo de ticket déjà jointe (scan précédent) est conservée (W98). */
 function joindreTicket(photos, images) {
   const p = photos.find(x => x && x.kind === 'ticket' && Number.isInteger(x.index) && images[x.index]);
-  state._ticketPhoto = p ? images[p.index].data : null;
+  if (!p) return;
+  state._ticketPhoto = images[p.index].data;
   const ind = document.getElementById('ticketPhotoIndicator');
-  if (ind) ind.hidden = !p;
+  if (ind) ind.hidden = false;
 }
+
+/* W98 — HEIC/HEIF (iPhone) : seul Safari sait le décoder ; ailleurs resizeImage
+ * renvoie le fichier d'origine, illisible par Gemini comme par Tesseract. */
+const MSG_HEIC = 'Photo au format HEIC illisible par ce navigateur — réglez l\'appareil photo sur JPEG '
+  + '(iPhone : Réglages › Appareil photo › Formats › « Le plus compatible »).';
+const estHeic = f => /^image\/hei[cf]/i.test(f.type || '') || /\.hei[cf]$/i.test(f.name || '');
 
 export async function lancerScan(fileList, btn) {
   const tous = Array.from(fileList || []);
@@ -119,7 +127,11 @@ export async function lancerScan(fileList, btn) {
   btn.disabled = true;
   try {
     if (!navigator.onLine) {
-      if (files.length === 1) { await lireTicketOCR(files[0], btn); return; }
+      if (files.length === 1) {
+        if (estHeic(files[0])) { showFeedback('error', 'Format non pris en charge', MSG_HEIC); return; }
+        await lireTicketOCR(files[0], btn);
+        return;
+      }
       showFeedback('error', 'Hors connexion',
         'Analyse IA indisponible hors connexion — seul un ticket peut être lu hors ligne.');
       return;
@@ -129,6 +141,7 @@ export async function lancerScan(fileList, btn) {
     const images = [];
     for (const f of files) {
       const blob = await resizeImage(f);
+      if (blob === f && estHeic(f)) { showFeedback('error', 'Format non pris en charge', MSG_HEIC); return; }
       const data = await blobToBase64(blob);
       if (!data) throw new Error('photo illisible');
       images.push({ data, mimeType: blob.type || 'image/jpeg' });

@@ -622,6 +622,14 @@ export async function fillFormFromTicket(data, { silencieux = false } = {}) {
   return filled;
 }
 
+/** W98 — Le texte OCR ressemble-t-il à un ticket de caisse (et pas à un
+ *  afficheur de pompe ou un compteur) ? Seul un ticket est joint au plein. */
+export function estUnTicket(texte, parsed) {
+  if (!texte) return false;
+  if (parsed && parsed.date) return true;
+  return /\b(tva|ttc|ticket|merci|carte|cb|caisse|siret|total)\b/i.test(texte);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    lireTicketOCR — Repli Tesseract.js (hors ligne, ou échec de l'IA avec
    une seule photo). Le bouton est déjà désactivé par l'appelant, qui
@@ -631,16 +639,8 @@ export async function fillFormFromTicket(data, { silencieux = false } = {}) {
 export async function lireTicketOCR(file, btn) {
   try {
     const blob = await resizeImage(file);
-
-    /* W9 — stocker la photo couleur pour l'envoi avec le plein */
-    try {
-      const b64 = await blobToBase64(blob);
-      if (b64) {
-        state._ticketPhoto = b64;
-        const indicator = document.getElementById('ticketPhotoIndicator');
-        if (indicator) indicator.hidden = false;
-      }
-    } catch { /* non bloquant */ }
+    let b64 = null;
+    try { b64 = await blobToBase64(blob); } catch { /* non bloquant */ }
 
     btn.innerHTML = '⏳ Prétraitement…';
     const ocrBlob = await preprocessImage(file);
@@ -663,7 +663,16 @@ export async function lireTicketOCR(file, btn) {
       return;
     }
 
-    await fillFormFromTicket(parseOCRText(text));
+    const parsed = parseOCRText(text);
+
+    /* W9 / W98 — la photo n'est jointe que si l'OCR reconnaît un ticket */
+    if (b64 && estUnTicket(text, parsed)) {
+      state._ticketPhoto = b64;
+      const indicator = document.getElementById('ticketPhotoIndicator');
+      if (indicator) indicator.hidden = false;
+    }
+
+    await fillFormFromTicket(parsed);
   } catch (err) {
     showFeedback('error', 'Erreur scan',
       err.message || 'Impossible de lire l\'image — réessayez.');

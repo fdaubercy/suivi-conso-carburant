@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.38.1.0] — 2026-10-11
+
+### Fixed
+- **Scanner — finitions (W98)** : photo **HEIC** (iPhone) illisible par le navigateur → message « réglez l'appareil photo sur JPEG » au lieu de « photos trop lourdes » ou d'une erreur générique (en ligne comme hors ligne ; un HEIC converti par Safari part normalement). `Scan.gs` lit les nombres avec unité (« 16,14 L », « 14,03 € ») et les séparateurs de milliers (« 19.719 » km, « 1.234,56 € »), la consigne Gemini demande des chiffres sans unité. Un scan sans ticket **conserve** la photo de ticket déjà jointe. Le repli OCR ne joint la photo que si le texte ressemble à un ticket (`estUnTicket`). `doPost` **refuse toute action inconnue** avant l'enregistrement d'un plein. GAS v74.
+
 ## [5.38.0.0] — 2026-10-11
 
 ### Added

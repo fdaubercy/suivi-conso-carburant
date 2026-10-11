@@ -16,7 +16,7 @@ import { describe, it, expect, vi } from 'vitest';
 // d'embarquer la lib lourde dans le bundle de test.
 vi.mock('tesseract.js', () => ({ default: {} }));
 
-const { parseOCRText } = await import('../js/ticket.js');
+const { parseOCRText, estUnTicket } = await import('../js/ticket.js');
 
 describe('parseOCRText — date', () => {
   it('DD/MM/YYYY → ISO', () => {
@@ -112,5 +112,23 @@ describe('parseOCRText — station', () => {
     expect(r.litres).toBeCloseTo(42.58, 2);
     expect(r.prix_litre).toBeCloseTo(1.799, 3);
     expect(r.montant_total).toBeCloseTo(76.61, 2);
+  });
+});
+
+describe('W98 — estUnTicket (photo jointe par le repli OCR)', () => {
+  it('ticket de caisse : mentions TVA / TOTAL / CB', () => {
+    const t = 'CARREFOUR FLERS\nSP98 32,10 L\nTOTAL TTC 65,20\nTVA 20%\nPAIEMENT CB';
+    expect(estUnTicket(t, parseOCRText(t))).toBe(true);
+  });
+  it('ticket avec une date lisible mais sans mention de caisse', () => {
+    const t = 'STATION AVIA 12/10/2026 E85 16,14';
+    expect(estUnTicket(t, parseOCRText(t))).toBe(true);
+  });
+  it('afficheur de pompe : chiffres seuls → pas un ticket', () => {
+    const t = '14.03\n16.14\n0.869';
+    expect(estUnTicket(t, parseOCRText(t))).toBe(false);
+  });
+  it('texte vide → pas un ticket', () => {
+    expect(estUnTicket('', {})).toBe(false);
   });
 });

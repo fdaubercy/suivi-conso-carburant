@@ -140,3 +140,36 @@ describe('doPost — aiguillage scanPhotos', () => {
     expect(g.json(out)).toMatchObject({ success: false, error: 'Aucune photo reçue.' });
   });
 });
+
+describe('W98 — nombres avec unité ou séparateur de milliers', () => {
+  const { ctx } = makeGas();
+  const v = valeurs => ctx.normaliserScan_({ photos: [{ index: 0, kind: 'pompe', valeurs }] }, 1).photos[0].valeurs;
+  it('unités retirées : « 16,14 L », « 14,03 € », « 0,869 €/L »', () => {
+    expect(v({ litres: '16,14 L', montant_total: '14,03 €', prix_litre: '0,869 €/L' }))
+      .toMatchObject({ litres: 16.14, montant_total: 14.03, prix_litre: 0.869 });
+  });
+  it('km : point ou virgule de milliers (texte ou nombre)', () => {
+    expect(v({ km: '19.719' }).km).toBe(19719);
+    expect(v({ km: '19,719 km' }).km).toBe(19719);
+    expect(v({ km: 19.719 }).km).toBe(19719);
+    expect(v({ km: '1.234.567' }).km).toBe(1234567);
+  });
+  it('montant avec milliers et décimales : « 1.234,56 € » et « 1,234.56 »', () => {
+    expect(v({ montant_total: '1.234,56 €' }).montant_total).toBe(1234.56);
+    expect(v({ montant_total: '1,234.56' }).montant_total).toBe(1234.56);
+  });
+  it('les litres gardent leurs décimales (pas de lecture « milliers »)', () => {
+    expect(v({ litres: '16.140' }).litres).toBe(16.14);
+  });
+  it('texte sans chiffre → null', () => {
+    expect(v({ litres: 'illisible', km: '—' })).toMatchObject({ litres: null, km: null });
+  });
+});
+
+describe('W98 — doPost refuse les actions inconnues', () => {
+  it("une action inconnue ne déclenche jamais l'enregistrement d'un plein", () => {
+    const g = makeGas();
+    const out = g.ctx.doPost({ postData: { contents: JSON.stringify({ action: 'scanFutur', litres: 10 }) }, parameter: {} });
+    expect(g.json(out)).toMatchObject({ success: false, error: 'Action inconnue : scanFutur' });
+  });
+});

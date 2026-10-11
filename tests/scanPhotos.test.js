@@ -71,7 +71,6 @@ describe('lancerScan — en ligne', () => {
     expect(document.getElementById('ticketPhotoIndicator').hidden).toBe(false);
   });
   it('sans ticket reconnu, aucune photo n\'est jointe', async () => {
-    state._ticketPhoto = 'ancienne';
     repondre({ success: true, photos: [POMPE, COMPTEUR], fusion: {} });
     await lancerScan([fichier('a.jpg'), fichier('b.jpg')], btn);
     expect(state._ticketPhoto).toBeNull();
@@ -83,6 +82,35 @@ describe('lancerScan — en ligne', () => {
     await lancerScan([fichier('a.jpg')], btn);
     expect(fetch).not.toHaveBeenCalled();
     expect(feedback()).toContain('trop lourdes');
+  });
+  it("W98 — un scan sans ticket conserve la photo de ticket déjà jointe", async () => {
+    state._ticketPhoto = 'ticket-precedent';
+    document.getElementById('ticketPhotoIndicator').hidden = false;
+    repondre({ success: true, photos: [POMPE, COMPTEUR], fusion: {} });
+    await lancerScan([fichier('a.jpg'), fichier('b.jpg')], btn);
+    expect(state._ticketPhoto).toBe('ticket-precedent');
+    expect(document.getElementById('ticketPhotoIndicator').hidden).toBe(false);
+  });
+  it("W98 — photo HEIC non décodée : message « réglez l'appareil sur JPEG », aucun envoi", async () => {
+    repondre({ success: true, photos: [], fusion: {} });
+    await lancerScan([fichier('a.jpg'), new File(['x'], 'IMG_0001.HEIC', { type: 'image/heic' })], btn);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(feedback()).toContain('HEIC');
+    expect(feedback()).toContain('JPEG');
+    expect(feedback()).not.toContain('trop lourdes');
+  });
+  it("W98 — HEIC reconnu à son extension quand le navigateur ne donne pas de type", async () => {
+    repondre({ success: true, photos: [], fusion: {} });
+    await lancerScan([new File(['x'], 'photo.heif', { type: '' })], btn);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(feedback()).toContain('HEIC');
+  });
+  it("W98 — HEIC converti par le navigateur (Safari) : envoyé normalement", async () => {
+    repondre({ success: true, photos: [POMPE], fusion: {} });
+    ticket.resizeImage.mockImplementationOnce(async () => new Blob(['y'], { type: 'image/jpeg' }));
+    ticket.blobToBase64.mockImplementationOnce(async () => 'converti-b64');
+    await lancerScan([new File(['x'], 'IMG.HEIC', { type: 'image/heic' })], btn);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -112,6 +140,13 @@ describe('lancerScan — erreurs et replis', () => {
     await lancerScan([fichier('a.jpg'), fichier('b.jpg')], btn);
     expect(fetch).not.toHaveBeenCalled();
     expect(feedback()).toContain('hors connexion');
+  });
+  it("W98 — hors ligne, 1 photo HEIC : message, pas de lecture OCR", async () => {
+    enLigne = false;
+    repondre({});
+    await lancerScan([new File(['x'], 'IMG.HEIC', { type: 'image/heic' })], btn);
+    expect(ticket.lireTicketOCR).not.toHaveBeenCalled();
+    expect(feedback()).toContain('HEIC');
   });
   it('hors ligne, 1 photo : lecture OCR du ticket', async () => {
     enLigne = false;

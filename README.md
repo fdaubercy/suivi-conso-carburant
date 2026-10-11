@@ -131,7 +131,7 @@ Champs détectés : **date, km compteur, litres, prix/L, montant total, type de 
 ([Google AI Studio](https://aistudio.google.com/), gratuit 1500 req/jour). Sans clé, le scan utilise
 Tesseract.js localement, **sans aucune clé API**.
 
-**W9 — Photo jointe automatiquement** : après le scan, seule la photo reconnue comme **ticket** est jointe ; l'image redimensionnée est encodée en base64
+**W9 — Photo jointe automatiquement** : après le scan, seule la photo reconnue comme **ticket** est jointe (une photo de ticket déjà jointe reste en place si un scan suivant n'en contient pas ; les photos HEIC illisibles sont signalées) ; l'image redimensionnée est encodée en base64
 et transmise avec le plein lors de l'enregistrement. Le GAS la stocke dans un dossier Drive
 **"Suivi E85 - Tickets"**, la rend publique en lecture et enregistre l'URL dans la colonne P du Sheet.
 Un badge **📷 Photo jointe** confirme visuellement que l'image sera envoyée.
