@@ -346,8 +346,9 @@ header h1 {
    ═══════════════════════════════════════ */
 .scan-row {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;   /* indication sous le bouton */
+  align-items: flex-start;
+  gap: 6px;
   margin: 10px 0 4px;
   padding: 10px 12px;
   background: var(--toggle-bg);

@@ -35643,46 +35643,6 @@
       "id": "readme_roadmap"
     },
     {
-      "label": "config.js",
-      "file_type": "code",
-      "source_file": "js/config.js",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 85,
-      "norm_label": "config.js",
-      "id": "js_config"
-    },
-    {
-      "label": "DEPENSE_CATEGORIES",
-      "file_type": "code",
-      "source_file": "js/config.js",
-      "source_location": "L100",
-      "_origin": "ast",
-      "community": 2,
-      "norm_label": "depense_categories",
-      "id": "js_config_depense_categories"
-    },
-    {
-      "label": "FUEL_CONFIG",
-      "file_type": "code",
-      "source_file": "js/config.js",
-      "source_location": "L148",
-      "_origin": "ast",
-      "community": 85,
-      "norm_label": "fuel_config",
-      "id": "js_config_fuel_config"
-    },
-    {
-      "label": "FUEL_KEYS",
-      "file_type": "code",
-      "source_file": "js/config.js",
-      "source_location": "L160",
-      "_origin": "ast",
-      "community": 14,
-      "norm_label": "fuel_keys",
-      "id": "js_config_fuel_keys"
-    },
-    {
       "label": "formulaire.js",
       "file_type": "code",
       "source_file": "js/formulaire.js",
@@ -37168,9 +37128,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "js_scanphotos",
       "community": 21,
-      "norm_label": "scanphotos.js"
+      "norm_label": "scanphotos.js",
+      "id": "js_scanphotos"
     },
     {
       "label": "CHAMP_ID",
@@ -37178,9 +37138,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L22",
       "_origin": "ast",
-      "id": "js_scanphotos_champ_id",
       "community": 21,
-      "norm_label": "champ_id"
+      "norm_label": "champ_id",
+      "id": "js_scanphotos_champ_id"
     },
     {
       "label": "clientId()",
@@ -37188,9 +37148,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L27",
       "_origin": "ast",
-      "id": "js_scanphotos_clientid",
       "community": 21,
-      "norm_label": "clientid()"
+      "norm_label": "clientid()",
+      "id": "js_scanphotos_clientid"
     },
     {
       "label": "envoyerScanPhotos()",
@@ -37198,9 +37158,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L32",
       "_origin": "ast",
-      "id": "js_scanphotos_envoyerscanphotos",
       "community": 21,
-      "norm_label": "envoyerscanphotos()"
+      "norm_label": "envoyerscanphotos()",
+      "id": "js_scanphotos_envoyerscanphotos"
     },
     {
       "label": "construireContexte()",
@@ -37208,9 +37168,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L57",
       "_origin": "ast",
-      "id": "js_scanphotos_construirecontexte",
       "community": 21,
-      "norm_label": "construirecontexte()"
+      "norm_label": "construirecontexte()",
+      "id": "js_scanphotos_construirecontexte"
     },
     {
       "label": "remplirDepuisScan()",
@@ -37218,9 +37178,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L78",
       "_origin": "ast",
-      "id": "js_scanphotos_remplirdepuisscan",
       "community": 21,
-      "norm_label": "remplirdepuisscan()"
+      "norm_label": "remplirdepuisscan()",
+      "id": "js_scanphotos_remplirdepuisscan"
     },
     {
       "label": "joindreTicket()",
@@ -37228,9 +37188,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L104",
       "_origin": "ast",
-      "id": "js_scanphotos_joindreticket",
       "community": 21,
-      "norm_label": "joindreticket()"
+      "norm_label": "joindreticket()",
+      "id": "js_scanphotos_joindreticket"
     },
     {
       "label": "estHeic()",
@@ -37238,9 +37198,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L116",
       "_origin": "ast",
-      "id": "js_scanphotos_estheic",
       "community": 21,
-      "norm_label": "estheic()"
+      "norm_label": "estheic()",
+      "id": "js_scanphotos_estheic"
     },
     {
       "label": "lancerScan()",
@@ -37248,9 +37208,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L118",
       "_origin": "ast",
-      "id": "js_scanphotos_lancerscan",
       "community": 21,
-      "norm_label": "lancerscan()"
+      "norm_label": "lancerscan()",
+      "id": "js_scanphotos_lancerscan"
     },
     {
       "label": "initScanner()",
@@ -37258,9 +37218,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L184",
       "_origin": "ast",
-      "id": "js_scanphotos_initscanner",
       "community": 21,
-      "norm_label": "initscanner()"
+      "norm_label": "initscanner()",
+      "id": "js_scanphotos_initscanner"
     },
     {
       "label": "ticket.js",
@@ -37268,9 +37228,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "js_ticket",
       "community": 21,
-      "norm_label": "ticket.js"
+      "norm_label": "ticket.js",
+      "id": "js_ticket"
     },
     {
       "label": "FUEL_LABEL_MAP",
@@ -37278,9 +37238,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L27",
       "_origin": "ast",
-      "id": "js_ticket_fuel_label_map",
       "community": 21,
-      "norm_label": "fuel_label_map"
+      "norm_label": "fuel_label_map",
+      "id": "js_ticket_fuel_label_map"
     },
     {
       "label": "FRENCH_MONTHS",
@@ -37288,9 +37248,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L65",
       "_origin": "ast",
-      "id": "js_ticket_french_months",
       "community": 21,
-      "norm_label": "french_months"
+      "norm_label": "french_months",
+      "id": "js_ticket_french_months"
     },
     {
       "label": "toFloat()",
@@ -37298,9 +37258,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L83",
       "_origin": "ast",
-      "id": "js_ticket_tofloat",
       "community": 21,
-      "norm_label": "tofloat()"
+      "norm_label": "tofloat()",
+      "id": "js_ticket_tofloat"
     },
     {
       "label": "normalizeNumericText()",
@@ -37308,9 +37268,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L89",
       "_origin": "ast",
-      "id": "js_ticket_normalizenumerictext",
       "community": 21,
-      "norm_label": "normalizenumerictext()"
+      "norm_label": "normalizenumerictext()",
+      "id": "js_ticket_normalizenumerictext"
     },
     {
       "label": "resizeImage()",
@@ -37318,9 +37278,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L96",
       "_origin": "ast",
-      "id": "js_ticket_resizeimage",
       "community": 21,
-      "norm_label": "resizeimage()"
+      "norm_label": "resizeimage()",
+      "id": "js_ticket_resizeimage"
     },
     {
       "label": "preprocessImage()",
@@ -37328,9 +37288,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L123",
       "_origin": "ast",
-      "id": "js_ticket_preprocessimage",
       "community": 21,
-      "norm_label": "preprocessimage()"
+      "norm_label": "preprocessimage()",
+      "id": "js_ticket_preprocessimage"
     },
     {
       "label": "blobToBase64()",
@@ -37338,9 +37298,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L165",
       "_origin": "ast",
-      "id": "js_ticket_blobtobase64",
       "community": 21,
-      "norm_label": "blobtobase64()"
+      "norm_label": "blobtobase64()",
+      "id": "js_ticket_blobtobase64"
     },
     {
       "label": "parseOCRText()",
@@ -37348,9 +37308,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L181",
       "_origin": "ast",
-      "id": "js_ticket_parseocrtext",
       "community": 21,
-      "norm_label": "parseocrtext()"
+      "norm_label": "parseocrtext()",
+      "id": "js_ticket_parseocrtext"
     },
     {
       "label": "_findStationInCommune()",
@@ -37358,9 +37318,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L455",
       "_origin": "ast",
-      "id": "js_ticket_findstationincommune",
       "community": 21,
-      "norm_label": "_findstationincommune()"
+      "norm_label": "_findstationincommune()",
+      "id": "js_ticket_findstationincommune"
     },
     {
       "label": "applyTicketStation()",
@@ -37368,9 +37328,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L483",
       "_origin": "ast",
-      "id": "js_ticket_applyticketstation",
       "community": 21,
-      "norm_label": "applyticketstation()"
+      "norm_label": "applyticketstation()",
+      "id": "js_ticket_applyticketstation"
     },
     {
       "label": "fillFormFromTicket()",
@@ -37378,9 +37338,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L549",
       "_origin": "ast",
-      "id": "js_ticket_fillformfromticket",
       "community": 21,
-      "norm_label": "fillformfromticket()"
+      "norm_label": "fillformfromticket()",
+      "id": "js_ticket_fillformfromticket"
     },
     {
       "label": "estUnTicket()",
@@ -37388,9 +37348,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L627",
       "_origin": "ast",
-      "id": "js_ticket_estunticket",
       "community": 21,
-      "norm_label": "estunticket()"
+      "norm_label": "estunticket()",
+      "id": "js_ticket_estunticket"
     },
     {
       "label": "lireTicketOCR()",
@@ -37398,9 +37358,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L639",
       "_origin": "ast",
-      "id": "js_ticket_lireticketocr",
       "community": 21,
-      "norm_label": "lireticketocr()"
+      "norm_label": "lireticketocr()",
+      "id": "js_ticket_lireticketocr"
     },
     {
       "label": "scanGas.test.js",
@@ -37408,9 +37368,9 @@
       "source_file": "tests/scanGas.test.js",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "tests_scangas_test",
       "community": 159,
-      "norm_label": "scangas.test.js"
+      "norm_label": "scangas.test.js",
+      "id": "tests_scangas_test"
     },
     {
       "label": "GAS_DIR",
@@ -37418,9 +37378,9 @@
       "source_file": "tests/scanGas.test.js",
       "source_location": "L13",
       "_origin": "ast",
-      "id": "tests_scangas_test_gas_dir",
       "community": 159,
-      "norm_label": "gas_dir"
+      "norm_label": "gas_dir",
+      "id": "tests_scangas_test_gas_dir"
     },
     {
       "label": "src()",
@@ -37428,9 +37388,9 @@
       "source_file": "tests/scanGas.test.js",
       "source_location": "L15",
       "_origin": "ast",
-      "id": "tests_scangas_test_src",
       "community": 159,
-      "norm_label": "src()"
+      "norm_label": "src()",
+      "id": "tests_scangas_test_src"
     },
     {
       "label": "makeGas()",
@@ -37438,9 +37398,9 @@
       "source_file": "tests/scanGas.test.js",
       "source_location": "L17",
       "_origin": "ast",
-      "id": "tests_scangas_test_makegas",
       "community": 159,
-      "norm_label": "makegas()"
+      "norm_label": "makegas()",
+      "id": "tests_scangas_test_makegas"
     },
     {
       "label": "IMG",
@@ -37448,9 +37408,9 @@
       "source_file": "tests/scanGas.test.js",
       "source_location": "L45",
       "_origin": "ast",
-      "id": "tests_scangas_test_img",
       "community": 159,
-      "norm_label": "img"
+      "norm_label": "img",
+      "id": "tests_scangas_test_img"
     },
     {
       "label": "scanPhotos.test.js",
@@ -37458,9 +37418,9 @@
       "source_file": "tests/scanPhotos.test.js",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "tests_scanphotos_test",
       "community": 141,
-      "norm_label": "scanphotos.test.js"
+      "norm_label": "scanphotos.test.js",
+      "id": "tests_scanphotos_test"
     },
     {
       "label": "fichier()",
@@ -37468,9 +37428,9 @@
       "source_file": "tests/scanPhotos.test.js",
       "source_location": "L21",
       "_origin": "ast",
-      "id": "tests_scanphotos_test_fichier",
       "community": 141,
-      "norm_label": "fichier()"
+      "norm_label": "fichier()",
+      "id": "tests_scanphotos_test_fichier"
     },
     {
       "label": "repondre()",
@@ -37478,9 +37438,9 @@
       "source_file": "tests/scanPhotos.test.js",
       "source_location": "L22",
       "_origin": "ast",
-      "id": "tests_scanphotos_test_repondre",
       "community": 141,
-      "norm_label": "repondre()"
+      "norm_label": "repondre()",
+      "id": "tests_scanphotos_test_repondre"
     },
     {
       "label": "POMPE",
@@ -37488,9 +37448,9 @@
       "source_file": "tests/scanPhotos.test.js",
       "source_location": "L23",
       "_origin": "ast",
-      "id": "tests_scanphotos_test_pompe",
       "community": 141,
-      "norm_label": "pompe"
+      "norm_label": "pompe",
+      "id": "tests_scanphotos_test_pompe"
     },
     {
       "label": "COMPTEUR",
@@ -37498,9 +37458,9 @@
       "source_file": "tests/scanPhotos.test.js",
       "source_location": "L24",
       "_origin": "ast",
-      "id": "tests_scanphotos_test_compteur",
       "community": 141,
-      "norm_label": "compteur"
+      "norm_label": "compteur",
+      "id": "tests_scanphotos_test_compteur"
     },
     {
       "label": "TICKET()",
@@ -37508,9 +37468,9 @@
       "source_file": "tests/scanPhotos.test.js",
       "source_location": "L25",
       "_origin": "ast",
-      "id": "tests_scanphotos_test_ticket",
       "community": 141,
-      "norm_label": "ticket()"
+      "norm_label": "ticket()",
+      "id": "tests_scanphotos_test_ticket"
     },
     {
       "label": "feedback()",
@@ -37518,9 +37478,9 @@
       "source_file": "tests/scanPhotos.test.js",
       "source_location": "L26",
       "_origin": "ast",
-      "id": "tests_scanphotos_test_feedback",
       "community": 141,
-      "norm_label": "feedback()"
+      "norm_label": "feedback()",
+      "id": "tests_scanphotos_test_feedback"
     },
     {
       "label": "ticket.test.js",
@@ -37528,9 +37488,49 @@
       "source_file": "tests/ticket.test.js",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "tests_ticket_test",
       "community": 260,
-      "norm_label": "ticket.test.js"
+      "norm_label": "ticket.test.js",
+      "id": "tests_ticket_test"
+    },
+    {
+      "label": "config.js",
+      "file_type": "code",
+      "source_file": "js/config.js",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "js_config",
+      "community": 85,
+      "norm_label": "config.js"
+    },
+    {
+      "label": "DEPENSE_CATEGORIES",
+      "file_type": "code",
+      "source_file": "js/config.js",
+      "source_location": "L100",
+      "_origin": "ast",
+      "id": "js_config_depense_categories",
+      "community": 2,
+      "norm_label": "depense_categories"
+    },
+    {
+      "label": "FUEL_CONFIG",
+      "file_type": "code",
+      "source_file": "js/config.js",
+      "source_location": "L148",
+      "_origin": "ast",
+      "id": "js_config_fuel_config",
+      "community": 85,
+      "norm_label": "fuel_config"
+    },
+    {
+      "label": "FUEL_KEYS",
+      "file_type": "code",
+      "source_file": "js/config.js",
+      "source_location": "L160",
+      "_origin": "ast",
+      "id": "js_config_fuel_keys",
+      "community": 14,
+      "norm_label": "fuel_keys"
     }
   ],
   "links": [
@@ -96494,36 +96494,6 @@
       "target": "readme_vite"
     },
     {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "js/config.js",
-      "source_location": "L100",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "js_config",
-      "target": "js_config_depense_categories"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "js/config.js",
-      "source_location": "L148",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "js_config",
-      "target": "js_config_fuel_config"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "js/config.js",
-      "source_location": "L160",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "js_config",
-      "target": "js_config_fuel_keys"
-    },
-    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -96535,50 +96505,6 @@
       "target": "js_config"
     },
     {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "js/main.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "js_main",
-      "target": "js_config"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "js/refmodel.js",
-      "source_location": "L18",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "js_refmodel",
-      "target": "js_config"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "js/scanControle.js",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "js_scancontrole",
-      "target": "js_config"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "tests/formulaire.test.js",
-      "source_location": "L43",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tests_formulaire_test",
-      "target": "js_config"
-    },
-    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -96587,39 +96513,6 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "js_formulaire",
-      "target": "js_config_fuel_config"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "js/main.js",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "js_main",
-      "target": "js_config_fuel_config"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "js/refmodel.js",
-      "source_location": "L18",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "js_refmodel",
-      "target": "js_config_fuel_config"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "js/scanControle.js",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "js_scancontrole",
       "target": "js_config_fuel_config"
     },
     {
@@ -97506,6 +97399,28 @@
       "target": "js_ui_setautrestatus"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_main",
+      "target": "js_config"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "js/main.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_main",
+      "target": "js_config_fuel_config"
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "js/main.js",
@@ -97644,6 +97559,28 @@
       "target": "js_ui_computetriplet"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "js/refmodel.js",
+      "source_location": "L18",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_refmodel",
+      "target": "js_config"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "js/refmodel.js",
+      "source_location": "L18",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_refmodel",
+      "target": "js_config_fuel_config"
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "js/refmodel.js",
@@ -97759,6 +97696,28 @@
       "confidence_score": 1.0,
       "source": "js_refmodel_buildrefmodel",
       "target": "js_refmodel_resolveconsodiesel"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "js/scanControle.js",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_scancontrole",
+      "target": "js_config"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "js/scanControle.js",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "js_scancontrole",
+      "target": "js_config_fuel_config"
     },
     {
       "relation": "contains",
@@ -98971,6 +98930,17 @@
       "target": "js_ui_deverrouillerscan"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/formulaire.test.js",
+      "source_location": "L43",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tests_formulaire_test",
+      "target": "js_config"
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tests/formulaire.test.js",
@@ -99571,9 +99541,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos",
-      "target": "js_scanphotos_champ_id",
-      "confidence_score": 1.0
+      "target": "js_scanphotos_champ_id"
     },
     {
       "relation": "contains",
@@ -99581,9 +99551,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L27",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos",
-      "target": "js_scanphotos_clientid",
-      "confidence_score": 1.0
+      "target": "js_scanphotos_clientid"
     },
     {
       "relation": "contains",
@@ -99591,9 +99561,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L57",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos",
-      "target": "js_scanphotos_construirecontexte",
-      "confidence_score": 1.0
+      "target": "js_scanphotos_construirecontexte"
     },
     {
       "relation": "contains",
@@ -99601,9 +99571,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L32",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos",
-      "target": "js_scanphotos_envoyerscanphotos",
-      "confidence_score": 1.0
+      "target": "js_scanphotos_envoyerscanphotos"
     },
     {
       "relation": "contains",
@@ -99611,9 +99581,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L116",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos",
-      "target": "js_scanphotos_estheic",
-      "confidence_score": 1.0
+      "target": "js_scanphotos_estheic"
     },
     {
       "relation": "contains",
@@ -99621,9 +99591,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L184",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos",
-      "target": "js_scanphotos_initscanner",
-      "confidence_score": 1.0
+      "target": "js_scanphotos_initscanner"
     },
     {
       "relation": "contains",
@@ -99631,9 +99601,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L104",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos",
-      "target": "js_scanphotos_joindreticket",
-      "confidence_score": 1.0
+      "target": "js_scanphotos_joindreticket"
     },
     {
       "relation": "contains",
@@ -99641,9 +99611,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L118",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos",
-      "target": "js_scanphotos_lancerscan",
-      "confidence_score": 1.0
+      "target": "js_scanphotos_lancerscan"
     },
     {
       "relation": "contains",
@@ -99651,9 +99621,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L78",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos",
-      "target": "js_scanphotos_remplirdepuisscan",
-      "confidence_score": 1.0
+      "target": "js_scanphotos_remplirdepuisscan"
     },
     {
       "relation": "imports_from",
@@ -99662,9 +99632,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos",
-      "target": "js_ticket",
-      "confidence_score": 1.0
+      "target": "js_ticket"
     },
     {
       "relation": "imports",
@@ -99673,9 +99643,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos",
-      "target": "js_ticket_blobtobase64",
-      "confidence_score": 1.0
+      "target": "js_ticket_blobtobase64"
     },
     {
       "relation": "imports",
@@ -99684,9 +99654,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos",
-      "target": "js_ticket_fillformfromticket",
-      "confidence_score": 1.0
+      "target": "js_ticket_fillformfromticket"
     },
     {
       "relation": "imports",
@@ -99695,9 +99665,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos",
-      "target": "js_ticket_lireticketocr",
-      "confidence_score": 1.0
+      "target": "js_ticket_lireticketocr"
     },
     {
       "relation": "imports",
@@ -99706,9 +99676,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos",
-      "target": "js_ticket_resizeimage",
-      "confidence_score": 1.0
+      "target": "js_ticket_resizeimage"
     },
     {
       "relation": "calls",
@@ -99717,9 +99687,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L38",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos_envoyerscanphotos",
-      "target": "js_scanphotos_clientid",
-      "confidence_score": 1.0
+      "target": "js_scanphotos_clientid"
     },
     {
       "relation": "calls",
@@ -99739,9 +99709,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L170",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos_lancerscan",
-      "target": "js_scanphotos_construirecontexte",
-      "confidence_score": 1.0
+      "target": "js_scanphotos_construirecontexte"
     },
     {
       "relation": "calls",
@@ -99772,9 +99742,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L169",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos_lancerscan",
-      "target": "js_scanphotos_joindreticket",
-      "confidence_score": 1.0
+      "target": "js_scanphotos_joindreticket"
     },
     {
       "relation": "calls",
@@ -99783,9 +99753,9 @@
       "source_file": "js/scanPhotos.js",
       "source_location": "L131",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_scanphotos_lancerscan",
-      "target": "js_scanphotos_estheic",
-      "confidence_score": 1.0
+      "target": "js_scanphotos_estheic"
     },
     {
       "relation": "calls",
@@ -99837,9 +99807,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L483",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket",
-      "target": "js_ticket_applyticketstation",
-      "confidence_score": 1.0
+      "target": "js_ticket_applyticketstation"
     },
     {
       "relation": "contains",
@@ -99847,9 +99817,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L165",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket",
-      "target": "js_ticket_blobtobase64",
-      "confidence_score": 1.0
+      "target": "js_ticket_blobtobase64"
     },
     {
       "relation": "contains",
@@ -99857,9 +99827,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L627",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket",
-      "target": "js_ticket_estunticket",
-      "confidence_score": 1.0
+      "target": "js_ticket_estunticket"
     },
     {
       "relation": "contains",
@@ -99867,9 +99837,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L549",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket",
-      "target": "js_ticket_fillformfromticket",
-      "confidence_score": 1.0
+      "target": "js_ticket_fillformfromticket"
     },
     {
       "relation": "contains",
@@ -99877,9 +99847,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L455",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket",
-      "target": "js_ticket_findstationincommune",
-      "confidence_score": 1.0
+      "target": "js_ticket_findstationincommune"
     },
     {
       "relation": "contains",
@@ -99887,9 +99857,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L65",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket",
-      "target": "js_ticket_french_months",
-      "confidence_score": 1.0
+      "target": "js_ticket_french_months"
     },
     {
       "relation": "contains",
@@ -99897,9 +99867,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L27",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket",
-      "target": "js_ticket_fuel_label_map",
-      "confidence_score": 1.0
+      "target": "js_ticket_fuel_label_map"
     },
     {
       "relation": "contains",
@@ -99907,9 +99877,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L639",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket",
-      "target": "js_ticket_lireticketocr",
-      "confidence_score": 1.0
+      "target": "js_ticket_lireticketocr"
     },
     {
       "relation": "contains",
@@ -99917,9 +99887,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L89",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket",
-      "target": "js_ticket_normalizenumerictext",
-      "confidence_score": 1.0
+      "target": "js_ticket_normalizenumerictext"
     },
     {
       "relation": "contains",
@@ -99927,9 +99897,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L181",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket",
-      "target": "js_ticket_parseocrtext",
-      "confidence_score": 1.0
+      "target": "js_ticket_parseocrtext"
     },
     {
       "relation": "contains",
@@ -99937,9 +99907,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L123",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket",
-      "target": "js_ticket_preprocessimage",
-      "confidence_score": 1.0
+      "target": "js_ticket_preprocessimage"
     },
     {
       "relation": "contains",
@@ -99947,9 +99917,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L96",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket",
-      "target": "js_ticket_resizeimage",
-      "confidence_score": 1.0
+      "target": "js_ticket_resizeimage"
     },
     {
       "relation": "contains",
@@ -99957,9 +99927,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L83",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket",
-      "target": "js_ticket_tofloat",
-      "confidence_score": 1.0
+      "target": "js_ticket_tofloat"
     },
     {
       "relation": "calls",
@@ -99968,9 +99938,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L243",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket_parseocrtext",
-      "target": "js_ticket_tofloat",
-      "confidence_score": 1.0
+      "target": "js_ticket_tofloat"
     },
     {
       "relation": "calls",
@@ -99979,9 +99949,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L185",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket_parseocrtext",
-      "target": "js_ticket_normalizenumerictext",
-      "confidence_score": 1.0
+      "target": "js_ticket_normalizenumerictext"
     },
     {
       "relation": "calls",
@@ -99990,9 +99960,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L641",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket_lireticketocr",
-      "target": "js_ticket_resizeimage",
-      "confidence_score": 1.0
+      "target": "js_ticket_resizeimage"
     },
     {
       "relation": "calls",
@@ -100001,9 +99971,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L646",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket_lireticketocr",
-      "target": "js_ticket_preprocessimage",
-      "confidence_score": 1.0
+      "target": "js_ticket_preprocessimage"
     },
     {
       "relation": "calls",
@@ -100012,9 +99982,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L643",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket_lireticketocr",
-      "target": "js_ticket_blobtobase64",
-      "confidence_score": 1.0
+      "target": "js_ticket_blobtobase64"
     },
     {
       "relation": "calls",
@@ -100023,9 +99993,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L666",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket_lireticketocr",
-      "target": "js_ticket_parseocrtext",
-      "confidence_score": 1.0
+      "target": "js_ticket_parseocrtext"
     },
     {
       "relation": "calls",
@@ -100034,9 +100004,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L521",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket_applyticketstation",
-      "target": "js_ticket_findstationincommune",
-      "confidence_score": 1.0
+      "target": "js_ticket_findstationincommune"
     },
     {
       "relation": "calls",
@@ -100045,9 +100015,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L600",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket_fillformfromticket",
-      "target": "js_ticket_applyticketstation",
-      "confidence_score": 1.0
+      "target": "js_ticket_applyticketstation"
     },
     {
       "relation": "calls",
@@ -100056,9 +100026,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L675",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket_lireticketocr",
-      "target": "js_ticket_fillformfromticket",
-      "confidence_score": 1.0
+      "target": "js_ticket_fillformfromticket"
     },
     {
       "relation": "calls",
@@ -100067,9 +100037,9 @@
       "source_file": "js/ticket.js",
       "source_location": "L669",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "js_ticket_lireticketocr",
-      "target": "js_ticket_estunticket",
-      "confidence_score": 1.0
+      "target": "js_ticket_estunticket"
     },
     {
       "relation": "contains",
@@ -100077,9 +100047,9 @@
       "source_file": "tests/scanGas.test.js",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_scangas_test",
-      "target": "tests_scangas_test_gas_dir",
-      "confidence_score": 1.0
+      "target": "tests_scangas_test_gas_dir"
     },
     {
       "relation": "contains",
@@ -100087,9 +100057,9 @@
       "source_file": "tests/scanGas.test.js",
       "source_location": "L45",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_scangas_test",
-      "target": "tests_scangas_test_img",
-      "confidence_score": 1.0
+      "target": "tests_scangas_test_img"
     },
     {
       "relation": "contains",
@@ -100097,9 +100067,9 @@
       "source_file": "tests/scanGas.test.js",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_scangas_test",
-      "target": "tests_scangas_test_makegas",
-      "confidence_score": 1.0
+      "target": "tests_scangas_test_makegas"
     },
     {
       "relation": "contains",
@@ -100107,9 +100077,9 @@
       "source_file": "tests/scanGas.test.js",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_scangas_test",
-      "target": "tests_scangas_test_src",
-      "confidence_score": 1.0
+      "target": "tests_scangas_test_src"
     },
     {
       "relation": "indirect_call",
@@ -100118,9 +100088,9 @@
       "source_file": "tests/scanGas.test.js",
       "source_location": "L40",
       "weight": 1.0,
+      "confidence_score": 0.5,
       "source": "tests_scangas_test_makegas",
-      "target": "tests_scangas_test_src",
-      "confidence_score": 0.5
+      "target": "tests_scangas_test_src"
     },
     {
       "relation": "contains",
@@ -100128,9 +100098,9 @@
       "source_file": "tests/scanPhotos.test.js",
       "source_location": "L24",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_scanphotos_test",
-      "target": "tests_scanphotos_test_compteur",
-      "confidence_score": 1.0
+      "target": "tests_scanphotos_test_compteur"
     },
     {
       "relation": "contains",
@@ -100138,9 +100108,9 @@
       "source_file": "tests/scanPhotos.test.js",
       "source_location": "L26",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_scanphotos_test",
-      "target": "tests_scanphotos_test_feedback",
-      "confidence_score": 1.0
+      "target": "tests_scanphotos_test_feedback"
     },
     {
       "relation": "contains",
@@ -100148,9 +100118,9 @@
       "source_file": "tests/scanPhotos.test.js",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_scanphotos_test",
-      "target": "tests_scanphotos_test_fichier",
-      "confidence_score": 1.0
+      "target": "tests_scanphotos_test_fichier"
     },
     {
       "relation": "contains",
@@ -100158,9 +100128,9 @@
       "source_file": "tests/scanPhotos.test.js",
       "source_location": "L23",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_scanphotos_test",
-      "target": "tests_scanphotos_test_pompe",
-      "confidence_score": 1.0
+      "target": "tests_scanphotos_test_pompe"
     },
     {
       "relation": "contains",
@@ -100168,9 +100138,9 @@
       "source_file": "tests/scanPhotos.test.js",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_scanphotos_test",
-      "target": "tests_scanphotos_test_repondre",
-      "confidence_score": 1.0
+      "target": "tests_scanphotos_test_repondre"
     },
     {
       "relation": "contains",
@@ -100178,8 +100148,38 @@
       "source_file": "tests/scanPhotos.test.js",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tests_scanphotos_test",
-      "target": "tests_scanphotos_test_ticket",
+      "target": "tests_scanphotos_test_ticket"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/config.js",
+      "source_location": "L100",
+      "weight": 1.0,
+      "source": "js_config",
+      "target": "js_config_depense_categories",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/config.js",
+      "source_location": "L148",
+      "weight": 1.0,
+      "source": "js_config",
+      "target": "js_config_fuel_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/config.js",
+      "source_location": "L160",
+      "weight": 1.0,
+      "source": "js_config",
+      "target": "js_config_fuel_keys",
       "confidence_score": 1.0
     }
   ],
@@ -100872,5 +100872,5 @@
       "source_file": "README.md"
     }
   ],
-  "built_at_commit": "0ebf6c494db115165772ed6cc620a98304b2df09"
+  "built_at_commit": "c747ab5afca0da98c10599051ff53a5f72ec4867"
 }

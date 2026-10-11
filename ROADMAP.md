@@ -130,6 +130,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.38.2.0 | **Indication du scanner sous le bouton + version de l'app réalignée** — « 1 à 3 photos… » passe sous « 📸 Scanner » ; `APP_VERSION` oublié en 5.38.0.0/5.38.1.0 corrigé (le cache du service worker n'était pas renouvelé). |
 | v5.38.1.0 | **Scanner — finitions (W98)** — message dédié aux photos HEIC, nombres avec unité ou séparateur de milliers (`Scan.gs`), photo de ticket conservée par un scan sans ticket, repli OCR qui ne joint que des tickets, refus des actions inconnues dans `doPost`. GAS v74. |
 | v5.38.0.0 | **Scanner « intelligent » : pompe, compteur, ticket (W97)** — 1 à 3 photos, un seul appel IA (`Scan.gs`, action `scanPhotos`) ; contrôles croisés `js/scanControle.js` (pompe > ticket, litres × prix = montant, type déduit du prix, km plausible, prix station) et alertes ⚠ sous les champs ; repli OCR hors ligne pour une photo seule. |
 | v5.37.5.0 | **Ligne de conso moyenne sur le graphique Excel « Consommation par véhicule »** — une ligne en pointillés par véhicule (moyenne des points affichés, filtres période/véhicule respectés), légende « Moyenne Z900 — 6,6 L/100 ». + `modIntegrite` : variable `dO` (= mot-clé `Do`) renommée, le projet VBA recompile. |

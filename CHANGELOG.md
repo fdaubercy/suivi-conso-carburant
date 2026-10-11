@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.38.2.0] — 2026-10-11
+
+### Changed
+- **Saisie — bouton « 📸 Scanner (pompe, compteur, ticket) »** : l'indication « 1 à 3 photos, dans n'importe quel ordre » passe sous le bouton (`.scan-row` en colonne) au lieu d'être serrée à sa droite.
+
+### Fixed
+- **Version de l'app non incrémentée en 5.38.0.0 et 5.38.1.0** : `APP_VERSION` (`js/config.js`) était resté à 5.37.5.0. Le bandeau affichait l'ancienne version et, surtout, le nom du cache du service worker (dérivé d'`APP_VERSION`) ne changeait pas : la PWA installée pouvait continuer à servir les anciens fichiers (sans le scanner W97/W98). Version alignée, cache renouvelé.
+
 ## [5.38.1.0] — 2026-10-11
 
 ### Fixed
