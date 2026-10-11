@@ -267,7 +267,10 @@ SkipJ:
     For Each dkk In dateSet.keys: dates(di) = CStr(dkk): di = di + 1: Next dkk
     TriStr dates
 
-    wsd.Range(wsd.Cells(1, COL0), wsd.Cells(1, COL0 + nVehCols)).ClearContents
+    ' Purge du bloc (vehicules + moyennes d'un rafraichissement precedent)
+    Dim lastR As Long: lastR = wsd.UsedRange.Row + wsd.UsedRange.Rows.count
+    If lastR < UBound(dates) + 2 Then lastR = UBound(dates) + 2
+    wsd.Range(wsd.Cells(1, COL0), wsd.Cells(lastR, COL0 + 2 * nVehCols + 20)).ClearContents
     wsd.Cells(1, COL0).value = "Date"
     Dim c As Long
     For c = 0 To nVehCols - 1: wsd.Cells(1, COL0 + 1 + c).value = vehOrder(c): Next c
@@ -280,6 +283,23 @@ SkipJ:
                 wsd.Cells(r + 2, COL0 + 1 + c).value = Round(consoSum(pk) / consoCnt(pk), 2)
         Next c
     Next r
+    ' Moyenne de la courbe par vehicule : colonne constante -> ligne horizontale
+    ' (stylee en pointilles par modDashboardGraphiques.StyleMoyennes)
+    For c = 0 To nVehCols - 1
+        Dim sM As Double, nM As Long: sM = 0: nM = 0
+        For r = 0 To UBound(dates)
+            If Not IsEmpty(wsd.Cells(r + 2, COL0 + 1 + c).value) Then
+                sM = sM + wsd.Cells(r + 2, COL0 + 1 + c).value: nM = nM + 1
+            End If
+        Next r
+        If nM > 0 Then
+            wsd.Cells(1, COL0 + 1 + nVehCols + c).value = "Moyenne " & vehOrder(c) & " " & ChrW(8212) & " " & _
+                Format(sM / nM, "0.0") & " L/100"
+            wsd.Range(wsd.Cells(2, COL0 + 1 + nVehCols + c), wsd.Cells(UBound(dates) + 2, COL0 + 1 + nVehCols + c)).value = _
+                Round(sM / nM, 2)
+        End If
+    Next c
+    nVehCols = 2 * nVehCols
     wsd.Columns(COL0).NumberFormat = "dd/mm/yyyy"
     BuildConsoBlock = UBound(dates) + 2
 End Function

@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.37.5.0] — 2026-10-11
+
+### Added
+- **Excel — ligne de conso moyenne** sur le graphique « Consommation par véhicule (L/100 km) » du Tableau de bord : `BuildConsoBlock` (`vba/modGraphBlocks.bas`) écrit une colonne « Moyenne <véhicule> — x,x L/100 » constante (moyenne des points tracés, filtres période/véhicule respectés) ; `StyleMoyennes` (`vba/modDashboardGraphiques.bas`) la trace en pointillés, couleur du véhicule, sans marqueurs.
+
+### Fixed
+- **Excel — erreur de compilation « Erreur de syntaxe » dans `modIntegrite.AddCopie`** (depuis X71) : la variable `dO` est lue comme le mot-clé `Do` par VBA (insensible à la casse) ; renommée `dOrig`. Invisible tant que le module n'était pas compilé (compilation à la demande).
+
 ## [5.37.4.0] — 2026-10-11
 
 ### Fixed

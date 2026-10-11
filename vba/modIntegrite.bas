@@ -240,11 +240,11 @@ End Function
 Private Sub AddCopie(src As String, v As Variant, iCopie As Long, iOrig As Long, r0 As Long, _
                      cD As Long, cK As Long, cS As Long)
     mSkip(iCopie) = True
-    Dim dO As String
-    If IsDate(v(iOrig, cD)) Then dO = Format$(CDate(v(iOrig, cD)), "dd/mm/yyyy")
+    Dim dOrig As String
+    If IsDate(v(iOrig, cD)) Then dOrig = Format$(CDate(v(iOrig, cD)), "dd/mm/yyyy")
     AddIssue src, "Erreur", "Doublon (contenu)", r0 + iCopie - 1, v(iCopie, cD), Num(v(iCopie, cK)), _
         Trim$(CStr(v(iCopie, cS))), _
-        "M" & ChrW(234) & "me plein que la ligne " & (r0 + iOrig - 1) & " (" & dO & ", v" & eA & "hicule, km, " & _
+        "M" & ChrW(234) & "me plein que la ligne " & (r0 + iOrig - 1) & " (" & dOrig & ", v" & eA & "hicule, km, " & _
         "litres et prix identiques) : copie probable (double envoi ou rejeu hors-ligne).", FX_DELCOPY
 End Sub
 

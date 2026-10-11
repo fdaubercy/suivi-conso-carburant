@@ -232,6 +232,7 @@ Private Sub StyleOneChart(ch As Chart)
         ColorSeries s, idx
         idx = idx + 1
     Next s
+    StyleMoyennes ch
     On Error GoTo 0
 End Sub
 
@@ -280,6 +281,30 @@ Private Sub ColorSeries(s As Series, idx As Long)
     s.MarkerBackgroundColor = cWhite
     s.MarkerStyle = xlMarkerStyleCircle
     s.MarkerSize = 5
+    On Error GoTo 0
+End Sub
+
+' Lignes de moyenne (gConso, series "Moyenne <vehicule> - x L/100") :
+' couleur de la serie du vehicule, pointilles, sans marqueurs.
+Private Sub StyleMoyennes(ch As Chart)
+    On Error Resume Next
+    Dim s As Series, sv As Series, nomVeh As String, p As Long
+    For Each s In ch.SeriesCollection
+        If LCase$(Left$(s.name, 8)) = "moyenne " Then
+            nomVeh = Mid$(s.name, 9)
+            p = InStr(nomVeh, ChrW(8212))
+            If p > 0 Then nomVeh = Trim$(Left$(nomVeh, p - 1))
+            For Each sv In ch.SeriesCollection
+                If sv.name = nomVeh Then
+                    s.Format.Line.ForeColor.RGB = sv.Format.Line.ForeColor.RGB
+                    Exit For
+                End If
+            Next sv
+            s.Format.Line.DashStyle = msoLineDash
+            s.Format.Line.Weight = 1.5
+            s.MarkerStyle = xlMarkerStyleNone
+        End If
+    Next s
     On Error GoTo 0
 End Sub
 

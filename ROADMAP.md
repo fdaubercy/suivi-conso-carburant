@@ -130,6 +130,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.37.5.0 | **Ligne de conso moyenne sur le graphique Excel « Consommation par véhicule »** — une ligne en pointillés par véhicule (moyenne des points affichés, filtres période/véhicule respectés), légende « Moyenne Z900 — 6,6 L/100 ». + `modIntegrite` : variable `dO` (= mot-clé `Do`) renommée, le projet VBA recompile. |
 | v5.37.4.0 | **Photo du ticket enfin enregistrée (W9)** — le manifeste GAS ne déclarait pas le scope Drive : chaque envoi échouait en silence (colonne « Photo ticket » toujours vide). Scope `drive` ajouté (`appsscript.json` versionné), `uploadTicketPhoto_` partagé ajout/modification, alerte « photo non sauvegardée » dans l'app, fonction `autoriserDrive()` à lancer une fois dans l'éditeur. GAS v71. |
 | v5.37.3.0 | **Pleins modifiés propagés aux autres appareils (X76)** — l'export différentiel renvoie aussi les lignes dont `Modifié_le` ≥ since ; l'app remplace sa version en cache par sync_id. GAS v70. |
 | v5.37.3.0 | **Bilan annuel aligné sur l'onglet Stats** — `wrapped.js` utilisait une copie périmée du modèle (surconso non bornée, sans écart de référence ni carburant de référence) : +351 € au lieu de 411 €. Il somme désormais `computeEcoByFill`. + 2 prix SP98 manquants (22/05, 12/06) renseignés dans le Sheet → app = Excel J65 (409,46 €). |
