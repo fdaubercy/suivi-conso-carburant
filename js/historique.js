@@ -64,6 +64,17 @@ export function estPleinValide(r) {
   return !isNaN(d.getTime()) && d.getFullYear() > 1970;
 }
 
+/** X75 — Le cache diverge-t-il des sync_id actifs renvoyés par le serveur (`ids`) ?
+ *  Le différentiel `?since=` filtre sur l'Horodatage : un plein poussé plus tard
+ *  avec un Horodatage ancien (Excel bulkAdd) n'est jamais renvoyé. Un plein local
+ *  sans sync_id est ignoré ; `ids` absent (ancien GAS) → pas de divergence. */
+export function cacheDesynchronise(records, ids) {
+  if (!Array.isArray(ids)) return false;
+  const actifs = new Set(ids.map(String));
+  const locaux = new Set(records.map(r => String(r.sync_id || r['sync_id'] || '')).filter(Boolean));
+  return actifs.size !== locaux.size || [...actifs].some(id => !locaux.has(id));
+}
+
 /** Vide le cache historique et force un rechargement complet depuis le GAS. */
 export async function forceRefreshHistorique() {
   try { localStorage.removeItem(HIST_CACHE_KEY); } catch { /* best-effort */ }
@@ -87,19 +98,22 @@ export async function chargerHistorique() {
 
     // Mode différentiel si on a déjà un cache : n'envoyer que les nouveaux
     const idToken = getIdToken();   // U7 — identité du compte
-    const url = GAS_URL + '?action=export'
-      + (since && cachedRecords.length ? '&since=' + encodeURIComponent(since) : '')
-      + '&token=' + encodeURIComponent(APP_TOKEN)   // S6
-      + (idToken ? '&idToken=' + encodeURIComponent(idToken) : '');   // U7
+    const fetchExport = async (sinceTs) => {
+      const url = GAS_URL + '?action=export'
+        + (sinceTs ? '&since=' + encodeURIComponent(sinceTs) : '')
+        + '&token=' + encodeURIComponent(APP_TOKEN)   // S6
+        + (idToken ? '&idToken=' + encodeURIComponent(idToken) : '');   // U7
+      const resp = await fetch(url, { redirect: 'follow' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    };
 
-    const resp = await fetch(url, { redirect: 'follow' });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const data = await resp.json();
-
-    const incoming = data.records || [];
+    const diff = !!(since && cachedRecords.length);
+    let data = await fetchExport(diff ? since : null);
     let allRecords;
 
-    if (since && cachedRecords.length) {
+    if (diff) {
+      const incoming = data.records || [];
       // Fusion différentielle : n'ajouter que les enregistrements absents du
       // cache. Clé = sync_id si présent, SINON clé composite (date/km/litres/
       // station/type). Sans cette clé de repli, une ligne SANS sync_id était
@@ -113,19 +127,25 @@ export async function chargerHistorique() {
         return sid ? !existingIds.has(sid) : !existingKeys.has(_recordKey(r));
       });
       allRecords = newRecords.length ? [...cachedRecords, ...newRecords] : cachedRecords;
+
+      // S3 — suppression bidirectionnelle : purge les pleins effacés ailleurs
+      // (Excel / autre client). Le serveur renvoie « deleted:[sync_id,…] ».
+      const deletedIds = Array.isArray(data.deleted) ? data.deleted.map(String) : [];
+      if (deletedIds.length) {
+        const delSet = new Set(deletedIds);
+        allRecords = allRecords.filter(
+          r => !delSet.has(String(r.sync_id || r['sync_id'] || ''))
+        );
+      }
+
+      // X75 — cache divergent des sync_id actifs du serveur → rechargement complet
+      if (cacheDesynchronise(allRecords, data.ids)) {
+        data = await fetchExport(null);
+        allRecords = data.records || [];
+      }
     } else {
       // Chargement complet (premier démarrage ou cache absent)
-      allRecords = incoming;
-    }
-
-    // S3 — suppression bidirectionnelle : purge les pleins effacés ailleurs
-    // (Excel / autre client). Le serveur renvoie « deleted:[sync_id,…] ».
-    const deletedIds = Array.isArray(data.deleted) ? data.deleted.map(String) : [];
-    if (deletedIds.length) {
-      const delSet = new Set(deletedIds);
-      allRecords = allRecords.filter(
-        r => !delSet.has(String(r.sync_id || r['sync_id'] || ''))
-      );
+      allRecords = data.records || [];
     }
 
     // Anti-fantôme (bug 01/01/1970) : écarter les lignes d'en-tête dupliquées et

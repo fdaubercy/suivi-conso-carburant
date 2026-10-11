@@ -378,6 +378,11 @@ function handleExport(e) {
 
   // Ordre des clés : « records » EN DERNIER (le parseur VBA ParseRecords
   // vise la dernière « ] » via InStrRev ; deleted doit donc précéder).
+  // X75 — en différentiel, « ids » = sync_id actifs du compte : le client
+  // recharge tout s'il en manque (lignes Excel bulkAdd à Horodatage ancien).
+  if (hasSince) {
+    return jsonResponse({ since: sinceParam, deleted: deletedIds, ids: Array.from(activeIds), records });
+  }
   return jsonResponse({ since: sinceParam || null, deleted: deletedIds, records });
 }
 

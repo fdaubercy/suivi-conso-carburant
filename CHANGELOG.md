@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.37.2.0] — 2026-10-11
+
+### Fixed
+- **Pleins absents de l'historique (X75)** — les pleins du 22/09 et du 25/09 ne s'affichaient plus dans l'app alors qu'ils sont actifs dans le Google Sheet. Cause : l'export différentiel (`?action=export&since=`) ne renvoie que les lignes dont l'**Horodatage** est postérieur à la dernière synchro ; or les lignes ajoutées par Excel (`handleBulkAdd`) gardent l'Horodatage d'origine du plein → jamais transmises à un appareil déjà synchronisé. Les copies en double connues de l'app ayant été supprimées le 03/10 (contrôle d'intégrité X71), il ne restait dans l'app aucune copie de ces deux pleins. GAS : la réponse différentielle inclut `ids` (sync_id actifs du compte, placé avant `records` pour le parseur VBA) ; app : `cacheDesynchronise` compare le cache à `ids` et déclenche un **rechargement complet** au moindre écart (`js/historique.js`). Test : `tests/historiqueSync.test.js`. GAS v69.
+
 ## [5.37.1.0] — 2026-10-03
 
 ### Fixed

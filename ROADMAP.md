@@ -102,6 +102,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi |
 |---|---|---|
 | X73 | **Purge RGPD du journal des dépenses** — `handleDeleteAccount` efface les lignes `Depenses` du compte mais pas `Depenses_journal` (append-only par conception, v5.36). Ajouter la purge des lignes du compte au seul cas de la suppression de compte (et l'inscrire dans la liste blanche de `tests/gasGarde.test.js`). | Le journal contient l'email et le détail des dépenses : la suppression de compte doit être complète. |
+| X76 | **Propager aux autres appareils les pleins modifiés** — l'export différentiel ne renvoie que les lignes à Horodatage récent et le client n'ajoute que les sync_id inconnus : une modification (W92 sur un autre appareil, `bulkUpdate` Excel) n'atteint jamais le cache d'un appareil déjà synchronisé. Filtrer aussi sur `Modifié_le >= since` côté GAS et remplacer l'enregistrement en cache par sync_id côté client. | Mêmes données sur tous les appareils sans « Rafraîchir » manuel. |
 
 ### 📋 Onglets Google Sheets
 
@@ -130,6 +131,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.37.2.0 | **Pleins manquants dans l'historique (X75)** — l'export différentiel `?since=` filtrait sur l'Horodatage : les pleins ajoutés au Sheet par Excel (`bulkAdd`, Horodatage d'origine) n'étaient jamais renvoyés à l'app. Le GAS renvoie `ids` (sync_id actifs du compte) ; l'app recharge tout en cas d'écart (`cacheDesynchronise`). GAS v69. |
 | v5.37.1.0 | **Dates des pleins à minuit local (X74)** — le GAS stockait les dates de pleins à 02:00 (`new Date('yyyy-mm-dd')` = minuit UTC) ; helper `dateJour_`, 59 dates du Sheet + 11 lignes Excel réparées, `modSyncEngine.JourSeul`, garde statique. Projection W94 tronquée au jour comme Excel J11. GAS v68. |
 | v5.37.0.0 | **Projection de rentabilité au rythme récent (W94)** — le réglage « Nb pleins récents » (`proj_nb_recents`) pilote la date de rentabilité de l'app, calculée comme l'Excel `J11 ± L11` / `J12` (médiane taux moyen / N derniers pleins E85, rythme km/j) — parité vérifiée sur données réelles. Surconso inchangée (option écartée). `js/projectionRenta.js`, `tests/projectionRenta.test.js`. |
 | v5.36.0.0 | **Véhicules communs + dépenses protégées (W95)** — liste des véhicules synchronisée via `Parametres.vehicules` (union + déduction depuis pleins/dépenses, suppressions volontaires LWW), dates des dépenses normalisées (GAS/app/Excel), confirmation + Annuler + corbeille restaurable, journal `Depenses_journal` append-only, tests de non-régression (`gasGarde`, `depensesProtection`, `vehiculesSync`). GAS v67. |
