@@ -126,7 +126,15 @@ export async function chargerHistorique() {
         const sid = String(r.sync_id || r['sync_id'] || '');
         return sid ? !existingIds.has(sid) : !existingKeys.has(_recordKey(r));
       });
-      allRecords = newRecords.length ? [...cachedRecords, ...newRecords] : cachedRecords;
+      // X76 — un sync_id déjà en cache revient s'il a été modifié ailleurs
+      // (Modifié_le >= since côté GAS) : la version serveur remplace la locale.
+      const majParSid = new Map(incoming
+        .map(r => [String(r.sync_id || r['sync_id'] || ''), r])
+        .filter(([sid]) => sid && existingIds.has(sid)));
+      const base = majParSid.size
+        ? cachedRecords.map(r => majParSid.get(String(r.sync_id || r['sync_id'] || '')) || r)
+        : cachedRecords;
+      allRecords = newRecords.length ? [...base, ...newRecords] : base;
 
       // S3 — suppression bidirectionnelle : purge les pleins effacés ailleurs
       // (Excel / autre client). Le serveur renvoie « deleted:[sync_id,…] ».

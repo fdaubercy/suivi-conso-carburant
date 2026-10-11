@@ -4,6 +4,16 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.37.3.0] — 2026-10-11
+
+### Fixed
+- **Bilan annuel « 2026 en carburant » (+351 €) incohérent avec l'onglet Stats (411 €)** — `js/wrapped.js` recalculait l'économie avec une copie périmée du modèle : surconso **non bornée** (51 % au lieu du plafond X70 de 40 %), sans écart de référence €/L (X67) ni carburant de référence. Le bilan somme désormais l'économie par plein des Stats (`computeEcoByFill`) sur les pleins de l'année ; libellé « éco. E85 vs <réf.> ». Test de parité dans `tests/wrapped.test.js`.
+- **Écart app 411 € / Excel J65 409,46 €** — 2 pleins E85 (22/05 et 12/06) n'avaient pas de prix SP98 station dans le Google Sheet : l'Excel les valorisait au prix SP98 moyen du jour (`_PrixHistory`), l'app à la moyenne des prix SP98 connus (+1,49 €). **Données réparées** : `SP98 station` = 2,022 € et 2,035 € (valeurs utilisées par l'Excel), `Modifié_le` horodaté → app = Excel = 409,46 €.
+
+### Changed
+- **Carte des connaissances graphify reconstruite de zéro** — 2 969 nœuds / 6 163 liens / 248 communautés (contre 2 728 / 4 715 accumulés par `--update` successifs) : extraction neuve et homogène, avec des lots dédiés aux modules **VBA** (`vba/*.bas`) et **GAS** (`*.gs`), que graphify ne détecte pas, et un sous-agent par gros document (CHANGELOG, ROADMAP, lessons, README).
+- **Pleins modifiés propagés à tous les appareils (X76)** — l'export différentiel (`?since=`) renvoie aussi les lignes dont `Modifié_le` est postérieur à la dernière synchro (modification W92 sur un autre appareil, `bulkUpdate` Excel, réparation de données) ; l'app remplace alors sa version en cache (par `sync_id`). L'Excel n'est pas concerné (export complet). Test dans `tests/historiqueSync.test.js`. GAS v70.
+
 ## [5.37.2.0] — 2026-10-11
 
 ### Fixed

@@ -102,7 +102,6 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 | # | Idée | Pourquoi |
 |---|---|---|
 | X73 | **Purge RGPD du journal des dépenses** — `handleDeleteAccount` efface les lignes `Depenses` du compte mais pas `Depenses_journal` (append-only par conception, v5.36). Ajouter la purge des lignes du compte au seul cas de la suppression de compte (et l'inscrire dans la liste blanche de `tests/gasGarde.test.js`). | Le journal contient l'email et le détail des dépenses : la suppression de compte doit être complète. |
-| X76 | **Propager aux autres appareils les pleins modifiés** — l'export différentiel ne renvoie que les lignes à Horodatage récent et le client n'ajoute que les sync_id inconnus : une modification (W92 sur un autre appareil, `bulkUpdate` Excel) n'atteint jamais le cache d'un appareil déjà synchronisé. Filtrer aussi sur `Modifié_le >= since` côté GAS et remplacer l'enregistrement en cache par sync_id côté client. | Mêmes données sur tous les appareils sans « Rafraîchir » manuel. |
 
 ### 📋 Onglets Google Sheets
 
@@ -131,6 +130,8 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.37.3.0 | **Pleins modifiés propagés aux autres appareils (X76)** — l'export différentiel renvoie aussi les lignes dont `Modifié_le` ≥ since ; l'app remplace sa version en cache par sync_id. GAS v70. |
+| v5.37.3.0 | **Bilan annuel aligné sur l'onglet Stats** — `wrapped.js` utilisait une copie périmée du modèle (surconso non bornée, sans écart de référence ni carburant de référence) : +351 € au lieu de 411 €. Il somme désormais `computeEcoByFill`. + 2 prix SP98 manquants (22/05, 12/06) renseignés dans le Sheet → app = Excel J65 (409,46 €). |
 | v5.37.2.0 | **Pleins manquants dans l'historique (X75)** — l'export différentiel `?since=` filtrait sur l'Horodatage : les pleins ajoutés au Sheet par Excel (`bulkAdd`, Horodatage d'origine) n'étaient jamais renvoyés à l'app. Le GAS renvoie `ids` (sync_id actifs du compte) ; l'app recharge tout en cas d'écart (`cacheDesynchronise`). GAS v69. |
 | v5.37.1.0 | **Dates des pleins à minuit local (X74)** — le GAS stockait les dates de pleins à 02:00 (`new Date('yyyy-mm-dd')` = minuit UTC) ; helper `dateJour_`, 59 dates du Sheet + 11 lignes Excel réparées, `modSyncEngine.JourSeul`, garde statique. Projection W94 tronquée au jour comme Excel J11. GAS v68. |
 | v5.37.0.0 | **Projection de rentabilité au rythme récent (W94)** — le réglage « Nb pleins récents » (`proj_nb_recents`) pilote la date de rentabilité de l'app, calculée comme l'Excel `J11 ± L11` / `J12` (médiane taux moyen / N derniers pleins E85, rythme km/j) — parité vérifiée sur données réelles. Surconso inchangée (option écartée). `js/projectionRenta.js`, `tests/projectionRenta.test.js`. |

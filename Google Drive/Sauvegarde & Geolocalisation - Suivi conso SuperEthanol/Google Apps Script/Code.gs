@@ -361,9 +361,12 @@ function handleExport(e) {
     .filter(row => _rowBelongsTo_(row[IDX_EMAIL], email))   // U7 — pleins du compte uniquement
     .filter(row => {
       if (!hasSince || horoIdx < 0) return true;
-      const v = row[horoIdx];
-      const d = v instanceof Date ? v : new Date(String(v));
-      return !isNaN(d.getTime()) && d >= sinceDate;
+      // X76 — créée OU modifiée (Modifié_le, col Q) depuis « since »
+      return [row[horoIdx], row[IDX_MODIFIED]].some(v => {
+        if (v === '' || v === null || v === undefined) return false;
+        const d = v instanceof Date ? v : new Date(String(v));
+        return !isNaN(d.getTime()) && d >= sinceDate;
+      });
     })
     .map(row => {
       const obj = {};

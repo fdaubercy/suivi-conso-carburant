@@ -15,6 +15,8 @@ const RECORDS = [
 vi.mock('../js/historique.js', () => ({ getAllRecords: () => RECORDS }));
 
 import { shareWrapped, buildWrapped } from '../js/wrapped.js';
+import { computeEcoByFill } from '../js/statsParams.js';
+import { ECART_REF_KEY } from '../js/config.js';
 
 /* Canvas factice : ctx no-op (measureText/createLinearGradient renvoient des
    stubs), toBlob rend un Blob PNG synthétique. */
@@ -58,6 +60,17 @@ describe('buildWrapped — sanity (données de test)', () => {
     const w = buildWrapped(2025, 'all');
     expect(w.nbPleins).toBe(2);
     expect(w.totalLitres).toBe(78);
+  });
+});
+
+describe('buildWrapped — économie alignée sur l’onglet Stats', () => {
+  afterEach(() => localStorage.removeItem(ECART_REF_KEY));
+  it('économie E85 = Σ des économies par plein des Stats (écart de référence inclus)', () => {
+    localStorage.setItem(ECART_REF_KEY, '0.10');
+    const attendu = [...computeEcoByFill(RECORDS).values()].reduce((s, v) => s + v.eco, 0);
+    const w = buildWrapped(2025, 'all');
+    expect(w.nbE85).toBe(2);
+    expect(w.econE85).toBeCloseTo(attendu, 6);
   });
 });
 

@@ -60,6 +60,23 @@ describe('chargerHistorique — sync différentielle', () => {
     expect(JSON.parse(localStorage.getItem(HIST_CACHE_KEY)).length).toBe(2);
   });
 
+  it('X76 — un plein modifié ailleurs remplace sa version en cache', async () => {
+    const ancien = rec('a', '2026-05-22');
+    localStorage.setItem(HIST_CACHE_KEY, JSON.stringify([ancien, rec('b', '2026-06-12')]));
+    localStorage.setItem(HIST_SINCE_KEY, '2026-10-03T08:00:00.000Z');
+    const modifie = { ...ancien, 'SP98 station (€/L)': 2.022 };
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ since: 'x', deleted: [], ids: ['a', 'b'], records: [modifie] }),
+    })));
+
+    await chargerHistorique();
+
+    const recs = getAllRecords();
+    expect(recs).toHaveLength(2);
+    expect(recs.find(r => r.sync_id === 'a')['SP98 station (€/L)']).toBe(2.022);
+  });
+
   it('cache conforme → un seul appel réseau', async () => {
     localStorage.setItem(HIST_CACHE_KEY, JSON.stringify([rec('a', '2026-09-18')]));
     localStorage.setItem(HIST_SINCE_KEY, '2026-10-03T08:00:00.000Z');

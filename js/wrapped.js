@@ -3,14 +3,15 @@
 
    Carte récap de fin d'année construite depuis l'historique des pleins :
      • litres totaux        • € dépensés
-     • km parcourus         • économie E85 cumulée (vs SP98)
+     • km parcourus         • économie E85 cumulée (vs carburant de référence)
      • station préférée     • mois le plus cher
    Périmètre basculable : véhicule courant ↔ tous véhicules (W37).
 ═══════════════════════════════════════════════════════════════════════ */
 
 import { state } from './state.js';
-import { FUEL_CONFIG, DEFAULT_SURCONSO, WRAPPED_SCOPE_KEY } from './config.js';
+import { FUEL_CONFIG, WRAPPED_SCOPE_KEY } from './config.js';
 import { getAllRecords } from './historique.js';
+import { computeEcoByFill, computeSurconso, getCarburantRef, refShortOf } from './statsParams.js';
 
 const MOIS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
                  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
@@ -56,26 +57,6 @@ export function getAvailableYears(scope) {
   return [...set].sort((a, b) => b - a);
 }
 
-/* ─── Surconsommation E85 dynamique (conso E85 / conso SP98 − 1) ─── */
-function computeSurconso(records) {
-  const sorted = records
-    .filter(r => Number(r['Km compteur'] || 0) > 0)
-    .sort((a, b) => (recDate(a) || 0) - (recDate(b) || 0));
-  const e85 = [], s98 = [];
-  for (let i = 1; i < sorted.length; i++) {
-    const dk = Number(sorted[i]['Km compteur'] || 0) - Number(sorted[i - 1]['Km compteur'] || 0);
-    const lit = Number(sorted[i]['Nb. Litres'] || 0);
-    if (dk <= 0 || lit <= 0) continue;
-    const conso = (lit / dk) * 100;
-    if (matchType(sorted[i].Type, 'E85')) e85.push(conso);
-    else if (matchType(sorted[i].Type, 'SP98')) s98.push(conso);
-  }
-  if (!e85.length || !s98.length) return DEFAULT_SURCONSO;
-  const avg = a => a.reduce((s, v) => s + v, 0) / a.length;
-  const s = avg(e85) / avg(s98) - 1;
-  return isFinite(s) && s > 0 ? s : DEFAULT_SURCONSO;
-}
-
 /* ─── Construit le bilan d'une année pour un périmètre ─── */
 export function buildWrapped(year, scope) {
   const recs = scopedRecords(scope).filter(r => {
@@ -113,29 +94,20 @@ export function buildWrapped(year, scope) {
     if (kms.length > 1) kmParcourus += Math.max(...kms) - Math.min(...kms);
   });
 
-  // Économie E85 cumulée vs SP98 (méthode du dashboard : surconso dynamique)
-  const surconso = computeSurconso(scopedRecords(scope));
-  const sp98Refs = [];
-  scopedRecords(scope).forEach(r => {
-    if (matchType(r.Type, 'E85')) {
-      const s = Number(r['SP98 station (€/L)']) || 0;
-      if (s > 0) sp98Refs.push(s);
-    } else if (matchType(r.Type, 'SP98')) {
-      const p = Number(r['Prix €/L']) || 0;
-      if (p > 0) sp98Refs.push(p);
-    }
-  });
-  const sp98Moyen = sp98Refs.length ? sp98Refs.reduce((s, p) => s + p, 0) / sp98Refs.length : 0;
+  // Économie E85 vs carburant de référence : MÊME modèle que l'onglet Stats
+  // (computeEcoByFill — surconso bornée X70, écart €/L X67, réf. SP98/diesel),
+  // calculé sur tout l'historique du périmètre puis sommé sur les pleins de l'année.
+  const scoped   = scopedRecords(scope);
+  const ecoMap   = computeEcoByFill(scoped);
+  const surconso = computeSurconso(scoped);
+  const refShort = refShortOf(getCarburantRef());
 
   let nbE85 = 0, econE85 = 0;
   recs.forEach(r => {
     if (!matchType(r.Type, 'E85')) return;
-    const lit  = Number(r['Nb. Litres'] || 0);
-    const prix = Number(r['Prix €/L'] || 0);
-    if (lit <= 0 || prix <= 0) return;
+    if (!(Number(r['Nb. Litres']) > 0) || !(Number(r['Prix €/L']) > 0)) return;
     nbE85++;
-    const sp98 = (Number(r['SP98 station (€/L)']) || 0) || sp98Moyen;
-    if (sp98 > 0) econE85 += (lit / (1 + surconso)) * sp98 - lit * prix;
+    econE85 += ecoMap.get(r)?.eco || 0;
   });
 
   // Station préférée (plus fréquente)
@@ -152,7 +124,7 @@ export function buildWrapped(year, scope) {
 
   return {
     year, scope, nbPleins, nbE85, totalLitres, totalCout, kmParcourus,
-    econE85, surconso, stationPref, stationPrefN,
+    econE85, surconso, refShort, stationPref, stationPrefN,
     moisCher, moisCherCout,
   };
 }
@@ -203,7 +175,7 @@ export function renderWrapped() {
   const econSign  = w.econE85 > 0 ? '+' : '';
   const econCell  = w.nbE85
     ? `<div class="stat-val">${econSign}${w.econE85.toFixed(0)} €</div>
-       <div class="stat-unit">éco. E85 vs SP98</div>`
+       <div class="stat-unit">éco. E85 vs ${escapeHtml(w.refShort)}</div>`
     : `<div class="stat-val">—</div>
        <div class="stat-unit">aucun plein E85</div>`;
 
@@ -335,7 +307,7 @@ function drawWrappedCard(w, scopeLabel) {
     [w.totalLitres.toFixed(0) + ' L',                 w.nbPleins + ' plein(s)'],
     [w.totalCout.toFixed(0) + ' €',              'dépensés'],
     [w.kmParcourus.toLocaleString('fr-FR'),           'km parcourus'],
-    [econTxt,                                          w.nbE85 ? 'éco. E85 vs SP98' : 'aucun plein E85'],
+    [econTxt,                                          w.nbE85 ? 'éco. E85 vs ' + w.refShort : 'aucun plein E85'],
     [w.stationPref ? truncate(w.stationPref, 16) : '—', w.stationPref ? 'station préférée · ' + w.stationPrefN + '×' : 'station préférée'],
     [w.moisCher != null ? MOIS_FR[w.moisCher] : '—',    w.moisCher != null ? 'mois le + cher · ' + w.moisCherCout.toFixed(0) + ' €' : 'mois le + cher'],
   ];
