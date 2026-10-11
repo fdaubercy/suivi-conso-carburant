@@ -30,7 +30,7 @@ import { initComparatifExport } from './comparatif.js';
 import { prewarmServerStats, getServerStats } from './statsApi.js';
 import { loadSectorPrices, renderSectorBestCard, applyHistPriceToForm } from './secteur.js';
 import { initWrapped, renderWrapped } from './wrapped.js';
-import { initScanner }       from './ticket.js';
+import { initScanner }       from './scanPhotos.js';
 import { initPWA }           from './pwa.js';
 import { initOffline, syncQueue } from './offline.js';
 import { initNotifications, updateNotifUI, registerPushSubscription } from './notifications.js';

@@ -13,7 +13,7 @@ const A = vi.hoisted(() => ({ enabled: false, authed: true }));
 
 vi.mock('../js/ui.js', () => ({
   setAutreStatus: vi.fn(), hideCpSearch: vi.fn(), setSubmitState: vi.fn(),
-  showFeedback: vi.fn(), computeTriplet: vi.fn(),
+  showFeedback: vi.fn(), computeTriplet: vi.fn(), clearFieldWarnings: vi.fn(), deverrouillerScan: vi.fn(),
 }));
 vi.mock('../js/carburant.js', () => ({ _buildTypeToggle: vi.fn(), _updateHeaderBadges: vi.fn() }));
 vi.mock('../js/prix.js', () => ({
@@ -37,11 +37,11 @@ vi.mock('../js/auth.js', () => ({
 import {
   _alertePhoto,
   saveDraft, restoreDraft, clearDraft, checkDuplicate, onKmInput,
-  _parseSpeechToNumber, submitForm, _newSyncId,
+  _parseSpeechToNumber, submitForm, _newSyncId, beginEditPlein,
 } from '../js/formulaire.js';
 import { state } from '../js/state.js';
 import { DRAFT_KEY } from '../js/config.js';
-import { showFeedback, setSubmitState } from '../js/ui.js';
+import { showFeedback, setSubmitState, deverrouillerScan } from '../js/ui.js';
 import { fetchStationPricesSilent } from '../js/prix.js';
 import { queuePlein, updateOfflineBadge } from '../js/offline.js';
 import { syncStationSiNouvelle } from '../js/stations.js';
@@ -281,5 +281,13 @@ describe('_alertePhoto (W9 — échec d’enregistrement de la photo du ticket)'
     expect(a.titre).toBe('photo non sauvegardée');
     expect(a.msg).toContain('Google Drive');
     expect(a.msg).toContain('DriveApp');
+  });
+});
+
+describe('W97 — verrou du scanner et mode édition', () => {
+  it('ouvrir un plein en édition lève le verrou (prix payé / montant du scan précédent)', () => {
+    deverrouillerScan.mockClear();
+    try { beginEditPlein({ Type: 'SuperEthanol E85' }); } catch { /* DOM partiel du test */ }
+    expect(deverrouillerScan).toHaveBeenCalled();
   });
 });

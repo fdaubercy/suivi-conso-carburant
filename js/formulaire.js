@@ -1,7 +1,7 @@
 /* ─── Formulaire — soumission, réinitialisation et auto-save brouillon (W15) ─── */
 import { FUEL_CONFIG, FUEL_KEYS, GAS_URL, APP_TOKEN, DRAFT_KEY, CLIENT_ID_KEY } from './config.js';
 import { state } from './state.js';
-import { setAutreStatus, hideCpSearch, setSubmitState, showFeedback, computeTriplet } from './ui.js';
+import { setAutreStatus, hideCpSearch, setSubmitState, showFeedback, computeTriplet, clearFieldWarnings, deverrouillerScan } from './ui.js';
 import { _buildTypeToggle, _updateHeaderBadges } from './carburant.js';
 import { fetchPricesNearUser, fetchPricesAtCoords, fetchNearestE85Price, fetchStationPricesSilent, evalRentabiliteE85 } from './prix.js';
 import { cancelOsmEnrich } from './osm.js';
@@ -229,6 +229,7 @@ function _isoInputDate(s) {
  */
 export function beginEditPlein(record) {
   if (!record) return;
+  deverrouillerScan();   // W97 — les valeurs du plein édité priment sur un scan précédent
   _editRecord = record;
 
   // Véhicule (source unique de vérité — met aussi à jour state.currentVehiculeNom
@@ -587,4 +588,6 @@ export function resetForm() {
   state._ticketPhoto = null;
   const photoIndicator = document.getElementById('ticketPhotoIndicator');
   if (photoIndicator) photoIndicator.hidden = true;
+  clearFieldWarnings();   // W97 — alertes du scanner
+  deverrouillerScan();    // W97 — verrou prix payé / montant lus
 }

@@ -1,6 +1,6 @@
 # W97 — Scanner « intelligent » : pompe, compteur, ticket
 
-> Conception validée par sections le 2026-10-11. Statut : **spécification à relire** avant le plan d'implémentation.
+> Conception validée par sections le 2026-10-11. Statut : **validée, implémentée en v5.38.0.0** (plan : `docs/superpowers/plans/2026-10-11-scan-pompe-compteur.md`).
 
 ## 1. Objectif
 
@@ -127,7 +127,7 @@ contexte = { stationPrices, historiqueVehicule, dernierKm, consoMoy, typeCourant
 
 | Fichier | Changement |
 |---|---|
-| `Google Apps Script/Scan.gs` | **nouveau** — `handleScanPhotos_`, consigne, normalisation |
+| `Google Apps Script/Scan.gs` | **nouveau** — `handleScanPhotos`, consigne, normalisation |
 | `Google Apps Script/Code.gs` | `doPost` : aiguillage `scanPhotos` |
 | `js/scanControle.js` | **nouveau** — `analyserScan` (R1 à R5) |
 | `js/ticket.js` | sélection multiple, appel `scanPhotos`, remplissage + alertes, replis |

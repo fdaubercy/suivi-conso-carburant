@@ -19,7 +19,7 @@ import { FUEL_CONFIG, CO2_ESSENCE_PER_L, CO2_GAZOLE_PER_L, DEFAULT_CONSO_DIESEL 
 
 /** Matche un Type GS (label complet « SuperEthanol E85 ») avec une clé FUEL_CONFIG (E85).
  *  Réplique de stats.js#matchType (gardé local pour préserver la pureté du module). */
-function matchType(rType, fuelKey) {
+export function matchType(rType, fuelKey) {
   if (!rType || !fuelKey) return false;
   const t = String(rType).toLowerCase();
   const cfg = FUEL_CONFIG[fuelKey];

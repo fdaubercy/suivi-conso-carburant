@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.38.0.0] — 2026-10-11
+
+### Added
+- **Scanner « intelligent » : pompe, compteur, ticket (W97)** — le bouton « 📸 Scanner (pompe, compteur, ticket) » accepte 1 à 3 photos en un geste. Le script Google (nouveau `Scan.gs`, action `scanPhotos`, GAS v73) classe chaque image et lit litres, prix/L et montant sur l'afficheur de la pompe, le kilométrage total (ODO) sur le compteur, et le ticket comme avant. `js/scanControle.js` recoupe les lectures : pompe prioritaire sur le ticket, litres × prix = montant, type de carburant déduit du prix, kilométrage plausible, prix comparé à celui de la station ; toute valeur douteuse est signalée sous son champ (⚠). Le montant lu est écrit tel quel dans « Coût » et, avec le prix payé, **verrouillé** : les prix station / secteur / historiques qui arrivent après coup (ou un changement de carburant) ne les remplacent plus, jusqu'à la première saisie de l'utilisateur (`verrouillerScan` / `deverrouillerScan`, `js/ui.js`). Hors ligne, une photo seule est lue par l'OCR du ticket. Seule la photo du ticket est jointe au plein (W9).
+
+### Changed
+- `js/ticket.js` : l'analyse IA passe par `js/scanPhotos.js` ; `scanWithGemini` (client) supprimé — l'action GAS `scanTicket` reste pour les clients en cache.
+
 ## [5.37.5.0] — 2026-10-11
 
 ### Added

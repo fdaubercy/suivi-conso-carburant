@@ -114,13 +114,16 @@ Des **pastilles** attirent l'attention sans forcer l'ouverture des vues (`js/bad
 - **Détection de doublons** : warning inline si date + km + litres correspondent à un plein existant
 - Version de l'application affichée dans le bandeau
 
-### 🧾 Scan ticket de caisse (W17) + 📷 Photo jointe (W9)
+### 📸 Scanner pompe, compteur, ticket (W97) + 🧾 OCR ticket (W17) + 📷 Photo jointe (W9)
 
-Bouton **"🧾 Scanner le ticket"** dans le formulaire : sélection d'une photo (galerie ou caméra) →
-**analyse IA [Gemini 2.0 Flash](https://ai.google.dev/) via le backend GAS** (moteur principal, en ligne) →
-pré-remplissage automatique des champs. **Fallback automatique** : si Gemini est indisponible
-(hors-ligne ou erreur), bascule sur l'**OCR [Tesseract.js](https://tesseract.projectnaptha.com/) 100 % navigateur**
-(redimensionnement canvas max 1 200 px + prétraitement niveaux de gris/contraste + extraction par heuristiques).
+Bouton **« 📸 Scanner (pompe, compteur, ticket) »** dans le formulaire : 1 à 3 photos (galerie ou caméra), dans
+n'importe quel ordre → **un seul appel IA [Gemini 2.5 Flash](https://ai.google.dev/) via le backend GAS**
+(action `scanPhotos`, `Scan.gs`) qui reconnaît l'afficheur de la pompe (litres, prix/L, montant), le compteur
+(kilométrage total ODO) et le ticket (date, station…). L'app recoupe les lectures (`js/scanControle.js`) et
+signale sous le champ toute valeur douteuse (⚠ : pompe et ticket en désaccord, litres × prix ≠ montant, type de
+carburant déduit du prix, kilométrage improbable, prix différent de la station). Date et station restent à
+vérifier par l'utilisateur. **Repli hors ligne** : une photo seule est lue comme un ticket par l'OCR
+[Tesseract.js](https://tesseract.projectnaptha.com/) 100 % navigateur.
 
 Champs détectés : **date, km compteur, litres, prix/L, montant total, type de carburant, nom de la station**.
 
@@ -128,7 +131,7 @@ Champs détectés : **date, km compteur, litres, prix/L, montant total, type de 
 ([Google AI Studio](https://aistudio.google.com/), gratuit 1500 req/jour). Sans clé, le scan utilise
 Tesseract.js localement, **sans aucune clé API**.
 
-**W9 — Photo jointe automatiquement** : après le scan, l'image redimensionnée est encodée en base64
+**W9 — Photo jointe automatiquement** : après le scan, seule la photo reconnue comme **ticket** est jointe ; l'image redimensionnée est encodée en base64
 et transmise avec le plein lors de l'enregistrement. Le GAS la stocke dans un dossier Drive
 **"Suivi E85 - Tickets"**, la rend publique en lecture et enregistre l'URL dans la colonne P du Sheet.
 Un badge **📷 Photo jointe** confirme visuellement que l'image sera envoyée.

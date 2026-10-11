@@ -505,6 +505,11 @@ function doPost(e) {
     return handleScanTicket(payload.imageBase64, payload.mimeType);
   }
 
+  // ── W97 — Scanner pompe / compteur / ticket (Scan.gs) ──
+  if (payload.action === 'scanPhotos') {
+    return handleScanPhotos(payload);
+  }
+
   // ── U7 — Identité : email du compte (idToken vérifié) ou propriétaire (mode souple) ──
   const ownerEmail = resolveOwner_(e, payload);
   if (!ownerEmail) return unauthorizedResponse_();   // auth obligatoire et idToken absent/invalide

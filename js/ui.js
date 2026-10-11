@@ -66,6 +66,11 @@ export function computeTriplet(source) {
   const elC = document.getElementById('fCout');
   const elP = document.getElementById('fPrix');
   if (!elL || !elC || !elP) return;
+  if (_verrouScan) {   // W97 — valeurs lues par le scanner : pas de recalcul tant que l'utilisateur n'a rien saisi
+    elP.value = _verrouScan.prix;
+    if (_verrouScan.cout) elC.value = _verrouScan.cout;
+    return;
+  }
   const res = calcTriplet(parseFloat(elL.value), parseFloat(elC.value), parseFloat(elP.value), source);
   if (source !== 'litres' && isFinite(res.L) && res.L > 0) elL.value = res.L.toFixed(2);
   if (source !== 'cout'   && isFinite(res.C) && res.C > 0) elC.value = res.C.toFixed(2);
@@ -78,6 +83,7 @@ export function computeTriplet(source) {
  */
 export function setFieldPrice(id, value, defaultPh) {
   const el = document.getElementById(id), v = value ? parseFloat(value) : 0;
+  if (id === 'fPrix' && _verrouScan) { el.value = _verrouScan.prix; return; }   // W97 — prix payé prioritaire
   if (v > 0) {
     el.value = v.toFixed(3); el.placeholder = defaultPh;
     el.classList.add('autofilled');
@@ -85,4 +91,54 @@ export function setFieldPrice(id, value, defaultPh) {
   } else {
     el.value = ''; el.placeholder = '--';
   }
+}
+
+/** W97 — Alerte ⚠ sous un champ pré-rempli par le scanner. Remplace l'alerte
+ *  existante du même champ ; s'efface dès que l'utilisateur modifie le champ
+ *  (clic pour un bloc non saisissable comme le choix du carburant). */
+export function setFieldWarning(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let w = document.querySelector(`.field-warn[data-warn-for="${id}"]`);
+  if (!w) {
+    w = document.createElement('div');
+    w.className = 'field-warn';
+    w.dataset.warnFor = id;
+    w.setAttribute('role', 'status');
+    (el.closest('.km-input-wrap') || el).insertAdjacentElement('afterend', w);   // hors du bloc flex km + micro
+  }
+  w.textContent = '⚠ ' + msg;
+  const evt = el.matches('input, select, textarea') ? 'input' : 'click';
+  el.addEventListener(evt, () => {
+    document.querySelector(`.field-warn[data-warn-for="${id}"]`)?.remove();
+  }, { once: true });
+}
+
+/** W97 — Retire toutes les alertes de champ (nouveau scan, remise à zéro du formulaire). */
+export function clearFieldWarnings() {
+  document.querySelectorAll('.field-warn').forEach(w => w.remove());
+}
+
+/* W97 — Verrou du scanner : le prix payé et le montant lus sur la pompe ou le
+ * ticket l'emportent sur les prix station / secteur / historiques posés après
+ * coup (requêtes asynchrones, changement de carburant). Levé à la première
+ * saisie de l'utilisateur dans litres, prix ou coût, au resetForm et à chaque
+ * nouveau scan. */
+let _verrouScan = null;          // { prix: '0.869', cout: '14.03' | null }
+let _ecouteVerrou = false;
+const CHAMPS_TRIPLET = ['fLitres', 'fPrix', 'fCout'];
+
+export function verrouillerScan(prix, cout) {
+  _verrouScan = { prix: String(prix), cout: cout ? String(cout) : null };
+  if (!_ecouteVerrou) {
+    _ecouteVerrou = true;
+    // Phase de capture : s'exécute avant les écouteurs du champ (computeTriplet).
+    document.addEventListener('input', e => {
+      if (_verrouScan && CHAMPS_TRIPLET.includes(e.target?.id)) _verrouScan = null;
+    }, true);
+  }
+}
+
+export function deverrouillerScan() {
+  _verrouScan = null;
 }

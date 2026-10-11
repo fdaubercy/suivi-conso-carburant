@@ -422,6 +422,15 @@ header h1 {
   border-color: var(--green);
   background: var(--green-light);
 }
+/* W97 — alerte de vérification sous un champ pré-rempli par le scanner */
+.field-warn {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #8A5A00;
+}
+[data-theme="dark"] .field-warn { color: var(--amber); }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 /* ─── Police réduite dans le select (options) ─── */

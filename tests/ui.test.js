@@ -9,6 +9,7 @@ import {
   computeTriplet, setFieldPrice, showFeedback,
   setGeoStatus, setS98Status, setAutreStatus, setVehiculeStatus,
   showCpSearch, hideCpSearch, setSubmitState,
+  setFieldWarning, clearFieldWarnings, verrouillerScan, deverrouillerScan,
 } from '../js/ui.js';
 
 beforeEach(() => {
@@ -140,5 +141,85 @@ describe('showFeedback', () => {
     const el = document.getElementById('feedback');
     vi.advanceTimersByTime(10000);
     expect(el.style.display).toBe('block');
+  });
+});
+describe('setFieldWarning / clearFieldWarnings (W97)', () => {
+  it('affiche le message juste sous le champ, une seule fois par champ', () => {
+    setFieldWarning('fLitres', 'à vérifier');
+    setFieldWarning('fLitres', 'pompe et ticket diffèrent');
+    const w = document.querySelectorAll('.field-warn[data-warn-for="fLitres"]');
+    expect(w).toHaveLength(1);
+    expect(w[0].textContent).toBe('⚠ pompe et ticket diffèrent');
+    expect(document.getElementById('fLitres').nextElementSibling).toBe(w[0]);
+  });
+  it('s\'efface dès que l\'utilisateur modifie le champ', () => {
+    setFieldWarning('fLitres', 'x');
+    document.getElementById('fLitres').dispatchEvent(new Event('input'));
+    expect(document.querySelector('.field-warn')).toBeNull();
+  });
+  it('sur un bloc non saisissable (choix du carburant), s\'efface au clic', () => {
+    document.body.insertAdjacentHTML('beforeend', '<div id="typeToggle"></div>');
+    setFieldWarning('typeToggle', 'type à vérifier');
+    const tt = document.getElementById('typeToggle');
+    tt.dispatchEvent(new Event('input'));
+    expect(document.querySelector('.field-warn')).not.toBeNull();
+    tt.dispatchEvent(new Event('click'));
+    expect(document.querySelector('.field-warn')).toBeNull();
+  });
+  it('clearFieldWarnings retire toutes les alertes', () => {
+    setFieldWarning('fLitres', 'a');
+    setFieldWarning('fPrix', 'b');
+    clearFieldWarnings();
+    expect(document.querySelectorAll('.field-warn')).toHaveLength(0);
+  });
+  it('id inconnu : ne lève pas', () => {
+    expect(() => setFieldWarning('absent', 'x')).not.toThrow();
+  });
+});
+
+describe('setFieldWarning — champ km dans son bloc flex (W97, revue I3)', () => {
+  it("l'alerte se place après le bloc .km-input-wrap, pas entre le champ et le micro", () => {
+    document.body.insertAdjacentHTML('beforeend',
+      '<div class="field"><div class="km-input-wrap"><input id="fKm"><button id="micKm"></button></div></div>');
+    setFieldWarning('fKm', 'compteur partiel (TRIP) lu ?');
+    const w = document.querySelector('.field-warn[data-warn-for="fKm"]');
+    expect(w.previousElementSibling.classList.contains('km-input-wrap')).toBe(true);
+    expect(document.querySelector('.km-input-wrap .field-warn')).toBeNull();
+  });
+});
+
+describe('verrou du scan — prix payé et montant lus prioritaires (W97, revue I1/I2/I5)', () => {
+  afterEach(() => deverrouillerScan());
+  const val = id => document.getElementById(id).value;
+
+  it('un prix station posé après le scan ne remplace pas le prix payé', () => {
+    document.getElementById('fPrix').value = '0.869';
+    verrouillerScan('0.869', null);
+    setFieldPrice('fPrix', 0.899, '0.798');
+    expect(val('fPrix')).toBe('0.869');
+    setFieldPrice('fPrix', null, '0.798');
+    expect(val('fPrix')).toBe('0.869');
+  });
+  it('le recalcul du triplet conserve le montant lu et le prix payé', () => {
+    document.getElementById('fLitres').value = '16.14';
+    document.getElementById('fPrix').value = '';
+    document.getElementById('fCout').value = '15.03';
+    verrouillerScan('0.869', '15.03');
+    computeTriplet('prix');
+    expect(val('fPrix')).toBe('0.869');
+    expect(val('fCout')).toBe('15.03');
+  });
+  it("la première saisie de l'utilisateur dans le triplet lève le verrou", () => {
+    document.getElementById('fPrix').value = '0.869';
+    verrouillerScan('0.869', null);
+    document.getElementById('fLitres').dispatchEvent(new Event('input', { bubbles: true }));
+    setFieldPrice('fPrix', 0.899, '0.798');
+    expect(val('fPrix')).toBe('0.899');
+  });
+  it('deverrouillerScan rétablit le comportement normal', () => {
+    verrouillerScan('0.869', null);
+    deverrouillerScan();
+    setFieldPrice('fPrix', 0.899, '0.798');
+    expect(val('fPrix')).toBe('0.899');
   });
 });
