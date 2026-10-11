@@ -560,20 +560,8 @@ function syncIdExists_(sheet, syncId) {
 // Écrit la ligne d'un nouveau plein (A→T) ; upload éventuel de la photo ticket.
 function appendPleinRow_(sheet, payload, sp, syncId, ownerEmail) {
   // W9 — Upload photo ticket vers Drive si fournie
-  let photoUrl = '';
-  if (payload.ticketPhoto) {
-    try {
-      const folder   = getOrCreateTicketFolder();
-      const bytes    = Utilities.base64Decode(payload.ticketPhoto);
-      const blob     = Utilities.newBlob(bytes, 'image/jpeg',
-        'ticket_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmmss') + '.jpg');
-      const file     = folder.createFile(blob);
-      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      photoUrl = 'https://drive.google.com/file/d/' + file.getId() + '/view';
-    } catch (photoErr) {
-      Logger.log('W9 photo upload error: ' + photoErr.message);
-    }
-  }
+  const photo = uploadTicketPhoto_(payload.ticketPhoto);
+  const photoUrl = photo.url;
 
   sheet.appendRow([
     new Date(),                                         // A — Horodatage
@@ -597,6 +585,8 @@ function appendPleinRow_(sheet, payload, sp, syncId, ownerEmail) {
     ownerEmail,                                         // S — U7 email du compte
     payload.cout ? Number(payload.cout) : '',           // T — W71 coût exact du plein
   ]);
+  // W9 — l'échec d'envoi de la photo est renvoyé au client (le plein, lui, est enregistré).
+  if (photo.error) return jsonResponse({ success: true, sync_id: syncId, photoError: photo.error });
 
   return jsonResponse({ success: true, sync_id: syncId });
 }
@@ -752,8 +742,9 @@ function handleDeletePlein(ss, syncId, email, rowHint) {
 //  W92 — handleUpdatePlein
 //  Modifie un plein existant (retrouvé par sync_id, col O). Met à jour les
 //  champs saisissables + estampille Modifié_le (col Q) pour la resync Excel.
-//  Ne touche NI au sync_id, NI à l'Horodatage de création (A), NI à la photo
-//  (P), NI à l'email propriétaire (S), NI au tombstone (R).
+//  Ne touche NI au sync_id, NI à l'Horodatage de création (A), NI à l'email
+//  propriétaire (S), NI au tombstone (R). Photo (P) : remplacée seulement si
+//  une nouvelle photo de ticket est jointe (W9).
 // ─────────────────────────────────────────────────────────────
 function handleUpdatePlein(ss, payload, email) {
   const syncId = payload && payload.sync_id;
@@ -801,10 +792,16 @@ function handleUpdatePlein(ss, payload, email) {
     }
     // T — coût exact (W71)
     sheet.getRange(row, IDX_COUT + 1).setValue(payload.cout ? Number(payload.cout) : '');
+    // P — W9 : nouvelle photo de ticket jointe à la modification
+    const photo = uploadTicketPhoto_(payload.ticketPhoto);
+    if (photo.url) sheet.getRange(row, IDX_PHOTO + 1).setValue(photo.url);
     // Q — Modifié_le (S5) : horodatage pour la resync bidirectionnelle.
     sheet.getRange(row, IDX_MODIFIED + 1).setValue(stamp);
 
-    return jsonResponse({ success: true, sync_id: target });
+    const res = { success: true, sync_id: target };
+    if (photo.url) res.photoUrl = photo.url;
+    if (photo.error) res.photoError = photo.error;
+    return jsonResponse(res);
   }
   return jsonResponse({ success: false, error: 'Plein introuvable (sync_id inconnu)' });
 }
@@ -1237,6 +1234,32 @@ function migrerMultiUser() {
 // ─────────────────────────────────────────────────────────────
 //  Helpers
 // ─────────────────────────────────────────────────────────────
+
+// W9 — Enregistre la photo (base64 JPEG) dans le dossier Drive des tickets.
+// Renvoie { url, error } ; ne lève jamais (le plein reste enregistré).
+// Requiert le scope https://www.googleapis.com/auth/drive (appsscript.json).
+function uploadTicketPhoto_(b64) {
+  if (!b64) return { url: '', error: '' };
+  try {
+    const folder = getOrCreateTicketFolder();
+    const blob   = Utilities.newBlob(Utilities.base64Decode(b64), 'image/jpeg',
+      'ticket_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmmss') + '.jpg');
+    const file   = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return { url: 'https://drive.google.com/file/d/' + file.getId() + '/view', error: '' };
+  } catch (photoErr) {
+    Logger.log('W9 photo upload error: ' + photoErr.message);
+    return { url: '', error: String(photoErr.message || photoErr) };
+  }
+}
+
+// W9 — À exécuter UNE fois depuis l'éditeur Apps Script après l'ajout du scope
+// Drive : déclenche l'écran d'autorisation et crée le dossier des tickets.
+function autoriserDrive() {
+  const folder = getOrCreateTicketFolder();
+  Logger.log('Dossier des tickets OK : ' + folder.getUrl());
+  return folder.getUrl();
+}
 
 // W9 — Retourne (ou crée) le dossier Drive pour les photos de tickets
 function getOrCreateTicketFolder() {

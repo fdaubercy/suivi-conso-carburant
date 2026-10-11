@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.37.4.0] — 2026-10-11
+
+### Fixed
+- **Photo du ticket jamais enregistrée (W9)** — la colonne « Photo ticket » (`_ImportGS!P`, recopiée dans `GS_Pleins`) était vide pour tous les pleins : le manifeste du projet Apps Script liste ses scopes explicitement et ne déclarait pas Google Drive, donc `DriveApp` levait une erreur d'autorisation, attrapée et seulement journalisée. Le scope `https://www.googleapis.com/auth/drive` est ajouté (seul scope accepté par `DriveApp.createFile` / `getFoldersByName`) ; le manifeste `appsscript.json` est désormais versionné dans le dépôt.
+- La **modification d'un plein** (W92) enregistre aussi une nouvelle photo de ticket jointe.
+
+### Added
+- `uploadTicketPhoto_` (GAS) : envoi commun à l'ajout et à la modification, renvoie `photoError` au client au lieu d'échouer en silence ; l'app affiche « Plein enregistré ✓ — photo non sauvegardée » avec la cause (`_alertePhoto`, `js/formulaire.js`).
+- `autoriserDrive()` (GAS) : à exécuter une fois depuis l'éditeur Apps Script pour accorder l'accès Drive et créer le dossier « Suivi E85 - Tickets ».
+- Tests : garde statique « un .gs qui utilise DriveApp impose le scope Drive » et envoi de la photo à l'ajout comme à la modification (`tests/gasGarde.test.js`), `_alertePhoto` (`tests/formulaire.test.js`). GAS v71 (production redéployée après autorisation).
+
 ## [5.37.3.0] — 2026-10-11
 
 ### Fixed

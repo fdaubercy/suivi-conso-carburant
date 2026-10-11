@@ -393,11 +393,14 @@ export async function submitForm() {
         body: JSON.stringify({ ...payload, action: 'updatePlein', sync_id: syncId }),
       }).then(r => r.json());
       if (json.success) {
+        if (json.photoUrl) patch['Photo ticket'] = json.photoUrl;   // W9
         updateLocalRecord(editRec, patch);
         await syncStationSiNouvelle(station);
         resetForm();
         window.dispatchEvent(new window.CustomEvent('plein-added'));   // W64 — MAJ globale
-        showFeedback('success', 'Plein mis à jour ✓', litres + ' L à ' + prix + ' €/L — ' + station);
+        const alerte = _alertePhoto(json);
+        if (alerte) showFeedback('info', 'Plein mis à jour ✓ — ' + alerte.titre, alerte.msg);
+        else showFeedback('success', 'Plein mis à jour ✓', litres + ' L à ' + prix + ' €/L — ' + station);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         showFeedback('error', 'Modification refusée', json.error || 'Veuillez réessayer.');
@@ -429,7 +432,9 @@ export async function submitForm() {
     }).then(r => r.json());
 
     if (json.success) {
-      showFeedback('success', 'Plein enregistré ✓', json.message || litres + ' L à ' + prix + ' €/L — ' + station);
+      const alerte = _alertePhoto(json);
+      if (alerte) showFeedback('info', 'Plein enregistré ✓ — ' + alerte.titre, alerte.msg);
+      else showFeedback('success', 'Plein enregistré ✓', json.message || litres + ' L à ' + prix + ' €/L — ' + station);
       await syncStationSiNouvelle(station);
       resetForm();
       // W64 — MAJ globale après un plein : le hub refreshAfterPlein (main.js)
@@ -459,6 +464,16 @@ export async function submitForm() {
   } finally {
     setSubmitState(false);
   }
+}
+
+/** W9 — Message d'alerte quand le GAS n'a pas pu enregistrer la photo du ticket
+ *  (le plein, lui, est enregistré). null si aucune erreur photo. */
+export function _alertePhoto(json) {
+  if (!json || !json.photoError) return null;
+  return {
+    titre: 'photo non sauvegardée',
+    msg: ' Le ticket n’a pas pu être enregistré dans Google Drive (' + String(json.photoError).slice(0, 120) + ').',
+  };
 }
 
 /* ═══════════════════════════════════════

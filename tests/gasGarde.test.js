@@ -273,3 +273,25 @@ describe('garde statique — dates « jour » écrites à minuit local', () => {
     expect(code).toMatch(/getSpreadsheetTimeZone\(\)[\s\S]{0,200}Utilities\.parseDate/);
   });
 });
+
+/* ─── 4. W9 — Photo du ticket : autorisation Drive + envoi ───────────── */
+
+describe('W9 — photo du ticket enregistrée dans Drive', () => {
+  const usesDrive = GS_FILES.some(f => /\bDriveApp\./.test(src(f)));
+
+  it('un .gs qui utilise DriveApp impose le scope Drive dans appsscript.json', () => {
+    expect(usesDrive).toBe(true);
+    const manifest = JSON.parse(readFileSync(join(GAS_DIR, 'appsscript.json'), 'utf-8'));
+    expect(manifest.oauthScopes).toContain('https://www.googleapis.com/auth/drive');
+  });
+
+  it('ajout ET modification d’un plein envoient la photo et signalent un échec (photoError)', () => {
+    const code = src('Code.gs');
+    const corps = nom => code.slice(code.indexOf('function ' + nom + '('),
+      code.indexOf('\nfunction ', code.indexOf('function ' + nom + '(') + 1));
+    ['appendPleinRow_', 'handleUpdatePlein'].forEach(fn => {
+      expect(corps(fn)).toContain('uploadTicketPhoto_(');
+      expect(corps(fn)).toContain('photoError');
+    });
+  });
+});

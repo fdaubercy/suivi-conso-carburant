@@ -35,6 +35,7 @@ vi.mock('../js/auth.js', () => ({
 }));
 
 import {
+  _alertePhoto,
   saveDraft, restoreDraft, clearDraft, checkDuplicate, onKmInput,
   _parseSpeechToNumber, submitForm, _newSyncId,
 } from '../js/formulaire.js';
@@ -267,5 +268,18 @@ describe('Envoi idempotent — sync_id client', () => {
     await submitForm();
     expect(queuePlein).not.toHaveBeenCalled();
     expect(showFeedback).toHaveBeenCalledWith('success', expect.stringContaining('enregistré'), 'Plein déjà enregistré');
+  });
+});
+
+describe('_alertePhoto (W9 — échec d’enregistrement de la photo du ticket)', () => {
+  it('aucune alerte sans erreur photo', () => {
+    expect(_alertePhoto({ success: true })).toBeNull();
+    expect(_alertePhoto(null)).toBeNull();
+  });
+  it('alerte explicite quand le GAS renvoie photoError', () => {
+    const a = _alertePhoto({ success: true, photoError: 'You do not have permission to call DriveApp' });
+    expect(a.titre).toBe('photo non sauvegardée');
+    expect(a.msg).toContain('Google Drive');
+    expect(a.msg).toContain('DriveApp');
   });
 });
