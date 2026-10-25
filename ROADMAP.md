@@ -130,6 +130,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.40.1.0 | **Barre de navigation Excel : entrée « 🔧 Dépenses » (W100)** — présente sur tous les onglets à bandeau (`modSidebar`). |
 | v5.40.0.0 | **Tuiles « Dépenses » (W100)** — app : tuile d'accueil vers le formulaire des dépenses du véhicule courant (Réglages déplié, focus) ; Excel : tuile Accueil vers l'onglet « Dépenses », dont le tableau B9 détaille les dépenses du véhicule sélectionné (segment Véhicule partagé avec le tableau de bord). |
 | v5.39.0.0 | **Excel : onglet « Dépenses » (W99) + cumul d'économie continu** — onglet visible des coûts d'entretien (total, répartitions catégorie / véhicule / année, détail) en formules dynamiques sur `tblDepenses` (`modVueDepenses`) ; colonne « Économie cumulée » de `Tableau2` qui ne repart plus de zéro après un plein Super 98 ou une cellule `#REF!`. |
 | v5.38.2.0 | **Indication du scanner sous le bouton + version de l'app réalignée** — « 1 à 3 photos… » passe sous « 📸 Scanner » ; `APP_VERSION` oublié en 5.38.0.0/5.38.1.0 corrigé (le cache du service worker n'était pas renouvelé). |

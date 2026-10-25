@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.40.1.0] — 2026-10-25
+
+### Added
+- **Excel — « 🔧 Dépenses » dans la barre de navigation (W100)** : nouvelle entrée entre « Prix / Station » et « Réglages » sur tous les onglets dotés du bandeau (Accueil, Tableau de bord, Carte, Suivi Carburant, Dépenses, Prix par Station, Hist. Carburant, Réglages, Contrôle intégrité), surlignée quand l'onglet est actif (`modSidebar` : 7 entrées, `NavSidebar_5` = Dépenses, `NavSidebar_6` = Réglages).
+
 ## [5.40.0.0] — 2026-10-25
 
 ### Added

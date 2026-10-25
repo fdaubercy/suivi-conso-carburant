@@ -6,7 +6,7 @@ Attribute VB_Name = "modSidebar"
 ' ============================================================
 Option Explicit
 
-Private Const NAV_COUNT As Integer = 6
+Private Const NAV_COUNT As Integer = 7
 Private Const BAR_H     As Single = 40    ' hauteur visuelle barre (pts)
 Private Const ITEM_W    As Single = 108   ' largeur visuelle d'un item (pts)
 Private Const ITEM_H    As Single = 30    ' hauteur visuelle d'un item (pts)
@@ -27,6 +27,10 @@ Private Function ZoomFactor() As Single
     On Error GoTo 0
     If z <= 0 Then z = 1
     ZoomFactor = z
+End Function
+
+Private Function WS_DEPENSES() As String
+    WS_DEPENSES = "D" & ChrW(233) & "penses"
 End Function
 
 Private Function WS_REGLAGES() As String
@@ -91,16 +95,18 @@ Public Sub NavSidebar_1(): NavToFromSidebar "Tableau de bord":  End Sub
 Public Sub NavSidebar_2(): NavToFromSidebar "Carte":            End Sub
 Public Sub NavSidebar_3(): NavToFromSidebar "Suivi Carburant":  End Sub
 Public Sub NavSidebar_4(): NavToFromSidebar "Prix par Station": End Sub
-Public Sub NavSidebar_5(): NavToFromSidebar WS_REGLAGES():      End Sub
+Public Sub NavSidebar_5(): NavToFromSidebar WS_DEPENSES():      End Sub
+Public Sub NavSidebar_6(): NavToFromSidebar WS_REGLAGES():      End Sub
 
 ' Met a jour la surbrillance de l'onglet actif sur toutes les feuilles
 Public Sub MarquerOngletActif()
     Dim actName As String
     On Error Resume Next: actName = ActiveSheet.name: On Error GoTo 0
-    Dim tgts(5) As String
+    Dim tgts(6) As String
     tgts(0) = "Accueil":          tgts(1) = "Tableau de bord"
     tgts(2) = "Carte":            tgts(3) = "Suivi Carburant"
-    tgts(4) = "Prix par Station": tgts(5) = WS_REGLAGES()
+    tgts(4) = "Prix par Station": tgts(5) = WS_DEPENSES()
+    tgts(6) = WS_REGLAGES()
     Dim ws As Worksheet
     For Each ws In ThisWorkbook.Worksheets
         Dim k As Integer
@@ -122,7 +128,7 @@ End Sub
 Public Sub PoserSidebarSurTousLesOnglets()
     Dim noms As Variant
     noms = Array("Accueil", "Tableau de bord", "Carte", WS_REGLAGES(), _
-                 "Suivi Carburant", "Prix par Station", "Hist. Carburant")
+                 "Suivi Carburant", "Prix par Station", "Hist. Carburant", WS_DEPENSES())
     Dim origWs As Worksheet
     On Error Resume Next: Set origWs = ActiveSheet: On Error GoTo 0
     Application.ScreenUpdating = False
@@ -177,13 +183,14 @@ Public Sub PoserSidebarSurFeuille(ws As Worksheet, Optional zOverride As Single 
     bg.ZOrder msoSendToBack
 
     ' -- Labels et cibles de navigation
-    Dim labels(5) As String, tgts(5) As String
+    Dim labels(6) As String, tgts(6) As String
     labels(0) = Emo(&H1F3E0) & " Accueil":          tgts(0) = "Accueil"
     labels(1) = Emo(&H1F4CA) & " Tableau de bord":  tgts(1) = "Tableau de bord"
     labels(2) = Emo(&H1F5FA) & " Carte":            tgts(2) = "Carte"
     labels(3) = Emo(&H26FD) & " Suivi Carburant":   tgts(3) = "Suivi Carburant"
     labels(4) = Emo(&H1F4B6) & " Prix / Station":   tgts(4) = "Prix par Station"
-    labels(5) = Emo(&H2699) & " R" & ChrW(233) & "glages": tgts(5) = WS_REGLAGES()
+    labels(5) = Emo(&H1F527) & " D" & ChrW(233) & "penses": tgts(5) = WS_DEPENSES()
+    labels(6) = Emo(&H2699) & " R" & ChrW(233) & "glages": tgts(6) = WS_REGLAGES()
 
     Dim actName As String
     On Error Resume Next: actName = ActiveSheet.name: On Error GoTo 0
