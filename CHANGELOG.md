@@ -4,6 +4,14 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.39.0.0] — 2026-10-25
+
+### Added
+- **Excel — onglet « Dépenses » (W99)** : nouvel onglet visible (après « Suivi Carburant ») qui reprend tous les coûts d'entretien et dépenses enregistrés (app et Excel) : total, nombre, dernière dépense, répartition par catégorie / véhicule / année et liste détaillée, la plus récente en haut. Entièrement en formules dynamiques sur `tblDepenses` (lignes supprimées ignorées) : mise à jour automatique à chaque synchronisation. Boutons « Synchroniser » et « Ajouter une dépense », barre de navigation commune. Construit par le nouveau module `modVueDepenses` (`EnsureVueDepenses`, relançable).
+
+### Fixed
+- **Excel — « Économie cumulée (€) » qui repartait de zéro** (`Suivi Carburant`, `Tableau2`) : la formule ne lisait que la ligne précédente ; après le plein 38 en Super 98 (cellule vide), le cumul redémarrait à 0, et une cellule `#REF!` (ligne supprimée autrefois) le remettait à zéro une seconde fois au plein 42. Nouvelle formule : dernière valeur numérique au-dessus **pour le même véhicule** + économie du plein. Le cumul se poursuit (dernier plein : 442,53 €, identique à « Économie cumulée actuelle » B11) ; la courbe X9 et le « taux récent » de la projection, qui lisent cette colonne, en profitent.
+
 ## [5.38.2.0] — 2026-10-11
 
 ### Changed
