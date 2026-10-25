@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.40.0.0] — 2026-10-25
+
+### Added
+- **App — tuile « 🔧 Dépenses » sur l'accueil (W100)** : ouvre Réglages, déplie le bloc des dépenses et place le curseur dans l'intitulé ; la dépense est enregistrée pour le véhicule courant (la moto). Le code de focus du lien « définir un budget » (W39) est factorisé dans `focusSettingsField()` (`js/main.js`).
+- **Excel — tuile « 🔧 Dépenses » sur l'Accueil (W100)** : à droite de « Réglages », même style (`modVueDepenses.EnsureTuileAccueilDepenses`, cible `NavDepenses`).
+
+### Changed
+- **Excel — onglet « Dépenses » centré sur le véhicule sélectionné (W100)** : le tableau en B9 liste désormais le détail des dépenses du véhicule choisi (`'Suivi Carburant'!B3`, « (tous) » = tout) — date, catégorie, intitulé, montant, la plus récente en haut. Véhicule, total et nombre en tête ; répartitions par catégorie et par année du véhicule à droite, récapitulatif tous véhicules en dessous. Un segment « Véhicule » (même cache que le tableau de bord) permet de changer de véhicule depuis l'onglet.
+
 ## [5.39.0.0] — 2026-10-25
 
 ### Added

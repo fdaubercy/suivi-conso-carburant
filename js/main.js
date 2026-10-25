@@ -273,7 +273,11 @@ function initStaticHandlers() {
   document.getElementById('homeBtn')?.addEventListener('click', () => navigate('accueil'));
   document.getElementById('view-accueil')?.addEventListener('click', e => {
     const tile = e.target.closest('[data-view]');
-    if (tile) { navigate(tile.dataset.view); return; }
+    if (tile) {
+      navigate(tile.dataset.view);
+      if (tile.dataset.focus) focusSettingsField(tile.dataset.focus);   // tuile « Dépenses »
+      return;
+    }
     const sc = e.target.closest('[data-shortcut]');
     if (!sc) return;
     if (sc.dataset.shortcut === 'dernier') dupliquerDernier();
@@ -288,16 +292,20 @@ function initStaticHandlers() {
   document.getElementById('statsBox')?.addEventListener('click', e => {
     const link = e.target.closest('[data-focus]');
     if (!link) return;
-    const id = link.dataset.focus;
-    setTimeout(() => {
-      const inp = document.getElementById(id);
-      if (!inp) return;
-      const card = inp.closest('.card.collapsible');
-      if (card?.classList.contains('collapsed')) card.querySelector('.section-title')?.click();
-      inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      inp.focus();
-    }, 80);
+    focusSettingsField(link.dataset.focus);
   });
+}
+
+/** Déplie le bloc repliable de Réglages contenant `id`, y défile et met le focus. */
+function focusSettingsField(id) {
+  setTimeout(() => {
+    const inp = document.getElementById(id);
+    if (!inp) return;
+    const card = inp.closest('.card.collapsible');
+    if (card?.classList.contains('collapsed')) card.querySelector('.section-title')?.click();
+    inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    inp.focus({ preventScroll: true });
+  }, 80);
 }
 
 initStaticHandlers();

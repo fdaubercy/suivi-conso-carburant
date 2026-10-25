@@ -9,17 +9,29 @@ Attribute VB_Name = "modVueDepenses"
 '  UNIQUE, HSTACK, MAP) : la feuille se met a jour seule a chaque
 '  synchronisation, sans macro de rafraichissement.
 '
-'  Contenu : total + nombre + derniere depense, repartition par
-'  categorie / vehicule / annee, liste detaillee (plus recente en haut).
+'  Vehicule selectionne = 'Suivi Carburant'!B3 (miroir du segment
+'  Vehicule du tableau de bord, ou choix local X54). Un segment
+'  "Vehicule" partageant le meme cache est pose sur l'onglet.
+'
+'  Contenu : vehicule, total, nombre ; en B9 le detail des depenses du
+'  vehicule (plus recente en haut) ; a droite la repartition par
+'  categorie / annee du vehicule, puis le total par vehicule (tous).
 '  Les lignes supprimees (supprime = 1) sont ignorees.
 '
-'  Point d'entree : EnsureVueDepenses (relancable sans risque).
+'  Points d'entree :
+'    EnsureVueDepenses           - (re)construit l'onglet (relancable).
+'    EnsureTuileAccueilDepenses  - tuile "Depenses" de l'Accueil.
+'    NavDepenses                 - cible de la tuile.
 '  Source ASCII pur : accents via ChrW (cf. lecon #125).
 ' ============================================================
 Option Explicit
 
-Private Const TOP_SUMMARY As Long = 10   ' 1re ligne des repartitions
-Private Const HDR_DETAIL  As Long = 21   ' en-tete de la liste detaillee
+Private Const ROW_HDR   As Long = 9      ' en-tetes des tableaux
+Private Const ROW_TOUS  As Long = 20     ' en-tete du recap tous vehicules
+Private Const SEL       As String = "'Suivi Carburant'!$B$3"
+Private Const SLC_CACHE As String = "Segment_Vehicule"
+Private Const SLC_NOM   As String = "dep_slcVehicule"
+Private Const TUILE_ACC As String = "btnAccDepenses"
 
 Private Function NomFeuille() As String
     NomFeuille = "D" & ChrW(233) & "penses"
@@ -27,6 +39,11 @@ End Function
 
 Private Function FmtEuro() As String
     FmtEuro = "#,##0.00 " & ChrW(8364)
+End Function
+
+' Masque des depenses actives du vehicule selectionne ("(tous)" = toutes).
+Private Function OkVeh() As String
+    OkVeh = "(tblDepenses[supprime]<>1)*(((" & SEL & "=""(tous)"")+(tblDepenses[vehicule]=" & SEL & "))>0)"
 End Function
 
 Public Sub EnsureVueDepenses()
@@ -68,7 +85,7 @@ Public Sub EnsureVueDepenses()
     ws.Cells.Font.Size = 11
     ws.Rows(1).RowHeight = 50
 
-    ColW ws, Array(2, 13, 14, 14, 36, 14, 8, 12, 3, 8, 8, 12)
+    ColW ws, Array(2, 12, 13, 34, 13, 3, 14, 8, 12, 3, 8, 8, 12)
 
     ' -- Titre
     With ws.Range("B3")
@@ -76,92 +93,144 @@ Public Sub EnsureVueDepenses()
         .Font.Size = 18: .Font.bold = True: .Font.Color = cPrim
     End With
     With ws.Range("B4")
-        .value = "Toutes les d" & ChrW(233) & "penses enregistr" & ChrW(233) & "es (application et Excel). " & _
-                 "Mise " & ChrW(224) & " jour automatique " & ChrW(224) & " chaque synchronisation."
+        .value = "D" & ChrW(233) & "penses enregistr" & ChrW(233) & "es (application et Excel) du v" & ChrW(233) & _
+                 "hicule s" & ChrW(233) & "lectionn" & ChrW(233) & ". Mise " & ChrW(224) & " jour automatique."
         .Font.Italic = True: .Font.Color = cSub
     End With
 
-    ' -- Indicateurs
-    Lbl ws.Range("B6"), "Total"
-    ws.Range("C6").Formula2 = "=SUMIFS(tblDepenses[montant],tblDepenses[supprime],""<>1"")"
-    ws.Range("C6").NumberFormat = FmtEuro()
-    Lbl ws.Range("D6"), "Nombre"
-    ws.Range("E6").Formula2 = "=COUNTIFS(tblDepenses[supprime],""<>1"",tblDepenses[id],""<>"")"
-    ws.Range("E6").HorizontalAlignment = xlLeft
-    ws.Range("C6,E6").Font.bold = True
-    ws.Range("C6,E6").Font.Size = 14
-    Lbl ws.Range("B7"), "Derni" & ChrW(232) & "re"
-    ws.Range("C7").Formula2 = "=IFERROR(INDEX(" & ListeTriee() & ",1,1),""-"")"
-    ws.Range("C7").NumberFormat = "dd/mm/yyyy"
-    ws.Range("C7").HorizontalAlignment = xlLeft
-    ws.Range("D7").Formula2 = "=IFERROR(INDEX(" & ListeTriee() & ",1,4)&"" - ""&FIXED(INDEX(" & ListeTriee() & ",1,5),2)&"" " & ChrW(8364) & ""","""")"
+    ' -- Indicateurs du vehicule selectionne
+    Lbl ws.Range("B6"), "V" & ChrW(233) & "hicule"
+    ws.Range("C6").Formula2 = "=" & SEL
+    Lbl ws.Range("B7"), "Total"
+    ws.Range("C7").Formula2 = "=SUM(FILTER(tblDepenses[montant]," & OkVeh() & ",0))"
+    ws.Range("C7").NumberFormat = FmtEuro()
+    ws.Range("D7").Formula2 = "=SUM(--(" & OkVeh() & "))&"" d" & ChrW(233) & "pense(s)"""
+    ws.Range("C6:C7").Font.bold = True
+    ws.Range("C6:C7").Font.Size = 13
+    ws.Range("C6:C7").HorizontalAlignment = xlLeft
+    ws.Range("D7").Font.Color = cSub
 
-    ' -- Repartitions (spill vers le bas, 10 lignes reservees)
-    Dim r0 As Long: r0 = TOP_SUMMARY
-    Entete ws, ws.Range(ws.Cells(r0 - 1, 2), ws.Cells(r0 - 1, 4)), _
+    ' -- B9 : detail des depenses du vehicule (plus recente en haut)
+    Entete ws.Range(ws.Cells(ROW_HDR, 2), ws.Cells(ROW_HDR, 5)), _
+        Array("Date", "Cat" & ChrW(233) & "gorie", "Intitul" & ChrW(233), "Montant"), cPrim
+    ws.Cells(ROW_HDR + 1, 2).Formula2 = "=IFERROR(LET(ok," & OkVeh() & ",d,tblDepenses[date]," & _
+        "dt,IFERROR(DATE(LEFT(d,4),MID(d,6,2),MID(d,9,2)),d)," & _
+        "t,FILTER(HSTACK(dt,tblDepenses[categorie],tblDepenses[intitule],tblDepenses[montant]),ok)," & _
+        "SORTBY(t,INDEX(t,,1),-1)),""Aucune d" & ChrW(233) & "pense pour ce v" & ChrW(233) & "hicule"")"
+    ws.Range(ws.Cells(ROW_HDR + 1, 2), ws.Cells(ROW_HDR + 500, 2)).NumberFormat = "dd/mm/yyyy"
+    ws.Range(ws.Cells(ROW_HDR + 1, 2), ws.Cells(ROW_HDR + 500, 2)).HorizontalAlignment = xlLeft
+    ws.Range(ws.Cells(ROW_HDR + 1, 5), ws.Cells(ROW_HDR + 500, 5)).NumberFormat = FmtEuro()
+
+    ' -- Repartitions du vehicule (categorie G:I, annee K:M), 9 lignes reservees
+    Entete ws.Range(ws.Cells(ROW_HDR, 7), ws.Cells(ROW_HDR, 9)), _
         Array("Cat" & ChrW(233) & "gorie", "Nb", "Total"), cPrim
-    ws.Cells(r0, 2).Formula2 = Repartition("tblDepenses[categorie]")
-    Entete ws, ws.Range(ws.Cells(r0 - 1, 6), ws.Cells(r0 - 1, 8)), _
-        Array("V" & ChrW(233) & "hicule", "Nb", "Total"), cPrim
-    ws.Cells(r0, 6).Formula2 = Repartition("tblDepenses[vehicule]")
-    Entete ws, ws.Range(ws.Cells(r0 - 1, 10), ws.Cells(r0 - 1, 12)), _
+    ws.Cells(ROW_HDR + 1, 7).Formula2 = RepartitionVeh("tblDepenses[categorie]", "SORT(UNIQUE(FILTER(c,ok)))")
+    Entete ws.Range(ws.Cells(ROW_HDR, 11), ws.Cells(ROW_HDR, 13)), _
         Array("Ann" & ChrW(233) & "e", "Nb", "Total"), cPrim
-    ws.Cells(r0, 10).Formula2 = "=IFERROR(LET(ok,tblDepenses[supprime]<>1," & _
-        "y,LEFT(tblDepenses[date],4),u,SORT(UNIQUE(FILTER(y,ok)),,-1)," & _
-        "HSTACK(u,MAP(u,LAMBDA(a,SUM((y=a)*ok)))," & _
-        "MAP(u,LAMBDA(a,SUM((y=a)*ok*tblDepenses[montant]))))),""-"")"
-    ws.Range(ws.Cells(r0, 4), ws.Cells(r0 + 9, 4)).NumberFormat = FmtEuro()
-    ws.Range(ws.Cells(r0, 8), ws.Cells(r0 + 9, 8)).NumberFormat = FmtEuro()
-    ws.Range(ws.Cells(r0, 12), ws.Cells(r0 + 9, 12)).NumberFormat = FmtEuro()
+    ws.Cells(ROW_HDR + 1, 11).Formula2 = RepartitionVeh("LEFT(tblDepenses[date],4)", "SORT(UNIQUE(FILTER(c,ok)),,-1)")
 
-    ' -- Liste detaillee (plus recente en haut)
-    Dim h As Long: h = HDR_DETAIL
-    With ws.Cells(h - 1, 2)
-        .value = "D" & ChrW(233) & "tail des d" & ChrW(233) & "penses"
-        .Font.bold = True: .Font.Size = 13: .Font.Color = cPrim
+    ' -- Recap tous vehicules (G:I)
+    With ws.Cells(ROW_TOUS - 1, 7)
+        .value = "Tous v" & ChrW(233) & "hicules"
+        .Font.bold = True: .Font.Color = cPrim
     End With
-    Entete ws, ws.Range(ws.Cells(h, 2), ws.Cells(h, 6)), _
-        Array("Date", "V" & ChrW(233) & "hicule", "Cat" & ChrW(233) & "gorie", "Intitul" & ChrW(233), "Montant"), cPrim
-    ws.Cells(h + 1, 2).Formula2 = "=IFERROR(" & ListeTriee() & ",""Aucune d" & ChrW(233) & "pense enregistr" & ChrW(233) & "e"")"
-    ws.Range(ws.Cells(h + 1, 2), ws.Cells(h + 500, 2)).NumberFormat = "dd/mm/yyyy"
-    ws.Range(ws.Cells(h + 1, 2), ws.Cells(h + 500, 2)).HorizontalAlignment = xlLeft
-    ws.Range(ws.Cells(h + 1, 6), ws.Cells(h + 500, 6)).NumberFormat = FmtEuro()
+    Entete ws.Range(ws.Cells(ROW_TOUS, 7), ws.Cells(ROW_TOUS, 9)), _
+        Array("V" & ChrW(233) & "hicule", "Nb", "Total"), cPrim
+    ws.Cells(ROW_TOUS + 1, 7).Formula2 = "=IFERROR(LET(ok,tblDepenses[supprime]<>1,c,tblDepenses[vehicule]," & _
+        "u,SORT(UNIQUE(FILTER(c,ok)))," & _
+        "HSTACK(u,MAP(u,LAMBDA(a,SUM((c=a)*ok))),MAP(u,LAMBDA(a,SUM((c=a)*ok*tblDepenses[montant]))))),""-"")"
+
+    ws.Range(ws.Cells(ROW_HDR + 1, 9), ws.Cells(ROW_TOUS + 15, 9)).NumberFormat = FmtEuro()
+    ws.Range(ws.Cells(ROW_HDR + 1, 13), ws.Cells(ROW_HDR + 9, 13)).NumberFormat = FmtEuro()
 
     ' -- Boutons d'action
     Bouton ws, "dep_btnSync", ChrW(8635) & " Synchroniser", "modSyncDepenses.SyncDepensesManuel", _
-           ws.Range("F3"), 0, cPrim
+           ws.Range("G3"), 0, cPrim
     Bouton ws, "dep_btnAdd", "+ Ajouter une d" & ChrW(233) & "pense", "modSyncDepenses.AjouterDepenseExcel", _
-           ws.Range("F3"), 160, modCharte.CharteColor("Vert")
+           ws.Range("G3"), 160, modCharte.CharteColor("Vert")
+
+    ' -- Segment "Vehicule" (meme cache que le tableau de bord)
+    PoserSegmentVehicule ws, ws.Range("K5").Left, ws.Range("C5").Top
 
     ' -- Barre de navigation commune
     ws.Activate
     On Error Resume Next
+    ActiveWindow.DisplayGridlines = False
     modSidebar.PoserSidebarSurFeuille ws
     On Error GoTo done
     ws.Range("A1").Select
+
+    EnsureTuileAccueilDepenses
 
 done:
     Application.ScreenUpdating = su
     Application.EnableEvents = ev
 End Sub
 
-' Liste des depenses actives triee par date decroissante :
-' Date (vraie date) | Vehicule | Categorie | Intitule | Montant.
-Private Function ListeTriee() As String
-    ListeTriee = "LET(ok,tblDepenses[supprime]<>1,d,tblDepenses[date]," & _
-        "dt,IFERROR(DATE(LEFT(d,4),MID(d,6,2),MID(d,9,2)),d)," & _
-        "t,FILTER(HSTACK(dt,tblDepenses[vehicule],tblDepenses[categorie]," & _
-        "tblDepenses[intitule],tblDepenses[montant]),ok)," & _
-        "SORTBY(t,INDEX(t,,1),-1))"
+' Cible de la tuile "Depenses" de l'Accueil.
+Public Sub NavDepenses()
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Worksheets(NomFeuille())
+    On Error GoTo 0
+    If ws Is Nothing Then
+        EnsureVueDepenses
+        Set ws = ThisWorkbook.Worksheets(NomFeuille())
+    End If
+    ws.Visible = xlSheetVisible
+    ws.Activate
+    ws.Range("A1").Select
+End Sub
+
+' Tuile "Depenses" de l'Accueil : copie du style de la tuile Reglages,
+' posee a sa droite (idempotent).
+Public Sub EnsureTuileAccueilDepenses()
+    On Error GoTo fin
+    Dim ws As Worksheet: Set ws = ThisWorkbook.Worksheets("Accueil")
+    Dim shp As Shape, src As Shape
+    On Error Resume Next
+    ws.Shapes(TUILE_ACC).Delete
+    On Error GoTo fin
+    For Each shp In ws.Shapes
+        If LCase$(shp.OnAction) Like "*navreglages" Then Set src = shp: Exit For
+    Next shp
+    If src Is Nothing Then Exit Sub
+
+    ' Forme neuve + PickUp/Apply : une forme Duplicate refuse Name/Left/Top
+    ' (-2146777998, cf. lecon #61).
+    Dim t As Shape
+    Set t = ws.Shapes.AddShape(msoShapeRoundedRectangle, src.Left + src.Width + 12, src.Top, src.Width, src.Height)
+    t.name = TUILE_ACC
+    src.PickUp
+    t.Apply
+    t.Placement = src.Placement
+    t.OnAction = "modVueDepenses.NavDepenses"
+    t.fill.ForeColor.RGB = RGB(14, 116, 144)
+    ' Icone cle a molette (U+1F527, paire de substitution UTF-16).
+    t.TextFrame2.TextRange.text = ChrW(&HD83D) & ChrW(&HDD27) & Chr(13) & "D" & ChrW(233) & "penses"
+fin:
+End Sub
+
+' Repartition (valeur | nombre | total) des depenses du vehicule selectionne
+' selon une expression de colonne ; ordre = expression de tri sur c / ok.
+Private Function RepartitionVeh(ByVal col As String, ByVal ordre As String) As String
+    RepartitionVeh = "=IFERROR(LET(ok," & OkVeh() & ",c," & col & ",u," & ordre & "," & _
+        "HSTACK(u,MAP(u,LAMBDA(a,SUM((c=a)*ok))),MAP(u,LAMBDA(a,SUM((c=a)*ok*tblDepenses[montant]))))),""-"")"
 End Function
 
-' Repartition (valeur | nombre | total) des depenses actives selon une colonne.
-Private Function Repartition(ByVal col As String) As String
-    Repartition = "=IFERROR(LET(ok,tblDepenses[supprime]<>1," & _
-        "u,SORT(UNIQUE(FILTER(" & col & ",ok)))," & _
-        "HSTACK(u,COUNTIFS(" & col & ",u,tblDepenses[supprime],""<>1"")," & _
-        "SUMIFS(tblDepenses[montant]," & col & ",u,tblDepenses[supprime],""<>1""))),""-"")"
-End Function
+Private Sub PoserSegmentVehicule(ws As Worksheet, ByVal x As Double, ByVal y As Double)
+    On Error GoTo fin
+    Dim sc As SlicerCache: Set sc = ThisWorkbook.SlicerCaches(SLC_CACHE)
+    Dim sl As Slicer
+    Set sl = sc.Slicers.Add(ws, , SLC_NOM, "V" & ChrW(233) & "hicule", y, x, 200, 56)
+    On Error Resume Next
+    Dim sh As Shape: Set sh = ws.Shapes(SLC_NOM)
+    sh.Placement = xlFreeFloating
+    sh.IncrementLeft x - sh.Left
+    sh.IncrementTop y - sh.Top
+    sh.Width = 200: sh.Height = 56
+fin:
+End Sub
 
 Private Sub ColW(ws As Worksheet, w As Variant)
     Dim i As Long
@@ -175,7 +244,7 @@ Private Sub Lbl(c As Range, ByVal txt As String)
     c.Font.Color = modCharte.CharteColor("Subtil")
 End Sub
 
-Private Sub Entete(ws As Worksheet, rng As Range, titres As Variant, ByVal fond As Long)
+Private Sub Entete(rng As Range, titres As Variant, ByVal fond As Long)
     rng.value = titres
     rng.Font.bold = True
     rng.Font.Color = RGB(255, 255, 255)
