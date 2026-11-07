@@ -32,12 +32,14 @@
         ]
       },
       {
-        "matcher": "mcp__.*__navigate",
+        "matcher": "PowerShell",
         "hooks": [
           {
-            "type": "agent",
-            "statusMessage": "Détection navigation GAS…",
-            "prompt": "Tu surveilles les actions du navigateur Chrome dans le projet suivi-conso-carburant.\n\nUne navigation vient de se produire. Voici les données : $ARGUMENTS\n\nRègle anti-boucle STRICTE : ne rien faire si tool_output contient 'docs(auto)'.\n\nSi tool_input.url contient 'script.google.com' ou 'script.googleapis.com' :\n1. Affiche en barre d'état : '🌐 Navigation GAS détectée — vérifier si une mise à jour de Code.gs a eu lieu'\n2. Lis .claude/gas-config.json pour vérifier si deployHistory est à jour\n3. Si l'URL contient 'deployments', suggère d'ajouter une entrée dans deployHistory de gas-config.json\n\nSi l'URL ne contient pas 'script.google.com', ne rien faire."
+            "type": "command",
+            "if": "PowerShell(git commit*)",
+            "shell": "powershell",
+            "statusMessage": "Git push automatique…",
+            "command": "$raw = [Console]::In.ReadToEnd(); try { $j = $raw | ConvertFrom-Json; if ($j.tool_input.command -match 'git\\s+commit') { Push-Location 'C:\\Users\\fdaub\\Documents\\Github\\suivi-conso-carburant'; git push 2>&1; Pop-Location } } catch {}"
           }
         ]
       }
