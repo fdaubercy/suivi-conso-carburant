@@ -128,11 +128,22 @@ export function computeEcoByFill(records) {
     const col = refPriceCol(rm.isDiesel);
     const connus = e85.map(r => Number(r[col]) || 0).filter(p => p > 0);
     const refMoyen = connus.length ? connus.reduce((s, p) => s + p, 0) / connus.length : 0;
+    // Surconso du plein vs réf. : conso du plein / conso réf. équivalente − 1, la conso
+    // réf. valant conso E85 moyenne × ratioConso (moyenne des surconsos = surcMoy).
+    const consoE85 = new Map(consoParPlein(list)
+      .filter(({ r }) => matchType(r.Type, 'E85')).map(({ r, conso }) => [r, conso]));
+    const moyE85 = consoE85.size ? [...consoE85.values()].reduce((s, c) => s + c, 0) / consoE85.size : 0;
+    const surcMoy = surconsoVsRef(rm.ratioConso);
     e85.forEach(r => {
       const refPrix = rm.refPriceFromFill(r, refMoyen);
       if (!(refPrix > 0)) return;
       const lit = Number(r['Nb. Litres']);
-      map.set(r, { eco: lit * rm.ratioConso * refPrix - lit * Number(r['Prix €/L']), ref });
+      const e = { eco: lit * rm.ratioConso * refPrix - lit * Number(r['Prix €/L']), ref };
+      if (consoE85.has(r) && moyE85 > 0) {
+        e.surc = consoE85.get(r) / (moyE85 * rm.ratioConso) - 1;
+        e.surcMoy = surcMoy;
+      }
+      map.set(r, e);
     });
   });
   return map;
@@ -191,28 +202,34 @@ export function monthLabelOf(key) {
   return MOIS_FR_LONG[m - 1] + ' ' + y;
 }
 
-/* ─── Surconsommation E85 dynamique (cellule J7 Excel) ───
-   conso moyenne E85 / conso moyenne S98 − 1, calculée à partir des pleins.
-   Défaut DEFAULT_SURCONSO si pas de données S98 exploitables. */
-export function computeSurconso(records) {
-  const sorted = records
+/** Conso plein-à-plein (L/100) : litres du plein i / km depuis le plein i−1,
+ *  pleins triés par date. Renvoie [{ r, conso }] (pleins non mesurables exclus). */
+function consoParPlein(records) {
+  const sorted = (records || [])
     .filter(r => Number(r['Km compteur'] || 0) > 0)
     .sort((a, b) => {
       const da = new Date(String(a.Date || a.Horodatage || '').replace(' ', 'T'));
       const db = new Date(String(b.Date || b.Horodatage || '').replace(' ', 'T'));
       return da - db;
     });
-  const consoE85 = [], consoS98 = [];
+  const out = [];
   for (let i = 1; i < sorted.length; i++) {
-    const km0 = Number(sorted[i - 1]['Km compteur'] || 0);
-    const km1 = Number(sorted[i]['Km compteur'] || 0);
+    const dk  = Number(sorted[i]['Km compteur'] || 0) - Number(sorted[i - 1]['Km compteur'] || 0);
     const lit = Number(sorted[i]['Nb. Litres'] || 0);
-    const dk  = km1 - km0;
-    if (dk <= 0 || lit <= 0) continue;
-    const conso = (lit / dk) * 100;
-    if (matchType(sorted[i].Type, 'E85')) consoE85.push(conso);
-    else if (matchType(sorted[i].Type, 'SP98')) consoS98.push(conso);
+    if (dk > 0 && lit > 0) out.push({ r: sorted[i], conso: (lit / dk) * 100 });
   }
+  return out;
+}
+
+/* ─── Surconsommation E85 dynamique (cellule J7 Excel) ───
+   conso moyenne E85 / conso moyenne S98 − 1, calculée à partir des pleins.
+   Défaut DEFAULT_SURCONSO si pas de données S98 exploitables. */
+export function computeSurconso(records) {
+  const consoE85 = [], consoS98 = [];
+  consoParPlein(records).forEach(({ r, conso }) => {
+    if (matchType(r.Type, 'E85')) consoE85.push(conso);
+    else if (matchType(r.Type, 'SP98')) consoS98.push(conso);
+  });
   if (!consoE85.length || !consoS98.length) return getSurconsoFallback();
   const avg = a => a.reduce((s, v) => s + v, 0) / a.length;
   const s = avg(consoE85) / avg(consoS98) - 1;

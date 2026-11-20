@@ -1228,11 +1228,18 @@ body.no-share .hist-drawer .hist-share { display: none; }
 .hist-eco {
   font-size: 12px; font-weight: 600; margin-top: 3px;
   font-variant-numeric: tabular-nums;
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap;
 }
 .hist-eco.pos { color: #15803d; }
 .hist-eco.neg { color: #dc2626; }
 [data-theme="dark"] .hist-eco.pos { color: #34d399; }
 [data-theme="dark"] .hist-eco.neg { color: #f87171; }
+/* Surconso du plein vs moyenne, alignée à droite de l'économie */
+.hist-surc { margin-left: auto; font-weight: 600; color: var(--text-muted); }
+.hist-surc.high { color: #dc2626; }
+.hist-surc.low  { color: #15803d; }
+[data-theme="dark"] .hist-surc.high { color: #f87171; }
+[data-theme="dark"] .hist-surc.low  { color: #34d399; }
 
 .hist-row3 {
   font-size: 11px; color: var(--text-muted);

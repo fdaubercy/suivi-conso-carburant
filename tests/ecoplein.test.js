@@ -60,6 +60,18 @@ describe('computeEcoByFill', () => {
     expect(computeEcoByFill([r]).has(r)).toBe(false);
   });
 
+  it('calcule la surconso du plein vs la surconso moyenne (moyenne des pleins = surcMoy)', () => {
+    const a = plein({ 'Km compteur': 1000 });
+    const b = plein({ 'Km compteur': 1400, Date: '2026-09-05' });   // 10 L/100
+    const c = plein({ 'Km compteur': 1900, Date: '2026-09-10' });   //  8 L/100
+    const m = computeEcoByFill([a, b, c]);
+    expect(m.get(a).surc).toBeUndefined();                     // premier plein : non mesurable
+    expect(m.get(b).surcMoy).toBeCloseTo(0.25, 6);
+    expect(m.get(b).surc).toBeCloseTo(1.25 * 10 / 9 - 1, 6);   // conso réf. = 9 / 1,25
+    expect(m.get(c).surc).toBeCloseTo(1.25 * 8 / 9 - 1, 6);
+    expect((m.get(b).surc + m.get(c).surc) / 2).toBeCloseTo(0.25, 6);
+  });
+
   it('rend une Map vide sans pleins', () => {
     expect(computeEcoByFill([]).size).toBe(0);
     expect(computeEcoByFill(undefined).size).toBe(0);

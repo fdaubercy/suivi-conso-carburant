@@ -4,6 +4,11 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
+## [5.41.0.0] — 2026-11-20
+
+### Added
+- **Historique — surconso du plein vs surconso moyenne (W101)** : sur chaque plein E85, à droite de « 💶 +X € vs SP98 », « 🔥 +35 % vs moy. +20 % ». Surconso du plein = conso plein-à-plein / (conso E85 moyenne du véhicule × ratio de référence) − 1, de sorte que la moyenne des pleins égale la surconso utilisée par les Stats (bornée X70). Rouge au-dessus de la moyenne (+2 pts), vert en dessous, gris entre les deux. `js/statsParams.js` (`computeEcoByFill` renvoie `surc`/`surcMoy`, helper `consoParPlein` partagé avec `computeSurconso`), `js/historique.js`, `css/style.css`, test dans `tests/ecoplein.test.js`.
+
 ## [5.40.1.0] — 2026-10-25
 
 ### Added

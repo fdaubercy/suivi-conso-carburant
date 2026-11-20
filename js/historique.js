@@ -829,7 +829,17 @@ function ecoHtml(r) {
   const pos = e.eco >= 0;
   const val = Math.abs(e.eco).toFixed(2).replace('.', ',');
   const ref = escapeHtml(e.ref);
-  return `<div class="hist-eco ${pos ? 'pos' : 'neg'}" title="${pos ? 'Économie' : 'Surcoût'} de ce plein E85 par rapport au ${ref}, à distance parcourue égale (surconsommation E85 incluse)">💶 ${pos ? '+' : '−'}${val} € vs ${ref}</div>`;
+  return `<div class="hist-eco ${pos ? 'pos' : 'neg'}"><span title="${pos ? 'Économie' : 'Surcoût'} de ce plein E85 par rapport au ${ref}, à distance parcourue égale (surconsommation E85 incluse)">💶 ${pos ? '+' : '−'}${val} € vs ${ref}</span>${surcHtml(e)}</div>`;
+}
+
+/** Surconso E85 du plein vs la surconso moyenne du véhicule ('' si non mesurable).
+ *  Couleur : ±2 points autour de la moyenne = neutre, au-dessus = rouge, en dessous = vert. */
+function surcHtml(e) {
+  if (!isFinite(e.surc) || !isFinite(e.surcMoy)) return '';
+  const pct = s => (s >= 0 ? '+' : '−') + Math.round(Math.abs(s) * 100) + ' %';
+  const d = e.surc - e.surcMoy;
+  const lvl = d > 0.02 ? 'high' : d < -0.02 ? 'low' : 'mid';
+  return `<span class="hist-surc ${lvl}" title="Surconsommation de ce plein E85 vs ${escapeHtml(e.ref)} (conso depuis le plein précédent), comparée à la surconsommation moyenne du véhicule">🔥 ${pct(e.surc)} vs moy. ${pct(e.surcMoy)}</span>`;
 }
 
 function renderItem(r) {
