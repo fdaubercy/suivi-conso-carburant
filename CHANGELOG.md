@@ -4,7 +4,15 @@ Toutes les modifications notables de ce projet sont documentées ici.
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
-## [5.41.0.0] — 2026-11-20
+## [5.42.0.0] — 2026-11-20
+
+### Added
+- **Scanner — date et lieu des photos (W102)** : `js/exif.js` lit l'EXIF des JPEG d'origine (avant redimensionnement, qui l'efface) : date de prise de vue (`DateTimeOriginal`, sinon `DateTime`) et position GPS. Dans `lancerScan` (`js/scanPhotos.js`), la date de la photo remplit le champ Date et l'emporte sur la date lue par l'IA ou l'OCR (alerte ⚠ « date de la photo retenue (lue sur le ticket : …) » si elles diffèrent), y compris quand l'analyse IA échoue ; une date future est ignorée. La position GPS lance `searchNearby` autour du point de la photo puis choisit la station la plus proche si elle est à moins de 300 m (`RAYON_STATION_M`), la liste restant ouverte ; au-delà, message « choisissez dans la liste ». Le choix attend l'enseigne OSM et n'écrase pas une station choisie à la main entre-temps.
+
+### Changed
+- `js/geo.js` : `searchNearby` renvoie la promesse de l'enrichissement OSM (sans effet pour la géolocalisation classique, qui ne l'attend pas).
+
+ — 2026-11-20
 
 ### Added
 - **Historique — surconso du plein vs surconso moyenne (W101)** : sur chaque plein E85, à droite de « 💶 +X € vs SP98 », « 🔥 +35 % vs moy. +20 % ». Surconso du plein = conso plein-à-plein / (conso E85 moyenne du véhicule × ratio de référence) − 1, de sorte que la moyenne des pleins égale la surconso utilisée par les Stats (bornée X70). Rouge au-dessus de la moyenne (+2 pts), vert en dessous, gris entre les deux. `js/statsParams.js` (`computeEcoByFill` renvoie `surc`/`surcMoy`, helper `consoParPlein` partagé avec `computeSurconso`), `js/historique.js`, `css/style.css`, test dans `tests/ecoplein.test.js`.

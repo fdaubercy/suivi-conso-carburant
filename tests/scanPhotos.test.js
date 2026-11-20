@@ -14,6 +14,21 @@ vi.mock('../js/ticket.js', () => ({
   lireTicketOCR:      vi.fn(async () => {}),
 }));
 
+// W102 — geo.js simulé : searchNearby renvoie une station à `distStation` m.
+let distStation = 120;
+vi.mock('../js/geo.js', async () => {
+  const { state } = await import('../js/state.js');
+  return {
+    searchNearby: vi.fn(async () => {
+      state._nearbyStations = [{ name: 'Carrefour - Fiers', lat: 50.1, lon: 2.6, dist: distStation }];
+    }),
+    pickStation: vi.fn(),
+    highlightNearbyItem: vi.fn(),
+  };
+});
+const geo = await import('../js/geo.js');
+const { jpeg } = await import('./fixtures/jpegExif.js');
+
 const ticket = await import('../js/ticket.js');
 const { lancerScan } = await import('../js/scanPhotos.js');
 const { state } = await import('../js/state.js');
@@ -33,7 +48,9 @@ beforeEach(() => {
   document.body.innerHTML = `
     <button id="scanTicketBtn">📸 Scanner</button><div id="feedback"></div>
     <span id="ticketPhotoIndicator" hidden></span><div id="typeToggle"></div>
-    <input id="fDate"><input id="fKm"><input id="fLitres"><input id="fPrix"><input id="fCout">`;
+    <input id="fDate"><input id="fKm"><input id="fLitres"><input id="fPrix"><input id="fCout">
+    <button id="geoBtn"></button><div id="geoStatus"></div><div id="nearbyList"></div>`;
+  distStation = 120;
   Element.prototype.scrollIntoView = vi.fn();
   btn = document.getElementById('scanTicketBtn');
   state._ticketPhoto = null;
@@ -111,6 +128,54 @@ describe('lancerScan — en ligne', () => {
     ticket.blobToBase64.mockImplementationOnce(async () => 'converti-b64');
     await lancerScan([new File(['x'], 'IMG.HEIC', { type: 'image/heic' })], btn);
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('lancerScan — date et position des photos (W102)', () => {
+  const photo = (o) => new File([jpeg(o)], 'IMG_0272.jpg', { type: 'image/jpeg' });
+  const remplirDate = d => ticket.fillFormFromTicket.mockImplementationOnce(async v => {
+    document.getElementById('fDate').value = d ?? v.date ?? ''; return 1;
+  });
+
+  it('la date de prise de vue l\'emporte sur la date lue, avec une alerte', async () => {
+    repondre({ success: true, photos: [TICKET(0)], fusion: {} });
+    remplirDate();
+    await lancerScan([photo({ gps: false })], btn);
+    expect(document.getElementById('fDate').value).toBe('2026-11-16');
+    expect(document.querySelector('.field-warn[data-warn-for="fDate"]').textContent)
+      .toContain('lue sur le ticket : 10/10/2026');
+  });
+  it('sans date lue par l\'IA : date de la photo, sans alerte', async () => {
+    repondre({ success: true, photos: [POMPE], fusion: {} });
+    await lancerScan([photo({ gps: false })], btn);
+    expect(document.getElementById('fDate').value).toBe('2026-11-16');
+    expect(document.querySelector('.field-warn[data-warn-for="fDate"]')).toBeNull();
+  });
+  it('la date de la photo est posée même si l\'analyse IA échoue', async () => {
+    repondre({ success: false, error: 'quota' });
+    await lancerScan([photo({ gps: false }), fichier('b.jpg')], btn);
+    expect(document.getElementById('fDate').value).toBe('2026-11-16');
+  });
+  it('position GPS : recherche autour de la photo et choix de la station à moins de 300 m', async () => {
+    repondre({ success: true, photos: [POMPE], fusion: {} });
+    await lancerScan([photo()], btn);
+    expect(geo.searchNearby.mock.calls[0][0]).toBeCloseTo(50 + 31 / 60 + 30 / 3600, 6);
+    expect(geo.pickStation).toHaveBeenCalledWith('Carrefour - Fiers', 50.1, 2.6);
+    expect(document.getElementById('geoStatus').textContent).toContain('Station de la photo');
+  });
+  it('station la plus proche au-delà de 300 m : liste seule, rien n\'est choisi', async () => {
+    distStation = 900;
+    repondre({ success: true, photos: [POMPE], fusion: {} });
+    await lancerScan([photo()], btn);
+    expect(geo.pickStation).not.toHaveBeenCalled();
+    expect(document.getElementById('geoStatus').textContent).toContain('Aucune station à moins de 300 m');
+  });
+  it('photo sans EXIF : ni date ni recherche de station', async () => {
+    repondre({ success: true, photos: [POMPE], fusion: {} });
+    document.getElementById('fDate').value = '2026-11-20';
+    await lancerScan([fichier('a.jpg')], btn);
+    expect(document.getElementById('fDate').value).toBe('2026-11-20');
+    expect(geo.searchNearby).not.toHaveBeenCalled();
   });
 });
 

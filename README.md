@@ -121,8 +121,11 @@ n'importe quel ordre → **un seul appel IA [Gemini 2.5 Flash](https://ai.google
 (action `scanPhotos`, `Scan.gs`) qui reconnaît l'afficheur de la pompe (litres, prix/L, montant), le compteur
 (kilométrage total ODO) et le ticket (date, station…). L'app recoupe les lectures (`js/scanControle.js`) et
 signale sous le champ toute valeur douteuse (⚠ : pompe et ticket en désaccord, litres × prix ≠ montant, type de
-carburant déduit du prix, kilométrage improbable, prix différent de la station). Date et station restent à
-vérifier par l'utilisateur. **Repli hors ligne** : une photo seule est lue comme un ticket par l'OCR
+carburant déduit du prix, kilométrage improbable, prix différent de la station). **Date et lieu des photos (W102)** :
+la date de prise de vue (EXIF des JPEG) remplit le champ Date et l'emporte sur la date lue (⚠ si elles diffèrent) ;
+la position GPS de la photo lance la recherche des stations autour et choisit la plus proche si elle est à moins de
+300 m (liste laissée ouverte pour corriger). Les photos HEIC ou sans EXIF (captures, photos transférées) n'en
+portent pas. **Repli hors ligne** : une photo seule est lue comme un ticket par l'OCR
 [Tesseract.js](https://tesseract.projectnaptha.com/) 100 % navigateur.
 
 Champs détectés : **date, km compteur, litres, prix/L, montant total, type de carburant, nom de la station**.

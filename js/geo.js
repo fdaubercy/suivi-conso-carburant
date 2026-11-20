@@ -137,8 +137,9 @@ export async function searchNearby(lat, lon, btn) {
     setGeoStatus('ok', stations.length + ' station(s) ' + cfg.short + ' trouvée(s)');
 
     /* Enseignes OSM en arrière-plan : 1 requête groupée, renommage au fur et à
-       mesure. Annulé si l'utilisateur relance une recherche ou choisit une station. */
-    enrichStationsBulk(stations,
+       mesure. Annulé si l'utilisateur relance une recherche ou choisit une station.
+       Promesse renvoyée : le scan photo (W102) attend l'enseigne avant de choisir. */
+    return enrichStationsBulk(stations,
       (i, osmName) => { stations[i].name = composeStationName(resolveEnseigne(osmName, stations[i].adresse), stations[i].ville); updateNearbyName(i, stations[i].name); },
       setGeoStatus
     ).then(ok => {

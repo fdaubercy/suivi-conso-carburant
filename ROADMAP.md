@@ -130,6 +130,7 @@ Propositions d'amélioration classées par axe (web / Excel / sync) et par effor
 
 | Version | Idée |
 |---|---|
+| v5.42.0.0 | **Date et lieu des photos du scanner (W102)** — la date de prise de vue (EXIF JPEG, lecteur maison `js/exif.js`) remplit la date du plein et l'emporte sur celle lue par l'IA ou l'OCR (⚠ si elles diffèrent, posée même si l'IA échoue) ; la position GPS de la photo lance la recherche des stations autour et choisit la plus proche à moins de 300 m (après l'enseigne OSM, sans écraser un choix manuel). `js/scanPhotos.js`, `js/geo.js` (`searchNearby` renvoie la promesse d'enrichissement), tests `exif.test.js`, `scanPhotos.test.js`. |
 | v5.41.0.0 | **Surconso par plein dans l'historique (W101)** — à droite de l'économie vs SP98 : « 🔥 +35 % vs moy. +20 % » (surconso du plein E85 vs carburant de référence, comparée à la moyenne du véhicule ; rouge au-dessus, vert en dessous, gris à ±2 pts). `statsParams.computeEcoByFill` (+ `consoParPlein`), `historique.js`, `css/style.css`. |
 | v5.40.1.0 | **Barre de navigation Excel : entrée « 🔧 Dépenses » (W100)** — présente sur tous les onglets à bandeau (`modSidebar`). |
 | v5.40.0.0 | **Tuiles « Dépenses » (W100)** — app : tuile d'accueil vers le formulaire des dépenses du véhicule courant (Réglages déplié, focus) ; Excel : tuile Accueil vers l'onglet « Dépenses », dont le tableau B9 détaille les dépenses du véhicule sélectionné (segment Véhicule partagé avec le tableau de bord). |

@@ -8,11 +8,13 @@
 
 import { FUEL_CONFIG, GAS_URL, APP_TOKEN, CLIENT_ID_KEY } from './config.js';
 import { state } from './state.js';
-import { showFeedback, setFieldWarning, clearFieldWarnings, verrouillerScan, deverrouillerScan } from './ui.js';
+import { showFeedback, setFieldWarning, clearFieldWarnings, verrouillerScan, deverrouillerScan, setGeoStatus } from './ui.js';
 import { resizeImage, blobToBase64, fillFormFromTicket, lireTicketOCR } from './ticket.js';
 import { analyserScan, formaterBilan } from './scanControle.js';
 import { getAllRecords, getMaxKmForVehicule } from './historique.js';
 import { computeConsoMoy } from './refmodel.js';
+import { lireExif } from './exif.js';
+import { searchNearby, pickStation, highlightNearbyItem } from './geo.js';
 
 export const MAX_PHOTOS = 3;
 export const MAX_OCTETS = 6 * 1024 * 1024;
@@ -115,6 +117,61 @@ const MSG_HEIC = 'Photo au format HEIC illisible par ce navigateur — réglez l
   + '(iPhone : Réglages › Appareil photo › Formats › « Le plus compatible »).';
 const estHeic = f => /^image\/hei[cf]/i.test(f.type || '') || /\.hei[cf]$/i.test(f.name || '');
 
+/* ─── W102 — Date de prise de vue et position GPS des photos ─── */
+export const RAYON_STATION_M = 300;
+
+const isoJour = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+  + '-' + String(d.getDate()).padStart(2, '0');
+
+/** EXIF des photos d'origine (avant redimensionnement, qui l'efface) : première
+ *  date et première position trouvées. */
+async function lireExifPhotos(files) {
+  const res = { date: null, lat: null, lon: null };
+  for (const f of files) {
+    const e = await lireExif(f);
+    if (!e) continue;
+    if (!res.date && e.date && e.date <= isoJour(new Date())) res.date = e.date;
+    if (res.lat == null && e.lat != null) { res.lat = e.lat; res.lon = e.lon; }
+  }
+  return res;
+}
+
+/** La date de la photo l'emporte sur celle lue par l'IA ou l'OCR (alerte si elles diffèrent). */
+function appliquerDateExif(date, dateAvant) {
+  const el = document.getElementById('fDate');
+  if (!el || !date) return;
+  const lue = el.value !== dateAvant ? el.value : '';
+  el.value = date;
+  el.classList.add('autofilled');
+  if (lue && lue !== date) {
+    setFieldWarning('fDate', `date de la photo retenue (lue sur le ticket : ${lue.split('-').reverse().join('/')})`);
+  } else {
+    document.querySelector('.field-warn[data-warn-for="fDate"]')?.remove();
+  }
+}
+
+/** Recherche les stations autour du point de la photo et choisit la plus proche
+ *  si elle est à moins de RAYON_STATION_M ; la liste reste affichée pour corriger. */
+export async function stationDepuisPhoto(lat, lon) {
+  const btn = document.getElementById('geoBtn');
+  if (!btn) return;
+  const sel = document.getElementById('stationSel');
+  const choixAvant = sel?.value;
+  state._nearbyStations = [];
+  await searchNearby(lat, lon, btn);   // attend aussi l'enseigne OSM (≤ 25 s)
+  if (sel && sel.value !== choixAvant) return;   // l'utilisateur a choisi entre-temps
+  const s = state._nearbyStations[0];
+  if (!s) return;   // searchNearby a déjà affiché « aucune station » ou l'erreur
+  if (s.dist > RAYON_STATION_M) {
+    setGeoStatus('info', `📸 Aucune station à moins de ${RAYON_STATION_M} m de la photo : choisissez dans la liste.`);
+    return;
+  }
+  pickStation(s.name, s.lat, s.lon);
+  highlightNearbyItem(0);
+  document.getElementById('nearbyList').style.display = 'block';
+  setGeoStatus('ok', `📸 Station de la photo : ${s.name} (${s.dist} m)`);
+}
+
 export async function lancerScan(fileList, btn) {
   const tous = Array.from(fileList || []);
   if (!tous.length) return;
@@ -125,6 +182,8 @@ export async function lancerScan(fileList, btn) {
   deverrouillerScan();
   const origHTML = btn.innerHTML;
   btn.disabled = true;
+  const exif = await lireExifPhotos(files);
+  const dateAvant = document.getElementById('fDate')?.value || '';
   try {
     if (!navigator.onLine) {
       if (files.length === 1) {
@@ -177,6 +236,9 @@ export async function lancerScan(fileList, btn) {
   } finally {
     btn.innerHTML = origHTML;
     btn.disabled  = false;
+    // W102 — la date et la position de la photo valent aussi quand l'IA a échoué
+    appliquerDateExif(exif.date, dateAvant);
+    if (exif.lat != null) await stationDepuisPhoto(exif.lat, exif.lon).catch(err => console.warn('[scanPhotos] station photo :', err.message));
   }
 }
 
